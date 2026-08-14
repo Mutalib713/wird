@@ -24,9 +24,16 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   that is what the test covers. Half-page targets are held as integer half-page units
   rather than fractional pages, because 0.5 + 0.5 + 0.5 drifts and integers do not.
 
-- [ ] **2. App shell on the phone**
-  One screen. Hardcoded portion text. Installs and opens on the Pixel 6 Pro over USB.
+- [x] **2. App shell on the phone** — done 2026-08-14
+  One screen. Installs and opens on the Pixel 6 Pro over USB.
   *Done when:* the screen is visible on the actual phone.
+  *Evidence:* `topResumedActivity=com.mosman.wird/.MainActivity`, process alive, no
+  crash lines in logcat, screenshot captured. Debug APK 11,035,672 B (10.5 MB) — that
+  is unshrunk debug output; the release build with R8 will be a fraction of it, and the
+  number that matters for testers gets measured at task 16.
+  *Note:* the position and target are hardcoded, but the portion is computed by
+  `assignPortion`, so this also proved the domain layer runs on device rather than only
+  in a JVM test.
 
 - [ ] **3. A notification fires and opens that screen** ← the "it's live" gate
   Scheduled local notification, tapping it deep-links to the portion screen.

@@ -48,7 +48,18 @@ adb devices                      # confirm the phone is attached first
   written reason for each in `app/build.gradle.kts`. If you need to disable a fourth,
   write down why — a silently growing disable list is how a check stops meaning
   anything.
-- android-36.1, ~34s incremental builds. First clean build with a cold daemon is ~1m10s.
+- android-36.1, ~34s incremental builds. First clean build with a cold daemon is ~1m10s;
+  a cold `assembleDebug` is ~2m15s.
+- **The Pixel 6 Pro runs Android 17** (`ro.build.version.release` = 17, model `raven`,
+  serial `1A131FDEE006MD`). We build against compileSdk/targetSdk 36, so compatibility
+  modes apply on that device. This matters more than it looks: **the phone you develop
+  on is at the newest end of the range and your testers are at the oldest.** Anything
+  about notifications, alarms or background work behaves differently at both ends, and
+  passing on the Pixel proves nothing about a Tecno.
+- adb lives at `C:/Users/USER/AppData/Local/Android/Sdk/platform-tools/adb.exe` and is
+  not on PATH. Useful proofs:
+  `adb shell dumpsys activity activities | grep topResumedActivity` (is it really on
+  screen), `adb shell pidof com.mosman.wird`, `adb logcat -d -t 200 | grep FATAL`.
 - Pixel 6 Pro over USB. AGP 9 has a built-in-Kotlin gotcha — check it before blaming
   the build script.
 

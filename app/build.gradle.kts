@@ -74,6 +74,9 @@ dependencies {
     implementation("androidx.compose.ui:ui:1.9.0")
     implementation("androidx.compose.foundation:foundation:1.9.0")
     implementation("androidx.compose.material3:material3:1.4.0")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.9.0")
+    // Debug only — the preview renderer is a build-time tool, not something users ship.
+    debugImplementation("androidx.compose.ui:ui-tooling:1.9.0")
 
     // The whole domain layer is pure Kotlin with no Android dependency, so junit
     // alone tests all of it.

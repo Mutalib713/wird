@@ -212,7 +212,8 @@ or uploads. Never link a personal WhatsApp number to an unofficial gateway — s
 | **Scope drift into the full Qur'an app** before v1 proves anything. He has said his mind is already there. | NOT IN V1 above, plus the parked-not-killed note. Revisit after day 30. |
 | **He cannot recite aloud where he actually reads** — he uses the mushaf in class. | Two weeks of real use. If most reading is silent, the recording mechanic is weaker than it looks. |
 | ⚠ **Exact alarms are denied by default on Android 14+** unless the app is a clock or calendar. A timed reminder silently drifts. | Task 3 and task 17. The widget (task 21) exists partly because of this. |
-| ⚠ **Tecno/Infinix freeze background work.** | Task 17, verified on a real Transsion phone. |
+| ⚠ **Tecno/Infinix freeze background work.** | Task 15, verified on a real Transsion phone. |
+| ⚠ **The dev phone is at one extreme of the Android range and the testers are at the other.** The Pixel 6 Pro runs Android 17; Transsion budget phones in Ghana are typically on 12–14. Alarms, notifications and background limits differ at both ends, so a green result on the Pixel is not evidence about a Tecno. | Tasks 3 and 15 both need a second device. Until one exists, any notification claim is provisional and must be labelled as such. |
 | ⚠ **QCF glyph rendering on Android Compose is unproven.** Glyph codes live in a font private-use area. | Task 4. If Compose cannot render them, fall back to a `WebView` or to plain Uthmani text and say so. |
 | ~~Font payload unmeasured~~ **RESOLVED task 1, 2026-08-14.** ~372 KB/page TTF, ~214 MB for all 604. See § 10. | — |
 | ⚠ **woff2 would cut data cost by 77%, but Android cannot load it directly.** `Typeface` wants TTF/OTF. Using woff2 means decompressing on device or rendering the page in a WebView. | Task 4 decides: TTF at ~372 KB/page, or woff2 at ~80 KB plus a decoder. Measure both on a real 3G connection before choosing. |
