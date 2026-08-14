@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Android 13+ asks the user before any notification can appear. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+      Exact alarms. Declaring this is not the same as having it: from Android 14 the
+      permission is denied by default for anything that is not a clock or a calendar,
+      and the user must grant it in system settings. Wird degrades to an inexact alarm
+      when it is refused rather than pretending it worked.
+
+      Note we deliberately do NOT declare USE_EXACT_ALARM, which is granted
+      automatically — Google Play restricts it to alarm clock and calendar apps, and
+      claiming it for a reading reminder would be a launch problem later.
+    -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
+    <!-- Alarms are wiped by a reboot; this lets us set them again. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!--
       Three overlapping statements of the same rule, because they apply to different
       Android versions: fullBackupContent for 11 and below, dataExtractionRules for 12
@@ -23,6 +41,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Ours only. Nothing outside the app should be able to fire the nudge. -->
+        <receiver
+            android:name=".nudge.NudgeReceiver"
+            android:exported="false" />
+
+        <!-- Exported because the boot broadcast comes from the system. -->
+        <receiver
+            android:name=".nudge.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 
