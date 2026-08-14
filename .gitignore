@@ -3,7 +3,9 @@
 /local.properties
 /.idea/
 .DS_Store
-/build
+# No leading slash: this must match app/build too, not just a build/ at the repo root.
+# The root-anchored form let ~1,500 build artifacts into the first task-1 commit.
+build/
 /captures
 .externalNativeBuild
 .cxx
