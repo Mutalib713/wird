@@ -35,12 +35,18 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   `assignPortion`, so this also proved the domain layer runs on device rather than only
   in a JVM test.
 
-- [ ] **3. A notification fires and opens that screen** ← the "it's live" gate
+- [x] **3. A notification fires and opens that screen** ← the "it's live" gate — done 2026-08-14
   Scheduled local notification, tapping it deep-links to the portion screen.
   Request `SCHEDULE_EXACT_ALARM` with a screen that explains why, and detect when it has
   been refused.
   *Done when:* a real notification arrives on the Pixel and the tap lands on the right
   screen. **No feature work happens before this passes.**
+  *Evidence:* `WirdNudge: nudge fired` / `notification posted: Page 453` from a real
+  AlarmManager alarm; `dumpsys alarm` shows `*walarm*:com.mosman.wird/.nudge.NudgeReceiver`;
+  channel `wird_daily` importance 4; heads-up banner rendered "Today's wird / Page 453";
+  Mutalib tapped it and confirmed the screen showed "Opened from the reminder."
+  A force-stop plus plain launch does *not* show that state, so the flag is not sticky.
+  `am broadcast` from adb was refused — the receiver is `exported=false` as intended.
 
 ## Milestone 1 — The page
 

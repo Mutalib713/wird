@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import androidx.core.content.edit
+import androidx.core.net.toUri
 
 /**
  * The nudge: a scheduled local notification that opens today's portion.
@@ -41,7 +43,7 @@ object Nudge {
     fun exactAlarmSettingsIntent(context: Context): Intent? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
         return Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-            .setData(android.net.Uri.parse("package:${context.packageName}"))
+            .setData("package:${context.packageName}".toUri())
     }
 
     fun createChannel(context: Context) {
@@ -83,9 +85,7 @@ object Nudge {
 
         // Alarms do not survive a reboot, so remember when this one was for.
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putLong(KEY_NEXT_AT, triggerAtMillis)
-            .apply()
+            .edit { putLong(KEY_NEXT_AT, triggerAtMillis) }
 
         return exact
     }

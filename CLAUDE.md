@@ -73,8 +73,14 @@ adb devices                      # confirm the phone is attached first
 - **KFGQPC fonts are not for commercial use.** Free personal and tester use is fine.
   Money attached needs permission from the King Fahd Complex.
 - **Android 14+ denies exact alarms by default** unless the app is a clock or calendar.
-  A timed reminder silently falls back to inexact and drifts. This is why the widget
-  exists.
+  Measured on a fresh install: `adb shell cmd appops get com.mosman.wird
+  SCHEDULE_EXACT_ALARM` → `Default mode: default`, and `canScheduleExactAlarms()` is
+  false. Never cache that value — re-read it on every schedule, because it can change
+  underneath you (it did once during task 3, for reasons we never established).
+- **Never send a blind `adb shell input tap`.** During task 3 a WhatsApp call banner
+  appeared in the same instant as our notification and the tap opened the incoming-call
+  screen. It did not answer it, but it could have. Screenshot, confirm what is under the
+  coordinate, then tap — and do not drive the screen while the phone is in use.
 - **Tecno / Infinix / itel freeze background work.** Anything scheduled must be verified
   on a real Transsion phone, never only on the Pixel.
 - **whisper.cpp on Android: batch is fast, streaming is ~5× slower than real time.**
