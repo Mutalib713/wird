@@ -1,0 +1,27 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Secrets — never commit
+.env
+.env.local
+*.keystore
+*.jks
+google-services.json
+firebase-service-account*.json
+
+# Recordings are personal. They never leave the device, and they never enter the repo.
+/recordings/
+*.m4a
+*.wav
+
+# Cached mushaf assets — fetched on demand, not versioned
+/app/src/main/assets/qcf/
+/fonts-cache/
