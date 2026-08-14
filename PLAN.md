@@ -10,13 +10,19 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
 
 ## Milestone 0 — Skeleton
 
-- [ ] **1. Repo scaffolding and the check command**
+- [x] **1. Repo scaffolding and the check command** — done 2026-08-14
   Gradle project, Kotlin + Compose, `check.ps1` running `gradlew.bat lint
   testDebugUnitTest`, `WirdQaTest.kt` with its first three checks, `.env.example`,
-  `.gitignore`. **Also measure the QCF font payload** — download `QCF2001.ttf`,
-  `QCF2453.ttf`, `QCF2604.ttf` and record real byte sizes in PROFILE.md § 10.
+  `.gitignore`. **Also measure the QCF font payload** and record real byte sizes in
+  PROFILE.md § 10.
   *Done when:* `check` output is green and pasted into the session, and PROFILE.md
-  carries three real font sizes instead of a guess.
+  carries real font sizes instead of a guess.
+
+  *Note on the QA checks:* the third check was written up as "portion arithmetic across
+  a surah boundary." Page-based portions do not care about surah boundaries — the
+  boundary that can actually break the maths is the **wrap from page 604 to page 1**, so
+  that is what the test covers. Half-page targets are held as integer half-page units
+  rather than fractional pages, because 0.5 + 0.5 + 0.5 drifts and integers do not.
 
 - [ ] **2. App shell on the phone**
   One screen. Hardcoded portion text. Installs and opens on the Pixel 6 Pro over USB.
@@ -39,6 +45,11 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *Risky because:* glyph codes live in a font private-use area and Compose rendering is
   unproven. If Compose cannot do it, try a WebView, and if that fails, fall back to
   plain Uthmani text and record the failure in PROFILE.md § 11.
+  *Also decides:* TTF at ~372 KB/page, or woff2 at ~80 KB plus an on-device decoder.
+  Measure both over a real 3G connection — this is ~11 MB/month versus ~2.4 MB/month for
+  a one-page-a-day reader, which is a real cost to a Ghanaian student.
+  *Watch out:* a wrong font URL in that repo returns a 14-byte body containing
+  "404: Not Found", not an HTTP error. Check byte counts, not just success.
   *Done when:* page 453 renders on the Pixel and matches the printed mushaf, with ayahs
   1–8 lit and 9–16 dimmed.
 
@@ -117,8 +128,11 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
 
 - [ ] **16. Firebase App Distribution**
   Spark plan, free. Build goes out to a tester group. `DRY_RUN=1` builds locally without
-  uploading.
-  *Done when:* someone who is not Mutalib installs it and opens it.
+  uploading. **Also: the app icon** — deferred from task 1 because it belongs to the
+  design-studio pass, and the `MissingApplicationIcon` lint check is disabled until it
+  exists. Re-enable that check once it does.
+  *Done when:* someone who is not Mutalib installs it and opens it, and the launcher
+  shows a real icon.
 
 - [ ] **17. Vercel landing page + feedback**
   One page: what it is, install link, feedback form. `noindex` until launch.

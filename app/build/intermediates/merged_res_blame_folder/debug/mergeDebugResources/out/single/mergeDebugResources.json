@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.mosman.wird.app-debug-32:/xml_backup_rules.xml.flat",
+        "source": "com.mosman.wird.app-main-34:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\USER\\.gradle\\daemon\\9.4.1\\com.mosman.wird.app-debug-32:\\xml_data_extraction_rules.xml.flat",
+        "source": "C:\\Users\\USER\\.gradle\\daemon\\9.4.1\\com.mosman.wird.app-main-34:\\xml\\data_extraction_rules.xml"
+    }
+]

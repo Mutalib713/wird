@@ -1,0 +1,33 @@
+<lint-module
+    format="1"
+    dir="C:\Users\USER\MyClaudeProjects\wird\app"
+    name=":app"
+    type="APP"
+    maven="Wird:app:unspecified"
+    agpVersion="9.2.1"
+    buildFolder="build"
+    bootClassPath="C:\Users\USER\AppData\Local\Android\Sdk\platforms\android-36\android.jar;C:\Users\USER\AppData\Local\Android\Sdk\build-tools\36.0.0\core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-36"
+    highlightGradualR8Api="false">
+  <lintOptions
+      disable="GradleDependency,OldTargetApi,MissingApplicationIcon"
+      abortOnError="true"
+      absolutePaths="true"
+      warningsAsErrors="true"
+      checkReleaseBuilds="true"
+      explainIssues="true">
+    <severities>
+      <severity
+        id="GradleDependency"
+        severity="IGNORE" />
+      <severity
+        id="MissingApplicationIcon"
+        severity="IGNORE" />
+      <severity
+        id="OldTargetApi"
+        severity="IGNORE" />
+    </severities>
+  </lintOptions>
+  <variant name="debug"/>
+</lint-module>

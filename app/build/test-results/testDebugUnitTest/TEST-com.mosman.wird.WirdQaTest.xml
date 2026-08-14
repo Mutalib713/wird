@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.mosman.wird.WirdQaTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-08-14T22:02:11.736Z" hostname="DESKTOP-FU9M2J0" time="0.049">
+  <properties/>
+  <testcase name="portion maths handles half pages, whole pages and the wrap past page 604" classname="com.mosman.wird.WirdQaTest" time="0.004"/>
+  <testcase name="a missed day breaks the streak but never reduces total days read" classname="com.mosman.wird.WirdQaTest" time="0.032"/>
+  <testcase name="the recited and tapped split is counted honestly" classname="com.mosman.wird.WirdQaTest" time="0.003"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

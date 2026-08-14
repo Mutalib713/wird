@@ -34,7 +34,21 @@ adb devices                      # confirm the phone is attached first
 - Lenovo i7-1165G7, 15.7GB RAM, **no Avast** — do **not** add `--max-workers=1` or the
   JKS truststore workaround. Those were the old laptop. Only reach for them if Gradle
   actually misbehaves.
-- JBR as `JAVA_HOME`, android-36.1, ~34s incremental builds.
+- **`JAVA_HOME` is not set in the shell on this machine.** `gradle.properties`'
+  `org.gradle.java.home` only picks the JVM the *build* runs on — `gradlew.bat` still
+  needs a JVM to launch itself, and fails with exit 49 without one. `check.ps1` sets
+  `JAVA_HOME` to the Android Studio JBR itself for exactly this reason. Any new script
+  that shells out to Gradle must do the same.
+- **`local.properties` needs `sdk.dir=C\:/Users/...`** — forward slashes *and* an
+  escaped drive colon. A `.properties` file treats a lone backslash as an escape, so
+  `C:\Users\...` silently becomes an invalid path and Gradle fails with
+  `java.io.IOException: Invalid file path` during lint; and lint's `PropertyEscape`
+  check separately requires the `:` to be escaped. Both halves bit us on 2026-08-14.
+- **Lint runs with `warningsAsErrors = true`**, with exactly three checks disabled and a
+  written reason for each in `app/build.gradle.kts`. If you need to disable a fourth,
+  write down why — a silently growing disable list is how a check stops meaning
+  anything.
+- android-36.1, ~34s incremental builds. First clean build with a cold daemon is ~1m10s.
 - Pixel 6 Pro over USB. AGP 9 has a built-in-Kotlin gotcha — check it before blaming
   the build script.
 

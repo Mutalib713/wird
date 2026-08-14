@@ -1,0 +1,5 @@
+com.mosman.wird
+string app_name
+style Theme_Wird
+xml backup_rules
+xml data_extraction_rules

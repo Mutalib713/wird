@@ -174,8 +174,32 @@ or uploads. Never link a personal WhatsApp number to an unofficial gateway — s
 - **Testers are on Tecno / Infinix / itel.** All Transsion, all aggressive about killing
   background work. Anything scheduled must be verified on one of those phones, not just
   on the Pixel.
-- **Ghana mobile data.** Fetch pages and audio on demand and cache. Never bundle all 604
-  fonts. App size is a first-class concern and gets measured, not assumed.
+- **Ghana mobile data.** Fetch pages and audio on demand and cache. App size is a
+  first-class concern and gets measured, not assumed.
+
+  **Measured 2026-08-14 (task 1), `nuqayah/qpc-fonts`:**
+
+  | Asset | Size |
+  |---|---|
+  | `mushaf-v2/QCF2001.ttf` | 618,744 B |
+  | `mushaf-v2/QCF2002.ttf` | 357,932 B |
+  | `mushaf-v2/QCF2453.ttf` | 349,420 B |
+  | `mushaf-v2/QCF2604.ttf` | 163,044 B |
+  | `mushaf-v2/QCF2BSML.ttf` (verse-number symbols) | 327,564 B |
+  | **`mushaf-woff2/QCF_P453.woff2`** | **79,620 B — 77% smaller than the same page's TTF** |
+
+  Mean ≈ 372 KB per page as TTF, so **all 604 pages would be roughly 214 MB.** Bundling
+  the mushaf is off the table — it is not a preference, it is arithmetic. Fetch per page,
+  cache, and never prefetch the whole book.
+
+  At ~372 KB/page a one-page-a-day reader costs about 11 MB of data a month. The woff2
+  set would cut that to about 2.4 MB. See § 11 for the catch.
+
+  Real directory names in that repo: `mushaf`, `mushaf-v1.5`, `mushaf-v2`,
+  `mushaf-v4-hafs`, `mushaf-v4-warsh`, `mushaf-woff`, `mushaf-woff2`, `text-mushafs`,
+  `various`. Note the naming differs per set — v2 is `QCF2453.ttf` but the woff2 set is
+  `QCF_P453.woff2`. Guessed paths return a 14-byte "404: Not Found" body rather than an
+  HTTP error, so **check the byte count, not just that the download succeeded.**
 - **Licensing:** the KFGQPC mushaf fonts are **not for commercial use.** Personal and
   free-tester use is fine. Anything with money attached needs permission from the King
   Fahd Complex. This constraint does not expire.
@@ -190,7 +214,8 @@ or uploads. Never link a personal WhatsApp number to an unofficial gateway — s
 | ⚠ **Exact alarms are denied by default on Android 14+** unless the app is a clock or calendar. A timed reminder silently drifts. | Task 3 and task 17. The widget (task 21) exists partly because of this. |
 | ⚠ **Tecno/Infinix freeze background work.** | Task 17, verified on a real Transsion phone. |
 | ⚠ **QCF glyph rendering on Android Compose is unproven.** Glyph codes live in a font private-use area. | Task 4. If Compose cannot render them, fall back to a `WebView` or to plain Uthmani text and say so. |
-| ⚠ **Font payload is unmeasured.** The download was blocked during Phase 0 research. | Task 1 measures it. |
+| ~~Font payload unmeasured~~ **RESOLVED task 1, 2026-08-14.** ~372 KB/page TTF, ~214 MB for all 604. See § 10. | — |
+| ⚠ **woff2 would cut data cost by 77%, but Android cannot load it directly.** `Typeface` wants TTF/OTF. Using woff2 means decompressing on device or rendering the page in a WebView. | Task 4 decides: TTF at ~372 KB/page, or woff2 at ~80 KB plus a decoder. Measure both on a real 3G connection before choosing. |
 | ⚠ **Whisper accuracy on his voice, in his room, is unknown.** The 5.75% WER is on clean professional recitation and the model card lists no limitations. | Task 13, measured on real recordings. |
 | **Deep links into Quran for Android / Tarteel may not exist.** | Task 11. If they do not, the buttons get deleted, not faked. |
 
