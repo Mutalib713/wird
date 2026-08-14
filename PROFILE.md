@@ -109,6 +109,74 @@ Decisions no future session may reopen without Mutalib's explicit approval.
 6. **The done-method split is always shown honestly** — "22 marked, 4 recited." The app
    never lets the user believe they did more than they did.
 7. **No AI attribution in any commit, PR, or anything else that lands in the repo.**
+8. **The palette below is canon.** Pinned by Mutalib on 2026-08-14. It does not get
+   "improved", extended with a sixth colour, or swapped for something a later session
+   likes better.
+
+## 6b. PALETTE — pinned, canon
+
+Mutalib's own choice, brought from
+[coolors.co](https://coolors.co/palette/01161e-124559-598392-aec3b0-eff6e0). Used
+exactly as given — not re-derived through `palette.py`, because regenerating from a seed
+would produce different colours and quietly overrule the pick.
+
+| Hex | Name | Relative luminance |
+|---|---|---|
+| `#01161E` | ink | 0.0067 |
+| `#124559` | deep teal | 0.0511 |
+| `#598392` | slate | 0.2043 |
+| `#AEC3B0` | sage | 0.5116 |
+| `#EFF6E0` | paper | 0.8964 |
+
+### Measured contrast, every pair
+
+Computed 2026-08-14, WCAG 2.1 relative luminance. AA body needs 4.5:1, AA large 3.0:1,
+AAA 7.0:1.
+
+| Pair | Ratio | Verdict |
+|---|---|---|
+| ink / paper | **16.68:1** | AAA. This is the mushaf pairing, both modes. |
+| ink / sage | 9.90:1 | AAA |
+| deep teal / paper | 9.37:1 | AAA |
+| deep teal / sage | 5.56:1 | AA body |
+| ink / slate | 4.48:1 | **fails AA body by 0.02** |
+| slate / paper | 3.72:1 | fails AA body, passes large |
+| deep teal / slate | 2.52:1 | fails |
+| slate / sage | 2.21:1 | fails |
+| sage / paper | 1.69:1 | fails — effectively invisible together |
+| ink / deep teal | 1.78:1 | fails — effectively invisible together |
+
+### Roles
+
+**Slate is the trap.** It is the colour that looks like "muted secondary text" and it
+fails AA body on *both* backgrounds. It is never body text. It has exactly one job:
+**the ayahs outside today's portion.** Dimming is the intent there, so 3.72:1 is a
+feature — present if you look, receding if you do not.
+
+Light mode (the reading default — paper):
+
+| Token | Colour | Against | Ratio |
+|---|---|---|---|
+| `surface` | paper | — | — |
+| `textPrimary` | ink | paper | 16.68:1 |
+| `textSecondary` | deep teal | paper | 9.37:1 |
+| `textDimmed` (out-of-portion ayahs) | slate | paper | 3.72:1 |
+| `accent` | deep teal | paper | 9.37:1 |
+| `done` | sage | — | ink on sage 9.90:1 |
+
+Dark mode:
+
+| Token | Colour | Against | Ratio |
+|---|---|---|---|
+| `surface` | ink | — | — |
+| `textPrimary` | paper | ink | 16.68:1 |
+| `textSecondary` | sage | ink | 9.90:1 |
+| `textDimmed` | slate | ink | 4.48:1 |
+| `accent` | sage | ink | 9.90:1 |
+| `surfaceRaised` (cards) | deep teal | paper text on it 9.37:1 | — |
+
+**Deep teal must never carry text on the dark surface** — 1.78:1, invisible. In dark mode
+it is a raised surface only, with paper text on top.
 
 ## 7. STACK & ARCHITECTURE
 
