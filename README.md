@@ -15,18 +15,301 @@ Reminders fix forgetting. Forgetting was the smaller half of the problem. The th
 actually worked was having a teacher to recite to — someone who expected you, and in
 front of whom you had to open your mouth. School ended that. Wird is a stand-in for it.
 
-## Status
+## Status — 4 of 21 tasks done
 
-Pre-v1. Nothing built yet. See `PLAN.md`.
+| | What works today |
+|---|---|
+| ✅ 1 | Project builds. `check` runs lint + tests. 3 tests pass. |
+| ✅ 2 | App installs and opens on the Pixel 6 Pro. |
+| ✅ 3 | A scheduled notification fires, and tapping it opens the page. |
+| ✅ 4 | The real mushaf page renders, with today's portion lit and the rest dimmed. |
+| ⬜ 5 | Storing your actual position, so the page stops being hardcoded to 453. |
+
+Everything after task 5 is in `PLAN.md`.
+
+---
+
+# How it works
+
+Written for someone who owns this project but is still learning the vocabulary. Every
+term is explained the first time it appears. Skim the bold sentences if you want the
+short version.
+
+## The shape of the whole thing
+
+There is no server. Nothing is uploaded. The app talks to two places on the internet, and
+only to *download*:
+
+```
+   quran.com API  ──►  which words are on page 453, and on which line
+   qpc-fonts repo ──►  the font that draws those words
+                            │
+                            ▼
+                   saved to the phone's own storage
+                            │
+                            ▼
+                   drawn on screen, works offline forever after
+```
+
+That's it. Your reading history, your position, and later your recordings never leave the
+phone. This isn't a privacy feature bolted on — it's Sacred Rule 1 in `PROFILE.md`, and
+it's enforced in the build itself (see *Backups* below).
+
+## 1. The build system
+
+**Plain version:** Android apps aren't a file you double-click. You *build* them — a tool
+gathers your code, checks it, and packs it into one installable file. We use Gradle, which
+is the standard tool for that.
+
+- **Gradle** — the build tool. `gradlew.bat` is a small script that downloads the right
+  version of Gradle automatically, so the project builds the same way on any machine.
+- **APK** — Android Package. The single file that gets installed on a phone. Ours is
+  currently about 10.5 MB in *debug* form (debug builds are fat because nothing is
+  stripped out; the real one will be much smaller).
+- **Kotlin** — the language. **Jetpack Compose** — the way we describe screens: instead of
+  designing a layout in a separate file, you write a function that returns what should be
+  on screen, and Android redraws it when the data changes.
+
+**The one command you need:**
+
+```bash
+./check.ps1
+```
+
+This runs **lint** (a tool that reads your code looking for known mistakes) and the
+**unit tests** (small programs that check your logic gives the right answer). It prints
+`check: PASS` or `check: FAIL`. Nothing gets committed on a FAIL.
+
+Lint is set to `warningsAsErrors` — meaning even a mild complaint stops the build. Three
+checks are switched off, each with a written reason in `app/build.gradle.kts`. If you ever
+need to switch off a fourth, write down why; a silently growing list of ignored warnings
+is how a check stops meaning anything.
+
+## 2. The maths, and why it's tested
+
+Two pieces of pure logic live in `app/src/main/java/com/mosman/wird/domain/`:
+
+- **`Portion.kt`** — given "you're on page 453, you read one page a day", work out where
+  today ends. Handles half-pages, and wraps from page 604 back to page 1.
+- **`Progress.kt`** — the streak, the total days read, and how many days you *recited*
+  versus merely *tapped*.
+
+**Why these have tests and the screens don't:** a wrong colour is visible. Wrong
+arithmetic is not. If the streak silently miscounts, you'd never know — you'd just quietly
+stop trusting the app. The three tests in `WirdQaTest.kt` check exactly the cases most
+likely to go wrong:
+
+1. Page maths across the wrap from 604 back to 1
+2. A missed day breaks the streak, but total days read never goes down
+3. Recited and tapped are counted separately, and a double-tap doesn't count twice
+
+## 3. The nudge
+
+**Plain version:** the app asks Android to wake it up at a certain time. When that happens,
+it posts a notification. Tapping the notification opens the app at today's page.
+
+Three files in `nudge/`:
+
+- **`Nudge.kt`** — asks Android to set the alarm, and remembers when it's for.
+- **`NudgeReceiver.kt`** — runs when the alarm goes off, and posts the notification.
+- **`BootReceiver.kt`** — runs after the phone restarts. **Alarms do not survive a
+  reboot**, so without this, a phone that restarts overnight silently loses the nudge, and
+  it looks exactly like the app being broken.
+
+Terms:
+
+- **AlarmManager** — Android's system for "wake me at this time", even if the app is
+  closed.
+- **BroadcastReceiver** — a piece of code that isn't a screen; it just runs when something
+  happens. Ours is marked `exported="false"`, meaning no other app can trigger it. We
+  tested that: even `adb` was refused.
+- **Notification channel** — since Android 8, every notification belongs to a named
+  category the user can mute individually. Ours is "Daily reminder".
+
+### The exact-alarm problem — the important one
+
+**From Android 14, an app is not allowed to set a precise alarm unless it's a clock or a
+calendar app.** Wird is neither. Without permission, "remind me at 19:30" quietly becomes
+"remind me sometime around then", and it drifts.
+
+We measured this on your actual phone, on a clean install:
+
+```
+cmd appops get com.mosman.wird SCHEDULE_EXACT_ALARM  →  Default mode: default
+canScheduleExactAlarms()                             →  false
+```
+
+So the app **checks, and tells you which one you got** — "Reminders arrive on time" or
+"Reminders will drift". A reminder that arrives half an hour late without saying so is how
+people decide an app is broken.
+
+This is also why the home-screen widget is in the plan (task 10). A widget doesn't depend
+on an alarm firing at all — it just sits there.
+
+**Ghana-specific, and worse:** Tecno, Infinix and itel phones aggressively freeze
+background apps to save battery. Your nudge can fire perfectly on a Pixel and never arrive
+on a friend's Tecno. Task 15 handles that by detecting the manufacturer and walking the
+user through their specific phone's settings.
+
+## 4. The mushaf page — the hard part
+
+This is the piece worth understanding properly, because it's unusual.
+
+**Plain version:** the Qur'an page on your screen is not text in the normal sense. Each
+printed page of the Madani mushaf has *its own font*, containing only the shapes needed
+for that one page. Page 453 has a font. Page 454 has a different font.
+
+**Why it's built that way:** a printed mushaf is typeset by hand so that every line ends
+exactly at the margin and every page ends on the same ayah, worldwide. Ordinary Arabic
+text can't reproduce that — the letters would join and break differently. So the King Fahd
+Complex made each page into a set of pre-drawn shapes.
+
+- **Glyph** — one drawn shape in a font.
+- **Codepoint** — the number a computer uses for a character. `U+FB51` is a codepoint.
+
+So the app does two downloads for a page:
+
+1. **From quran.com:** a list of "codepoint U+FB51 goes on line 2, U+FB52 next to it…"
+2. **From the font repo:** the font file where those codepoints have page 453's shapes.
+
+Both get saved to the phone. **Opening a page you've read before costs no data at all.**
+
+### The trap that could have shipped wrong Qur'an
+
+Those codepoints (`U+FB51` and friends) are **not** private, made-up numbers. They sit in
+a real Unicode block called Arabic Presentation Forms-A. That means **every font has an
+opinion about them.**
+
+The same codepoint draws different words in different fonts:
+
+| Codepoint | In `QCF_P453.TTF` | In `QCF_BSML.TTF` |
+|---|---|---|
+| U+FB51 | ص | بِسْمِ |
+
+So if the correct font fails to download and Android helpfully substitutes any other
+Arabic font, the screen fills with **real, well-formed, completely wrong Qur'an**. Not
+squares, not gibberish — wrong verses that look right.
+
+That is why `MushafRepository.kt` **refuses to render without its own font** and says so
+on screen instead. Showing nothing is far better than showing the wrong thing. This is
+Sacred Rule 2, enforced in code rather than promised in a document.
+
+We hit the same trap a second time building the bismillah header, which is three glyphs in
+its own dedicated font — feeding it page one's codes drew the phrase one and two-thirds
+times.
+
+### Which font version, and what it costs you
+
+Measured across all 604 pages:
+
+| Version | Per page | One page a day | Loads on Android? |
+|---|---|---|---|
+| **v1 TTF ← we use this** | 154 KB | **~4.5 MB/month** | yes, directly |
+| v2 TTF | 336 KB | ~9.9 MB/month | yes, directly |
+| v1 WOFF2 | 78 KB | ~2.3 MB/month | no — needs a decoder |
+
+There is no v2 WOFF2 build at all, so the small-and-native option only exists at v1. One
+line — `Mushaf.FONT_VERSION` — switches both the font URL and which codes we ask the API
+for.
+
+### Fitting the lines
+
+A mushaf line is a fixed set of words that **must** sit on one line. It can't wrap and it
+can't be cut off, because either one loses Qur'anic text. So each line is measured, and
+**the type size bends** until the line fits. Lines vary in tightness, which is why it's
+measured per line rather than once for the page.
+
+Within a line, the words are pushed apart to fill the width. That spacing *is* the
+justification in a mushaf, which is why each line is a row of separate words rather than
+one block of text.
+
+### Today's portion
+
+Today's lines are at full strength. **Everything else on the page steps back to a muted
+blue-grey.** That's the whole marking system.
+
+There is deliberately **no highlight wash** over the text — no yellow band, no coloured
+background. Other apps do that; it defaces the page.
+
+An earlier version also turned the ayah numerals inside the portion to the accent colour.
+It was built, looked at, and measured — deep teal against ink is 1.78:1, sage against
+paper is 1.69:1, which means invisible. Removed. The dimming was doing the whole job on
+its own.
+
+## 5. Colour
+
+Your five colours from coolors.co are canon (Sacred Rule 8) — they don't get "improved"
+later.
+
+| | | |
+|---|---|---|
+| `#01161E` | ink | text on light, background on dark |
+| `#124559` | deep teal | secondary text on light; a raised surface on dark |
+| `#598392` | slate | **only** the ayahs outside today's portion |
+| `#AEC3B0` | sage | accent on dark, "done" states |
+| `#EFF6E0` | paper | background on light, text on dark |
+
+**Contrast ratio** measures how far apart two colours are in brightness. 4.5:1 is the
+accessibility floor for body text; below 3:1 two colours read as the same colour. Every
+pair was computed, not eyeballed — the full table is in `PROFILE.md § 6b`.
+
+Two things that matter:
+
+- **ink on paper is 16.68:1.** That's your reading pair, and it's excellent. Dense Arabic
+  needs it.
+- **slate is never body text** — it fails on both backgrounds. Its low contrast is
+  precisely why it's the right colour for the dimmed ayahs.
+
+**The palette is a value ramp, not a hue wheel.** ink → deep teal → slate → sage → paper
+is one journey from dark to light. Excellent for text on a ground; useless for a colour
+that must pop out of a paragraph. That's why the accent works on a *button* (deep teal on
+paper is 9.37:1) but failed on numerals sitting inside text.
+
+## 6. Backups, and why they're off
+
+Android normally backs apps up to Google Drive automatically. Wird switches that off
+three times over, because the setting changed across Android versions and all three are
+needed:
+
+| File | Covers |
+|---|---|
+| `android:allowBackup="false"` | the blanket switch |
+| `res/xml/backup_rules.xml` | Android 11 and below |
+| `res/xml/data_extraction_rules.xml` | Android 12 and above |
+
+The cost is real and accepted: **a new phone starts empty.** Task 19 adds an export you
+choose to run, which is a thing you decide rather than a thing that happens to you.
+
+---
+
+## Building it yourself
+
+```bash
+./check.ps1
+```
+
+```bash
+./gradlew.bat assembleDebug
+```
+
+The APK lands in `app/build/outputs/apk/debug/`. Install it with:
+
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Machine-specific gotchas (JAVA_HOME, `local.properties`, the device rules) are in
+`CLAUDE.md`.
 
 ## Where things are written down
 
 | Question | File |
 |---|---|
-| What it is, who for, what's excluded, the stack, the Sacred Rules | `PROFILE.md` |
+| What it is, who for, what's excluded, the stack, the Sacred Rules, the palette | `PROFILE.md` |
 | What gets built and in what order | `PLAN.md` |
+| Build commands, machine gotchas, device rules | `CLAUDE.md` |
 | How a person moves through the app | `docs/app-flow.md` |
-| What it looks like and why | `docs/ui-guidelines.md` |
+| What it looks like and why, and what got revised | `docs/ui-guidelines.md` |
 | What must be true before it goes public | `docs/security-checklist.md` |
 
 ## Credits and licensing
