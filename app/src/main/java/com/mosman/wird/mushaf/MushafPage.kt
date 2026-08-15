@@ -27,6 +27,25 @@ data class MushafPage(
 ) {
     val lines: List<Int> get() = glyphs.map { it.line }.distinct().sorted()
     fun glyphsOn(line: Int): List<Glyph> = glyphs.filter { it.line == line }
+
+    /**
+     * The line a given ayah begins on, or null if it is not on this page.
+     *
+     * Needed because "start at Ya-Sin 1" does not mean "start at the top of page 440" —
+     * that page opens with the last verse of Fatir.
+     */
+    fun lineOf(surah: Int, ayah: Int): Int? =
+        glyphs.firstOrNull { it.verseKey == "$surah:$ayah" }?.line
+
+    /**
+     * Which surah the text on [line] belongs to.
+     *
+     * The page as a whole does not have one answer: page 440 carries the end of Fatir and
+     * the start of Ya-Sin. Naming a page by its *first* verse is what made the app
+     * announce Fatir to someone who had just chosen Ya-Sin.
+     */
+    fun surahNumberOn(line: Int): Int? =
+        glyphsOn(line).firstOrNull()?.verseKey?.substringBefore(':')?.toIntOrNull()
 }
 
 /**

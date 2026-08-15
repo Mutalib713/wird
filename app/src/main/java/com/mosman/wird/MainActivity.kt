@@ -35,9 +35,13 @@ class MainActivity : ComponentActivity() {
 
                 if (!setUp) {
                     SetupScreen(
-                        onDone = { page, unitsPerDay ->
+                        onDone = { page, unitsPerDay, startVerse ->
                             store.positionPage = page
                             store.plan = ReadingPlan(defaultUnits = unitsPerDay)
+                            // Remembered so day one begins at the reader's own ayah
+                            // rather than at the top of a page that may open with the
+                            // tail of the previous surah.
+                            store.startVerse = startVerse
                             setUp = true
                         },
                     )
@@ -50,6 +54,7 @@ class MainActivity : ComponentActivity() {
                             plan = store.plan,
                             date = LocalDate.now(),
                         ),
+                        startVerse = store.startVerse,
                     )
                 }
             }

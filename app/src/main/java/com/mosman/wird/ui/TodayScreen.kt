@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.LayoutDirection
@@ -41,6 +42,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.mosman.wird.domain.Assignment
+import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.linesOn
 import com.mosman.wird.domain.pages
 import com.mosman.wird.mushaf.Glyph
@@ -59,7 +61,11 @@ import com.mosman.wird.ui.theme.Scale
  * spent on about eight small numerals.
  */
 @Composable
-fun TodayScreen(assignment: Assignment) {
+fun TodayScreen(
+    assignment: Assignment,
+    /** Where the reader said they were, when that is partway down the first page. */
+    startVerse: Pair<Int, Int>? = null,
+) {
     val context = LocalContext.current
     val colors = LocalWirdColors.current
     val repo = remember { MushafRepository(context) }
@@ -86,7 +92,7 @@ fun TodayScreen(assignment: Assignment) {
             is PageState.Loading -> PageSkeleton()
             is PageState.Failed -> PageProblem(s) { attempt++ }
             is PageState.Ready ->
-                ReadyPage(s.page, s.typeface, s.bismillahTypeface, assignment)
+                ReadyPage(s.page, s.typeface, s.bismillahTypeface, assignment, startVerse)
         }
     }
 }
@@ -97,12 +103,41 @@ private fun ReadyPage(
     typeface: Typeface,
     bismillahTypeface: Typeface?,
     assignment: Assignment,
+    startVerse: Pair<Int, Int>?,
 ) {
     val colors = LocalWirdColors.current
     val family = remember(typeface) { FontFamily(typeface) }
     val lines = page.lines
-    // Which of this page's lines are today's. A half-page target lights half of them.
-    val portionLines = remember(assignment, lines) { assignment.linesOn(page.page, lines) }
+
+    // Which of this page's lines are today's. A half-page target lights half of them,
+    // and a reader who started mid-page begins at their own ayah rather than at the top.
+    val portionLines = remember(assignment, lines, startVerse) {
+        val byPage = assignment.linesOn(page.page, lines)
+        val startLine = startVerse?.let { (s, a) -> page.lineOf(s, a) }
+        if (startLine == null) byPage else byPage.filter { it >= startLine }.toSet()
+    }
+
+    // Where a surah begins on this page, so the bismillah can be drawn in front of it
+    // rather than at the top of the sheet.
+    val bismillahBeforeLine = remember(page) {
+        page.surahStarts.keys
+            .mapNotNull { key ->
+                val s = key.substringBefore(':').toIntOrNull() ?: return@mapNotNull null
+                val a = key.substringAfter(':').toIntOrNull() ?: return@mapNotNull null
+                page.lineOf(s, a)
+            }
+            .minOrNull()
+            ?: page.lines.firstOrNull()
+    }
+
+    // Name the surah the portion is actually in, not the page's first verse. Page 440
+    // opens with the last ayah of Fatir and only then begins Ya-Sin.
+    val surahLabel = remember(portionLines, page) {
+        val line = portionLines.minOrNull() ?: lines.firstOrNull()
+        line?.let { page.surahNumberOn(it) }
+            ?.let { SurahIndex.byNumber(it)?.name }
+            ?: page.surahName
+    }
 
     Column(
         modifier = Modifier
@@ -116,12 +151,12 @@ private fun ReadyPage(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = page.surahName,
+                text = surahLabel,
                 color = colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),
             )
             Text(
-                text = if (page.juz > 0) "Juz' ${page.juz}" else "Page ${page.page}",
+                text = if (page.juz > 0) "Juz' ${page.juz}" else "",
                 color = colors.textOutsidePortion,
                 style = TextStyle(fontSize = Scale.caption),
             )
@@ -129,19 +164,22 @@ private fun ReadyPage(
 
         Spacer(Modifier.height(Scale.space6))
 
-        // Line 1 of a mushaf page that opens a surah. Drawn with its own font — the
-        // page font maps the same codepoints to entirely different words.
-        if (page.bismillahCodes != null && bismillahTypeface != null) {
-            Bismillah(
-                codes = page.bismillahCodes,
-                typeface = bismillahTypeface,
-                // The bismillah belongs to the first line, so it follows its fate.
-                inPortion = lines.firstOrNull()?.let { it in portionLines } ?: true,
-            )
-            Spacer(Modifier.height(Scale.space4))
-        }
-
         lines.forEach { line ->
+            // The bismillah sits where the mushaf puts it, which is not always the top.
+            // On page 440 the last three lines of Fatir come first, then a gap the word
+            // data does not describe — that gap is the surah banner and the bismillah —
+            // and Ya-Sin begins on line 6. Drawing it at the top would put it above the
+            // wrong surah's text.
+            if (line == bismillahBeforeLine && page.bismillahCodes != null && bismillahTypeface != null) {
+                Spacer(Modifier.height(Scale.space4))
+                Bismillah(
+                    codes = page.bismillahCodes,
+                    typeface = bismillahTypeface,
+                    // It belongs to the surah it opens, so it follows that line's fate.
+                    inPortion = line in portionLines,
+                )
+                Spacer(Modifier.height(Scale.space4))
+            }
             MushafLine(
                 glyphs = page.glyphsOn(line),
                 family = family,
@@ -157,6 +195,19 @@ private fun ReadyPage(
             style = TextStyle(fontSize = Scale.caption),
             modifier = Modifier.fillMaxWidth(),
         )
+
+        Spacer(Modifier.height(Scale.space4))
+
+        // Centred at the foot, where a printed mushaf puts it. It is the quietest thing
+        // on the screen because it is the thing you need least often.
+        Text(
+            text = page.page.toString(),
+            color = colors.textOutsidePortion,
+            style = TextStyle(fontSize = Scale.caption, textAlign = TextAlign.Center),
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Spacer(Modifier.height(Scale.space2))
     }
 }
 

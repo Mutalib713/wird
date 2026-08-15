@@ -11,6 +11,8 @@ import com.mosman.wird.domain.pages
 import com.mosman.wird.domain.progressOf
 import com.mosman.wird.domain.surahs
 import com.mosman.wird.domain.todaysAssignment
+import com.mosman.wird.mushaf.Glyph
+import com.mosman.wird.mushaf.MushafPage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -212,4 +214,48 @@ class WirdQaTest {
         // A page that isn't in today's portion lights nothing.
         assertTrue(assignPortion(page453, 2).linesOn(500, rendered).isEmpty())
     }
+
+    // ---- 7. Regression: a page is not named by its first verse ----
+
+    @Test
+    fun `a page holding two surahs is named by where the portion starts`() {
+        // Real shape of page 440: it opens with the LAST ayah of Fatir (35:45) and only
+        // then begins Ya-Sin. Choosing Ya-Sin used to make the app announce "Fatir",
+        // because the page was named after whatever verse came first on it.
+        val page440 = MushafPage(
+            page = 440,
+            glyphs = buildList {
+                add(glyph("35:45", line = 1))
+                add(glyph("35:45", line = 2))
+                (1..12).forEach { ayah ->
+                    add(glyph("36:$ayah", line = 3 + (ayah - 1) / 2))
+                }
+            },
+            surahStarts = mapOf("36:1" to "36"),
+            surahName = "Fatir",
+            juz = 22,
+            bismillahCodes = null,
+        )
+
+        assertEquals("line 1 is still Fatir", 35, page440.surahNumberOn(1))
+        assertEquals("Ya-Sin starts on line 3", 3, page440.lineOf(36, 1))
+        assertEquals("line 3 onwards is Ya-Sin", 36, page440.surahNumberOn(3))
+
+        // A reader who chose Ya-Sin starts at line 3, so the label is Ya-Sin, and the
+        // two lines of Fatir above are not part of their portion.
+        val startLine = page440.lineOf(36, 1)!!
+        val portion = page440.lines.filter { it >= startLine }
+        assertFalse("Fatir's lines are not today's", portion.contains(1))
+        assertFalse(portion.contains(2))
+        assertEquals(
+            "Ya-Sin",
+            SurahIndex.byNumber(page440.surahNumberOn(portion.first())!!)?.name,
+        )
+
+        // And an ayah that isn't on the page reports nothing rather than guessing.
+        assertEquals(null, page440.lineOf(36, 40))
+    }
+
+    private fun glyph(verseKey: String, line: Int) =
+        Glyph(code = "x", line = line, verseKey = verseKey, isEndMarker = false)
 }

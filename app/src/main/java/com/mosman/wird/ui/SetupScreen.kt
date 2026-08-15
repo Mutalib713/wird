@@ -56,7 +56,7 @@ import com.mosman.wird.ui.theme.Scale
  */
 @Composable
 fun SetupScreen(
-    onDone: (page: Int, unitsPerDay: Int) -> Unit,
+    onDone: (page: Int, unitsPerDay: Int, startVerse: Pair<Int, Int>?) -> Unit,
 ) {
     val colors = LocalWirdColors.current
     val context = LocalContext.current
@@ -197,7 +197,12 @@ fun SetupScreen(
             Spacer(Modifier.height(Scale.space6))
             val page = resolvedPage
             Button(
-                onClick = { page?.let { onDone(it, units) } },
+                onClick = {
+                    // Always carry the ayah, even ayah 1: a surah's first page often
+                    // opens with the tail of the previous surah, so "the beginning of
+                    // Ya-Sin" is not the top of page 440.
+                    page?.let { onDone(it, units, surah.number to (ayah ?: 1)) }
+                },
                 enabled = page != null && !looking,
                 modifier = Modifier
                     .fillMaxWidth()

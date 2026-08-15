@@ -39,6 +39,28 @@ class WirdStore(context: Context) {
             positionUnit = (clamped - 1) * Mushaf.UNITS_PER_PAGE
         }
 
+    /**
+     * The exact ayah the reader said they were on, when they were mid-surah.
+     *
+     * Portions are counted in pages, but a page is not where anyone starts. Choosing
+     * Ya-Sin means starting at Ya-Sin 1, which sits partway down page 440 underneath the
+     * last verse of Fatir. This remembers that, so the first day begins where the reader
+     * actually is. Cleared once the position moves past it.
+     */
+    var startVerse: Pair<Int, Int>?
+        get() {
+            val s = prefs.getInt(KEY_START_SURAH, 0)
+            val a = prefs.getInt(KEY_START_AYAH, 0)
+            return if (s > 0 && a > 0) s to a else null
+        }
+        set(value) = prefs.edit {
+            if (value == null) {
+                remove(KEY_START_SURAH); remove(KEY_START_AYAH)
+            } else {
+                putInt(KEY_START_SURAH, value.first); putInt(KEY_START_AYAH, value.second)
+            }
+        }
+
     var plan: ReadingPlan
         get() = ReadingPlan(
             defaultUnits = prefs.getInt(KEY_DEFAULT_UNITS, Mushaf.UNITS_PER_PAGE),
@@ -61,6 +83,8 @@ class WirdStore(context: Context) {
     private companion object {
         const val PREFS = "wird_position"
         const val KEY_UNIT = "position_unit"
+        const val KEY_START_SURAH = "start_surah"
+        const val KEY_START_AYAH = "start_ayah"
         const val KEY_DEFAULT_UNITS = "default_units"
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
     }
