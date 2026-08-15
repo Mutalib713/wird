@@ -35,7 +35,6 @@ class MainActivity : ComponentActivity() {
 
                 if (!setUp) {
                     SetupScreen(
-                        initialPage = 1,
                         onDone = { page, unitsPerDay ->
                             store.positionPage = page
                             store.plan = ReadingPlan(defaultUnits = unitsPerDay)

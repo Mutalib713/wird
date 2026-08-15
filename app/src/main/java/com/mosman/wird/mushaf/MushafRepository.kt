@@ -154,6 +154,38 @@ class MushafRepository(private val context: Context) {
     /** See [Mushaf.BISMILLAH_CODES] — three glyphs belonging to the bismillah font. */
     private fun bismillahCodes(): String = Mushaf.BISMILLAH_CODES
 
+    /**
+     * Which page a given ayah sits on.
+     *
+     * People know they are "in Sad, around ayah 25". Nobody knows they are on page 453,
+     * so setup asks the question they can answer and this turns it into the one the app
+     * needs. Cached, because an ayah does not move.
+     */
+    suspend fun pageOfVerse(surah: Int, ayah: Int): Int? = withContext(Dispatchers.IO) {
+        val cache = File(pageDir, "verse-$surah-$ayah.json")
+        val body = if (cache.exists()) cache.readText() else {
+            val t = get(
+                "https://api.quran.com/api/v4/verses/by_key/$surah:$ayah?fields=page_number",
+            ) ?: return@withContext null
+            cache.writeText(t); t
+        }
+        runCatching {
+            JSONObject(body).getJSONObject("verse").getInt("page_number")
+        }.getOrNull()
+    }
+
+    /** How many ayahs a surah has, so setup can stop someone typing 400 into Al-Kawthar. */
+    suspend fun ayahCount(surah: Int): Int? = withContext(Dispatchers.IO) {
+        val cache = File(pageDir, "chapter-$surah.json")
+        val body = if (cache.exists()) cache.readText() else {
+            val t = get("https://api.quran.com/api/v4/chapters/$surah") ?: return@withContext null
+            cache.writeText(t); t
+        }
+        runCatching {
+            JSONObject(body).getJSONObject("chapter").getInt("verses_count")
+        }.getOrNull()
+    }
+
     private fun bismillahTypeface(): Typeface? {
         val f = File(fontDir, "bismillah.ttf")
         if (!f.exists() || f.length() < Mushaf.MIN_PLAUSIBLE_FONT_BYTES) {
