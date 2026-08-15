@@ -46,6 +46,28 @@ data class MushafPage(
      */
     fun surahNumberOn(line: Int): Int? =
         glyphsOn(line).firstOrNull()?.verseKey?.substringBefore(':')?.toIntOrNull()
+
+    /**
+     * The first and last ayah covered by [lines], as `surah:ayah` pairs.
+     *
+     * Exists so the app can say what to read *in words*. Mutalib looked at a marked page
+     * and asked whether the light blue was his portion — it was the opposite. Colour
+     * alone could not tell him, and nothing on screen said it in language.
+     */
+    fun ayahRange(lines: Set<Int>): Pair<Pair<Int, Int>, Pair<Int, Int>>? {
+        val covered = glyphs.filter { it.line in lines && !it.isEndMarker }
+        if (covered.isEmpty()) return null
+        fun parse(key: String): Pair<Int, Int>? {
+            val s = key.substringBefore(':').toIntOrNull() ?: return null
+            val a = key.substringAfter(':').toIntOrNull() ?: return null
+            return s to a
+        }
+        val keys = covered.mapNotNull { parse(it.verseKey) }
+        if (keys.isEmpty()) return null
+        val first = keys.minWith(compareBy({ it.first }, { it.second }))
+        val last = keys.maxWith(compareBy({ it.first }, { it.second }))
+        return first to last
+    }
 }
 
 /**

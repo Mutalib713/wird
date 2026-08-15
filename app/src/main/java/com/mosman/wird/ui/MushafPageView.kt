@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -130,7 +131,17 @@ private fun DrawnPage(
             )
         }
 
-        Spacer(Modifier.height(Scale.space6))
+        // Say it in words, above the page. Colour alone could not tell Mutalib which half
+        // was his — he read the dimmed text as the highlighted one, which is a fair
+        // reading, since coloured looks marked and plain text looks ordinary. Naming the
+        // ayahs removes the guess entirely, and works for anyone who cannot separate the
+        // two shades at all.
+        if (lit.isNotEmpty() && lit.size != lines.size) {
+            PortionBanner(page, lit)
+            Spacer(Modifier.height(Scale.space4))
+        } else {
+            Spacer(Modifier.height(Scale.space6))
+        }
 
         lines.forEach { line ->
             if (line == bismillahBeforeLine && page.bismillahCodes != null && bismillahTypeface != null) {
@@ -142,6 +153,9 @@ private fun DrawnPage(
                 glyphs = page.glyphsOn(line),
                 family = family,
                 inPortion = line in lit,
+                // A rule in the margin beside today's lines. It brackets the portion
+                // without putting a single mark on the Qur'an itself.
+                marked = lit.size != lines.size && line in lit,
                 onWordTap = onWordTap,
             )
         }
@@ -160,6 +174,42 @@ private fun DrawnPage(
         )
         Spacer(Modifier.height(Scale.space2))
     }
+}
+
+/** Names today's portion in ayahs, so nothing depends on telling two shades apart. */
+@Composable
+private fun PortionBanner(page: MushafPage, lit: Set<Int>) {
+    val colors = LocalWirdColors.current
+    val range = remember(page, lit) { page.ayahRange(lit) } ?: return
+    val (first, last) = range
+    val firstName = SurahIndex.byNumber(first.first)?.name ?: ""
+    val lastName = SurahIndex.byNumber(last.first)?.name ?: ""
+
+    val text = when {
+        first == last -> "Read $firstName ${first.second}"
+        first.first == last.first -> "Read $firstName ${first.second} to ${last.second}"
+        else -> "Read $firstName ${first.second} to $lastName ${last.second}"
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = Scale.space4),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(Scale.space4)
+                .background(colors.accent),
+        )
+        Spacer(Modifier.width(Scale.space2))
+        Text(text, color = colors.textPrimary, style = TextStyle(fontSize = Scale.body))
+    }
+    Text(
+        text = "The paler lines aren't today's.",
+        color = colors.textSecondary,
+        style = TextStyle(fontSize = Scale.caption),
+        modifier = Modifier.padding(start = Scale.space4, top = Scale.space1),
+    )
 }
 
 /**
@@ -216,6 +266,7 @@ private fun MushafLine(
     glyphs: List<Glyph>,
     family: FontFamily,
     inPortion: Boolean,
+    marked: Boolean,
     onWordTap: ((String) -> Unit)?,
 ) {
     val colors = LocalWirdColors.current
@@ -223,6 +274,29 @@ private fun MushafLine(
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // The bracket. Sits in the margin, never on the text.
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(Scale.mushafLine.value.dp)
+                .background(if (marked) colors.accent else Color.Transparent),
+        )
+        Spacer(Modifier.width(Scale.space2))
+        MushafLineText(glyphs, family, inPortion, bodyColor, measurer, density, onWordTap)
+    }
+}
+
+@Composable
+private fun MushafLineText(
+    glyphs: List<Glyph>,
+    family: FontFamily,
+    inPortion: Boolean,
+    bodyColor: Color,
+    measurer: androidx.compose.ui.text.TextMeasurer,
+    density: androidx.compose.ui.unit.Density,
+    onWordTap: ((String) -> Unit)?,
+) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
