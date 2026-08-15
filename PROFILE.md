@@ -106,6 +106,27 @@ Decisions no future session may reopen without Mutalib's explicit approval.
 4. **The streak is always shown next to total days read**, which never resets. The day
    after a streak breaks is when people delete habit apps.
 5. **This is a habit tool, not a Qur'an reader.** Reading features link out.
+
+   **Refined 2026-08-15, with Mutalib's explicit approval.** He asked for full browsing
+   and a home screen; we settled on the smaller version and he chose it knowingly:
+
+   - **Today's portion is the front door.** The app opens on it. There is no home screen
+     and no menu in between — his own Phase 0 numbers say the decision is the problem, so
+     every screen added before the reading is a place to bounce off.
+   - **Allowed:** swiping to the pages either side of today's, and a "go to surah"
+     control that reuses the setup picker. That covers reciting something other than
+     today's portion, and handing the phone to someone else.
+   - **Still refused:** a home screen, bookmarks, search within the text, tafsir,
+     translations — everything that would make this a Qur'an reader.
+   - He said "maybe I might change my mind" about going further. If he does, it is a
+     deliberate re-scoping conversation, not a feature someone adds quietly.
+
+   **No user-chosen highlight colour.** Raised and declined on 2026-08-15. There is no
+   highlight by design — the portion is marked by everything else stepping back, because
+   painting a wash over the Qur'an is what defaces it. An arbitrary colour would also
+   break the contrast pairs computed in § 6b, and the failure mode is Arabic that is hard
+   to read. A light/dark toggle is the real setting hiding in that request, and it is
+   being built.
 6. **The done-method split is always shown honestly** — "22 marked, 4 recited." The app
    never lets the user believe they did more than they did.
 7. **No AI attribution in any commit, PR, or anything else that lands in the repo.**

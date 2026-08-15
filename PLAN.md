@@ -101,6 +101,31 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   Not installed yet — WhatsApp was in the foreground and the device rule in CLAUDE.md
   says don't.
 
+- [ ] **5a. Tap an ayah to say where you are**
+  Every word already knows its verse, so make words tappable in setup: pick surah → see
+  the page → tap the ayah. A small confirmation names it back ("Start at Ya-Sin 12?").
+  **The ayah number box stays** — Mutalib asked for both routes, since a number is faster
+  when you happen to know it.
+  *Done when:* tapping an ayah on a real page sets the position to that ayah, and typing
+  the number still works.
+
+- [ ] **5b. Swipe between pages, and go to a surah**
+  Swipe left/right for the pages either side of today's. A "go to surah" control reusing
+  the setup picker. Today's portion stays the front door and stays marked when you come
+  back to it.
+  *Done when:* swiping moves a page in each direction, go-to-surah lands on the right
+  page, and returning to today still shows the portion marked.
+  *Watch out:* each page needs its own font downloaded. Browsing freely is the one way a
+  user could spend real data by accident — cache aggressively and never prefetch.
+
+- [ ] **5c. Settings**
+  Light/dark toggle (dark is built and contrast-checked, it needs a switch). Change how
+  much you read a day, including the per-weekday override the domain already supports.
+  Change where you are.
+  *Not included:* choosing a highlight colour. See Sacred Rule 5.
+  *Done when:* each setting survives a restart, and changing the plan changes tomorrow's
+  portion rather than today's.
+
 ## Milestone 2 — The loop
 
 - [ ] **6. Mark done — record or tap**
