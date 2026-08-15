@@ -82,7 +82,8 @@ fun TodayScreen(
         when (val s = state) {
             is PageState.Loading -> PageSkeleton()
             is PageState.Failed -> PageProblem(s) { attempt++ }
-            is PageState.Ready -> ReadyPage(s.page, s.typeface, portionLines, surahLabel)
+            is PageState.Ready ->
+                ReadyPage(s.page, s.typeface, s.bismillahTypeface, portionLines, surahLabel)
         }
     }
 }
@@ -91,6 +92,7 @@ fun TodayScreen(
 private fun ReadyPage(
     page: MushafPage,
     typeface: Typeface,
+    bismillahTypeface: Typeface?,
     portionLines: IntRange,
     surahLabel: String,
 ) {
@@ -110,18 +112,29 @@ private fun ReadyPage(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = surahLabel,
+                text = page.surahName.ifEmpty { surahLabel },
                 color = colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),
             )
             Text(
-                text = "Page ${page.page}",
+                text = if (page.juz > 0) "Juz' ${page.juz}" else "Page ${page.page}",
                 color = colors.textOutsidePortion,
                 style = TextStyle(fontSize = Scale.caption),
             )
         }
 
         Spacer(Modifier.height(Scale.space6))
+
+        // Line 1 of a mushaf page that opens a surah. Drawn with its own font — the
+        // page font maps the same codepoints to entirely different words.
+        if (page.bismillahCodes != null && bismillahTypeface != null) {
+            Bismillah(
+                codes = page.bismillahCodes,
+                typeface = bismillahTypeface,
+                inPortion = lines.firstOrNull()?.let { it in portionLines } ?: true,
+            )
+            Spacer(Modifier.height(Scale.space4))
+        }
 
         lines.forEach { line ->
             MushafLine(
@@ -138,6 +151,49 @@ private fun ReadyPage(
             color = colors.textSecondary,
             style = TextStyle(fontSize = Scale.caption),
             modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * The bismillah, centred on its own line, the way the mushaf opens a surah.
+ *
+ * Centred rather than justified: it is one short phrase, not a full measure, and
+ * stretching it across the width would be a typographic lie about how the page is set.
+ */
+@Composable
+private fun Bismillah(codes: String, typeface: Typeface, inPortion: Boolean) {
+    val colors = LocalWirdColors.current
+    val family = remember(typeface) { FontFamily(typeface) }
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = "Bismillah" },
+        contentAlignment = Alignment.Center,
+    ) {
+        val available = with(density) { maxWidth.toPx() }
+        val fitted = remember(codes, available) {
+            val natural = measurer.measure(
+                text = AnnotatedString(codes),
+                style = TextStyle(fontFamily = family, fontSize = Scale.mushafLine),
+                softWrap = false,
+            ).size.width.toFloat()
+            val target = available * 0.72f
+            if (natural > target && natural > 0f) {
+                Scale.mushafLine * (target / natural)
+            } else {
+                Scale.mushafLine
+            }
+        }
+        Text(
+            text = codes,
+            color = if (inPortion) colors.textPrimary else colors.textOutsidePortion,
+            maxLines = 1,
+            softWrap = false,
+            style = TextStyle(fontFamily = family, fontSize = fitted),
         )
     }
 }
@@ -203,12 +259,15 @@ private fun MushafLine(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 glyphs.forEach { g ->
+                    // No accent on the ayah numerals. It was tried and measured: deep
+                    // teal against ink is 1.78:1 and sage against paper is 1.69:1, so in
+                    // both modes the "marked" numeral was the same colour as the text
+                    // around it. The dimming already tells you where today's portion
+                    // ends, plainly, at a glance. A second marker that nobody can see is
+                    // not restraint, it is decoration that failed.
                     Text(
                         text = g.code,
-                        color = when {
-                            g.isEndMarker && inPortion -> colors.accent
-                            else -> bodyColor
-                        },
+                        color = bodyColor,
                         maxLines = 1,
                         softWrap = false,
                         style = TextStyle(fontFamily = family, fontSize = fitted),

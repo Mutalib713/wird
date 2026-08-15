@@ -15,6 +15,15 @@ data class MushafPage(
     val glyphs: List<Glyph>,
     /** Surah names starting on this page, in order, keyed by the verse they start at. */
     val surahStarts: Map<String, String>,
+    /** Name of the surah this page opens in, for the margin. */
+    val surahName: String,
+    val juz: Int,
+    /**
+     * Glyph codes for the bismillah, or null when this page does not open a surah (or
+     * opens At-Tawbah, which has none). Must be drawn with the **bismillah** font, never
+     * the page font — see [Mushaf.BISMILLAH_FONT_URL].
+     */
+    val bismillahCodes: String?,
 ) {
     val lines: List<Int> get() = glyphs.map { it.line }.distinct().sorted()
     fun glyphsOn(line: Int): List<Glyph> = glyphs.filter { it.line == line }
@@ -43,6 +52,33 @@ enum class MushafVersion(val apiField: String, val fontUrl: (Int) -> String) {
 
 object Mushaf {
     val FONT_VERSION = MushafVersion.V1
+
+    /**
+     * The bismillah has its own font, and it must be used.
+     *
+     * QCF page fonts reuse the **same codepoints** on every page with different glyphs:
+     * U+FB51 is "بِسْمِ" in this font and "ص" in page 453's. Drawing the bismillah codes
+     * with a page font therefore produces real, well-formed, completely wrong Qur'anic
+     * text — the exact failure Sacred Rule 2 exists to prevent. Neither font can render
+     * the bismillah as plain Arabic either: both are missing U+0670, the superscript
+     * alef in ٱلرَّحْمَٰنِ. Glyph codes with the right font is the only correct route.
+     */
+    const val BISMILLAH_FONT_URL =
+        "https://raw.githubusercontent.com/nuqayah/qpc-fonts/master/mushaf/QCF_BSML.TTF"
+
+    /**
+     * The bismillah is **three glyphs in its own font**, not the word codes of verse 1:1.
+     *
+     * Measured from QCF_BSML.TTF's own tables: U+FB51→'A' adv 7203, U+FB52→'B' adv 7877,
+     * U+FB53→'C' adv 2777, then U+FB54/55/56 repeat those three advances exactly. The
+     * font stores the phrase several times over in triplets, so the first three are one
+     * complete bismillah.
+     *
+     * Feeding it verse 1:1's five word codes — which are *page one's* codes, meant for
+     * QCF_P001 — drew the phrase one and two-thirds times. Same lesson as the page fonts:
+     * a codepoint means whatever the font in your hand says it means.
+     */
+    const val BISMILLAH_CODES = "ﭑﭒﭓ"
 
     /**
      * A wrong font path on raw.githubusercontent.com returns HTTP 404 with a 14-byte

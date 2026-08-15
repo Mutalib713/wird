@@ -44,11 +44,23 @@ face carries all of it. No Inter, no Roboto, no system default as the only face.
 nowhere.
 
 **Signature move — the page is never painted on.** No highlight wash, no coloured
-background band, no marker over Qur'anic text. Today's portion is marked two ways only:
-everything *outside* it steps back to slate, and the ayah-end numerals *inside* it turn
-deep teal. On a full page that is roughly eight small numerals carrying the entire accent
-budget. Highlighting scripture with a yellow wash is what the other apps do; it defaces
-the page.
+background band, no marker over Qur'anic text. Today's portion is marked exactly one way:
+everything *outside* it steps back to slate. Highlighting scripture with a yellow wash is
+what the other apps do; it defaces the page.
+
+> **Revised on the device, 2026-08-15.** The first version also turned the ayah numerals
+> inside the portion to the accent. Built, looked at, measured: deep teal against ink is
+> **1.78:1** and sage against paper is **1.69:1** — both pairs already recorded in
+> PROFILE.md § 6b as "effectively invisible together". The accent was assigned to sit
+> *among* body text, which is the one place this palette cannot support it. Removed.
+>
+> The palette is a value ramp, not a hue wheel: ink → deep teal → slate → sage → paper is
+> essentially one journey from dark to light. That makes it excellent for text on ground
+> and useless for "one colour that pops out of a paragraph". The accent still works
+> against a *surface* (deep teal on paper is 9.37:1), so it belongs on the done control in
+> task 6 — never inside a line of text.
+>
+> The dimming was doing the whole job on its own anyway, in both modes, at a glance.
 
 **Anti-convergence check** (vs susu, the last thing of his I looked at): susu is a
 passbook — warm paper, deep blue actions, burnt-orange rule, didone numerals for money.

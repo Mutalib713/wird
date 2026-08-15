@@ -13,7 +13,12 @@ import java.net.URL
 /** What the Today screen can be showing. Built as a set, not discovered later. */
 sealed interface PageState {
     data object Loading : PageState
-    data class Ready(val page: MushafPage, val typeface: Typeface) : PageState
+    data class Ready(
+        val page: MushafPage,
+        val typeface: Typeface,
+        /** Null when this page opens no surah, or when the bismillah font didn't load. */
+        val bismillahTypeface: Typeface?,
+    ) : PageState
     /** [retryable] false means something is wrong with the page itself, not the network. */
     data class Failed(val reason: String, val retryable: Boolean) : PageState
 }
@@ -49,7 +54,10 @@ class MushafRepository(private val context: Context) {
                         retryable = true,
                     )
                 }
-            PageState.Ready(layout, tf)
+            // Only fetched for pages that open a surah, and its absence degrades the
+            // header rather than failing the page.
+            val bismillahTf = if (layout.bismillahCodes != null) bismillahTypeface() else null
+            PageState.Ready(layout, tf, bismillahTf)
         } catch (e: Exception) {
             Log.w(TAG, "load($page) failed", e)
             PageState.Failed("No connection.", retryable = true)
@@ -65,7 +73,8 @@ class MushafRepository(private val context: Context) {
         } else {
             val field = Mushaf.FONT_VERSION.apiField
             val url = "https://api.quran.com/api/v4/verses/by_page/$page" +
-                "?words=true&per_page=50&word_fields=$field,line_number,char_type_name"
+                "?words=true&per_page=50&fields=juz_number" +
+                "&word_fields=$field,line_number,char_type_name"
             val text = get(url) ?: return null
             cache.writeText(text)
             text
@@ -82,12 +91,18 @@ class MushafRepository(private val context: Context) {
         val verses = JSONObject(body).getJSONArray("verses")
         val glyphs = mutableListOf<Glyph>()
         val surahStarts = mutableMapOf<String, String>()
+        var juz = 0
+        var openingChapter = 0
 
         for (i in 0 until verses.length()) {
             val v = verses.getJSONObject(i)
             val key = v.getString("verse_key")
+            if (i == 0) {
+                juz = v.optInt("juz_number", 0)
+            }
             if (key.substringAfter(':') == "1") {
                 surahStarts[key] = key.substringBefore(':')
+                if (openingChapter == 0) openingChapter = key.substringBefore(':').toInt()
             }
             val words = v.getJSONArray("words")
             for (j in 0 until words.length()) {
@@ -103,7 +118,51 @@ class MushafRepository(private val context: Context) {
             }
         }
         require(glyphs.isNotEmpty()) { "no glyphs on page $page" }
-        return MushafPage(page, glyphs, surahStarts)
+
+        val chapterId = glyphs.first().verseKey.substringBefore(':').toInt()
+        val chapter = chapter(chapterId)
+        val opensASurah = openingChapter != 0
+        val bismillah = if (opensASurah && chapter(openingChapter).second) {
+            bismillahCodes()
+        } else {
+            null
+        }
+
+        return MushafPage(
+            page = page,
+            glyphs = glyphs,
+            surahStarts = surahStarts,
+            surahName = chapter.first,
+            juz = juz,
+            bismillahCodes = bismillah,
+        )
+    }
+
+    /** @return name, and whether a bismillah precedes it. At-Tawbah is the one without. */
+    private fun chapter(id: Int): Pair<String, Boolean> {
+        val cache = File(pageDir, "chapter-$id.json")
+        val body = if (cache.exists()) cache.readText() else {
+            val t = get("https://api.quran.com/api/v4/chapters/$id") ?: return "" to false
+            cache.writeText(t); t
+        }
+        return runCatching {
+            val c = JSONObject(body).getJSONObject("chapter")
+            c.getString("name_simple") to c.optBoolean("bismillah_pre", false)
+        }.getOrElse { "" to false }
+    }
+
+    /** See [Mushaf.BISMILLAH_CODES] — three glyphs belonging to the bismillah font. */
+    private fun bismillahCodes(): String = Mushaf.BISMILLAH_CODES
+
+    private fun bismillahTypeface(): Typeface? {
+        val f = File(fontDir, "bismillah.ttf")
+        if (!f.exists() || f.length() < Mushaf.MIN_PLAUSIBLE_FONT_BYTES) {
+            val bytes = getBytes(Mushaf.BISMILLAH_FONT_URL) ?: return null
+            if (bytes.size < Mushaf.MIN_PLAUSIBLE_FONT_BYTES) return null
+            f.writeBytes(bytes)
+            Log.i(TAG, "cached bismillah font: ${bytes.size} bytes")
+        }
+        return runCatching { Typeface.createFromFile(f) }.getOrNull()
     }
 
     // ---- font --------------------------------------------------------------
