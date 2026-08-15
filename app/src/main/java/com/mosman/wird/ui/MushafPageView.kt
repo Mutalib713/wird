@@ -21,6 +21,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -71,6 +72,8 @@ fun MushafPageView(
     onWordTap: ((verseKey: String) -> Unit)? = null,
     /** Tapping the page itself, used to show and hide the chrome. */
     onBackgroundTap: (() -> Unit)? = null,
+    /** Fires when a page is drawn, so the chrome can name where you are. */
+    onPageShown: (MushafPage) -> Unit = {},
     footer: @Composable (MushafPage) -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
@@ -96,14 +99,17 @@ fun MushafPageView(
             // Nothing at all the second time. Plain paper, then the page arrives.
             is PageState.Loading -> if (showSkeleton) PageSkeleton()
             is PageState.Failed -> PageProblem(state, onRetry)
-            is PageState.Ready -> DrawnPage(
-                page = state.page,
-                typeface = state.typeface,
-                bismillahTypeface = state.bismillahTypeface,
-                lit = lit(state.page),
-                onWordTap = onWordTap,
-                footer = footer,
-            )
+            is PageState.Ready -> {
+                LaunchedEffect(state.page.page) { onPageShown(state.page) }
+                DrawnPage(
+                    page = state.page,
+                    typeface = state.typeface,
+                    bismillahTypeface = state.bismillahTypeface,
+                    lit = lit(state.page),
+                    onWordTap = onWordTap,
+                    footer = footer,
+                )
+            }
         }
     }
 }
