@@ -231,9 +231,15 @@ Three rules, in order:
 2. **A page you swipe past costs nothing either.** A page waits 450 ms of stillness before
    fetching. Swipe through it and it is disposed first, which cancels the load. Measured:
    five fast swipes downloaded **zero** fonts.
-3. **The two pages either side of today's are fetched quietly in the background**, once,
-   after today's page is already on screen. About 616 KB, and only next to today's
-   portion. Glancing forward or back is then instant.
+3. **One page either side of today's is fetched quietly in the background**, once, after
+   today's page is already on screen. Measured on a wiped cache: three pages came to
+   471 KB, of which about **327 KB is the two extra ones**. Glancing forward or back is
+   then instant — a prefetched page loaded in **22 ms**.
+
+**The loading skeleton appears once per visit, then never again.** It exists to say "this
+is loading, not broken", and that only needs saying once. By the time you have swiped past
+the prefetched pages you have decided to browse, so later pages simply arrive on plain
+paper. Leave the app and come back and the count starts over.
 
 So only a page you deliberately stop on, away from today's, actually costs anything. The
 whole mushaf is 91 MB and is never downloaded in bulk — that is not a thing to do to

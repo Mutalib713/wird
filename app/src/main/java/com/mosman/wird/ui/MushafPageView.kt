@@ -57,6 +57,15 @@ fun MushafPageView(
     state: PageState,
     lit: (MushafPage) -> Set<Int>,
     modifier: Modifier = Modifier,
+    /**
+     * Whether a wait on this page should be dressed as a skeleton.
+     *
+     * False after the reader has already seen one. The skeleton's job is to say "this is
+     * loading, not broken" — it only needs saying once. Someone who has swiped past the
+     * prefetched pages has decided to browse, and repeating the placeholder at every page
+     * turn is a flicker, not information.
+     */
+    showSkeleton: Boolean = true,
     onRetry: () -> Unit = {},
     onWordTap: ((verseKey: String) -> Unit)? = null,
     footer: @Composable (MushafPage) -> Unit = {},
@@ -64,7 +73,8 @@ fun MushafPageView(
     val colors = LocalWirdColors.current
     Box(modifier = modifier.fillMaxSize().background(colors.surface)) {
         when (state) {
-            is PageState.Loading -> PageSkeleton()
+            // Nothing at all the second time. Plain paper, then the page arrives.
+            is PageState.Loading -> if (showSkeleton) PageSkeleton()
             is PageState.Failed -> PageProblem(state, onRetry)
             is PageState.Ready -> DrawnPage(
                 page = state.page,

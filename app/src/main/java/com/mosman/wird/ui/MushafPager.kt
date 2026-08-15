@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -59,6 +60,15 @@ fun MushafPager(
     val states = remember { mutableStateMapOf<Int, PageState>() }
     var retryTick by remember { mutableIntStateOf(0) }
 
+    // The skeleton is shown once per visit to the app, then never again.
+    //
+    // It exists to say "this is loading, not broken". That only needs saying once: by the
+    // time someone has swiped past the prefetched pages they have decided to browse, and
+    // a placeholder flashing at every page turn is a flicker rather than information.
+    // Held in `remember`, so leaving the app and coming back starts the count again —
+    // which is what Mutalib asked for.
+    var skeletonSpent by remember { mutableStateOf(false) }
+
     val pagerState = rememberPagerState(
         initialPage = (initialPage - 1).coerceIn(0, Mushaf.PAGES - 1),
         pageCount = { Mushaf.PAGES },
@@ -78,6 +88,9 @@ fun MushafPager(
             val pageNumber = index + 1
             val state = states[pageNumber] ?: PageState.Loading
 
+            // Captured when this page first composes, before the effect below spends it.
+            val dressAsSkeleton = remember(pageNumber) { !skeletonSpent }
+
             LaunchedEffect(pageNumber, retryTick) {
                 if (states[pageNumber] is PageState.Ready) return@LaunchedEffect
                 states[pageNumber] = PageState.Loading
@@ -90,6 +103,7 @@ fun MushafPager(
                     // Mutalib's idea: show the skeleton, and only fetch if the reader is
                     // still here a moment later. Pages you swipe past are disposed before
                     // this elapses, which cancels them. Five fast swipes fetched nothing.
+                    skeletonSpent = true
                     delay(SETTLE_BEFORE_FETCH_MS)
                 }
                 states[pageNumber] = repo.load(pageNumber)
@@ -101,6 +115,7 @@ fun MushafPager(
                 MushafPageView(
                     state = state,
                     lit = lit,
+                    showSkeleton = dressAsSkeleton,
                     onRetry = { states.remove(pageNumber); retryTick++ },
                     onWordTap = onWordTap,
                     footer = footer,

@@ -195,14 +195,18 @@ class MushafRepository(private val context: Context) {
      * Quietly fetch the pages either side of where the reader is, so a glance forwards or
      * back is instant instead of a skeleton.
      *
-     * Deliberately small: two pages each way, about 616 KB once, and only ever the pages
-     * next to today's. It is not a background download of the mushaf — 604 pages would be
-     * 91 MB, which is not a thing to do to someone on mobile data without asking.
+     * Deliberately small: **one page each way, three in total.** Measured on a wiped
+     * cache — 439, 440 and 441 came to 471 KB, of which roughly **327 KB is the two extra
+     * pages**, the rest being today's, which you were fetching regardless. It started at
+     * two each way and Mutalib cut it: five pages is more than anyone glances at, and
+     * every extra page is someone's data. It is not a background download of the
+     * mushaf either: 604 pages would be 91 MB, which is not a thing to do to someone on
+     * mobile data without asking.
      *
      * Anything already cached costs nothing, so this is a no-op from the second day on
      * unless the portion has moved.
      */
-    suspend fun prefetchAround(page: Int, radius: Int = 2) = withContext(Dispatchers.IO) {
+    suspend fun prefetchAround(page: Int, radius: Int = 1) = withContext(Dispatchers.IO) {
         // Fully qualified on purpose: there are two objects called Mushaf — this package's
         // one holds font settings, and the domain one holds the book's shape. Inside this
         // file the wrong one wins, which is exactly the kind of collision worth naming
