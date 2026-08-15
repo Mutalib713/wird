@@ -3,6 +3,7 @@ package com.mosman.wird.ui
 import android.graphics.Typeface
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -68,10 +69,29 @@ fun MushafPageView(
     showSkeleton: Boolean = true,
     onRetry: () -> Unit = {},
     onWordTap: ((verseKey: String) -> Unit)? = null,
+    /** Tapping the page itself, used to show and hide the chrome. */
+    onBackgroundTap: (() -> Unit)? = null,
     footer: @Composable (MushafPage) -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
-    Box(modifier = modifier.fillMaxSize().background(colors.surface)) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(colors.surface)
+            .then(
+                if (onBackgroundTap == null) {
+                    Modifier
+                } else {
+                    // No ripple. A grey flash spreading across the Qur'an every time you
+                    // tap the screen is exactly the kind of decoration this page refuses.
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onBackgroundTap,
+                    )
+                }
+            ),
+    ) {
         when (state) {
             // Nothing at all the second time. Plain paper, then the page arrives.
             is PageState.Loading -> if (showSkeleton) PageSkeleton()

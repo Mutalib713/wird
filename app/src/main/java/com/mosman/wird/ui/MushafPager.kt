@@ -53,6 +53,7 @@ fun MushafPager(
     modifier: Modifier = Modifier,
     onPageChanged: (Int) -> Unit = {},
     onWordTap: ((verseKey: String) -> Unit)? = null,
+    onBackgroundTap: (() -> Unit)? = null,
     footer: @Composable (MushafPage) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -116,6 +117,7 @@ fun MushafPager(
                     state = state,
                     lit = lit,
                     showSkeleton = dressAsSkeleton,
+                    onBackgroundTap = onBackgroundTap,
                     onRetry = { states.remove(pageNumber); retryTick++ },
                     onWordTap = onWordTap,
                     footer = footer,

@@ -127,6 +127,20 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *⬜ Still to verify on the phone:* every setting surviving a restart. TikTok was in the
   foreground at install time and the device rule says don't.
 
+- [x] **5e. The page carries no permanent chrome** — done 2026-08-15
+  Mutalib's observation: settings and "read something else" sitting at the foot of the
+  page does not survive the app filling out — you would scroll to the end of the Qur'an to
+  reach settings, and task 6 adds the most important control of all.
+  Tap the page and a slim bar appears with the ways out; tap again and it goes. The bar
+  uses words rather than icons: three one-off actions, and a row of little glyphs over a
+  Qur'an page would need explaining.
+  *Done when:* tapping shows and hides the bar, and the page carries nothing otherwise.
+  *Evidence:* tap verified on the phone — the bar appears with "Read something else" and
+  "Settings". **Hiding on the second tap is not yet verified**; the phone was picked up
+  mid-test. No crash: process alive, no FATAL lines.
+  *Revisit at task 6:* the bar uses `surfaceRaised`, which in light mode is the same sage
+  as `done`. Once sage means "you have read today", a sage chrome bar may muddy it.
+
 ## Milestone 2 — The loop
 
 - [ ] **6. Mark done — record or tap**
