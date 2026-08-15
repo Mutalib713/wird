@@ -40,6 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.mosman.wird.domain.Assignment
+import com.mosman.wird.domain.linesOn
+import com.mosman.wird.domain.pages
 import com.mosman.wird.mushaf.Glyph
 import com.mosman.wird.mushaf.MushafPage
 import com.mosman.wird.mushaf.MushafRepository
@@ -56,16 +59,16 @@ import com.mosman.wird.ui.theme.Scale
  * spent on about eight small numerals.
  */
 @Composable
-fun TodayScreen(
-    page: Int,
-    portionLines: IntRange,
-    surahLabel: String,
-) {
+fun TodayScreen(assignment: Assignment) {
     val context = LocalContext.current
     val colors = LocalWirdColors.current
     val repo = remember { MushafRepository(context) }
     var state by remember { mutableStateOf<PageState>(PageState.Loading) }
     var attempt by remember { mutableIntStateOf(0) }
+
+    // A one-page portion is one page. A bigger target spans several; this shows the
+    // first and says so, rather than pretending the rest is not there.
+    val page = assignment.pages.first()
 
     LaunchedEffect(page, attempt) {
         state = PageState.Loading
@@ -83,7 +86,7 @@ fun TodayScreen(
             is PageState.Loading -> PageSkeleton()
             is PageState.Failed -> PageProblem(s) { attempt++ }
             is PageState.Ready ->
-                ReadyPage(s.page, s.typeface, s.bismillahTypeface, portionLines, surahLabel)
+                ReadyPage(s.page, s.typeface, s.bismillahTypeface, assignment)
         }
     }
 }
@@ -93,12 +96,13 @@ private fun ReadyPage(
     page: MushafPage,
     typeface: Typeface,
     bismillahTypeface: Typeface?,
-    portionLines: IntRange,
-    surahLabel: String,
+    assignment: Assignment,
 ) {
     val colors = LocalWirdColors.current
     val family = remember(typeface) { FontFamily(typeface) }
     val lines = page.lines
+    // Which of this page's lines are today's. A half-page target lights half of them.
+    val portionLines = remember(assignment, lines) { assignment.linesOn(page.page, lines) }
 
     Column(
         modifier = Modifier
@@ -112,7 +116,7 @@ private fun ReadyPage(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = page.surahName.ifEmpty { surahLabel },
+                text = page.surahName,
                 color = colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),
             )
@@ -131,6 +135,7 @@ private fun ReadyPage(
             Bismillah(
                 codes = page.bismillahCodes,
                 typeface = bismillahTypeface,
+                // The bismillah belongs to the first line, so it follows its fate.
                 inPortion = lines.firstOrNull()?.let { it in portionLines } ?: true,
             )
             Spacer(Modifier.height(Scale.space4))
@@ -147,7 +152,7 @@ private fun ReadyPage(
         Spacer(Modifier.height(Scale.space6))
 
         Text(
-            text = portionSummary(portionLines, lines),
+            text = portionSummary(assignment, portionLines, lines),
             color = colors.textSecondary,
             style = TextStyle(fontSize = Scale.caption),
             modifier = Modifier.fillMaxWidth(),
@@ -334,11 +339,20 @@ private fun PageProblem(state: PageState.Failed, onRetry: () -> Unit) {
     }
 }
 
-private fun portionSummary(portion: IntRange, lines: List<Int>): String {
-    val inPortion = lines.count { it in portion }
+private fun portionSummary(
+    assignment: Assignment,
+    portion: Set<Int>,
+    lines: List<Int>,
+): String {
+    val rest = assignment.pages.drop(1)
+    val here = when {
+        portion.isEmpty() -> "Today's portion isn't on this page."
+        portion.size == lines.size -> "All of this page is today's."
+        else -> "${portion.size} of ${lines.size} lines are today's."
+    }
     return when {
-        inPortion == 0 -> "Today's portion isn't on this page."
-        inPortion == lines.size -> "All of this page is today's."
-        else -> "$inPortion of ${lines.size} lines are today's."
+        rest.isEmpty() -> here
+        rest.size == 1 -> "$here Page ${rest.first()} is today's as well."
+        else -> "$here Pages ${rest.first()} to ${rest.last()} are today's as well."
     }
 }

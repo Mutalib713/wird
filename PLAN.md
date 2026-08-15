@@ -84,11 +84,22 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *Done when:* page 453 renders on the Pixel and matches the printed mushaf, with ayahs
   1–8 lit and 9–16 dimmed.
 
-- [ ] **5. Position, target, and today's portion**
+- [x] **5. Position, target, and today's portion** — code done 2026-08-15, on-phone check pending
   Store where you are. Store pages per day with per-weekday overrides. Compute today's
   assignment. Handle surah boundaries and the end of the mushaf wrapping to page 1.
   *Done when:* setting page 453 with a one-page target yields the right range, verified
   against the physical mushaf, and the QA suite covers a surah boundary.
+  *Evidence:* QA suite grew 3 → 6, all passing. New checks cover per-weekday targets,
+  surah boundaries (including the four surahs touched by wrapping 604 → 1), and the
+  half-page line split tiling a page exactly with no line lit twice or missed.
+  `SurahIndex` generated from the API's `/chapters`, 114 entries, bundled so surah names
+  cost no data.
+  *A test caught a real bug:* `SurahIndex.across` sorted by surah number, so a portion
+  wrapping past the end announced Al-Fatihah *before* An-Nas — a journey nobody takes.
+  Now returns surahs in the order you meet them.
+  *⬜ Still to verify on the phone:* the first-run setup screen and entering page 453.
+  Not installed yet — WhatsApp was in the foreground and the device rule in CLAUDE.md
+  says don't.
 
 ## Milestone 2 — The loop
 

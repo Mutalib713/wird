@@ -23,9 +23,10 @@ front of whom you had to open your mouth. School ended that. Wird is a stand-in 
 | ✅ 2 | App installs and opens on the Pixel 6 Pro. |
 | ✅ 3 | A scheduled notification fires, and tapping it opens the page. |
 | ✅ 4 | The real mushaf page renders, with today's portion lit and the rest dimmed. |
-| ⬜ 5 | Storing your actual position, so the page stops being hardcoded to 453. |
+| ✅ 5 | It remembers where you are and how much you read a day. |
+| ⬜ 6 | Marking a day done — recording yourself, or tapping. |
 
-Everything after task 5 is in `PLAN.md`.
+Everything after task 6 is in `PLAN.md`.
 
 ---
 
@@ -236,7 +237,52 @@ It was built, looked at, and measured — deep teal against ink is 1.78:1, sage 
 paper is 1.69:1, which means invisible. Removed. The dimming was doing the whole job on
 its own.
 
-## 5. Colour
+## 5. Knowing where you are
+
+**Plain version:** the app stores two things — the page you're due to read next, and how
+much you read a day. From those it works out today's portion every time you open it.
+
+**Everything is counted in half pages, not pages.** You might read "half a page on
+Friday", and halves in decimals drift: add 0.5 to itself enough times and a computer
+eventually lands somewhere slightly wrong. Whole numbers can't. So one page is 2 units,
+half a page is 1, and the whole mushaf is 1208 units.
+
+**Your plan can vary by weekday.** "One page a day, but Fridays are heavy" is stored as a
+default plus one override, not as seven separate settings.
+
+**Position only moves when you mark a day done.** Opening the app twice in a day shows the
+same portion twice. A target that crept forward on every launch would be unusable, so
+there's a test for exactly that.
+
+**Finishing isn't an ending.** Page 604 is followed by page 1. That's what people actually
+do, so the maths wraps instead of stopping.
+
+### Surahs, and a bug the tests caught
+
+`SurahIndex.kt` holds where all 114 surahs sit, generated from the API rather than typed
+from memory, and bundled so surah names work offline and cost no data.
+
+Two things that are less obvious than they sound:
+
+- **A page can hold several surahs.** Ṣād ends on 458 and Az-Zumar begins on 458. Page 604
+  carries three: Al-Ikhlas, Al-Falaq and An-Nas.
+- **Order matters.** The first version listed surahs by number. So a portion wrapping past
+  the end announced *Al-Fatihah, then An-Nas* — the reverse of the journey you take. Now
+  they come back in the order you meet them. A test caught this, which is the entire
+  argument for having tests on the maths.
+
+### Half a page, on a page of lines
+
+A mushaf page is 15 lines, and the mushaf doesn't record where its own half-way point is.
+So a half-page portion lights the top half of whatever lines that page rendered, rounding
+up — an odd fifteenth line reads better attached to the first half than orphaned at the
+bottom. A test checks the two halves **tile the page exactly**: no line lit twice, none
+missed.
+
+Note "whatever lines that page rendered" — a page that opens a surah gives its first line
+to the bismillah, so it has 14, not 15.
+
+## 6. Colour
 
 Your five colours from coolors.co are canon (Sacred Rule 8) — they don't get "improved"
 later.
@@ -265,7 +311,7 @@ is one journey from dark to light. Excellent for text on a ground; useless for a
 that must pop out of a paragraph. That's why the accent works on a *button* (deep teal on
 paper is 9.37:1) but failed on numerals sitting inside text.
 
-## 6. Backups, and why they're off
+## 7. Backups, and why they're off
 
 Android normally backs apps up to Google Drive automatically. Wird switches that off
 three times over, because the setting changed across Android versions and all three are

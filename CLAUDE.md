@@ -19,6 +19,16 @@ Read `PROFILE.md` and `PLAN.md` before touching anything. PROFILE.md is canonica
 - If a decision isn't answered by PROFILE.md, **stop and ask** rather than picking one.
 - ⚠ tasks may fail. A ⚠ task that turns out to be impossible is a real result — write it
   into PROFILE.md § 11 and delete the feature. Never fake one green.
+- **Every task ends with a walkthrough, in plain words, of what was built and how it
+  works.** Not a changelog and not a list of files touched — an explanation he could
+  repeat to someone else. Plain meaning first, technical detail second, every term
+  defined the first time it appears. He asked for this on 2026-08-15, in the middle of
+  starting task 5, because he wants to understand his own project rather than accumulate
+  code he cannot explain.
+
+  What that looks like: *what problem this task solved · how the solution actually works ·
+  the one idea worth remembering · anything I got wrong and what it cost.* Ship it in
+  chat, and fold anything durable into README.md so it survives the session.
 
 ## Commands
 
