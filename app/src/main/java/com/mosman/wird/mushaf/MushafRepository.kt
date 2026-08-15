@@ -37,7 +37,22 @@ class MushafRepository(private val context: Context) {
     private val fontDir = File(context.filesDir, "qcf").apply { mkdirs() }
     private val pageDir = File(context.filesDir, "pages").apply { mkdirs() }
 
+    /**
+     * True when this page can be drawn without touching the network.
+     *
+     * Lets the pager skip its settle delay for pages already on disk: a page you have
+     * seen before should appear the instant you swipe to it, and waiting to find out
+     * whether to download something you already have is waiting for nothing.
+     */
+    fun isCached(page: Int): Boolean {
+        val layout = File(pageDir, "p$page-${Mushaf.FONT_VERSION.name}.json")
+        val font = File(fontDir, "${Mushaf.FONT_VERSION.name}-$page.ttf")
+        return layout.exists() && font.exists() && font.length() >= Mushaf.MIN_PLAUSIBLE_FONT_BYTES
+    }
+
     suspend fun load(page: Int): PageState = withContext(Dispatchers.IO) {
+        val started = System.currentTimeMillis()
+        fun elapsed() = System.currentTimeMillis() - started
         try {
             val layout = layoutFor(page) ?: return@withContext PageState.Failed(
                 "Couldn't get the layout for page $page.", retryable = true,
@@ -56,7 +71,9 @@ class MushafRepository(private val context: Context) {
                 }
             // Only fetched for pages that open a surah, and its absence degrades the
             // header rather than failing the page.
+            val afterFont = elapsed()
             val bismillahTf = if (layout.bismillahCodes != null) bismillahTypeface() else null
+            Log.i(TAG, "load($page) cached=${isCached(page)} font+layout=${afterFont}ms total=${elapsed()}ms")
             PageState.Ready(layout, tf, bismillahTf)
         } catch (e: Exception) {
             Log.w(TAG, "load($page) failed", e)
@@ -172,6 +189,35 @@ class MushafRepository(private val context: Context) {
         runCatching {
             JSONObject(body).getJSONObject("verse").getInt("page_number")
         }.getOrNull()
+    }
+
+    /**
+     * Quietly fetch the pages either side of where the reader is, so a glance forwards or
+     * back is instant instead of a skeleton.
+     *
+     * Deliberately small: two pages each way, about 616 KB once, and only ever the pages
+     * next to today's. It is not a background download of the mushaf — 604 pages would be
+     * 91 MB, which is not a thing to do to someone on mobile data without asking.
+     *
+     * Anything already cached costs nothing, so this is a no-op from the second day on
+     * unless the portion has moved.
+     */
+    suspend fun prefetchAround(page: Int, radius: Int = 2) = withContext(Dispatchers.IO) {
+        // Fully qualified on purpose: there are two objects called Mushaf — this package's
+        // one holds font settings, and the domain one holds the book's shape. Inside this
+        // file the wrong one wins, which is exactly the kind of collision worth naming
+        // rather than working around silently.
+        val pageCount = com.mosman.wird.domain.Mushaf.PAGES
+        val wanted = ((page - radius)..(page + radius))
+            .map { ((it - 1).mod(pageCount)) + 1 }
+            .filter { !isCached(it) }
+        if (wanted.isEmpty()) return@withContext
+        Log.i(TAG, "prefetching ${wanted.size} pages around $page")
+        wanted.forEach { p ->
+            // One at a time, and failures are ignored: this is a convenience, and a page
+            // that does not arrive now will simply be fetched when the reader turns to it.
+            runCatching { load(p) }
+        }
     }
 
     /** How many ayahs a surah has, so setup can stop someone typing 400 into Al-Kawthar. */

@@ -81,13 +81,17 @@ fun MushafPager(
             LaunchedEffect(pageNumber, retryTick) {
                 if (states[pageNumber] is PageState.Ready) return@LaunchedEffect
                 states[pageNumber] = PageState.Loading
-                // Mutalib's idea, and it is the right one: show the skeleton first, and
-                // only fetch if the reader is still here a moment later. Flicking through
-                // twenty pages to find something now downloads nothing — the pages you
-                // pass through are disposed before this delay elapses, which cancels them.
-                // Only where you stop costs data. At 154 KB a page that is the difference
-                // between a browse costing 3 MB and costing nothing.
-                delay(SETTLE_BEFORE_FETCH_MS)
+                // The settle delay exists to protect data, so it only applies to pages
+                // that would actually cost some. A page already on disk is drawn straight
+                // away — waiting to decide whether to download something you already have
+                // is waiting for nothing, and it is what made swiping back to a page you
+                // had just read feel broken.
+                if (!repo.isCached(pageNumber)) {
+                    // Mutalib's idea: show the skeleton, and only fetch if the reader is
+                    // still here a moment later. Pages you swipe past are disposed before
+                    // this elapses, which cancels them. Five fast swipes fetched nothing.
+                    delay(SETTLE_BEFORE_FETCH_MS)
+                }
                 states[pageNumber] = repo.load(pageNumber)
             }
 

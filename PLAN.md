@@ -100,12 +100,15 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *Still to do in 5c:* setup can be completed by a mis-tap and there is currently no way
   back to change your position without clearing app data.
 
-- [ ] **5d. Verify the first render is not slow**
-  After a force-stop, today's page sat on the skeleton for at least 5 seconds even though
-  its font and layout were both already cached on disk. It should be near-instant. Could
-  be the 450 ms settle delay stacking with a cold read, could be something re-fetching
-  that should not. **Unverified** — the phone was in use, so this was not chased down.
-  *Done when:* a cold start with a warm cache renders in well under a second, measured.
+- [x] **5d. First render, measured** — done 2026-08-15
+  The "5+ seconds of skeleton" was wrong on both counts. Measured with `am start -W`:
+  cold launch **1205 ms** to first frame, page drawn **163 ms** after that, and
+  `load()` itself 110–210 ms from a warm cache. My earlier figure included adb's own
+  round-trip plus a 450 ms settle delay that was wrongly applying to pages already on
+  disk. Cached pages now skip that delay entirely.
+  *Also added:* the two pages either side of today's are fetched in the background after
+  today's page is on screen — verified by deleting 438 and 442 from the cache and
+  watching them refill, with today's page still loading first.
 
 - [ ] **5c. Settings**
   Light/dark toggle (dark is built and contrast-checked, it needs a switch). Change how

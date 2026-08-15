@@ -222,6 +222,26 @@ There is no v2 WOFF2 build at all, so the small-and-native option only exists at
 line — `Mushaf.FONT_VERSION` — switches both the font URL and which codes we ask the API
 for.
 
+### What costs data, and when
+
+Three rules, in order:
+
+1. **A page you have seen before costs nothing, ever.** Font and layout are both cached on
+   disk. Opening it again is a file read: measured at **110–210 ms**.
+2. **A page you swipe past costs nothing either.** A page waits 450 ms of stillness before
+   fetching. Swipe through it and it is disposed first, which cancels the load. Measured:
+   five fast swipes downloaded **zero** fonts.
+3. **The two pages either side of today's are fetched quietly in the background**, once,
+   after today's page is already on screen. About 616 KB, and only next to today's
+   portion. Glancing forward or back is then instant.
+
+So only a page you deliberately stop on, away from today's, actually costs anything. The
+whole mushaf is 91 MB and is never downloaded in bulk — that is not a thing to do to
+someone on mobile data without asking.
+
+Cold start with a warm cache, measured with `am start -W`: **1205 ms** to first frame,
+page drawn 163 ms after that. Most of it is Android starting the app at all.
+
 ### Fitting the lines
 
 A mushaf line is a fixed set of words that **must** sit on one line. It can't wrap and it

@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import com.mosman.wird.mushaf.MushafRepository
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +44,14 @@ fun TodayScreen(
     var showJump by remember { mutableStateOf(false) }
     var goTo by remember { mutableIntStateOf(todaysPages.first()) }
     var current by remember { mutableIntStateOf(todaysPages.first()) }
+
+    // Warm the pages either side of today's, once, in the background. A glance forwards
+    // or back is then instant; beyond that you get the skeleton and a short wait, which
+    // is the honest signal that something is actually being fetched.
+    val context = LocalContext.current
+    LaunchedEffect(todaysPages) {
+        MushafRepository(context).prefetchAround(todaysPages.first())
+    }
 
     Box(modifier = Modifier.fillMaxSize().safeDrawingPadding()) {
         MushafPager(
