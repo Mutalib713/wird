@@ -119,11 +119,20 @@ private fun DrawnPage(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Scale.space4, vertical = Scale.space6),
     ) {
+        // What to read, said in the margin line that was already there rather than in a
+        // banner of its own. The first attempt added a titled block with an accent bar
+        // and a rule beside every line of the portion; Mutalib disliked it, and he was
+        // right — it was furniture. The page should carry one quiet line of chrome, and
+        // the range belongs in it.
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(surahLabel, color = colors.textSecondary, style = TextStyle(fontSize = Scale.caption))
+            Text(
+                text = portionLabel(page, lit, surahLabel),
+                color = colors.textSecondary,
+                style = TextStyle(fontSize = Scale.caption),
+            )
             Text(
                 text = if (page.juz > 0) "Juz' ${page.juz}" else "",
                 color = colors.textOutsidePortion,
@@ -131,17 +140,7 @@ private fun DrawnPage(
             )
         }
 
-        // Say it in words, above the page. Colour alone could not tell Mutalib which half
-        // was his — he read the dimmed text as the highlighted one, which is a fair
-        // reading, since coloured looks marked and plain text looks ordinary. Naming the
-        // ayahs removes the guess entirely, and works for anyone who cannot separate the
-        // two shades at all.
-        if (lit.isNotEmpty() && lit.size != lines.size) {
-            PortionBanner(page, lit)
-            Spacer(Modifier.height(Scale.space4))
-        } else {
-            Spacer(Modifier.height(Scale.space6))
-        }
+        Spacer(Modifier.height(Scale.space6))
 
         lines.forEach { line ->
             if (line == bismillahBeforeLine && page.bismillahCodes != null && bismillahTypeface != null) {
@@ -153,9 +152,6 @@ private fun DrawnPage(
                 glyphs = page.glyphsOn(line),
                 family = family,
                 inPortion = line in lit,
-                // A rule in the margin beside today's lines. It brackets the portion
-                // without putting a single mark on the Qur'an itself.
-                marked = lit.size != lines.size && line in lit,
                 onWordTap = onWordTap,
             )
         }
@@ -176,40 +172,24 @@ private fun DrawnPage(
     }
 }
 
-/** Names today's portion in ayahs, so nothing depends on telling two shades apart. */
-@Composable
-private fun PortionBanner(page: MushafPage, lit: Set<Int>) {
-    val colors = LocalWirdColors.current
-    val range = remember(page, lit) { page.ayahRange(lit) } ?: return
-    val (first, last) = range
-    val firstName = SurahIndex.byNumber(first.first)?.name ?: ""
-    val lastName = SurahIndex.byNumber(last.first)?.name ?: ""
-
-    val text = when {
-        first == last -> "Read $firstName ${first.second}"
-        first.first == last.first -> "Read $firstName ${first.second} to ${last.second}"
-        else -> "Read $firstName ${first.second} to $lastName ${last.second}"
+/**
+ * The one line of chrome: which surah you are looking at, and — when part of this page is
+ * today's — exactly which ayahs to read.
+ *
+ * Naming the ayahs is what removes the guesswork. Colour says *where*, and now says it
+ * the same way on every page; the words say *what*, and survive being screenshotted,
+ * being colour-blind, or simply not having learned the convention yet.
+ */
+private fun portionLabel(page: MushafPage, lit: Set<Int>, surahLabel: String): String {
+    if (lit.isEmpty()) return surahLabel
+    val (first, last) = page.ayahRange(lit) ?: return surahLabel
+    val firstName = SurahIndex.byNumber(first.first)?.name ?: surahLabel
+    val lastName = SurahIndex.byNumber(last.first)?.name ?: surahLabel
+    return when {
+        first == last -> "$firstName ${first.second}"
+        first.first == last.first -> "$firstName ${first.second}–${last.second}"
+        else -> "$firstName ${first.second} – $lastName ${last.second}"
     }
-
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(top = Scale.space4),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(Scale.space4)
-                .background(colors.accent),
-        )
-        Spacer(Modifier.width(Scale.space2))
-        Text(text, color = colors.textPrimary, style = TextStyle(fontSize = Scale.body))
-    }
-    Text(
-        text = "The paler lines aren't today's.",
-        color = colors.textSecondary,
-        style = TextStyle(fontSize = Scale.caption),
-        modifier = Modifier.padding(start = Scale.space4, top = Scale.space1),
-    )
 }
 
 /**
@@ -266,7 +246,6 @@ private fun MushafLine(
     glyphs: List<Glyph>,
     family: FontFamily,
     inPortion: Boolean,
-    marked: Boolean,
     onWordTap: ((String) -> Unit)?,
 ) {
     val colors = LocalWirdColors.current
@@ -274,29 +253,6 @@ private fun MushafLine(
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        // The bracket. Sits in the margin, never on the text.
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(Scale.mushafLine.value.dp)
-                .background(if (marked) colors.accent else Color.Transparent),
-        )
-        Spacer(Modifier.width(Scale.space2))
-        MushafLineText(glyphs, family, inPortion, bodyColor, measurer, density, onWordTap)
-    }
-}
-
-@Composable
-private fun MushafLineText(
-    glyphs: List<Glyph>,
-    family: FontFamily,
-    inPortion: Boolean,
-    bodyColor: Color,
-    measurer: androidx.compose.ui.text.TextMeasurer,
-    density: androidx.compose.ui.unit.Density,
-    onWordTap: ((String) -> Unit)?,
-) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()

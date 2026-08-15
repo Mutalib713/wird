@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
+import kotlinx.coroutines.delay
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.mushaf.MushafPage
 import com.mosman.wird.mushaf.MushafRepository
@@ -26,17 +27,24 @@ import com.mosman.wird.mushaf.PageState
  * Right-to-left, like the book: swiping right goes forward, because that is the direction
  * you turn a page in a mushaf.
  *
- * **Fonts are fetched a page at a time, never ahead.** `beyondViewportPageCount = 0` stops
- * the pager keeping neighbours composed. Measured caveat: during a drag it still composes
- * the page you are swiping towards *and* the one after, so one flick pulled 441 and 442.
- * That is the pager settling, not a prefetch policy, and it costs at most one extra page
- * per swipe — but it means "nothing is loaded until you land on it" would be a false
- * claim.
+ * **Only the page you stop on costs data.** Two things together do that:
+ *
+ * 1. `beyondViewportPageCount = 0`, so neighbours are not kept composed. On its own this
+ *    was not enough — a measured swipe still composed 441 *and* 442 while settling.
+ * 2. [SETTLE_BEFORE_FETCH_MS] of stillness before anything is fetched. A page you swipe
+ *    past is disposed long before that, which cancels its load. So flicking through
+ *    twenty pages downloads nothing at all.
  *
  * This matters because browsing is the one way this app could quietly cost someone real
- * data: at 154 KB a page, flicking through thirty pages is a month of reading. Everything
- * is cached on disk forever after, so a page is only ever paid for once.
+ * money: at 154 KB a page, a careless browse used to be a month of reading. Everything is
+ * cached on disk after the first fetch, so a page is only ever paid for once.
  */
+/**
+ * How long a page must stay on screen before its font is downloaded. Long enough that
+ * flicking costs nothing, short enough that stopping does not feel broken.
+ */
+private const val SETTLE_BEFORE_FETCH_MS = 450L
+
 @Composable
 fun MushafPager(
     initialPage: Int,
@@ -73,6 +81,13 @@ fun MushafPager(
             LaunchedEffect(pageNumber, retryTick) {
                 if (states[pageNumber] is PageState.Ready) return@LaunchedEffect
                 states[pageNumber] = PageState.Loading
+                // Mutalib's idea, and it is the right one: show the skeleton first, and
+                // only fetch if the reader is still here a moment later. Flicking through
+                // twenty pages to find something now downloads nothing — the pages you
+                // pass through are disposed before this delay elapses, which cancels them.
+                // Only where you stop costs data. At 154 KB a page that is the difference
+                // between a browse costing 3 MB and costing nothing.
+                delay(SETTLE_BEFORE_FETCH_MS)
                 states[pageNumber] = repo.load(pageNumber)
             }
 

@@ -100,6 +100,13 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *Still to do in 5c:* setup can be completed by a mis-tap and there is currently no way
   back to change your position without clearing app data.
 
+- [ ] **5d. Verify the first render is not slow**
+  After a force-stop, today's page sat on the skeleton for at least 5 seconds even though
+  its font and layout were both already cached on disk. It should be near-instant. Could
+  be the 450 ms settle delay stacking with a cold read, could be something re-fetching
+  that should not. **Unverified** — the phone was in use, so this was not chased down.
+  *Done when:* a cold start with a warm cache renders in well under a second, measured.
+
 - [ ] **5c. Settings**
   Light/dark toggle (dark is built and contrast-checked, it needs a switch). Change how
   much you read a day, including the per-weekday override the domain already supports.

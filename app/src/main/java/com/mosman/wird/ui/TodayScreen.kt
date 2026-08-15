@@ -47,10 +47,17 @@ fun TodayScreen(
             initialPage = goTo,
             onPageChanged = { current = it },
             lit = { page ->
-                // Only today's pages carry the marking. Wander off and the mushaf is just
-                // the mushaf — nothing is dimmed, because none of it is today's.
+                // One rule, no exceptions: **dark means today, pale means not today** —
+                // on every page, including the ones you swipe to.
+                //
+                // The first version lit off-portion pages fully, reasoning that a page
+                // with none of today's reading on it had nothing to dim. That broke the
+                // rule the moment you turned a page: the same dark ink meant "read this"
+                // on one screen and "this isn't yours" on the next. Mutalib asked for
+                // them pale so the black is unmistakable, and he is right — a signal that
+                // holds only sometimes is not a signal.
                 if (page.page !in todaysPages) {
-                    page.lines.toSet()
+                    emptySet()
                 } else {
                     val byPage = assignment.linesOn(page.page, page.lines)
                     val startLine = startVerse?.let { (s, a) -> page.lineOf(s, a) }
