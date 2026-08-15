@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+      Fetching mushaf pages and their glyph fonts, once each, then cached on disk
+      forever. Nothing is ever uploaded — see Sacred Rule 1.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Android 13+ asks the user before any notification can appear. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 

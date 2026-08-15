@@ -50,7 +50,25 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
 
 ## Milestone 1 — The page
 
-- [ ] **4. ⚠ Render the real mushaf page**
+- [x] **4. ⚠ Render the real mushaf page** — done 2026-08-15, risk resolved
+  *Evidence:* QCF glyphs render correctly in Compose via
+  `Typeface.createFromFile` → `FontFamily(typeface)`. No WebView needed, no fallback to
+  plain Uthmani. Page 453 draws all 14 lines on one screen with lines 2–8 at full ink and
+  9–15 in slate. `WirdMushaf: cached font page 453: 160704 bytes`.
+  *Font decision, measured across all 604 pages:* **v1 TTF**, 154 KB/page, ~4.5 MB/month
+  for a page-a-day reader. v2 is 336 KB/page (~9.9 MB/month) and **has no woff2 build at
+  all**, so the small option only exists at v1. One switch — `Mushaf.FONT_VERSION` —
+  moves both the font URL and the API glyph field.
+  *Two corrections to this task's own assumptions:* glyph codes are **not** in a private
+  use area, they are Arabic Presentation Forms-A (U+FB51–FC13 for v1) — which makes font
+  fallback dangerous rather than merely ugly, since a system Arabic face would draw real
+  but wrong text. And the task-1 "woff2 is 77% smaller" measurement compared v1 woff2
+  against v2 TTF, two different fonts. The repo also moved: `mustafa0x/qpc-fonts` →
+  `nuqayah/qpc-fonts`.
+  *Still open:* the ornamental surah header (mushaf line 1) is not drawn — the surah name
+  sits in the chrome instead. Light mode is built but not yet seen on a real screen.
+
+- [x] ~~4. ⚠ Render the real mushaf page~~ *(original scope, kept for reference)*
   QCF v2 glyph fonts, one per page, fetched on demand and cached. Line layout from
   `api.quran.com/api/v4/verses/by_page/{n}?words=true`, words grouped by
   `page-{page}-line-{line}`, rendered right-to-left. Today's portion at full opacity,

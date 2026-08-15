@@ -77,10 +77,20 @@ adb devices                      # confirm the phone is attached first
   SCHEDULE_EXACT_ALARM` → `Default mode: default`, and `canScheduleExactAlarms()` is
   false. Never cache that value — re-read it on every schedule, because it can change
   underneath you (it did once during task 3, for reasons we never established).
-- **Never send a blind `adb shell input tap`.** During task 3 a WhatsApp call banner
-  appeared in the same instant as our notification and the tap opened the incoming-call
-  screen. It did not answer it, but it could have. Screenshot, confirm what is under the
-  coordinate, then tap — and do not drive the screen while the phone is in use.
+- **The Pixel is Mutalib's daily phone, not a test rig.** Two intrusions on 2026-08-14/15,
+  both avoidable:
+  1. A blind `adb shell input tap` landed on a WhatsApp call banner that appeared in the
+     same instant as our notification, opening the incoming-call screen. It did not
+     answer it, but it could have.
+  2. `cmd uimode night no` was sent to check light mode while he was mid-Snapchat, and
+     flipped his phone to light in the middle of what he was doing.
+
+  Rules, in order: **check the foreground first**
+  (`dumpsys activity activities | grep topResumedActivity`) — if it is not our app or the
+  launcher, do nothing and ask. Never send a blind tap; screenshot, confirm what is under
+  the coordinate, then tap. Never change a system setting (night mode, DND, rotation) to
+  verify something — build a debug switch inside the app instead, and if a setting really
+  must move, record its current value first and restore it in the same command block.
 - **Tecno / Infinix / itel freeze background work.** Anything scheduled must be verified
   on a real Transsion phone, never only on the Pixel.
 - **whisper.cpp on Android: batch is fast, streaming is ~5× slower than real time.**
