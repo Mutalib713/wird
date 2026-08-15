@@ -6,6 +6,9 @@ import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.ReadingPlan
 import java.time.DayOfWeek
 
+/** Paper, ink, or the phone's own setting. */
+enum class ThemeMode { LIGHT, DARK, SYSTEM }
+
 /**
  * Where you are and what you've asked of yourself, kept on this phone.
  *
@@ -61,6 +64,19 @@ class WirdStore(context: Context) {
             }
         }
 
+    /**
+     * Paper, ink, or whatever the phone is set to.
+     *
+     * Defaults to [ThemeMode.LIGHT] rather than following the system: a mushaf is a paper
+     * object, and the app follows the thing it stands in for. But he reads at night, and a
+     * paper-white screen in a dark room is unkind, so this is a switch rather than a rule.
+     */
+    var themeMode: ThemeMode
+        get() = runCatching {
+            ThemeMode.valueOf(prefs.getString(KEY_THEME, ThemeMode.LIGHT.name)!!)
+        }.getOrDefault(ThemeMode.LIGHT)
+        set(value) = prefs.edit { putString(KEY_THEME, value.name) }
+
     var plan: ReadingPlan
         get() = ReadingPlan(
             defaultUnits = prefs.getInt(KEY_DEFAULT_UNITS, Mushaf.UNITS_PER_PAGE),
@@ -86,6 +102,7 @@ class WirdStore(context: Context) {
         const val KEY_START_SURAH = "start_surah"
         const val KEY_START_AYAH = "start_ayah"
         const val KEY_DEFAULT_UNITS = "default_units"
+        const val KEY_THEME = "theme_mode"
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
     }
 }

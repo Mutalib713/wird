@@ -7,21 +7,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.mosman.wird.data.ThemeMode
 import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.todaysAssignment
 import com.mosman.wird.nudge.Nudge
+import com.mosman.wird.ui.SettingsScreen
 import com.mosman.wird.ui.SetupScreen
 import com.mosman.wird.ui.TodayScreen
+import com.mosman.wird.ui.positionLabelFor
 import com.mosman.wird.ui.theme.WirdTheme
 import java.time.LocalDate
 
+/** Where the app can be. There is no home screen; today's portion is the front door. */
+private enum class Screen { SETUP, TODAY, SETTINGS }
+
 /**
- * PLAN task 5: the page comes from where you actually are, not from a constant.
+ * PLAN tasks 5–5c.
  *
- * Two destinations. A phone with no position goes to setup; everything else goes to
- * today's portion. There is no home screen in between, on purpose — the app opens on the
- * thing you came to do.
+ * A phone with no position goes to setup; everything else opens straight onto today's
+ * portion. Settings is reachable from the foot of the page and returns there.
  */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,31 +35,51 @@ class MainActivity : ComponentActivity() {
         val store = WirdStore(this)
 
         setContent {
-            WirdTheme {
-                var setUp by remember { mutableStateOf(store.isSetUp) }
+            var screen by remember {
+                mutableStateOf(if (store.isSetUp) Screen.TODAY else Screen.SETUP)
+            }
+            // Mirrored into state so a change repaints immediately; the store stays the
+            // thing that survives a restart.
+            var theme by remember { mutableStateOf(store.themeMode) }
+            var plan by remember { mutableStateOf(store.plan) }
+            var position by remember { mutableStateOf(store.positionUnit) }
+            var startVerse by remember { mutableStateOf(store.startVerse) }
 
-                if (!setUp) {
-                    SetupScreen(
-                        onDone = { page, unitsPerDay, startVerse ->
+            WirdTheme(mode = theme) {
+                when (screen) {
+                    Screen.SETUP -> SetupScreen(
+                        onDone = { page, unitsPerDay, verse ->
                             store.positionPage = page
                             store.plan = ReadingPlan(defaultUnits = unitsPerDay)
-                            // Remembered so day one begins at the reader's own ayah
-                            // rather than at the top of a page that may open with the
-                            // tail of the previous surah.
-                            store.startVerse = startVerse
-                            setUp = true
+                            store.startVerse = verse
+                            plan = store.plan
+                            position = store.positionUnit
+                            startVerse = verse
+                            screen = Screen.TODAY
                         },
                     )
-                } else {
-                    // Read once per composition rather than held in state: the position
-                    // only moves when a day is marked done, which is task 6's job.
-                    TodayScreen(
+
+                    Screen.TODAY -> TodayScreen(
                         assignment = todaysAssignment(
-                            startUnit = store.positionUnit,
-                            plan = store.plan,
+                            startUnit = position,
+                            plan = plan,
                             date = LocalDate.now(),
                         ),
-                        startVerse = store.startVerse,
+                        startVerse = startVerse,
+                        onSettings = { screen = Screen.SETTINGS },
+                    )
+
+                    Screen.SETTINGS -> SettingsScreen(
+                        theme = theme,
+                        plan = plan,
+                        positionLabel = positionLabelFor(
+                            startVerse = startVerse,
+                            page = com.mosman.wird.domain.Mushaf.pageOf(position),
+                        ),
+                        onTheme = { store.themeMode = it; theme = it },
+                        onPlan = { store.plan = it; plan = it },
+                        onChangePosition = { screen = Screen.SETUP },
+                        onBack = { screen = Screen.TODAY },
                     )
                 }
             }

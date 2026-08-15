@@ -1,5 +1,7 @@
 package com.mosman.wird.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +40,7 @@ fun TodayScreen(
     assignment: Assignment,
     /** Where the reader said they were, when that is partway down the first page. */
     startVerse: Pair<Int, Int>? = null,
+    onSettings: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val todaysPages = remember(assignment) { assignment.pages }
@@ -81,6 +84,7 @@ fun TodayScreen(
                     todaysPages = todaysPages,
                     onBackToToday = { goTo = todaysPages.first() },
                     onJump = { showJump = true },
+                    onSettings = onSettings,
                 )
             },
         )
@@ -107,15 +111,28 @@ private fun PageFooter(
     todaysPages: List<Int>,
     onBackToToday: () -> Unit,
     onJump: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     if (page in todaysPages) {
-        TextButton(onClick = onJump, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Read something else",
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption, textAlign = TextAlign.Center),
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            TextButton(onClick = onJump) {
+                Text(
+                    text = "Read something else",
+                    color = colors.textSecondary,
+                    style = TextStyle(fontSize = Scale.caption),
+                )
+            }
+            TextButton(onClick = onSettings) {
+                Text(
+                    text = "Settings",
+                    color = colors.textSecondary,
+                    style = TextStyle(fontSize = Scale.caption),
+                )
+            }
         }
     } else {
         TextButton(onClick = onBackToToday, modifier = Modifier.fillMaxWidth()) {

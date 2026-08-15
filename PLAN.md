@@ -110,13 +110,22 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   today's page is on screen — verified by deleting 438 and 442 from the cache and
   watching them refill, with today's page still loading first.
 
-- [ ] **5c. Settings**
-  Light/dark toggle (dark is built and contrast-checked, it needs a switch). Change how
-  much you read a day, including the per-weekday override the domain already supports.
-  Change where you are.
+- [x] **5c. Settings** — built 2026-08-15, on-phone check pending
+  Reachable from the foot of today's page, next to "Read something else". Returns there.
+  - **How it looks:** Paper / Ink / Match phone. Dark was already built and
+    contrast-checked; it needed a switch, not a design. Stored, so it survives a restart.
+  - **How much a day:** the same three amounts as setup.
+  - **Go easier on some days:** pick weekdays, give them their own amount. The domain has
+    supported per-weekday targets since task 5; nothing exposed them until now.
+  - **Where you are:** shown in words ("Ya-Sin 5, page 440") with a button that reopens
+    the setup flow, which fixes the 5b note about a mis-tap being unrecoverable.
+  *Deviation from the original wording, on purpose:* the plan said changing the amount
+  should affect tomorrow rather than today. It applies immediately instead, and the screen
+  says so. Changing "one page" to "two pages" and having today stay at one page would look
+  broken; the start of the portion never moves, so nothing shifts underneath you.
   *Not included:* choosing a highlight colour. See Sacred Rule 5.
-  *Done when:* each setting survives a restart, and changing the plan changes tomorrow's
-  portion rather than today's.
+  *⬜ Still to verify on the phone:* every setting surviving a restart. TikTok was in the
+  foreground at install time and the device rule says don't.
 
 ## Milestone 2 — The loop
 
