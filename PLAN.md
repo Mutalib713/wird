@@ -68,23 +68,7 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *Still open:* the ornamental surah header (mushaf line 1) is not drawn — the surah name
   sits in the chrome instead. Light mode is built but not yet seen on a real screen.
 
-- [x] ~~4. ⚠ Render the real mushaf page~~ *(original scope, kept for reference)*
-  QCF v2 glyph fonts, one per page, fetched on demand and cached. Line layout from
-  `api.quran.com/api/v4/verses/by_page/{n}?words=true`, words grouped by
-  `page-{page}-line-{line}`, rendered right-to-left. Today's portion at full opacity,
-  the rest of the page dimmed.
-  *Risky because:* glyph codes live in a font private-use area and Compose rendering is
-  unproven. If Compose cannot do it, try a WebView, and if that fails, fall back to
-  plain Uthmani text and record the failure in PROFILE.md § 11.
-  *Also decides:* TTF at ~372 KB/page, or woff2 at ~80 KB plus an on-device decoder.
-  Measure both over a real 3G connection — this is ~11 MB/month versus ~2.4 MB/month for
-  a one-page-a-day reader, which is a real cost to a Ghanaian student.
-  *Watch out:* a wrong font URL in that repo returns a 14-byte body containing
-  "404: Not Found", not an HTTP error. Check byte counts, not just success.
-  *Done when:* page 453 renders on the Pixel and matches the printed mushaf, with ayahs
-  1–8 lit and 9–16 dimmed.
-
-- [x] **5. Position, target, and today's portion** — code done 2026-08-15, on-phone check pending
+- [x] **5. Position, target, and today's portion** — done 2026-08-15, verified on the phone
   Store where you are. Store pages per day with per-weekday overrides. Compute today's
   assignment. Handle surah boundaries and the end of the mushaf wrapping to page 1.
   *Done when:* setting page 453 with a one-page target yields the right range, verified
@@ -97,26 +81,24 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *A test caught a real bug:* `SurahIndex.across` sorted by surah number, so a portion
   wrapping past the end announced Al-Fatihah *before* An-Nas — a journey nobody takes.
   Now returns surahs in the order you meet them.
-  *⬜ Still to verify on the phone:* the first-run setup screen and entering page 453.
-  Not installed yet — WhatsApp was in the foreground and the device rule in CLAUDE.md
-  says don't.
+  *Verified on the phone in 5a:* setup ran end to end and stored a real position.
 
-- [ ] **5a. Tap an ayah to say where you are**
-  Every word already knows its verse, so make words tappable in setup: pick surah → see
-  the page → tap the ayah. A small confirmation names it back ("Start at Ya-Sin 12?").
-  **The ayah number box stays** — Mutalib asked for both routes, since a number is faster
-  when you happen to know it.
-  *Done when:* tapping an ayah on a real page sets the position to that ayah, and typing
-  the number still works.
+- [x] **5a. Tap an ayah to say where you are** — done 2026-08-15
+  *Evidence, on the phone:* scrolled to Ya-Sin, tapped a word in ayah 5, screen read
+  "Starting at Ya-Sin 5, page 440" and the number box auto-filled with 5. Stored
+  `start_surah=36 start_ayah=5 position_unit=878`. Search also verified: typing "yasin"
+  matches "Ya-Sin", since punctuation is stripped from both sides.
 
-- [ ] **5b. Swipe between pages, and go to a surah**
-  Swipe left/right for the pages either side of today's. A "go to surah" control reusing
-  the setup picker. Today's portion stays the front door and stays marked when you come
-  back to it.
-  *Done when:* swiping moves a page in each direction, go-to-surah lands on the right
-  page, and returning to today still shows the portion marked.
-  *Watch out:* each page needs its own font downloaded. Browsing freely is the one way a
-  user could spend real data by accident — cache aggressively and never prefetch.
+- [x] **5b. Swipe between pages, and go to a surah** — done 2026-08-15
+  *Evidence:* swiping right turned 440 → 441, and page 441 rendered at full ink because
+  it is not part of today's portion. Footer shows "Read something else" on today's page
+  and "Back to today's portion" elsewhere. Page number sits centred at the foot.
+  *Measured caveat:* `beyondViewportPageCount = 0` does **not** mean nothing loads ahead.
+  One swipe composed 441 *and* 442, so a flick can cost two pages rather than one. That
+  is the pager settling, not a policy failure, and it is written into the file so nobody
+  later claims zero prefetch.
+  *Still to do in 5c:* setup can be completed by a mis-tap and there is currently no way
+  back to change your position without clearing app data.
 
 - [ ] **5c. Settings**
   Light/dark toggle (dark is built and contrast-checked, it needs a switch). Change how

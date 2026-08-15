@@ -1,8 +1,8 @@
 package com.mosman.wird.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -44,46 +42,81 @@ import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 
 /**
- * First run.
+ * First run, in two steps.
  *
- * Asks the question a person can answer. Nobody knows they are on page 453; they know
- * they are in Surah Sad, somewhere around ayah 25. So setup takes a surah and an ayah and
- * works the page out itself — the page number is the app's business, not the reader's.
+ * Asks the question a person can answer. Nobody knows they are on page 453; most people
+ * do not know the ayah number either. But everybody recognises the place when they see
+ * it — so step two shows the mushaf and you tap where you are.
  *
- * The surah list is searchable and comes from the bundled [SurahIndex], so scrolling and
- * filtering 114 surahs costs nothing and works with the radio off. Only the final
- * ayah → page lookup needs the network, and only when the ayah is not 1.
+ * The ayah number box stays alongside, at Mutalib's request: typing is faster on the days
+ * you do happen to know it.
  */
 @Composable
 fun SetupScreen(
+    onDone: (page: Int, unitsPerDay: Int, startVerse: Pair<Int, Int>?) -> Unit,
+) {
+    var chosen by remember { mutableStateOf<Surah?>(null) }
+    val surah = chosen
+    if (surah == null) {
+        ChooseSurah { chosen = it }
+    } else {
+        FindYourPlace(
+            surah = surah,
+            onBack = { chosen = null },
+            onDone = onDone,
+        )
+    }
+}
+
+@Composable
+private fun ChooseSurah(onPick: (Surah) -> Unit) {
+    val colors = LocalWirdColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.surface)
+            .safeDrawingPadding()
+            .padding(horizontal = Scale.space6, vertical = Scale.space4),
+    ) {
+        Text("Where are you?", color = colors.textPrimary, style = TextStyle(fontSize = Scale.display))
+        Spacer(Modifier.height(Scale.space2))
+        Text(
+            text = "The surah you're reading now.",
+            color = colors.textSecondary,
+            style = TextStyle(fontSize = Scale.body),
+        )
+        Spacer(Modifier.height(Scale.space3))
+        SurahList(onPick = onPick)
+    }
+}
+
+@Composable
+private fun FindYourPlace(
+    surah: Surah,
+    onBack: () -> Unit,
     onDone: (page: Int, unitsPerDay: Int, startVerse: Pair<Int, Int>?) -> Unit,
 ) {
     val colors = LocalWirdColors.current
     val context = LocalContext.current
     val repo = remember { MushafRepository(context) }
 
-    var query by remember { mutableStateOf("") }
-    var chosen by remember { mutableStateOf<Surah?>(null) }
+    var currentPage by remember { mutableIntStateOf(surah.firstPage) }
+    var picked by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var pickedPage by remember { mutableIntStateOf(surah.firstPage) }
     var ayahText by remember { mutableStateOf("") }
     var units by remember { mutableIntStateOf(Mushaf.UNITS_PER_PAGE) }
-    var resolvedPage by remember { mutableStateOf<Int?>(null) }
     var ayahCount by remember { mutableStateOf<Int?>(null) }
-    var looking by remember { mutableStateOf(false) }
 
-    val matches = remember(query) { searchSurahs(query) }
-    val ayah = ayahText.toIntOrNull()
-    val ayahOutOfRange = ayah != null && ayahCount != null && ayah !in 1..ayahCount!!
+    LaunchedEffect(surah) { ayahCount = repo.ayahCount(surah.number) }
 
-    // Ayah 1 is free — the surah's first page is already known offline.
-    LaunchedEffect(chosen, ayahText) {
-        val surah = chosen ?: return@LaunchedEffect
-        ayahCount = repo.ayahCount(surah.number)
-        resolvedPage = when {
-            ayahText.isBlank() || ayah == 1 -> surah.firstPage
-            ayah == null || ayahOutOfRange -> null
-            else -> {
-                looking = true
-                repo.pageOfVerse(surah.number, ayah).also { looking = false }
+    // Typing a number is the other route to the same answer.
+    val typed = ayahText.toIntOrNull()
+    val typedOutOfRange = typed != null && ayahCount != null && typed !in 1..ayahCount!!
+    LaunchedEffect(typed) {
+        if (typed != null && !typedOutOfRange) {
+            repo.pageOfVerse(surah.number, typed)?.let { page ->
+                picked = surah.number to typed
+                pickedPage = page
             }
         }
     }
@@ -92,177 +125,95 @@ fun SetupScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.surface)
-            .safeDrawingPadding()
-            .padding(horizontal = Scale.space6, vertical = Scale.space4),
+            .safeDrawingPadding(),
     ) {
-        Text(
-            text = "Where are you?",
-            color = colors.textPrimary,
-            style = TextStyle(fontSize = Scale.display),
-        )
-        Spacer(Modifier.height(Scale.space2))
-
-        if (chosen == null) {
-            Text(
-                text = "The surah you're reading now.",
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.body),
-            )
-            Spacer(Modifier.height(Scale.space3))
-
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                label = { Text("Search surah") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(Scale.space2))
-
-            if (matches.isEmpty()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Scale.space4),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text(surah.name, color = colors.textPrimary, style = TextStyle(fontSize = Scale.title))
                 Text(
-                    text = "Nothing matches \"$query\". Try part of the name, or its number.",
+                    text = "Tap the ayah you're on",
                     color = colors.textSecondary,
                     style = TextStyle(fontSize = Scale.caption),
-                    modifier = Modifier.padding(vertical = Scale.space3),
                 )
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                    items(matches, key = { it.number }) { surah ->
-                        SurahRow(surah) { chosen = it }
-                    }
-                }
             }
-        } else {
-            val surah = chosen!!
-            Text(
-                text = surah.name,
-                color = colors.textPrimary,
-                style = TextStyle(fontSize = Scale.title),
+            TextButton(onClick = onBack, modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget)) {
+                Text("Change surah", color = colors.textSecondary)
+            }
+        }
+
+        Box(modifier = Modifier.weight(1f)) {
+            MushafPager(
+                initialPage = pickedPage,
+                onPageChanged = { currentPage = it },
+                // Nothing is dimmed here: you are looking for a place, not reading a
+                // portion, and half a greyed-out page would just be harder to search.
+                lit = { it.lines.toSet() },
+                onWordTap = { verseKey ->
+                    val s = verseKey.substringBefore(':').toIntOrNull()
+                    val a = verseKey.substringAfter(':').toIntOrNull()
+                    if (s != null && a != null) {
+                        picked = s to a
+                        pickedPage = currentPage
+                        ayahText = if (s == surah.number) a.toString() else ""
+                    }
+                },
             )
+        }
+
+        Column(modifier = Modifier.padding(horizontal = Scale.space4, vertical = Scale.space3)) {
+            val p = picked
             Text(
-                text = "Surah ${surah.number} of 114",
-                color = colors.textSecondary,
+                text = when {
+                    typedOutOfRange -> "${surah.name} has $ayahCount ayahs."
+                    p != null -> "Starting at ${SurahIndex.byNumber(p.first)?.name ?: ""} ${p.second}, page $pickedPage."
+                    else -> "Swipe to find your place, then tap the ayah."
+                },
+                color = if (typedOutOfRange) colors.textPrimary else colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),
             )
-            TextButton(
-                onClick = { chosen = null; ayahText = ""; resolvedPage = null },
-                modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
-            ) {
-                Text("Pick a different surah", color = colors.textSecondary)
-            }
 
-            Spacer(Modifier.height(Scale.space3))
-            Text(
-                text = "Which ayah? Leave it blank to start at the beginning.",
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.body),
-            )
             Spacer(Modifier.height(Scale.space2))
             OutlinedTextField(
                 value = ayahText,
                 onValueChange = { ayahText = it.filter(Char::isDigit).take(3) },
-                label = { Text("Ayah") },
+                label = { Text("Or type the ayah number") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = ayahOutOfRange,
+                isError = typedOutOfRange,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(Scale.space2))
-            Text(
-                text = when {
-                    ayahOutOfRange -> "${surah.name} has ${ayahCount} ayahs."
-                    looking -> "Finding the page"
-                    resolvedPage != null -> "That's page $resolvedPage."
-                    ayahText.isNotBlank() -> "Couldn't look that up. Check your connection."
-                    else -> " "
-                },
-                color = if (ayahOutOfRange) colors.textPrimary else colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption),
-            )
 
-            Spacer(Modifier.height(Scale.space4))
-            Text(
-                text = "How much a day?",
-                color = colors.textPrimary,
-                style = TextStyle(fontSize = Scale.title),
-            )
-            Spacer(Modifier.height(Scale.space2))
+            Spacer(Modifier.height(Scale.space3))
+            Text("How much a day?", color = colors.textPrimary, style = TextStyle(fontSize = Scale.body))
             Row(horizontalArrangement = Arrangement.spacedBy(Scale.space2)) {
                 AmountChoice("Half a page", 1, units) { units = it }
                 AmountChoice("One page", 2, units) { units = it }
                 AmountChoice("Two pages", 4, units) { units = it }
             }
 
-            Spacer(Modifier.height(Scale.space6))
-            val page = resolvedPage
+            Spacer(Modifier.height(Scale.space3))
             Button(
-                onClick = {
-                    // Always carry the ayah, even ayah 1: a surah's first page often
-                    // opens with the tail of the previous surah, so "the beginning of
-                    // Ya-Sin" is not the top of page 440.
-                    page?.let { onDone(it, units, surah.number to (ayah ?: 1)) }
-                },
-                enabled = page != null && !looking,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = Scale.minTarget),
+                onClick = { p?.let { onDone(pickedPage, units, it) } },
+                enabled = p != null,
+                modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = colors.accent,
                     contentColor = colors.surface,
                 ),
             ) {
                 Text(
-                    if (ayah != null && ayah > 1) {
-                        "Start at ${surah.name} ${ayah}"
+                    if (p == null) {
+                        "Pick where you are"
                     } else {
-                        "Start at the beginning of ${surah.name}"
+                        "Start here"
                     }
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun SurahRow(surah: Surah, onPick: (Surah) -> Unit) {
-    val colors = LocalWirdColors.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onPick(surah) }
-            .defaultMinSize(minHeight = Scale.minTarget)
-            .padding(vertical = Scale.space3),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "${surah.number}. ${surah.name}",
-            color = colors.textPrimary,
-            style = TextStyle(fontSize = Scale.body),
-        )
-        Text(
-            text = if (surah.firstPage == surah.lastPage) {
-                "p. ${surah.firstPage}"
-            } else {
-                "pp. ${surah.firstPage}–${surah.lastPage}"
-            },
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.caption),
-        )
-    }
-}
-
-/**
- * Match on name or number, and forgive the accents and hyphens people leave out —
- * "anam" should find Al-An'am, and "baqara" should find Al-Baqarah.
- */
-internal fun searchSurahs(query: String): List<Surah> {
-    val q = query.trim().lowercase().filter(Char::isLetterOrDigit)
-    if (q.isEmpty()) return SurahIndex.all
-    return SurahIndex.all.filter { surah ->
-        val name = surah.name.lowercase().filter(Char::isLetterOrDigit)
-        name.contains(q) || surah.number.toString() == q
     }
 }
 
@@ -271,8 +222,8 @@ internal fun searchSurahs(query: String): List<Surah> {
  *
  * The first version dimmed the unselected labels to slate — 3.72:1 on paper, under the
  * 4.5:1 floor for text this size, so the options you had not picked were the hard ones to
- * read. Colouring the selected one differently instead does not work either: this palette
- * is a value ramp, so ink and deep teal sit 1.78:1 apart and read as the same colour.
+ * read. Colouring the selected one differently does not work either: this palette is a
+ * value ramp, so ink and deep teal sit 1.78:1 apart and read as the same colour.
  *
  * So both labels stay legible — deep teal at 9.37:1 unselected, ink on sage at 9.90:1
  * selected — and the *ground* carries the state. Which is the better pattern regardless:
