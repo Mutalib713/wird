@@ -15,7 +15,7 @@ Reminders fix forgetting. Forgetting was the smaller half of the problem. The th
 actually worked was having a teacher to recite to — someone who expected you, and in
 front of whom you had to open your mouth. School ended that. Wird is a stand-in for it.
 
-## Status — 4 of 21 tasks done
+## Status — 5 of 21 tasks done
 
 | | What works today |
 |---|---|
@@ -95,14 +95,23 @@ Two pieces of pure logic live in `app/src/main/java/com/mosman/wird/domain/`:
 - **`Progress.kt`** — the streak, the total days read, and how many days you *recited*
   versus merely *tapped*.
 
+- **`Plan.kt`** — how much you read on a given weekday, and which lines of a page that
+  works out to.
+- **`SurahIndex.kt`** — where each of the 114 surahs sits in the mushaf.
+
 **Why these have tests and the screens don't:** a wrong colour is visible. Wrong
 arithmetic is not. If the streak silently miscounts, you'd never know — you'd just quietly
-stop trusting the app. The three tests in `WirdQaTest.kt` check exactly the cases most
-likely to go wrong:
+stop trusting the app. The six checks in `WirdQaTest.kt` cover the cases most likely to go
+wrong:
 
 1. Page maths across the wrap from 604 back to 1
 2. A missed day breaks the streak, but total days read never goes down
 3. Recited and tapped are counted separately, and a double-tap doesn't count twice
+4. A weekday override changes only that day, and the same day always gives the same portion
+5. A portion crossing into the next surah reports both, in the order you meet them
+6. A half-page target lights half the lines, and the two halves tile the page exactly
+
+Two of these have already earned their keep by catching real bugs.
 
 ## 3. The nudge
 
