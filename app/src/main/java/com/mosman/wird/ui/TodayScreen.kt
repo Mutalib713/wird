@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -71,12 +72,16 @@ fun TodayScreen(
     val colors = LocalWirdColors.current
     val todaysPages = remember(assignment) { assignment.pages }
     var showJump by remember { mutableStateOf(false) }
-    var goTo by remember { mutableIntStateOf(todaysPages.first()) }
     var current by remember { mutableIntStateOf(todaysPages.first()) }
-    // Read off the page actually on screen, so the bar never states anything the API did
-    // not say. Both are blank until the first page finishes drawing.
-    var currentSurah by remember { mutableStateOf("") }
-    var currentJuz by remember { mutableIntStateOf(0) }
+    var jump by remember { mutableStateOf<PageJump?>(null) }
+    var jumpCount by remember { mutableIntStateOf(0) }
+
+    // Keyed by page, not stored as "the current one".
+    //
+    // The first version wrote the surah only when the drawn page matched `current`, and
+    // during a swipe those two are briefly out of step, so the update was dropped and the
+    // name never changed. Remembering every page it has drawn removes the race entirely.
+    val pageInfo = remember { mutableStateMapOf<Int, Pair<String, Int>>() }
 
     // Open with the bar showing the very first time, then let it go.
     //
@@ -101,16 +106,12 @@ fun TodayScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         MushafPager(
-            initialPage = goTo,
+            initialPage = todaysPages.first(),
+            jump = jump,
             modifier = Modifier.safeDrawingPadding(),
             onPageChanged = { current = it },
             onBackgroundTap = { chromeShown = !chromeShown },
-            onPageShown = { page ->
-                if (page.page == current) {
-                    currentSurah = page.surahName
-                    currentJuz = page.juz
-                }
-            },
+            onPageShown = { page -> pageInfo[page.page] = page.surahName to page.juz },
             lit = { page ->
                 // One rule, no exceptions: dark means today, pale means not today — on
                 // every page, including the ones you swipe to. A signal that holds only
@@ -132,11 +133,15 @@ fun TodayScreen(
             exit = fadeOut() + slideOutVertically { -it },
         ) {
             ChromeBar(
-                surah = currentSurah,
+                surah = pageInfo[current]?.first.orEmpty(),
                 page = current,
-                juz = currentJuz,
+                juz = pageInfo[current]?.second ?: 0,
                 offToday = current !in todaysPages,
-                onBackToToday = { goTo = todaysPages.first(); chromeShown = false },
+                onBackToToday = {
+                    jumpCount++
+                    jump = PageJump(todaysPages.first(), jumpCount)
+                    chromeShown = false
+                },
                 onJump = { showJump = true; chromeShown = false },
                 onSettings = { chromeShown = false; onSettings() },
             )
@@ -147,7 +152,8 @@ fun TodayScreen(
         SurahJumpSheet(
             onDismiss = { showJump = false },
             onPick = { surah: Surah ->
-                goTo = surah.firstPage
+                jumpCount++
+                jump = PageJump(surah.firstPage, jumpCount)
                 showJump = false
             },
         )

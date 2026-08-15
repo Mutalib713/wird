@@ -46,11 +46,23 @@ import com.mosman.wird.mushaf.PageState
  */
 private const val SETTLE_BEFORE_FETCH_MS = 450L
 
+/**
+ * A request to jump somewhere.
+ *
+ * Carries a [nonce] because the page alone is not enough: swipe away from today's page and
+ * back is a jump to the same number, and a plain Int would compare equal and do nothing.
+ * That is exactly the bug Mutalib hit — "Today's portion" did nothing once he had wandered
+ * off and returned.
+ */
+data class PageJump(val page: Int, val nonce: Int)
+
 @Composable
 fun MushafPager(
     initialPage: Int,
     lit: (MushafPage) -> Set<Int>,
     modifier: Modifier = Modifier,
+    /** Set to move the pager after it has been composed. */
+    jump: PageJump? = null,
     onPageChanged: (Int) -> Unit = {},
     onWordTap: ((verseKey: String) -> Unit)? = null,
     onBackgroundTap: (() -> Unit)? = null,
@@ -78,6 +90,13 @@ fun MushafPager(
 
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect { onPageChanged(it + 1) }
+    }
+
+    // `rememberPagerState` reads initialPage exactly once, so changing it later moves
+    // nothing. Jumping has to be an explicit instruction.
+    LaunchedEffect(jump) {
+        val target = jump ?: return@LaunchedEffect
+        pagerState.animateScrollToPage((target.page - 1).coerceIn(0, Mushaf.PAGES - 1))
     }
 
     // Swiping right turns towards page 2, the way a mushaf opens.
