@@ -77,6 +77,19 @@ class WirdStore(context: Context) {
         }.getOrDefault(ThemeMode.LIGHT)
         set(value) = prefs.edit { putString(KEY_THEME, value.name) }
 
+    /**
+     * Whether the reader has been shown, once, that tapping the page reveals the chrome.
+     *
+     * The gesture is otherwise invisible — nothing on a clean mushaf page announces that
+     * it is tappable, which Mutalib spotted when he asked whether it should be a hamburger
+     * icon. A permanent icon would announce it, but at the cost of a mark parked on the
+     * Qur'an forever. Showing the bar once teaches the same thing and then gets out of the
+     * way.
+     */
+    var hasSeenChrome: Boolean
+        get() = prefs.getBoolean(KEY_SEEN_CHROME, false)
+        set(value) = prefs.edit { putBoolean(KEY_SEEN_CHROME, value) }
+
     var plan: ReadingPlan
         get() = ReadingPlan(
             defaultUnits = prefs.getInt(KEY_DEFAULT_UNITS, Mushaf.UNITS_PER_PAGE),
@@ -103,6 +116,7 @@ class WirdStore(context: Context) {
         const val KEY_START_AYAH = "start_ayah"
         const val KEY_DEFAULT_UNITS = "default_units"
         const val KEY_THEME = "theme_mode"
+        const val KEY_SEEN_CHROME = "seen_chrome"
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
     }
 }

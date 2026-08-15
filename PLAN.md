@@ -141,6 +141,14 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *Revisit at task 6:* the bar uses `surfaceRaised`, which in light mode is the same sage
   as `done`. Once sage means "you have read today", a sage chrome bar may muddy it.
 
+  *Follow-up, same day:* Mutalib asked whether it should be a hamburger icon. It would
+  announce itself, which a clean page cannot — but a permanent icon is a mark parked on
+  the Qur'an forever, which is the one thing the direction refuses, and ☰ promises a menu
+  of destinations this app does not have. Settled on teaching the gesture instead: the bar
+  is **shown on the very first run and withdraws after 3.5 seconds**, once ever, stored in
+  `hasSeenChrome`. The real weakness he had spotted was not words-versus-icon, it was that
+  the tap was undiscoverable.
+
 ## Milestone 2 — The loop
 
 - [ ] **6. Mark done — record or tap**

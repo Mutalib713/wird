@@ -34,6 +34,10 @@ import com.mosman.wird.domain.pages
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import kotlinx.coroutines.delay
+
+/** Long enough to notice and read, short enough not to feel like a splash screen. */
+private const val FIRST_RUN_CHROME_MS = 3_500L
 
 /**
  * Today's portion, and the mushaf around it.
@@ -53,13 +57,30 @@ fun TodayScreen(
     /** Where the reader said they were, when that is partway down the first page. */
     startVerse: Pair<Int, Int>? = null,
     onSettings: () -> Unit = {},
+    /** False until the reader has been shown, once, that the page is tappable. */
+    hasSeenChrome: Boolean = true,
+    onChromeSeen: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val todaysPages = remember(assignment) { assignment.pages }
     var showJump by remember { mutableStateOf(false) }
     var goTo by remember { mutableIntStateOf(todaysPages.first()) }
     var current by remember { mutableIntStateOf(todaysPages.first()) }
-    var chromeShown by remember { mutableStateOf(false) }
+
+    // Open with the bar showing the very first time, then let it go.
+    //
+    // Nothing on a clean page announces that it is tappable. Mutalib asked whether this
+    // should be a hamburger icon; it would announce itself, but at the price of a mark
+    // parked on the Qur'an forever. Showing the bar once and withdrawing it teaches the
+    // same gesture and leaves the page alone afterwards.
+    var chromeShown by remember { mutableStateOf(!hasSeenChrome) }
+
+    LaunchedEffect(hasSeenChrome) {
+        if (hasSeenChrome) return@LaunchedEffect
+        delay(FIRST_RUN_CHROME_MS)
+        chromeShown = false
+        onChromeSeen()
+    }
 
     // Warm one page either side of today's, once, in the background.
     val context = LocalContext.current

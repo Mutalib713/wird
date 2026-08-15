@@ -44,6 +44,7 @@ class MainActivity : ComponentActivity() {
             var plan by remember { mutableStateOf(store.plan) }
             var position by remember { mutableStateOf(store.positionUnit) }
             var startVerse by remember { mutableStateOf(store.startVerse) }
+            var seenChrome by remember { mutableStateOf(store.hasSeenChrome) }
 
             WirdTheme(mode = theme) {
                 when (screen) {
@@ -67,6 +68,8 @@ class MainActivity : ComponentActivity() {
                         ),
                         startVerse = startVerse,
                         onSettings = { screen = Screen.SETTINGS },
+                        hasSeenChrome = seenChrome,
+                        onChromeSeen = { store.hasSeenChrome = true; seenChrome = true },
                     )
 
                     Screen.SETTINGS -> SettingsScreen(
