@@ -149,23 +149,31 @@ private fun DrawnPage(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Scale.space4, vertical = Scale.space6),
     ) {
-        // What to read, said in the margin line that was already there rather than in a
-        // banner of its own. The first attempt added a titled block with an accent bar
-        // and a rule beside every line of the portion; Mutalib disliked it, and he was
-        // right — it was furniture. The page should carry one quiet line of chrome, and
-        // the range belongs in it.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
+        // What to read, sized like the most important thing on the screen — because it is.
+        //
+        // Three attempts to get here. First a titled block with an accent bar and a rule
+        // beside every line, which Mutalib called furniture and was right about. Then the
+        // range tucked into a corner at caption size next to the juz, which he could not
+        // see at all — I had styled the whole point of the app like a footnote.
+        //
+        // This is the middle: no new structure, no decoration, just the right size and
+        // weight, with a quiet line under it saying what it is. The juz moved to the
+        // chrome bar, which frees the corner and stops navigation competing with the task.
+        if (lit.isNotEmpty()) {
             Text(
-                text = portionLabel(page, lit, surahLabel),
+                text = portionHeadline(page, lit, surahLabel),
+                color = colors.textPrimary,
+                style = TextStyle(fontSize = Scale.title),
+            )
+            Text(
+                text = portionSubline(page, lit),
                 color = colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),
             )
+        } else {
             Text(
-                text = if (page.juz > 0) "Juz' ${page.juz}" else "",
-                color = colors.textOutsidePortion,
+                text = surahLabel,
+                color = colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),
             )
         }
@@ -227,15 +235,27 @@ fun surahLabelFor(page: MushafPage, lit: Set<Int>): String {
  * the same way on every page; the words say *what*, and survive being screenshotted,
  * being colour-blind, or simply not having learned the convention yet.
  */
-private fun portionLabel(page: MushafPage, lit: Set<Int>, surahLabel: String): String {
-    if (lit.isEmpty()) return surahLabel
+private fun portionHeadline(page: MushafPage, lit: Set<Int>, surahLabel: String): String {
     val (first, last) = page.ayahRange(lit) ?: return surahLabel
     val firstName = SurahIndex.byNumber(first.first)?.name ?: surahLabel
     val lastName = SurahIndex.byNumber(last.first)?.name ?: surahLabel
     return when {
         first == last -> "$firstName ${first.second}"
         first.first == last.first -> "$firstName ${first.second}–${last.second}"
-        else -> "$firstName ${first.second} – $lastName ${last.second}"
+        else -> "$firstName ${first.second} to $lastName ${last.second}"
+    }
+}
+
+/**
+ * The quiet line under it. Says *whose* reading this is, and how big — "9 ayahs" answers
+ * the question a range does not: is this a lot, or is this nothing?
+ */
+private fun portionSubline(page: MushafPage, lit: Set<Int>): String {
+    val n = page.ayahCount(lit)
+    return when (n) {
+        0 -> "Today's portion"
+        1 -> "Today's portion, 1 ayah"
+        else -> "Today's portion, $n ayahs"
     }
 }
 

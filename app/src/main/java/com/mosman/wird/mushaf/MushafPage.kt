@@ -54,6 +54,14 @@ data class MushafPage(
      * and asked whether the light blue was his portion — it was the opposite. Colour
      * alone could not tell him, and nothing on screen said it in language.
      */
+    /** How many distinct ayahs [lines] covers. Counted, not subtracted, so it survives a
+     *  portion that crosses from one surah into the next. */
+    fun ayahCount(lines: Set<Int>): Int =
+        glyphs.filter { it.line in lines && !it.isEndMarker }
+            .map { it.verseKey }
+            .distinct()
+            .size
+
     fun ayahRange(lines: Set<Int>): Pair<Pair<Int, Int>, Pair<Int, Int>>? {
         val covered = glyphs.filter { it.line in lines && !it.isEndMarker }
         if (covered.isEmpty()) return null
