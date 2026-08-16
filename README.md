@@ -448,6 +448,36 @@ Two bugs worth remembering, both found by using the app rather than by testing i
 
 **When something is named `initialX`, assume it is read once.**
 
+### How many buttons actually fit across a phone
+
+Settings laid all seven weekday buttons in one row. The last two of them, Saturday and
+Sunday, could not be tapped at all.
+
+The arithmetic is worth carrying around, because it settles this every time. Your Pixel is
+1440 pixels wide. But pixels are not the unit layouts get written in: Android uses **dp**,
+*density-independent pixels*, a unit that stays the same physical size on every screen, so
+a 48dp button is the same amount of fingertip on a cheap phone as on an expensive one. Your
+phone packs 3.5 real pixels into every dp. So 1440 pixels is 411dp of room, and the screen's
+own 24dp margins leave 363dp to build in.
+
+A button has a floor of **48dp**, roughly the pad of an adult finger, which is what
+`Scale.minTarget` is for. Material widens its buttons to 58dp, and there is a 4dp gap
+between each. So a day costs 66dp. Seven days want 458dp. There is 363dp. It never fit.
+
+**What a `Row` does when it runs out of room is the half that bites.** It doesn't shrink
+things to cope. It doesn't complain either. It hands out space in order, first come first
+served, and whatever is still queueing gets whatever is left, which by then is nothing.
+Saturday got a sliver and broke onto two lines. Sunday got zero. Something zero pixels wide
+isn't merely off the edge of the screen; it never enters the accessibility tree, so someone
+using TalkBack couldn't reach it either. Two days, quietly unselectable, in a setting whose
+whole job is picking days.
+
+Four then three now. The prayer buttons directly below had already hit this and been split
+the same way. The note beside them even said a sideways-scrolling row is no fix, because
+the option on the end simply stays hidden. The weekday row got written the naive way anyway.
+
+**A rule written as a comment beside one row does not protect the row above it.**
+
 ## 7. Colour
 
 Your five colours from coolors.co are canon (Sacred Rule 8) — they don't get "improved"
