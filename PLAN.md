@@ -203,11 +203,22 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   (export) should be the moment a retention choice appears — keep the last N, or export
   and clear — rather than letting it grow silently.
 
-- [ ] **7. Streak, total days read, and the honest split**
-  Two numbers side by side, never one alone. "22 marked, 4 recited" visible without
-  digging.
-  *Done when:* a simulated 10-day history with gaps produces correct numbers in the QA
-  suite, and the split renders on screen.
+- [x] **7. Streak, total days read, and the honest split** — done 2026-08-16
+  Two quiet lines under the done control, where you land having finished:
+  `7 in a row, 23 days read` / `5 recited, 18 marked as read`.
+  *Sacred Rule 4:* the streak never appears alone, and the total never resets.
+  *Sacred Rule 6:* recited and marked are separate and both shown.
+  *Sacred Rule 3, and a decision worth keeping:* **a streak of nought is not announced.**
+  Someone who missed yesterday does not need a zero held up to them; they need to see they
+  have read on twenty-three days. The line shows the total alone until a run is worth
+  naming, and nothing here scolds.
+  *Also:* the split is written out — "4 recited, 19 marked" — rather than as "4 of 23".
+  A ratio invites you to read it as a score to improve. This is a record, not a target.
+  *Evidence:* marked today on the phone and the line read "1 day read / 1 marked as read"
+  — streak correctly silent at one, recitation correctly absent. Undo cleared it.
+  QA check 9 covers a ten-day history with two gaps: streak 3, total 10, 4 recited,
+  6 marked, and the split always accounting for every day. It also asserts a day marked
+  and later recited counts once as recited, and that a tap can never undo a recitation.
 
 - [ ] **8. Prayer-time nudge timing**
   Compute prayer times for the user's location, offset the nudge from one of them

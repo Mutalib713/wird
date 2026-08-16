@@ -293,6 +293,48 @@ class WirdQaTest {
         assertEquals(position + 1, afterHalf)
     }
 
+    // ---- 9. Ten days with gaps, and the split that must stay honest ----
+
+    @Test
+    fun `ten days with two gaps produce the right streak, total and split`() {
+        val today = LocalDate.of(2026, 8, 16)
+        fun day(minus: Long, m: Method) = DayLog(today.minusDays(minus), m)
+
+        // A realistic fortnight: read today and the two before, missed one, read four
+        // more, missed two, read three. Recited on some, tapped on others.
+        val logs = listOf(
+            day(0, Method.RECITED),
+            day(1, Method.TAPPED),
+            day(2, Method.RECITED),
+            // gap at 3
+            day(4, Method.TAPPED),
+            day(5, Method.TAPPED),
+            day(6, Method.RECITED),
+            day(7, Method.TAPPED),
+            // gap at 8 and 9
+            day(10, Method.RECITED),
+            day(11, Method.TAPPED),
+            day(12, Method.TAPPED),
+        )
+
+        val p = progressOf(logs, today)
+        assertEquals("the streak stops at the first gap", 3, p.currentStreak)
+        assertEquals("the total counts every day, gaps and all", 10, p.totalDaysRead)
+        assertEquals(4, p.recitedDays)
+        assertEquals(6, p.tappedDays)
+        assertEquals("the split always accounts for every day", p.totalDaysRead, p.recitedDays + p.tappedDays)
+
+        // The number this app exists to keep honest: a day marked and later recited counts
+        // once, and counts as recited. It can never go the other way.
+        val upgraded = progressOf(logs + day(1, Method.RECITED), today)
+        assertEquals(10, upgraded.totalDaysRead)
+        assertEquals(5, upgraded.recitedDays)
+        assertEquals(5, upgraded.tappedDays)
+
+        val notDowngraded = progressOf(logs + day(0, Method.TAPPED), today)
+        assertEquals("a tap cannot undo a recitation", 4, notDowngraded.recitedDays)
+    }
+
     private fun glyph(verseKey: String, line: Int) =
         Glyph(code = "x", line = line, verseKey = verseKey, isEndMarker = false)
 }

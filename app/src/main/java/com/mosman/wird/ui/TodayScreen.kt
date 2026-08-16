@@ -73,6 +73,7 @@ fun TodayScreen(
     onChromeSeen: () -> Unit = {},
     /** How today was marked, or null if it has not been. */
     doneMethod: com.mosman.wird.domain.Method? = null,
+    progress: com.mosman.wird.domain.Progress? = null,
     hasRecording: Boolean = false,
     audioFile: () -> java.io.File = { java.io.File("") },
     onDone: (com.mosman.wird.domain.Method, java.io.File?) -> Unit = { _, _ -> },
@@ -191,6 +192,9 @@ fun TodayScreen(
                         onPlay = { recitation.play(audioFile()) },
                         onUndo = onUndo,
                     )
+                    // Under the done control, where you land having finished. Two numbers
+                    // that never appear apart. Sacred Rules 4 and 6.
+                    progress?.let { ProgressLine(it) }
                 }
             },
         )

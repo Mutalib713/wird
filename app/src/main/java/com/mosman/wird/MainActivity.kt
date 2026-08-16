@@ -14,6 +14,7 @@ import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.assignPortion
+import com.mosman.wird.domain.progressOf
 import com.mosman.wird.domain.todaysAssignment
 import com.mosman.wird.nudge.Nudge
 import com.mosman.wird.ui.SettingsScreen
@@ -46,6 +47,7 @@ class MainActivity : ComponentActivity() {
             val today = LocalDate.now()
             var doneMethod by remember { mutableStateOf(days.methodFor(today)) }
             var hasRecording by remember { mutableStateOf(days.audioFor(today) != null) }
+            var progress by remember { mutableStateOf(progressOf(days.all(), today)) }
 
             // **Today's portion does not change when you finish it.**
             //
@@ -81,6 +83,7 @@ class MainActivity : ComponentActivity() {
                         hasSeenChrome = seenChrome,
                         onChromeSeen = { store.hasSeenChrome = true; seenChrome = true },
                         doneMethod = doneMethod,
+                        progress = progress,
                         hasRecording = hasRecording,
                         audioFile = { days.audioFileFor(today) },
                         onDone = { method, file ->
@@ -93,6 +96,7 @@ class MainActivity : ComponentActivity() {
                             )
                             doneMethod = days.methodFor(today)
                             hasRecording = days.audioFor(today) != null
+                            progress = progressOf(days.all(), today)
 
                             // **The position moves here and nowhere else.** Opening the
                             // app, swiping, or browsing must never advance it — only
@@ -108,6 +112,7 @@ class MainActivity : ComponentActivity() {
                             days.clear(today)
                             doneMethod = null
                             hasRecording = false
+                            progress = progressOf(days.all(), today)
                             // Put the position back exactly as far as marking it moved it.
                             store.positionUnit = Math.floorMod(
                                 store.positionUnit - assignment.units,
