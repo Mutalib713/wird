@@ -79,7 +79,21 @@ sealed interface AudioState {
 class PortionAudio(private val context: Context) {
 
     private var player: MediaPlayer? = null
-    private var cancelled = false
+
+    /**
+     * Which listen is the current one.
+     *
+     * A plain `cancelled` boolean was the first version of this and it was wrong in a way
+     * no unit test would have caught: [stop] set it true, but only [play] set it back —
+     * and [play] runs *after* [ensureCached]. So the second listen of any session died on
+     * the first line of the fetch and reported "check your connection", with every file
+     * already sitting on disk. **Listening worked exactly once per launch.** Found on the
+     * phone, 2026-08-16, during the airplane-mode test that was supposed to be a formality.
+     *
+     * A counter fixes the ordering and one more thing besides: two quick taps now
+     * supersede each other cleanly instead of both writing to the same player.
+     */
+    private var run = 0
 
     /**
      * Make sure every ayah in [verses] is on disk, reporting progress as it goes.
@@ -97,11 +111,13 @@ class PortionAudio(private val context: Context) {
         quality: AudioQuality,
         onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
     ): List<File>? = withContext(Dispatchers.IO) {
+        val mine = ++run
         val dir = dirFor(quality)
         val files = mutableListOf<File>()
 
         verses.forEachIndexed { i, key ->
-            if (cancelled) return@withContext null
+            // Superseded by a later listen, or stopped. Not a failure — just not ours.
+            if (mine != run) return@withContext null
             val surah = key.substringBefore(':').toIntOrNull() ?: return@withContext null
             val ayah = key.substringAfter(':').toIntOrNull() ?: return@withContext null
 
@@ -138,20 +154,23 @@ class PortionAudio(private val context: Context) {
         onVerse: (index: Int) -> Unit,
         onFinished: () -> Unit,
     ) {
-        stop()
-        cancelled = false
-        playFrom(0, files, verses, onVerse, onFinished)
+        // Release whatever was playing without bumping [run] — the fetch that got us here
+        // holds the current token, and cancelling it now would stop the thing we are
+        // starting.
+        releasePlayer()
+        playFrom(run, 0, files, verses, onVerse, onFinished)
     }
 
     private fun playFrom(
+        mine: Int,
         index: Int,
         files: List<File>,
         verses: List<String>,
         onVerse: (Int) -> Unit,
         onFinished: () -> Unit,
     ) {
-        if (cancelled || index >= files.size) {
-            stop()
+        if (mine != run || index >= files.size) {
+            releasePlayer()
             onFinished()
             return
         }
@@ -170,7 +189,7 @@ class PortionAudio(private val context: Context) {
                 setOnCompletionListener {
                     runCatching { release() }
                     player = null
-                    playFrom(index + 1, files, verses, onVerse, onFinished)
+                    playFrom(mine, index + 1, files, verses, onVerse, onFinished)
                 }
                 prepare()
                 start()
@@ -182,8 +201,13 @@ class PortionAudio(private val context: Context) {
         }
     }
 
+    /** Stop, and make any fetch or chain still in flight stand down. */
     fun stop() {
-        cancelled = true
+        run++
+        releasePlayer()
+    }
+
+    private fun releasePlayer() {
         runCatching { player?.release() }
         player = null
     }

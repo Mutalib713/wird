@@ -296,8 +296,8 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   the queued `BOOT_COMPLETED` being delivered when the app leaves Android's "stopped"
   state. Harmless: arming is idempotent, and `dumpsys` shows exactly one alarm.
 
-- [~] **9. Abu Bakr al-Shatri audio for today's portion** — built 2026-08-16, `check` green,
-  **airplane-mode test still owed**
+- [x] **9. Abu Bakr al-Shatri audio for today's portion** — done 2026-08-16, verified in
+  airplane mode, one real bug found and fixed
   Reciter id 4. Per-ayah MP3s fetched on demand, cached, playable offline afterwards.
   *Done when:* today's portion plays with the phone in airplane mode, after one online
   fetch.
@@ -344,11 +344,46 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   - Plain chained `MediaPlayer`, no ExoPlayer — several MB of dependency to play files in
     order, on an app where size is a first-class concern.
 
-  *⬜ What is genuinely not done:* **the airplane-mode test, which is the whole done-when.**
-  Nothing has played on the phone yet. The build is installed and `check` is green, but
-  Instagram was in the foreground at every attempt and the device rule says leave it alone.
-  Until that runs, the offline promise is a claim, not a result. Also unproven on device:
-  the download progress line, the stop control, and the 50 MB prune.
+  **✅ Airplane-mode test PASSED, and it was not a formality — it caught a shipping bug.**
+
+  *First run, online:* `portion cached: 13 ayahs, 1170 KB` — 1.17 MB for Ya-Sin 28–40 at
+  64 kbps, against the ~1.1 MB predicted. All thirteen files landed as `036028.mp3` …
+  `036040.mp3`, correct six-digit padding. `dumpsys audio` confirmed a real player:
+  `state:started`, `usage=USAGE_MEDIA content=CONTENT_TYPE_SPEECH`, 22050 Hz.
+
+  *Then airplane mode on*, `ping verses.quran.com` → `unknown host`, app relaunched cold:
+  **it played from disk, and kept playing.** The bar read "Playing Ya-Sin 29 · 2 of 13".
+
+  ### ⚠ The bug the test found — listening worked exactly once per launch
+
+  Between those two runs it **failed**, saying *"Couldn't get the recitation. Check your
+  connection."* — with all thirteen files sitting on disk. It had nothing to do with the
+  network; the error message simply guessed.
+
+  `stop()` set a `cancelled` boolean true. `play()` set it back to false. But `play()`
+  runs *after* `ensureCached`, and `ensureCached` bailed on `cancelled` at its first line.
+  **So the second listen of any session died before touching the disk, and blamed the
+  network for it.** Online it would have looked identical, and "check your connection" is
+  exactly the message someone on Ghanaian mobile data would believe.
+
+  Fixed with a monotonic `run` token instead of a boolean: `stop()` bumps it, and any
+  fetch or playback chain holding an older token stands down. That also fixes a second
+  latent bug — two quick taps now supersede each other cleanly rather than both driving
+  the same player. A deliberate stop mid-download no longer reports a failure either.
+
+  *Re-verified after the fix, still in airplane mode:* stop → 0 players; listen again →
+  1 player and a fresh `portion cached` line; and a third cycle for good measure. All
+  three passed where the first would have failed.
+
+  **Honest note on the QA suite:** this bug did not get a regression test, which breaks
+  this project's usual rule. It lives in ordering between `MediaPlayer`, a coroutine and
+  Android state, and testing it on the JVM would mean extracting the token into a class
+  invented for the test. Check 12 covers the URL padding — the *other* silent failure —
+  and this one is instead written down here and in the code comment on `run`. **It was
+  found by running the thing on a real phone, which is the only reason the plan asks for
+  that at all.**
+
+  *⬜ Still unproven:* the 50 MB LRU prune, which needs ~20 pages of history to trigger.
 
 - [ ] **10. Home screen widget**
   Jetpack Glance. Today's portion and done/not-done. Updates daily. The nudge that

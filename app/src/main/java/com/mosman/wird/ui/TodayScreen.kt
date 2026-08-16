@@ -207,7 +207,12 @@ fun TodayScreen(
                 audio = AudioState.Fetching(done, total)
             }
             if (files == null) {
-                audio = AudioState.Failed("Couldn't get the recitation. Check your connection.")
+                // Null also means "you pressed stop while this was downloading", and that
+                // is not an error to report back at someone. stopListening() has already
+                // set Idle, so only a fetch still believing it is running gets to fail.
+                if (audio is AudioState.Fetching) {
+                    audio = AudioState.Failed("Couldn't get the recitation. Check your connection.")
+                }
                 return@launch
             }
             portionAudio.play(

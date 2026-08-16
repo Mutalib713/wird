@@ -25,7 +25,7 @@ finish the day by reciting it out loud.
 |---|---|
 | ✅ **Milestone 0** | It builds, it installs, and a scheduled notification fires and opens the page. |
 | ✅ **Milestone 1** | The mushaf renders; it knows where you are; you can browse, jump, and change your mind. |
-| 🔸 **Milestone 2** | Done: marking a day (6), the streak and the honest split (7), prayer-time timing (8). Left: the reciter's audio (9) and the home-screen widget (10). |
+| 🔸 **Milestone 2** | Done: marking a day (6), the streak and the honest split (7), prayer-time timing (8), Shatri's recitation offline (9). Left: the home-screen widget (10). |
 
 What Milestones 1 and 2 gave you:
 
@@ -43,8 +43,10 @@ What Milestones 1 and 2 gave you:
   is never held up to you.
 - **A reminder that follows sunset**, not a clock hour — thirty minutes after Maghrib by
   default, movable to any prayer, any fixed hour, or off.
-- **Settings**: paper or ink, how much a day, lighter days, when to be reminded, and
-  where you are in the mushaf.
+- **Hear it recited.** Abu Bakr al-Shatri, fetched once and then playable with the phone
+  in airplane mode. The escape hatch for a day reading is not going to happen.
+- **Settings**: paper or ink, how much a day, lighter days, when to be reminded, how the
+  recitation is fetched, and where you are in the mushaf.
 
 ⚠ **One thing is built and unwatched:** the nudge has not been seen to *fire* since task 8
 rewired it. The timing is verified three separate ways and the alarm is registered on the
@@ -258,6 +260,45 @@ The lesson is general: **a gate task proved with a throwaway trigger leaves noth
 behind.** Both are fixed, and the reminder is now armed from three overlapping places —
 when the app opens, after each nudge fires, and after a reboot — because a reminder that
 silently stops is worse than no reminder at all.
+
+### 3c. Hearing it recited (task 9)
+
+**Plain version:** tap play and Abu Bakr al-Shatri recites today's portion. The first time,
+it downloads one small MP3 per ayah. After that it works with no signal at all.
+
+**The one number that shaped this.** A page of audio is **2.27 MB at 128 kbps**. The page's
+own font is 154 KB — so *the recitation costs about fifteen times what the page costs*,
+every day. That is 68 MB a month against 34 at 64 kbps. On Ghanaian mobile data that is a
+real difference, so you chose to put the switch in settings rather than take either
+default, and the lighter one leads.
+
+**Only the ayahs you were asked to read.** A half-page portion fetches and recites half a
+page. It works this out using the same "which lines are lit" rule the screen uses, rather
+than a second copy of it — task 5f's bug was one rule living in two places and drifting.
+
+**Listening does not mark the day done.** It sits beside "Recite it out loud" and "I read
+it" but completes nothing, because hearing someone else recite is not reading and Sacred
+Rule 6 turns on never blurring that.
+
+**What I got wrong, and it nearly shipped.** The airplane-mode test was supposed to be a
+formality. It failed — the app said *"Couldn't get the recitation. Check your connection"*
+with all thirteen files already on the phone.
+
+The cause had nothing to do with the network. Stopping playback set a flag called
+`cancelled` to true, and only *starting* playback set it back to false — but starting
+happens **after** the download step, and the download step gave up the moment it saw that
+flag. So **listening worked exactly once per app launch**, and every attempt after that
+blamed your connection.
+
+Two things are worth taking from that. First, the failure was invisible online: it would
+have looked like a flaky network, which is the most believable excuse an app can offer
+someone on mobile data. Second, **no unit test would have caught it** — it lives in the
+ordering between a media player, a coroutine and Android's own state. It was found by
+running the thing on a real phone with the network switched off, which is exactly why the
+plan insists on that rather than accepting a green build.
+
+It is a counter now instead of a boolean, which also fixed a second problem nobody had hit
+yet: two quick taps used to fight over the same player.
 
 ## 4. The mushaf page — the hard part
 
