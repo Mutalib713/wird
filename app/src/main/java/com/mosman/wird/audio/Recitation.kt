@@ -1,6 +1,7 @@
 package com.mosman.wird.audio
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.os.Build
@@ -91,6 +92,16 @@ class Recitation(private val context: Context) {
         stopPlaying()
         player = MediaPlayer().apply {
             runCatching {
+                // Without this Android logs `usage=USAGE_UNKNOWN` and guesses: the volume
+                // keys may not reach it and it can come out of the earpiece rather than
+                // the speaker. Saying it is speech, played as media, makes the phone
+                // behave the way anyone expects when they press volume up.
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
                 setDataSource(file.absolutePath)
                 setOnCompletionListener { onFinished(); stopPlaying() }
                 prepare()

@@ -190,8 +190,18 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *A zero-byte recording is not a recitation.* `MediaRecorder` throws if stopped within a
   moment of starting and leaves an empty file; the app deletes it and says nothing was
   saved, rather than logging a recitation that does not exist.
-  *⬜ Not verified:* the recording path itself. It needs the microphone permission, which
-  is Mutalib's consent to give, not mine to grant on his behalf.
+  *Recording verified 2026-08-16, by Mutalib reciting into it.* `rec update src:MIC` at
+  05:43:53 to `rec stop` at 05:44:36 — a 43-second recitation. The file is a real MP4
+  (`ftyp mp42 / isom`), 339,986 bytes, which at 64 kbps mono is about 42 seconds: the file
+  size and the session length agree, so it captured sound rather than silence. Playback
+  started with no errors and the screen showed "Recited today" with "Hear it back".
+  *Fixed after watching the audio log:* playback ran as `usage=USAGE_UNKNOWN`, so Android
+  was guessing — the volume keys might not reach it and it could come out of the earpiece.
+  Now declared as speech played as media.
+  *⚠ Storage, measured:* 340 KB for 43 seconds. A page a day for a year is **~118 MB of
+  recordings**. That is fine for one person on a Pixel and is not fine forever. Task 19
+  (export) should be the moment a retention choice appears — keep the last N, or export
+  and clear — rather than letting it grow silently.
 
 - [ ] **7. Streak, total days read, and the honest split**
   Two numbers side by side, never one alone. "22 marked, 4 recited" visible without
