@@ -195,6 +195,9 @@ fun TodayScreen(
             },
         )
 
+        // The listening glow, at the edges where it cannot cover the page.
+        RecitationGlow(active = recording, level = level)
+
         AnimatedVisibility(
             visible = recording,
             modifier = Modifier.align(Alignment.TopCenter),
