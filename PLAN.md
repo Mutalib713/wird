@@ -296,10 +296,59 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   the queued `BOOT_COMPLETED` being delivered when the app leaves Android's "stopped"
   state. Harmless: arming is idempotent, and `dumpsys` shows exactly one alarm.
 
-- [ ] **9. Abu Bakr al-Shatri audio for today's portion**
+- [~] **9. Abu Bakr al-Shatri audio for today's portion** — built 2026-08-16, `check` green,
+  **airplane-mode test still owed**
   Reciter id 4. Per-ayah MP3s fetched on demand, cached, playable offline afterwards.
   *Done when:* today's portion plays with the phone in airplane mode, after one online
   fetch.
+
+  *Verified against the real API before a line was written:* reciter 4 **is** Shatri —
+  `/recitations/4/by_page/442` returns `Shatri/mp3/036028.mp3`. Both
+  `verses.quran.com` and `audio.qurancdn.com` serve it, and BunnyCDN answered from a
+  Ghanaian edge (`CDN-RequestCountryCode: GH`).
+
+  **⚠ The pagination trap:** that endpoint defaults to `per_page=10`. Page 442 has 13
+  ayahs, so the obvious call silently returns a portion three ayahs short. `per_page=50`
+  fixes it. In the end the app does not use this endpoint at all — it derives verse keys
+  from the cached page layout it already has, which is both free and offline.
+
+  *⚠ Measured, and the reason this needed a decision:* one page of audio is
+  **2,376,926 B at 128 kbps** — Ya-Sin 28–40, thirteen ayahs, averaging 178 KB each.
+  The mushaf page's own font is 154 KB, so **audio is ~15× the cost of the page it reads**,
+  every day. A page a day is ~68 MB/month at 128 kbps against ~34 MB at 64. Mutalib chose
+  "let me pick in settings" over either default, so both ship and the light one is default.
+  32 kbps does not exist for this reciter (404), so 64 is genuinely the floor.
+
+  *A bug I built by hand and should have spotted a line sooner:* my first size measurement
+  used `036` + `28` instead of `036028`, and every one of the thirteen files came back
+  **exactly 678 bytes** — an HTML error page served with an HTTP 200. Identical byte counts
+  across thirteen different ayahs is the tell, and I read past it. This is the same trap
+  PROFILE.md § 10 already records for the fonts, hit again in a new place, which is why
+  `MIN_PLAUSIBLE_BYTES` now guards the audio too and why QA check 12 asserts the padding.
+
+  *Decisions worth keeping:*
+  - **Listening marks nothing.** The control sits beside "Recite it out loud" and
+    "I read it" but does not complete the day. Hearing someone else recite is not reading,
+    and Sacred Rule 6 turns on the app never blurring that. **A `LISTENED` method is
+    Mutalib's call, not a side effect of building playback** — see the open question below.
+  - **In both places, per his answer:** the chrome bar (one tap from anywhere, because
+    "the lazy-day escape hatch" cannot live at the bottom of the thing you are avoiding)
+    and the foot. The bar's icon becomes a stop while it plays.
+  - **Only the lit ayahs.** A half-page portion fetches and recites half a page. The verse
+    list is derived from the same "what is lit" rule the display uses, not reimplemented —
+    task 5f's bug was one rule living in two places.
+  - **`layoutOnly()`** was added so audio can find verse keys without pulling a 154 KB
+    glyph font for a page that may not be on screen.
+  - **50 MB LRU cache.** A page a day at 128 kbps is 830 MB a year if nothing is deleted.
+    Whatever the current portion needs is never evicted.
+  - Plain chained `MediaPlayer`, no ExoPlayer — several MB of dependency to play files in
+    order, on an app where size is a first-class concern.
+
+  *⬜ What is genuinely not done:* **the airplane-mode test, which is the whole done-when.**
+  Nothing has played on the phone yet. The build is installed and `check` is green, but
+  Instagram was in the foreground at every attempt and the device rule says leave it alone.
+  Until that runs, the offline promise is a claim, not a result. Also unproven on device:
+  the download progress line, the stop control, and the 50 MB prune.
 
 - [ ] **10. Home screen widget**
   Jetpack Glance. Today's portion and done/not-done. Updates daily. The nudge that

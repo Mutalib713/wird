@@ -2,6 +2,7 @@ package com.mosman.wird.data
 
 import android.content.Context
 import androidx.core.content.edit
+import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
@@ -105,6 +106,20 @@ class WirdStore(context: Context) {
         get() = decodeSchedule(prefs.getString(KEY_NUDGE, null))
         set(value) = prefs.edit { putString(KEY_NUDGE, encodeSchedule(value)) }
 
+    /**
+     * Which Shatri recording to fetch.
+     *
+     * Defaults to the lighter one. A page is ~1.1 MB at 64 kbps against ~2.3 MB at 128,
+     * every day, and the people this is being built for are students on Ghanaian mobile
+     * data — so the default protects the bill and the setting is there for anyone who
+     * would rather spend it.
+     */
+    var audioQuality: AudioQuality
+        get() = runCatching {
+            AudioQuality.valueOf(prefs.getString(KEY_AUDIO, AudioQuality.LIGHT.name)!!)
+        }.getOrDefault(AudioQuality.LIGHT)
+        set(value) = prefs.edit { putString(KEY_AUDIO, value.name) }
+
     var plan: ReadingPlan
         get() = ReadingPlan(
             defaultUnits = prefs.getInt(KEY_DEFAULT_UNITS, Mushaf.UNITS_PER_PAGE),
@@ -133,6 +148,7 @@ class WirdStore(context: Context) {
         const val KEY_THEME = "theme_mode"
         const val KEY_SEEN_CHROME = "seen_chrome"
         const val KEY_NUDGE = "nudge_schedule"
+        const val KEY_AUDIO = "audio_quality"
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
     }
 }

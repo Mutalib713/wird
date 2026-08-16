@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.DayLogStore
 import com.mosman.wird.data.Where
 import com.mosman.wird.data.WirdStore
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
             var startVerse by remember { mutableStateOf(store.startVerse) }
             var seenChrome by remember { mutableStateOf(store.hasSeenChrome) }
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
+            var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var armed by remember { mutableStateOf<Armed?>(null) }
 
             /**
@@ -148,6 +150,7 @@ class MainActivity : ComponentActivity() {
                         progress = progress,
                         hasRecording = hasRecording,
                         audioFile = { days.audioFileFor(today) },
+                        audioQuality = audioQuality,
                         onDone = { method, file ->
                             days.markDone(
                                 date = today,
@@ -193,6 +196,7 @@ class MainActivity : ComponentActivity() {
                         ),
                         schedule = schedule,
                         armed = armed,
+                        audioQuality = audioQuality,
                         onTheme = { store.themeMode = it; theme = it },
                         onPlan = { store.plan = it; plan = it },
                         onSchedule = {
@@ -202,6 +206,7 @@ class MainActivity : ComponentActivity() {
                             // that now exists rather than the one that used to.
                             reArm()
                         },
+                        onAudioQuality = { store.audioQuality = it; audioQuality = it },
                         onUseLocation = { askLocation.launch(Where.PERMISSION) },
                         onChangePosition = { screen = Screen.SETUP },
                         onBack = { screen = Screen.TODAY },

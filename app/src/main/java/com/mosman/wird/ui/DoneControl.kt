@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.core.content.ContextCompat
+import com.mosman.wird.audio.AudioState
 import com.mosman.wird.domain.Method
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
@@ -54,6 +55,8 @@ fun DoneControl(
     onTap: () -> Unit,
     onPlay: () -> Unit,
     onUndo: () -> Unit,
+    audio: AudioState = AudioState.Idle,
+    onListen: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val context = LocalContext.current
@@ -80,6 +83,8 @@ fun DoneControl(
                     if (granted) onStartRecording() else askMic.launch(Manifest.permission.RECORD_AUDIO)
                 },
                 onTap = onTap,
+                audio = audio,
+                onListen = onListen,
             )
         }
 
@@ -91,7 +96,12 @@ fun DoneControl(
 }
 
 @Composable
-private fun NotYet(onRecite: () -> Unit, onTap: () -> Unit) {
+private fun NotYet(
+    onRecite: () -> Unit,
+    onTap: () -> Unit,
+    audio: AudioState,
+    onListen: () -> Unit,
+) {
     val colors = LocalWirdColors.current
     Column(modifier = Modifier.fillMaxWidth()) {
         Button(
@@ -110,6 +120,33 @@ private fun NotYet(onRecite: () -> Unit, onTap: () -> Unit) {
         ) {
             // Quieter, and honest about what it is. Not "done" — read.
             Text("I read it", color = colors.textSecondary, style = TextStyle(fontSize = Scale.body))
+        }
+        // Quietest of the three, and deliberately not a way of finishing.
+        //
+        // PROFILE.md § 4 wants the ask to be able to drop to "just listen" on a bad day,
+        // which is why it is here at all. But hearing someone else recite is not the same
+        // as reading, and Sacred Rule 6 turns on the app never blurring that — so this
+        // plays, and you still choose one of the two above afterwards.
+        TextButton(
+            onClick = onListen,
+            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
+        ) {
+            Text(
+                text = when (audio) {
+                    is AudioState.Idle, is AudioState.Failed -> "Listen to it instead"
+                    is AudioState.Fetching -> "Getting the recitation…"
+                    is AudioState.Playing -> "Stop"
+                },
+                color = colors.textSecondary,
+                style = TextStyle(fontSize = Scale.caption),
+            )
+        }
+        if (audio is AudioState.Failed) {
+            Text(
+                text = audio.reason,
+                color = colors.textSecondary,
+                style = TextStyle(fontSize = Scale.caption),
+            )
         }
     }
 }

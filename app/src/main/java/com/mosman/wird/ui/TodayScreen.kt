@@ -19,6 +19,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Text
@@ -27,12 +29,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableFloatStateOf
+import com.mosman.wird.audio.AudioQuality
+import com.mosman.wird.audio.AudioState
+import com.mosman.wird.audio.PortionAudio
 import com.mosman.wird.audio.Recitation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +52,7 @@ import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Long enough to notice and read, short enough not to feel like a splash screen. */
 private const val FIRST_RUN_CHROME_MS = 3_500L
@@ -76,6 +83,8 @@ fun TodayScreen(
     progress: com.mosman.wird.domain.Progress? = null,
     hasRecording: Boolean = false,
     audioFile: () -> java.io.File = { java.io.File("") },
+    /** Which Shatri recording to fetch. The reader's data, so the reader's choice. */
+    audioQuality: AudioQuality = AudioQuality.LIGHT,
     onDone: (com.mosman.wird.domain.Method, java.io.File?) -> Unit = { _, _ -> },
     onUndo: () -> Unit = {},
 ) {
@@ -154,6 +163,62 @@ fun TodayScreen(
         MushafRepository(context).prefetchAround(todaysPages.first())
     }
 
+    // ---- Abu Bakr al-Shatri reciting today's portion (task 9) ----
+    //
+    // PROFILE.md § 4 calls this "the lazy-day escape hatch, so the ask can drop to *just
+    // listen*", which is why it is reachable from the chrome bar rather than only from the
+    // foot: on a day reading is not going to happen, the way out must not be at the bottom
+    // of the thing you are avoiding.
+    //
+    // **Listening deliberately marks nothing.** Sacred Rule 6 says the app never lets you
+    // believe you did more than you did, and there is no LISTENED method in the day log —
+    // adding a third category is Mutalib's call, not a side effect of building playback.
+    val portionAudio = remember { PortionAudio(context) }
+    var audio by remember { mutableStateOf<AudioState>(AudioState.Idle) }
+    val scope = rememberCoroutineScope()
+
+    DisposableEffect(Unit) { onDispose { portionAudio.release() } }
+
+    fun stopListening() {
+        portionAudio.stop()
+        audio = AudioState.Idle
+    }
+
+    fun listen() {
+        if (audio !is AudioState.Idle) { stopListening(); return }
+        scope.launch {
+            audio = AudioState.Fetching(0, 0)
+            val repo = MushafRepository(context)
+
+            // Only the ayahs actually lit. A half-page portion must not fetch — or recite
+            // — the half you were not asked to read.
+            val verses = todaysPages.flatMap { p ->
+                val layout = repo.layoutOnly(p) ?: return@flatMap emptyList()
+                val lit = litFor(layout)
+                layout.glyphs.filter { it.line in lit }.map { it.verseKey }
+            }.distinct()
+
+            if (verses.isEmpty()) {
+                audio = AudioState.Failed("Couldn't work out which ayahs to play.")
+                return@launch
+            }
+
+            val files = portionAudio.ensureCached(verses, audioQuality) { done, total ->
+                audio = AudioState.Fetching(done, total)
+            }
+            if (files == null) {
+                audio = AudioState.Failed("Couldn't get the recitation. Check your connection.")
+                return@launch
+            }
+            portionAudio.play(
+                files = files,
+                verses = verses,
+                onVerse = { i -> audio = AudioState.Playing(verses[i], i, verses.size) },
+                onFinished = { audio = AudioState.Idle },
+            )
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         MushafPager(
             initialPage = todaysPages.first(),
@@ -191,6 +256,8 @@ fun TodayScreen(
                         onTap = { onDone(com.mosman.wird.domain.Method.TAPPED, null) },
                         onPlay = { recitation.play(audioFile()) },
                         onUndo = onUndo,
+                        audio = audio,
+                        onListen = { listen() },
                     )
                     // Under the done control, where you land having finished. Two numbers
                     // that never appear apart. Sacred Rules 4 and 6.
@@ -246,6 +313,11 @@ fun TodayScreen(
                 },
                 onJump = { showJump = true; chromeShown = false },
                 onSettings = { chromeShown = false; onSettings() },
+                audio = audio,
+                // The bar stays up while it plays. It is the only stop control, and a
+                // stop button that vanishes the moment you use it is how you end up
+                // tapping the page trying to find it again.
+                onListen = { listen() },
             )
         }
     }
@@ -284,6 +356,8 @@ private fun ChromeBar(
     onBackToToday: () -> Unit,
     onJump: () -> Unit,
     onSettings: () -> Unit,
+    audio: AudioState,
+    onListen: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     Row(
@@ -317,6 +391,15 @@ private fun ChromeBar(
                     style = TextStyle(fontSize = Scale.caption),
                 )
             }
+            // Downloading or playing replaces the streak line rather than adding a fourth,
+            // because the bar is already three lines deep and this is temporary.
+            audioLine(audio)?.let {
+                Text(
+                    text = it,
+                    color = colors.onSurfaceRaised,
+                    style = TextStyle(fontSize = Scale.caption),
+                )
+            }
         }
 
         if (offToday) {
@@ -332,6 +415,14 @@ private fun ChromeBar(
             }
         }
 
+        // Turns into a stop while it is running, in place, so the control that started it
+        // is the control that ends it.
+        val playing = audio !is AudioState.Idle && audio !is AudioState.Failed
+        BarIcon(
+            icon = if (playing) Icons.Filled.Close else Icons.Filled.PlayArrow,
+            label = if (playing) "Stop the recitation" else "Listen to today's portion",
+            onClick = onListen,
+        )
         BarIcon(Icons.AutoMirrored.Filled.List, "Read something else", onJump)
         BarIcon(Icons.Filled.Settings, "Settings", onSettings)
     }
@@ -341,6 +432,30 @@ private fun ChromeBar(
 private fun streakLine(p: com.mosman.wird.domain.Progress): String {
     val total = if (p.totalDaysRead == 1) "1 day read" else "${p.totalDaysRead} days read"
     return if (p.currentStreak <= 1) total else "${p.currentStreak} in a row, $total"
+}
+
+/**
+ * What the recitation is doing, or null when it is doing nothing.
+ *
+ * The download says how far along it is because on Ghanaian mobile data a page of audio
+ * is a couple of megabytes and a silent wait reads as a hang. Playback names the ayah,
+ * which is the one thing that makes a list of MP3s feel like a recitation.
+ */
+private fun audioLine(audio: AudioState): String? = when (audio) {
+    is AudioState.Idle -> null
+    is AudioState.Fetching ->
+        if (audio.total == 0) "Getting the recitation…"
+        else "Getting the recitation, ${audio.done} of ${audio.total}"
+    is AudioState.Playing -> {
+        // "Ya-Sin 28", not "36:28". The reader knows the surah by name — that is the
+        // question setup asks them, and it is how the header names the portion.
+        val surah = audio.verseKey.substringBefore(':').toIntOrNull()
+            ?.let { com.mosman.wird.domain.SurahIndex.byNumber(it)?.name }
+        val ayah = audio.verseKey.substringAfter(':')
+        val where = if (surah != null) "$surah $ayah" else audio.verseKey
+        "Playing $where · ${audio.index + 1} of ${audio.total}"
+    }
+    is AudioState.Failed -> audio.reason
 }
 
 @Composable

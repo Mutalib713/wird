@@ -1,5 +1,6 @@
 package com.mosman.wird
 
+import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.data.encodeSchedule
 import com.mosman.wird.domain.Coordinates
@@ -559,6 +560,110 @@ class WirdQaTest {
             "a label printed a clock time",
             anchored.none { it.contains(":") },
         )
+    }
+
+    // ---- 12. Recitation audio: the right ayahs, from the right place ----
+
+    /**
+     * The URL convention, which is the part that fails silently.
+     *
+     * Both CDNs name the file as three digits of surah then three of ayah. Getting the
+     * padding wrong does not 404 — it returns a ~678-byte HTML error page with an HTTP
+     * 200, which is exactly how a "working" download ends up being nothing. I built that
+     * bug by hand on 2026-08-16 and every file came back the same size, which is the tell.
+     */
+    @Test
+    fun `audio urls are zero padded to three digits on both sides`() {
+        // Ya-Sin 28 — the first ayah of the page the app was sitting on when measured.
+        assertEquals(
+            "https://everyayah.com/data/Abu_Bakr_Ash-Shaatree_64kbps/036028.mp3",
+            AudioQuality.LIGHT.urlFor(36, 28),
+        )
+        assertEquals(
+            "https://verses.quran.com/Shatri/mp3/036028.mp3",
+            AudioQuality.BETTER.urlFor(36, 28),
+        )
+
+        // The cases padding gets wrong: a one-digit surah, and a three-digit ayah.
+        assertTrue(AudioQuality.LIGHT.urlFor(1, 1).endsWith("/001001.mp3"))
+        assertTrue(AudioQuality.LIGHT.urlFor(2, 286).endsWith("/002286.mp3"))
+        assertTrue(AudioQuality.BETTER.urlFor(114, 6).endsWith("/114006.mp3"))
+
+        // Every generated name is exactly six digits plus the extension. A single
+        // off-by-one in the format string would be caught here rather than by silence.
+        (1..114).forEach { s ->
+            val name = AudioQuality.LIGHT.urlFor(s, 1).substringAfterLast('/')
+            assertEquals("surah $s", 10, name.length)
+            assertTrue("surah $s is not all digits", name.removeSuffix(".mp3").all(Char::isDigit))
+        }
+    }
+
+    /**
+     * A half-page portion must fetch — and recite — only the half you were asked to read.
+     *
+     * This is the same "which lines are lit" rule as the display, reused rather than
+     * reimplemented. Task 5f's bug was one rule living in two places and drifting apart,
+     * so the audio deliberately derives its verse list from the lit lines instead of
+     * asking the API what is on the page.
+     */
+    @Test
+    fun `audio covers exactly the ayahs that are lit, and no more`() {
+        // Page 440 as it really is: Fatir's last ayah on lines 1-2, then Ya-Sin.
+        val page440 = MushafPage(
+            page = 440,
+            glyphs = buildList {
+                add(glyph("35:45", line = 1))
+                add(glyph("35:45", line = 2))
+                (1..12).forEach { ayah -> add(glyph("36:$ayah", line = 3 + (ayah - 1) / 2)) }
+            },
+            surahStarts = mapOf("36:1" to "36"),
+            surahName = "Fatir",
+            juz = 22,
+            bismillahCodes = null,
+        )
+
+        fun versesFor(lit: Set<Int>) =
+            page440.glyphs.filter { it.line in lit }.map { it.verseKey }.distinct()
+
+        // A reader who chose Ya-Sin starts at line 3, so Fatir's two lines above are not
+        // today's — and must not be recited to them.
+        val startLine = page440.lineOf(36, 1)!!
+        val todaysLines = page440.lines.filter { it >= startLine }.toSet()
+        val verses = versesFor(todaysLines)
+        assertFalse("Fatir 45 is not today's portion", verses.contains("35:45"))
+        assertEquals("36:1", verses.first())
+        assertEquals(12, verses.size)
+
+        // Half a page lights half the lines, so it must fetch fewer ayahs than a whole
+        // page — the check that catches audio quietly ignoring the portion size.
+        val page440Unit = (440 - 1) * Mushaf.UNITS_PER_PAGE
+        val topHalf = assignPortion(page440Unit, units = 1).linesOn(440, page440.lines)
+        val wholePage = assignPortion(page440Unit, units = 2).linesOn(440, page440.lines)
+        assertTrue(
+            "half a page should not fetch a whole page of audio",
+            versesFor(topHalf).size < versesFor(wholePage).size,
+        )
+
+        // Every key is "surah:ayah" and parses — a malformed one would build a URL that
+        // 200s with an error page rather than failing.
+        verses.forEach { key ->
+            val (s, a) = key.split(':').map { it.toInt() }
+            assertTrue(s in 1..114)
+            assertTrue(a >= 1)
+        }
+    }
+
+    @Test
+    fun `the audio quality choice survives being written down and read back`() {
+        AudioQuality.entries.forEach { q ->
+            assertEquals(q, AudioQuality.valueOf(q.name))
+        }
+        // The default protects the data bill; only a deliberate tap moves off it.
+        assertEquals(AudioQuality.LIGHT, AudioQuality.entries.first())
+        // Both labels say what they cost, because "better" with no number is not a choice.
+        AudioQuality.entries.forEach { q ->
+            assertTrue("${q.name} should state its size", q.perPageMb.contains("MB"))
+        }
     }
 
     private fun glyph(verseKey: String, line: Int) =

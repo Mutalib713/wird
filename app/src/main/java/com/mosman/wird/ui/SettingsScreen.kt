@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.PlaceSource
 import com.mosman.wird.data.ThemeMode
 import com.mosman.wird.domain.Mushaf
@@ -46,8 +47,9 @@ import java.time.LocalTime
 /**
  * Settings.
  *
- * Four things now: how it looks, how much a day, when to be reminded, and where he is.
- * The reminder section arrived with task 8, when the nudge stopped being a fixed hour.
+ * Five things now: how it looks, how much a day, when to be reminded, how the recitation
+ * is fetched, and where he is. The reminder section arrived with task 8; the recitation
+ * one with task 9, where a page of audio turned out to cost fifteen times the page itself.
  *
  * Notably absent: choosing a highlight colour. Raised and declined — see Sacred Rule 5.
  * There is no highlight to colour; the portion is marked by everything else stepping
@@ -60,9 +62,11 @@ fun SettingsScreen(
     positionLabel: String,
     schedule: NudgeSchedule,
     armed: Armed?,
+    audioQuality: AudioQuality,
     onTheme: (ThemeMode) -> Unit,
     onPlan: (ReadingPlan) -> Unit,
     onSchedule: (NudgeSchedule) -> Unit,
+    onAudioQuality: (AudioQuality) -> Unit,
     onUseLocation: () -> Unit,
     onChangePosition: () -> Unit,
     onBack: () -> Unit,
@@ -249,6 +253,22 @@ fun SettingsScreen(
                 Text("Let Wird check where I am", color = colors.accent)
             }
         }
+
+        // ---- the recitation ----
+        //
+        // A quality setting is normally a lazy way of avoiding a decision. This one is
+        // not: it is a data setting wearing a quality label, and the numbers are real.
+        // Mutalib asked for the choice on 2026-08-16 rather than take either default.
+        Section("Listening to it")
+        Row(horizontalArrangement = Arrangement.spacedBy(Scale.space2)) {
+            AudioQuality.entries.forEach { q ->
+                Choice(q.label, audioQuality == q) { onAudioQuality(q) }
+            }
+        }
+        Hint(
+            "Abu Bakr al-Shatri, ${audioQuality.perPageMb}. Downloaded once, then it plays " +
+                "with no signal at all."
+        )
 
         // ---- where you are ----
         Section("Where you are")

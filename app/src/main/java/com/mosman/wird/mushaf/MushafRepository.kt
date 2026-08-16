@@ -224,6 +224,21 @@ class MushafRepository(private val context: Context) {
         }
     }
 
+    /**
+     * A page's layout without fetching its font.
+     *
+     * The recitation audio needs to know which ayahs sit on which lines, and nothing more
+     * — it never draws anything. Going through [load] would pull a 154 KB glyph font for a
+     * page that may not be on screen, which on a two-page portion is a third of a megabyte
+     * spent to answer a question the cached JSON already holds.
+     *
+     * Returns null rather than throwing: no layout simply means no audio for that page,
+     * and the caller says so.
+     */
+    suspend fun layoutOnly(page: Int): MushafPage? = withContext(Dispatchers.IO) {
+        layoutFor(page)
+    }
+
     /** How many ayahs a surah has, so setup can stop someone typing 400 into Al-Kawthar. */
     suspend fun ayahCount(surah: Int): Int? = withContext(Dispatchers.IO) {
         val cache = File(pageDir, "chapter-$surah.json")
