@@ -141,13 +141,7 @@ private fun DrawnPage(
             ?: page.lines.firstOrNull()
     }
 
-    // Name the surah the lit portion is in, not the page's first verse.
-    val surahLabel = remember(lit, page) {
-        val line = lit.minOrNull() ?: lines.firstOrNull()
-        line?.let { page.surahNumberOn(it) }
-            ?.let { SurahIndex.byNumber(it)?.name }
-            ?: page.surahName
-    }
+    val surahLabel = remember(lit, page) { surahLabelFor(page, lit) }
 
     Column(
         modifier = Modifier
@@ -206,6 +200,23 @@ private fun DrawnPage(
         )
         Spacer(Modifier.height(Scale.space2))
     }
+}
+
+/**
+ * Which surah to call this page, given what is lit on it.
+ *
+ * **Never `page.surahName`.** That field is the surah of the page's *first* verse, and a
+ * page can open with the tail of the previous surah: page 440 begins with Fatir's last
+ * ayah and only then starts Ya-Sin. Naming the page from it put "Fatir" in the chrome bar
+ * while the page itself said "Ya-Sin 4–12" — the same bug Mutalib reported in setup,
+ * reappearing somewhere new because the rule lived in one composable instead of a shared
+ * function. It is a shared function now.
+ */
+fun surahLabelFor(page: MushafPage, lit: Set<Int>): String {
+    val line = lit.minOrNull() ?: page.lines.firstOrNull()
+    return line?.let { page.surahNumberOn(it) }
+        ?.let { SurahIndex.byNumber(it)?.name }
+        ?: page.surahName
 }
 
 /**

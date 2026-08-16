@@ -149,17 +149,26 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   `hasSeenChrome`. The real weakness he had spotted was not words-versus-icon, it was that
   the tap was undiscoverable.
 
-- [ ] **5f. Walk Milestone 1 on the phone, once, deliberately**
-  Everything below is built and `check`-green, but a batch of it has never been eyeballed
-  on the device — his phone was in use each time, and the device rule says leave it.
-  Worth one deliberate pass rather than trusting that code which compiles works.
-  - settings survive a force-stop (theme, daily amount, lighter days, position)
-  - the chrome bar hides on a second tap
-  - the bar shows the right surah, page and juz, and **updates as you swipe** (fixed, unseen)
-  - "Today's portion" actually jumps back (fixed, unseen)
-  - go-to-surah actually jumps (fixed, unseen)
-  - the first-run bar appears and withdraws after 3.5s
-  *Done when:* each line above is confirmed, or a bug is written down.
+- [x] **5f. Walked Milestone 1 on the phone** — done 2026-08-16
+  Five of six confirmed on the device, one bug found and fixed, one item not testable.
+  - ✅ **settings survive a force-stop** — position, theme and the chrome flag all came
+    back (`position_unit=878`, `start_surah=36`, `start_ayah=5`, light theme)
+  - ✅ **the bar hides on a second tap** — pixel at (300,240) goes sage → paper
+  - ✅ **the bar tracks the page** — swiped 440 → 443 and it read "Ya-Sin, Page 443,
+    Juz' 23", with "Today's portion" appearing because we were off it
+  - ✅ **"Today's portion" jumps** — landed back on 440, "Ya-Sin 4–12, Juz' 22"
+  - ✅ **go-to-surah jumps** — Al-Fatihah, page 1, everything pale since it is not today's
+  - ⬜ **the first-run bar** — not testable from outside. `run-as` cannot write
+    `shared_prefs` on this device (permission denied), and clearing app data to force it
+    would wipe the stored position. Verified by code only. Test it the next time the app
+    is installed fresh, which task 16 does anyway.
+
+  **Bug found and fixed:** the chrome bar said **"Fatir"** while the page said
+  "Ya-Sin 4–12". It was reading `page.surahName`, which is the surah of the page's *first*
+  verse — and page 440 opens with Fatir's last ayah. The same bug Mutalib reported in
+  setup, reappearing somewhere new because the rule lived inside one composable instead of
+  a shared function. It is `surahLabelFor()` now, used by both, and the "what is lit" rule
+  was hoisted alongside it so the bar and the page cannot disagree again.
 
 ## Milestone 2 — The loop
 

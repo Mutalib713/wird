@@ -98,6 +98,20 @@ fun TodayScreen(
         onChromeSeen()
     }
 
+    // The one rule about what is lit, defined once so the bar and the page agree.
+    val litFor: (com.mosman.wird.mushaf.MushafPage) -> Set<Int> = remember(assignment, startVerse, todaysPages) {
+        { page ->
+            // dark means today, pale means not today — on every page, no exceptions.
+            if (page.page !in todaysPages) {
+                emptySet()
+            } else {
+                val byPage = assignment.linesOn(page.page, page.lines)
+                val startLine = startVerse?.let { (s, a) -> page.lineOf(s, a) }
+                if (startLine == null) byPage else byPage.filter { it >= startLine }.toSet()
+            }
+        }
+    }
+
     // Warm one page either side of today's, once, in the background.
     val context = LocalContext.current
     LaunchedEffect(todaysPages) {
@@ -111,19 +125,12 @@ fun TodayScreen(
             modifier = Modifier.safeDrawingPadding(),
             onPageChanged = { current = it },
             onBackgroundTap = { chromeShown = !chromeShown },
-            onPageShown = { page -> pageInfo[page.page] = page.surahName to page.juz },
-            lit = { page ->
-                // One rule, no exceptions: dark means today, pale means not today — on
-                // every page, including the ones you swipe to. A signal that holds only
-                // sometimes is not a signal.
-                if (page.page !in todaysPages) {
-                    emptySet()
-                } else {
-                    val byPage = assignment.linesOn(page.page, page.lines)
-                    val startLine = startVerse?.let { (s, a) -> page.lineOf(s, a) }
-                    if (startLine == null) byPage else byPage.filter { it >= startLine }.toSet()
-                }
+            // Name the page the same way the page names itself. Using page.surahName
+            // here is what put "Fatir" in the bar while the page said "Ya-Sin 4-12".
+            onPageShown = { page ->
+                pageInfo[page.page] = surahLabelFor(page, litFor(page)) to page.juz
             },
+            lit = litFor,
         )
 
         AnimatedVisibility(
