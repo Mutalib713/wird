@@ -25,6 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableFloatStateOf
+import com.mosman.wird.audio.Recitation
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -97,6 +100,32 @@ fun TodayScreen(
     // same gesture and leaves the page alone afterwards.
     var chromeShown by remember { mutableStateOf(!hasSeenChrome) }
 
+    // Recording lives up here, not in the footer control. The record button is at the
+    // foot of the page, so the moment you start you scroll up to read — and anything down
+    // there goes out of sight. Mutalib started a recitation and could not tell it was on.
+    val context0 = LocalContext.current
+    val recitation = remember { Recitation(context0) }
+    var recording by remember { mutableStateOf(false) }
+    var seconds by remember { mutableIntStateOf(0) }
+    var level by remember { mutableFloatStateOf(0f) }
+    var problem by remember { mutableStateOf<String?>(null) }
+
+    DisposableEffect(Unit) { onDispose { recitation.release() } }
+
+    LaunchedEffect(recording) {
+        seconds = 0
+        level = 0f
+        var ticks = 0
+        while (recording) {
+            // Poll faster than the clock so the meter follows a voice rather than a
+            // second hand. getMaxAmplitude reports the peak since the last call.
+            delay(80)
+            level = recitation.level()
+            if (++ticks % 12 == 0) seconds++
+        }
+        level = 0f
+    }
+
     LaunchedEffect(hasSeenChrome) {
         if (hasSeenChrome) return@LaunchedEffect
         delay(FIRST_RUN_CHROME_MS)
@@ -144,8 +173,22 @@ fun TodayScreen(
                     DoneControl(
                         doneMethod = doneMethod,
                         hasRecording = hasRecording,
-                        audioFile = audioFile,
-                        onDone = onDone,
+                        recording = recording,
+                        problem = problem,
+                        onStartRecording = {
+                            problem = null
+                            if (recitation.start(audioFile())) {
+                                recording = true
+                            } else {
+                                problem = "The microphone didn't start. Try again."
+                            }
+                        },
+                        onMicRefused = {
+                            problem = "Wird needs the microphone to hear you recite. " +
+                                "You can still mark it read."
+                        },
+                        onTap = { onDone(com.mosman.wird.domain.Method.TAPPED, null) },
+                        onPlay = { recitation.play(audioFile()) },
                         onUndo = onUndo,
                     )
                 }
@@ -153,7 +196,32 @@ fun TodayScreen(
         )
 
         AnimatedVisibility(
-            visible = chromeShown,
+            visible = recording,
+            modifier = Modifier.align(Alignment.TopCenter),
+            enter = fadeIn() + slideInVertically { -it },
+            exit = fadeOut() + slideOutVertically { -it },
+        ) {
+            RecordingBar(
+                seconds = seconds,
+                level = level,
+                onStop = {
+                    recording = false
+                    val file = recitation.stop()
+                    if (file == null) {
+                        problem = "That was too short to keep. Nothing was saved."
+                    } else {
+                        onDone(com.mosman.wird.domain.Method.RECITED, file)
+                    }
+                },
+                onCancel = {
+                    recording = false
+                    recitation.cancel()
+                },
+            )
+        }
+
+        AnimatedVisibility(
+            visible = chromeShown && !recording,
             modifier = Modifier.align(Alignment.TopCenter),
             enter = fadeIn() + slideInVertically { -it },
             exit = fadeOut() + slideOutVertically { -it },

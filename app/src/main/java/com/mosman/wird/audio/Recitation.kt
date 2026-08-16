@@ -81,6 +81,25 @@ class Recitation(private val context: Context) {
             }
     }
 
+    /**
+     * How loud it is hearing you, 0 to 1.
+     *
+     * Real amplitude from the microphone, not a decorative animation. A pulse that beats
+     * on a timer looks identical whether the mic is working or muted; one that follows
+     * your voice is evidence. If this stays flat while you recite, something is wrong and
+     * you find out now rather than when you play it back.
+     *
+     * `getMaxAmplitude` reports the peak since the last call and resets, so this is only
+     * meaningful when polled steadily.
+     */
+    fun level(): Float {
+        val r = recorder ?: return 0f
+        val peak = runCatching { r.maxAmplitude }.getOrDefault(0)
+        // The scale is 0..32767 and speech sits low in it, so a straight ratio barely
+        // moves. Square-root opens up the quiet end where a voice actually lives.
+        return kotlin.math.sqrt((peak / 32_767f).coerceIn(0f, 1f))
+    }
+
     /** Throw away whatever is being recorded. */
     fun cancel() {
         val f = target
