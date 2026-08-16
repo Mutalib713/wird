@@ -1,6 +1,7 @@
 package com.mosman.wird.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,20 +28,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import com.mosman.wird.data.PlaceSource
 import com.mosman.wird.data.ThemeMode
 import com.mosman.wird.domain.Mushaf
+import com.mosman.wird.domain.NudgeSchedule
+import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.SurahIndex
+import com.mosman.wird.domain.label
+import com.mosman.wird.nudge.Armed
+import com.mosman.wird.nudge.NudgeScheduler
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 import java.time.DayOfWeek
+import java.time.LocalTime
 
 /**
  * Settings.
  *
- * Three things, because three is what he asked for: how it looks, how much a day, and
- * where he is. No account, no sync, no notification preferences yet — those arrive with
- * the features that need them.
+ * Four things now: how it looks, how much a day, when to be reminded, and where he is.
+ * The reminder section arrived with task 8, when the nudge stopped being a fixed hour.
  *
  * Notably absent: choosing a highlight colour. Raised and declined — see Sacred Rule 5.
  * There is no highlight to colour; the portion is marked by everything else stepping
@@ -51,8 +58,12 @@ fun SettingsScreen(
     theme: ThemeMode,
     plan: ReadingPlan,
     positionLabel: String,
+    schedule: NudgeSchedule,
+    armed: Armed?,
     onTheme: (ThemeMode) -> Unit,
     onPlan: (ReadingPlan) -> Unit,
+    onSchedule: (NudgeSchedule) -> Unit,
+    onUseLocation: () -> Unit,
     onChangePosition: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -135,6 +146,85 @@ fun SettingsScreen(
             }
         )
 
+        // ---- when to remind you ----
+        //
+        // PROFILE.md § 5 keeps prayer times out of v1 as a feature, and this respects
+        // that: you pick a landmark you already know, and no time is ever printed. The
+        // one exception is the fallback below, where the hour shown is a plain fixed
+        // hour rather than a computed prayer.
+        Section("When to remind you")
+        Row(horizontalArrangement = Arrangement.spacedBy(Scale.space2)) {
+            Choice("After a prayer", schedule is NudgeSchedule.AfterPrayer) {
+                onSchedule(NudgeSchedule.Default)
+            }
+            Choice("At a set time", schedule is NudgeSchedule.AtClockTime) {
+                onSchedule(NudgeSchedule.AtClockTime(NudgeScheduler.FALLBACK_TIME))
+            }
+            Choice("Off", schedule is NudgeSchedule.Off) { onSchedule(NudgeSchedule.Off) }
+        }
+
+        when (schedule) {
+            is NudgeSchedule.AfterPrayer -> {
+                Spacer(Modifier.height(Scale.space3))
+                // Two rows rather than one: five prayer names do not fit across a phone,
+                // and a row that scrolls sideways hides the option on the end.
+                Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
+                    listOf(Prayer.FAJR, Prayer.DHUHR, Prayer.ASR).forEach { p ->
+                        Choice(p.label, schedule.prayer == p) {
+                            onSchedule(schedule.copy(prayer = p))
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
+                    listOf(Prayer.MAGHRIB, Prayer.ISHA).forEach { p ->
+                        Choice(p.label, schedule.prayer == p) {
+                            onSchedule(schedule.copy(prayer = p))
+                        }
+                    }
+                }
+                Spacer(Modifier.height(Scale.space3))
+                Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
+                    listOf(0 to "Right at it", 15 to "15 min", 30 to "30 min", 60 to "An hour")
+                        .forEach { (minutes, label) ->
+                            Choice(label, schedule.offsetMinutes == minutes) {
+                                onSchedule(schedule.copy(offsetMinutes = minutes))
+                            }
+                        }
+                }
+            }
+
+            is NudgeSchedule.AtClockTime -> {
+                Spacer(Modifier.height(Scale.space3))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(Scale.space1),
+                ) {
+                    // Waking hours only. A reminder at three in the morning is a bug
+                    // someone tapped by accident, not a choice.
+                    (4..23).forEach { hour ->
+                        val at = LocalTime.of(hour, 0)
+                        Choice(shortClock(at), schedule.time.hour == hour) {
+                            onSchedule(NudgeSchedule.AtClockTime(at))
+                        }
+                    }
+                }
+            }
+
+            is NudgeSchedule.Off -> Unit
+        }
+
+        Hint(reminderHint(schedule, armed))
+
+        if (schedule is NudgeSchedule.AfterPrayer && wantsLocation(armed)) {
+            Spacer(Modifier.height(Scale.space2))
+            TextButton(
+                onClick = onUseLocation,
+                modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
+            ) {
+                Text("Let Wird check where I am", color = colors.accent)
+            }
+        }
+
         // ---- where you are ----
         Section("Where you are")
         Text(positionLabel, color = colors.textPrimary, style = TextStyle(fontSize = Scale.body))
@@ -188,6 +278,66 @@ private fun Choice(label: String, on: Boolean, onPick: () -> Unit) {
             style = TextStyle(fontSize = Scale.body),
         )
     }
+}
+
+/**
+ * True when the reminder is prayer-based but we are not working from a real fix.
+ *
+ * Covers both the timezone guess and the fixed-hour fallback, because in both cases the
+ * reader can improve things by letting the app look, and in neither case should it just
+ * ask again on its own.
+ */
+private fun wantsLocation(armed: Armed?): Boolean = when (armed) {
+    is Armed.AtFallback -> true
+    is Armed.At -> armed.source == PlaceSource.TIMEZONE
+    else -> false
+}
+
+/**
+ * What the reminder is actually doing, in one line.
+ *
+ * Never prints a prayer time — see PROFILE.md § 5. The only clock time that appears here
+ * is the fixed-hour fallback, which is a plain hour rather than a computed sunset, and it
+ * appears precisely because the reader needs to know the app could not do what they
+ * asked.
+ */
+private fun reminderHint(schedule: NudgeSchedule, armed: Armed?): String {
+    val drift = if (armed.isInexact()) " Android may let it drift by a few minutes." else ""
+    return when (schedule) {
+        is NudgeSchedule.Off ->
+            "Nothing will arrive. Turn it back on whenever you want."
+
+        is NudgeSchedule.AtClockTime ->
+            "${schedule.label()}, every day.$drift"
+
+        is NudgeSchedule.AfterPrayer -> when (armed) {
+            is Armed.AtFallback ->
+                "Wird can't work out sunset without knowing roughly where you are, " +
+                    "so it will come at ${NudgeScheduler.FALLBACK_TIME.let(::shortClockLong)} " +
+                    "until it does.$drift"
+
+            else ->
+                "${schedule.label()}. It follows the sun, so it stays right all year.$drift"
+        }
+    }
+}
+
+private fun Armed?.isInexact(): Boolean = when (this) {
+    is Armed.At -> !exact
+    is Armed.AtFallback -> !exact
+    else -> false
+}
+
+/** "4pm", for a chip that has to stay narrow. */
+private fun shortClock(time: LocalTime): String {
+    val hour = if (time.hour % 12 == 0) 12 else time.hour % 12
+    return "$hour${if (time.hour < 12) "am" else "pm"}"
+}
+
+/** "8:00 pm", for a sentence. */
+private fun shortClockLong(time: LocalTime): String {
+    val hour = if (time.hour % 12 == 0) 12 else time.hour % 12
+    return "$hour:%02d %s".format(time.minute, if (time.hour < 12) "am" else "pm")
 }
 
 /** "Ya-Sin 5, page 440" — where the app thinks you are, in words. */

@@ -8,8 +8,10 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.mosman.wird.MainActivity
-import com.mosman.wird.domain.Mushaf
-import com.mosman.wird.domain.assignPortion
+import com.mosman.wird.data.DayLogStore
+import com.mosman.wird.data.WirdStore
+import com.mosman.wird.domain.todaysAssignment
+import java.time.LocalDate
 
 /** Fires when the alarm goes off, and posts the notification. */
 class NudgeReceiver : BroadcastReceiver() {
@@ -17,12 +19,35 @@ class NudgeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.i(TAG, "nudge fired at ${System.currentTimeMillis()}")
 
+        val today = LocalDate.now()
+        val days = DayLogStore(context)
+
+        // **Tomorrow's reminder is set before anything else can go wrong.** An alarm
+        // fires once; if this method returned without arming the next one the reminder
+        // would quietly be a one-off, and that failure looks exactly like the app
+        // working until the second morning.
+        NudgeScheduler.arm(context)
+
+        // Sacred Rule 3. Someone who has already read today does not need reminding that
+        // they read today — that is a notification whose only content is a small demand
+        // for attention, which is the thing this app promised not to be.
+        if (days.isDone(today)) {
+            Log.i(TAG, "already read today, staying quiet")
+            return
+        }
+
         Nudge.createChannel(context)
 
-        // Hardcoded until task 5 stores the real position.
-        val assignment = assignPortion(
-            startUnit = (453 - 1) * Mushaf.UNITS_PER_PAGE,
-            units = 2,
+        val store = WirdStore(context)
+        if (!store.isSetUp) {
+            Log.i(TAG, "not set up yet, staying quiet")
+            return
+        }
+
+        val assignment = todaysAssignment(
+            startUnit = store.positionUnit,
+            plan = store.plan,
+            date = today,
         )
         val portion = if (assignment.startPage == assignment.endPage) {
             "Page ${assignment.startPage}"

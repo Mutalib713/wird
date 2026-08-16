@@ -14,8 +14,10 @@ import androidx.core.net.toUri
 /**
  * The nudge: a scheduled local notification that opens today's portion.
  *
- * Task 3 fires it at a time we pass in. Task 8 replaces that with an offset from a
- * prayer time. Nothing else about this file should need to change for that.
+ * This file only knows how to fire an alarm at a millisecond it is handed. Deciding
+ * *which* millisecond — an offset from a prayer time, or a fixed hour — is
+ * [NudgeScheduler]'s job, and that separation is what lets the timing be unit-tested
+ * without an Android device anywhere near it.
  */
 object Nudge {
 
@@ -97,10 +99,22 @@ object Nudge {
         return if (at > 0L) at else null
     }
 
-    /** Re-arm after a reboot. Skips anything already in the past. */
-    fun rescheduleAfterBoot(context: Context) {
-        val at = nextAt(context) ?: return
-        if (at <= System.currentTimeMillis()) return
-        schedule(context, at)
+    /**
+     * Drop any pending nudge. For when the reader switches the reminder off.
+     *
+     * The PendingIntent has to be rebuilt identically for `cancel` to match it — an
+     * alarm is identified by its intent, not by a handle — which is why this repeats the
+     * construction in [schedule] rather than keeping one around.
+     */
+    fun cancel(context: Context) {
+        val pending = PendingIntent.getBroadcast(
+            context,
+            0,
+            Intent(context, NudgeReceiver::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        context.getSystemService(AlarmManager::class.java).cancel(pending)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit { remove(KEY_NEXT_AT) }
     }
 }

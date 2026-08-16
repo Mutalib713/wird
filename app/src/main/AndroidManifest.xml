@@ -19,6 +19,22 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!--
+      Coarse location, for one job: working out when Maghrib is, so the reminder follows
+      the sun instead of a fixed clock hour. Mutalib chose this on 2026-08-16 over
+      deriving a city from the timezone, because Accra and Kumasi are seven minutes apart
+      at sunset and he moves between them.
+
+      COARSE, never FINE — sunset does not care about the difference, and the coordinates
+      are rounded to two decimals (~1 km) before they are stored. Asked for once, then
+      remembered; the app does not reach for your whereabouts every morning. Nothing is
+      uploaded. Sacred Rule 1.
+
+      Refusing it is a supported answer: the app falls back to the phone's timezone, and
+      then to a fixed evening hour, and says on the settings screen which one it is using.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!--
       Exact alarms. Declaring this is not the same as having it: from Android 14 the
       permission is denied by default for anything that is not a clock or a calendar,
       and the user must grant it in system settings. Wird degrades to an inexact alarm

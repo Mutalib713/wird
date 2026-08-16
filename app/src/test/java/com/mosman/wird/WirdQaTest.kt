@@ -1,12 +1,21 @@
 package com.mosman.wird
 
+import com.mosman.wird.data.decodeSchedule
+import com.mosman.wird.data.encodeSchedule
+import com.mosman.wird.domain.Coordinates
 import com.mosman.wird.domain.DayLog
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
+import com.mosman.wird.domain.NudgeSchedule
+import com.mosman.wird.domain.Prayer
+import com.mosman.wird.domain.PrayerMethod
+import com.mosman.wird.domain.PrayerTimes
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.assignPortion
+import com.mosman.wird.domain.label
 import com.mosman.wird.domain.linesOn
+import com.mosman.wird.domain.nextAfter
 import com.mosman.wird.domain.pages
 import com.mosman.wird.domain.progressOf
 import com.mosman.wird.domain.surahs
@@ -18,13 +27,19 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /**
  * The Wird QA suite.
  *
- * Three checks today. It only grows — every task that finds a bug adds the failing case
- * here first, then fixes it.
+ * It only grows — every task that finds a bug adds the failing case here first, then
+ * fixes it. Checks 10 and 11 arrived with task 8 and are the only ones that assert
+ * against numbers from outside this codebase: the prayer times came from the Aladhan API,
+ * so they check the algorithm rather than checking it against itself.
  */
 class WirdQaTest {
 
@@ -333,6 +348,217 @@ class WirdQaTest {
 
         val notDowngraded = progressOf(logs + day(0, Method.TAPPED), today)
         assertEquals("a tap cannot undo a recitation", 4, notDowngraded.recitedDays)
+    }
+
+    // ---- 10. Prayer times match a known source ----
+
+    /**
+     * The check task 8 exists to pass.
+     *
+     * Every expected value below came from the Aladhan API (Muslim World League) on
+     * 2026-08-16 — an independent implementation, not this one. Two cities because
+     * Mutalib moves between Pig Farm in Accra and KNUST in Kumasi, and both solstices
+     * because a bug in the declination term would hide completely at an equinox.
+     *
+     * Exact equality, not a tolerance. A minute of slack here would hide a systematic
+     * error, and there is no reason to grant slack to arithmetic that matched perfectly.
+     */
+    @Test
+    fun `prayer times match the reference source for Accra and Kumasi`() {
+        val accra = Coordinates(5.6037, -0.1870)
+        val kumasi = Coordinates(6.6885, -1.6244)
+        val ghana = ZoneId.of("Africa/Accra")
+
+        fun check(
+            label: String,
+            at: Coordinates,
+            date: LocalDate,
+            fajr: String, sunrise: String, dhuhr: String,
+            asr: String, maghrib: String, isha: String,
+        ) {
+            val times = PrayerTimes.compute(date, at, ghana)
+            assertEquals("$label Fajr", LocalTime.parse(fajr), times[Prayer.FAJR])
+            assertEquals("$label sunrise", LocalTime.parse(sunrise), times.sunrise)
+            assertEquals("$label Dhuhr", LocalTime.parse(dhuhr), times[Prayer.DHUHR])
+            assertEquals("$label Asr", LocalTime.parse(asr), times[Prayer.ASR])
+            assertEquals("$label Maghrib", LocalTime.parse(maghrib), times[Prayer.MAGHRIB])
+            assertEquals("$label Isha", LocalTime.parse(isha), times[Prayer.ISHA])
+        }
+
+        check(
+            "Accra today", accra, LocalDate.of(2026, 8, 16),
+            "04:45", "05:56", "12:05", "15:20", "18:14", "19:21",
+        )
+        check(
+            "Accra midwinter", accra, LocalDate.of(2026, 12, 21),
+            "04:50", "06:05", "11:59", "15:21", "17:53", "19:03",
+        )
+        check(
+            "Accra midsummer", accra, LocalDate.of(2026, 6, 21),
+            "04:33", "05:49", "12:03", "15:30", "18:16", "19:28",
+        )
+        check(
+            "Kumasi today", kumasi, LocalDate.of(2026, 8, 16),
+            "04:49", "06:01", "12:11", "15:25", "18:21", "19:28",
+        )
+
+        // The 7-minute gap between the two cities is the whole reason Mutalib chose
+        // location over a timezone lookup. If this ever collapses to zero, the longitude
+        // has stopped being used.
+        val accraMaghrib = PrayerTimes.compute(LocalDate.of(2026, 8, 16), accra, ghana)[Prayer.MAGHRIB]!!
+        val kumasiMaghrib = PrayerTimes.compute(LocalDate.of(2026, 8, 16), kumasi, ghana)[Prayer.MAGHRIB]!!
+        assertEquals(7, Duration.between(accraMaghrib, kumasiMaghrib).toMinutes())
+    }
+
+    /**
+     * Maghrib is sunset, and sunset is astronomy rather than convention.
+     *
+     * Measured across five published methods on 2026-08-16: Accra returned 18:14 in
+     * every one, while Fajr ranged over nineteen minutes. This is why the default anchor
+     * being Maghrib matters — it makes the one setting nobody will ever look at almost
+     * unable to do harm.
+     */
+    @Test
+    fun `the calculation method moves Fajr and Isha but never Maghrib`() {
+        val accra = Coordinates(5.6037, -0.1870)
+        val ghana = ZoneId.of("Africa/Accra")
+        val date = LocalDate.of(2026, 8, 16)
+
+        val methods = listOf(
+            PrayerMethod(fajrAngle = 18.0, ishaAngle = 17.0), // Muslim World League
+            PrayerMethod(fajrAngle = 15.0, ishaAngle = 15.0), // ISNA
+            PrayerMethod(fajrAngle = 19.5, ishaAngle = 17.5), // Egyptian
+        )
+
+        val maghribs = methods.map { PrayerTimes.compute(date, accra, ghana, it)[Prayer.MAGHRIB] }
+        assertEquals("Maghrib must not move with the method", 1, maghribs.distinct().size)
+        assertEquals(LocalTime.of(18, 14), maghribs.first())
+
+        val fajrs = methods.map { PrayerTimes.compute(date, accra, ghana, it)[Prayer.FAJR] }
+        assertTrue("Fajr should move with the method", fajrs.distinct().size > 1)
+    }
+
+    // ---- 11. The nudge lands at the right offset, on the right day ----
+
+    @Test
+    fun `the nudge fires at the chosen offset and rolls to tomorrow once it has passed`() {
+        val accra = Coordinates(5.6037, -0.1870)
+        val ghana = ZoneId.of("Africa/Accra")
+        // Maghrib in Accra on this date is 18:14, verified against Aladhan above.
+        val maghrib = ZonedDateTime.of(LocalDate.of(2026, 8, 16), LocalTime.of(18, 14), ghana)
+
+        val schedule = NudgeSchedule.Default
+        assertEquals(Prayer.MAGHRIB, schedule.prayer)
+        assertEquals(30, schedule.offsetMinutes)
+
+        // Morning of the same day: today's Maghrib is still to come.
+        val morning = ZonedDateTime.of(LocalDate.of(2026, 8, 16), LocalTime.of(9, 0), ghana)
+        assertEquals(maghrib.plusMinutes(30), schedule.nextAfter(morning, accra))
+
+        // One minute before it is due: still today.
+        assertEquals(
+            maghrib.plusMinutes(30),
+            schedule.nextAfter(maghrib.plusMinutes(29), accra),
+        )
+
+        // One minute after: today is gone, and it must not fire late.
+        val next = schedule.nextAfter(maghrib.plusMinutes(31), accra)!!
+        assertEquals(LocalDate.of(2026, 8, 17), next.toLocalDate())
+        assertEquals(LocalTime.of(18, 44), next.toLocalTime())
+
+        // Zero offset lands exactly on the prayer.
+        assertEquals(
+            maghrib,
+            NudgeSchedule.AfterPrayer(Prayer.MAGHRIB, 0).nextAfter(morning, accra),
+        )
+
+        // **Tomorrow is recomputed, not today plus 24 hours.** Mid-August is the worst
+        // place to prove that — Accra's sunset barely moves — so this uses the September
+        // equinox, where Aladhan has Maghrib at 17:58 on the 20th and 17:57 on the 21st.
+        // A naive `plusDays(1)` would give 18:28 for both.
+        val sept20 = ZonedDateTime.of(LocalDate.of(2026, 9, 20), LocalTime.of(9, 0), ghana)
+        assertEquals(LocalTime.of(18, 28), schedule.nextAfter(sept20, accra)!!.toLocalTime())
+        assertEquals(
+            LocalTime.of(18, 27),
+            schedule.nextAfter(sept20.plusDays(1), accra)!!.toLocalTime(),
+        )
+    }
+
+    @Test
+    fun `an offset large enough to cross midnight lands on the next day, not the morning`() {
+        val accra = Coordinates(5.6037, -0.1870)
+        val ghana = ZoneId.of("Africa/Accra")
+        val morning = ZonedDateTime.of(LocalDate.of(2026, 8, 16), LocalTime.of(9, 0), ghana)
+
+        // Isha is 19:21. Six hours past it is 01:21 the following morning — the case
+        // where naive arithmetic wraps back to 01:21 *today*, which is in the past.
+        val late = NudgeSchedule.AfterPrayer(Prayer.ISHA, offsetMinutes = 360)
+        val next = late.nextAfter(morning, accra)!!
+        assertEquals(LocalDate.of(2026, 8, 17), next.toLocalDate())
+        assertEquals(LocalTime.of(1, 21), next.toLocalTime())
+        assertTrue("a nudge in the past is not a nudge", next.isAfter(morning))
+    }
+
+    @Test
+    fun `a reminder with nowhere to compute from, and one switched off, both say so`() {
+        val ghana = ZoneId.of("Africa/Accra")
+        val evening = ZonedDateTime.of(LocalDate.of(2026, 8, 16), LocalTime.of(21, 0), ghana)
+
+        // No coordinates: prayer-based timing is impossible, and the domain refuses to
+        // invent a sunset. NudgeScheduler is what turns this into a fixed hour, out loud.
+        assertEquals(null, NudgeSchedule.Default.nextAfter(evening, at = null))
+
+        // Off means off, coordinates or not.
+        assertEquals(
+            null,
+            NudgeSchedule.Off.nextAfter(evening, Coordinates(5.6037, -0.1870)),
+        )
+
+        // A fixed hour needs no location at all, and one already past rolls to tomorrow.
+        val eight = NudgeSchedule.AtClockTime(LocalTime.of(20, 0))
+        val next = eight.nextAfter(evening, at = null)!!
+        assertEquals(LocalDate.of(2026, 8, 17), next.toLocalDate())
+        assertEquals(LocalTime.of(20, 0), next.toLocalTime())
+    }
+
+    @Test
+    fun `the schedule survives being written down and read back`() {
+        val cases = listOf(
+            NudgeSchedule.Default,
+            NudgeSchedule.AfterPrayer(Prayer.FAJR, 0),
+            NudgeSchedule.AfterPrayer(Prayer.ISHA, -15),
+            NudgeSchedule.AtClockTime(LocalTime.of(6, 30)),
+            NudgeSchedule.Off,
+        )
+        cases.forEach { assertEquals(it, decodeSchedule(encodeSchedule(it))) }
+
+        // A preference that has never been set, and one that has been corrupted, both
+        // give the default rather than throwing on a screen the user cannot get past.
+        assertEquals(NudgeSchedule.Default, decodeSchedule(null))
+        assertEquals(NudgeSchedule.Default, decodeSchedule("PRAYER NOT_A_PRAYER 30"))
+        assertEquals(NudgeSchedule.Default, decodeSchedule("CLOCK half past four"))
+        assertEquals(NudgeSchedule.Default, decodeSchedule(""))
+    }
+
+    @Test
+    fun `the schedule reads as a sentence, and never prints a prayer time`() {
+        assertEquals("30 minutes after Maghrib", NudgeSchedule.Default.label())
+        assertEquals("At Fajr", NudgeSchedule.AfterPrayer(Prayer.FAJR, 0).label())
+        assertEquals("An hour after Isha", NudgeSchedule.AfterPrayer(Prayer.ISHA, 60).label())
+        assertEquals("2 hours after Asr", NudgeSchedule.AfterPrayer(Prayer.ASR, 120).label())
+        assertEquals("15 minutes before Dhuhr", NudgeSchedule.AfterPrayer(Prayer.DHUHR, -15).label())
+        assertEquals("At 8:00 pm", NudgeSchedule.AtClockTime(LocalTime.of(20, 0)).label())
+        assertEquals("At 6:05 am", NudgeSchedule.AtClockTime(LocalTime.of(6, 5)).label())
+        assertEquals("At 12:00 pm", NudgeSchedule.AtClockTime(LocalTime.of(12, 0)).label())
+        assertEquals("At 12:30 am", NudgeSchedule.AtClockTime(LocalTime.of(0, 30)).label())
+        assertEquals("No reminder", NudgeSchedule.Off.label())
+
+        // PROFILE.md § 5: prayer times are internal. No label may leak one.
+        val anchored = Prayer.entries.map { NudgeSchedule.AfterPrayer(it, 30).label() }
+        assertTrue(
+            "a label printed a clock time",
+            anchored.none { it.contains(":") },
+        )
     }
 
     private fun glyph(verseKey: String, line: Int) =

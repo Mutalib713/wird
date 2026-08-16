@@ -3,8 +3,11 @@ package com.mosman.wird.data
 import android.content.Context
 import androidx.core.content.edit
 import com.mosman.wird.domain.Mushaf
+import com.mosman.wird.domain.NudgeSchedule
+import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingPlan
 import java.time.DayOfWeek
+import java.time.LocalTime
 
 /** Paper, ink, or the phone's own setting. */
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
@@ -90,6 +93,18 @@ class WirdStore(context: Context) {
         get() = prefs.getBoolean(KEY_SEEN_CHROME, false)
         set(value) = prefs.edit { putBoolean(KEY_SEEN_CHROME, value) }
 
+    /**
+     * When the reminder arrives. Defaults to thirty minutes after Maghrib.
+     *
+     * Stored as one short string rather than three separate keys, so a half-written
+     * change can never leave "at Fajr" paired with a clock time. Anything unparseable
+     * falls back to the default instead of throwing — a corrupt preference must not stop
+     * the app opening.
+     */
+    var nudgeSchedule: NudgeSchedule
+        get() = decodeSchedule(prefs.getString(KEY_NUDGE, null))
+        set(value) = prefs.edit { putString(KEY_NUDGE, encodeSchedule(value)) }
+
     var plan: ReadingPlan
         get() = ReadingPlan(
             defaultUnits = prefs.getInt(KEY_DEFAULT_UNITS, Mushaf.UNITS_PER_PAGE),
@@ -117,6 +132,30 @@ class WirdStore(context: Context) {
         const val KEY_DEFAULT_UNITS = "default_units"
         const val KEY_THEME = "theme_mode"
         const val KEY_SEEN_CHROME = "seen_chrome"
+        const val KEY_NUDGE = "nudge_schedule"
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
     }
+}
+
+/** "PRAYER MAGHRIB 30", "CLOCK 20:00", or "OFF". Readable on purpose — see DayLogStore. */
+internal fun encodeSchedule(schedule: NudgeSchedule): String = when (schedule) {
+    is NudgeSchedule.Off -> "OFF"
+    is NudgeSchedule.AtClockTime -> "CLOCK ${schedule.time}"
+    is NudgeSchedule.AfterPrayer -> "PRAYER ${schedule.prayer.name} ${schedule.offsetMinutes}"
+}
+
+internal fun decodeSchedule(raw: String?): NudgeSchedule {
+    if (raw == null) return NudgeSchedule.Default
+    val parts = raw.split(" ")
+    return runCatching {
+        when (parts[0]) {
+            "OFF" -> NudgeSchedule.Off
+            "CLOCK" -> NudgeSchedule.AtClockTime(LocalTime.parse(parts[1]))
+            "PRAYER" -> NudgeSchedule.AfterPrayer(
+                prayer = Prayer.valueOf(parts[1]),
+                offsetMinutes = parts[2].toInt(),
+            )
+            else -> NudgeSchedule.Default
+        }
+    }.getOrDefault(NudgeSchedule.Default)
 }
