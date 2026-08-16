@@ -135,6 +135,14 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   lines and Sunday was given zero width**, which means it was missing from the
   accessibility tree entirely, not merely off-screen — unreachable by touch *and* by
   TalkBack. Now four then three, matching the prayer rows directly below it.
+  *Verified on the phone:* all seven chips measure **exactly 58.0 × 48.0 dp**, so the
+  minimum target survived, with the 4dp gap between rows landing as measured (chip bottom
+  1775px, next chip top 1789px). The wider row uses 260dp of the 363dp available — 103dp
+  of slack, which is what makes it safe on a 360dp Transsion screen as well, where the
+  old single row would have failed even harder. And the days *work*: picking Sunday, then
+  Saturday, then unpicking each in turn drove the amount sub-row and the hint through
+  every state in the right order. That is the part that counts — the bug was never that
+  the row looked wrong, it was that two days could not be chosen.
   *The lesson worth keeping:* the prayer section had already hit this and solved it, with
   a comment saying a sideways-scrolling row "hides the option on the end". The weekday row
   was written the naive way anyway. **A decision recorded as a comment next to one row does
