@@ -119,15 +119,40 @@ fun SettingsScreen(
         Hint("This changes today's portion too, not just tomorrow's.")
 
         // ---- lighter days ----
+        //
+        // Four then three, because seven do not fit. Measured on the Pixel: each chip
+        // sits on a 66dp pitch (48dp minimum target, widened to Material's 58dp button
+        // floor, plus the 4dp gap), so a week costs 458dp across — and 411dp of screen
+        // minus the 24dp margins leaves 363dp. One row was 95dp short, which is not a
+        // squeeze that degrades gracefully: Saturday broke onto two lines and Sunday was
+        // given zero width, so it was absent from the accessibility tree entirely. Two
+        // days that could not be picked at all, by touch or by TalkBack.
+        //
+        // Scrolling sideways was the alternative and it is the same bug wearing a hat —
+        // the day on the end stays hidden. Same call as the prayer rows below. The hour
+        // chips further down do scroll, and that is not inconsistent: twenty hours can
+        // never be shown at once, whereas a week is a small complete set you should be
+        // able to take in at a glance.
+        //
+        // The gap between the rows earns its place. Several days can be lit at once, so
+        // two selected chips stacked flush would merge into one sage block and read as a
+        // single thing. The prayer rows never need it — only one prayer can be chosen,
+        // so their grounds can never touch.
         Section("Go easier on some days")
-        Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
-            DayOfWeek.entries.forEach { day ->
-                Choice(
-                    label = day.name.take(2).lowercase().replaceFirstChar(Char::titlecase),
-                    on = day in overrideDays,
-                ) {
-                    overrideDays = if (day in overrideDays) overrideDays - day else overrideDays + day
-                    push()
+        Column(verticalArrangement = Arrangement.spacedBy(Scale.space1)) {
+            DayOfWeek.entries.chunked(4).forEach { days ->
+                Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
+                    days.forEach { day ->
+                        Choice(
+                            label = day.name.take(2).lowercase().replaceFirstChar(Char::titlecase),
+                            on = day in overrideDays,
+                        ) {
+                            overrideDays =
+                                if (day in overrideDays) overrideDays - day
+                                else overrideDays + day
+                            push()
+                        }
+                    }
                 }
             }
         }

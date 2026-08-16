@@ -77,6 +77,24 @@ adb devices                      # confirm the phone is attached first
   not on PATH. Useful proofs:
   `adb shell dumpsys activity activities | grep topResumedActivity` (is it really on
   screen), `adb shell pidof com.mosman.wird`, `adb logcat -d -t 200 | grep FATAL`.
+- **`uiautomator dump` is how you measure a Compose layout, and it beats a screenshot.**
+  Compose publishes its semantics to the accessibility tree, so
+  `adb shell uiautomator dump /sdcard/w.xml` then `adb shell cat /sdcard/w.xml` returns
+  every node with real pixel `bounds`. That turns "does this fit?" into arithmetic
+  instead of squinting — and this repo already prefers measurements, because screenshots
+  are flaky on this machine. It found the settings weekday overflow on 2026-08-16: chip
+  centres exactly 231px apart gave a 66dp pitch, and 7 × 66 = 458dp against 363dp of
+  usable width.
+  **It also tells you what a tap would land on**, which is how the device rule above gets
+  obeyed without guessing — dump, find the `content-desc`, then tap its centre.
+  **And absence is a finding.** A view squeezed to zero width does not appear in the tree
+  at all, so a missing node means an element nobody can reach, by touch or by TalkBack.
+- **Run adb from PowerShell, not the Bash tool, whenever the command carries a device
+  path.** Git Bash rewrites POSIX paths into Windows ones before adb ever sees them, so
+  `adb shell uiautomator dump /sdcard/w.xml` becomes `C:/Program Files/Git/sdcard/w.xml`
+  and fails with a confusing `cat: C:/Program: No such file or directory`. The device
+  path is fine; the shell mangled it. (`MSYS_NO_PATHCONV=1` also works if you must stay
+  in Bash.)
 - Pixel 6 Pro over USB. AGP 9 has a built-in-Kotlin gotcha — check it before blaming
   the build script.
 

@@ -127,6 +127,20 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *⬜ Still to verify on the phone:* every setting surviving a restart. TikTok was in the
   foreground at install time and the device rule says don't.
 
+  **Overflow bug found and fixed 2026-08-16**, reported by Mutalib from a screenshot and
+  then measured with `uiautomator dump`. "Go easier on some days" laid seven weekday chips
+  across one Row. Measured on the Pixel: chip centres 231px apart, so a 66dp pitch — 48dp
+  minimum target, widened to Material's 58dp button floor, plus the 4dp gap. Seven of them
+  need 458dp and the screen offers 363dp inside the margins. **Saturday broke onto two
+  lines and Sunday was given zero width**, which means it was missing from the
+  accessibility tree entirely, not merely off-screen — unreachable by touch *and* by
+  TalkBack. Now four then three, matching the prayer rows directly below it.
+  *The lesson worth keeping:* the prayer section had already hit this and solved it, with
+  a comment saying a sideways-scrolling row "hides the option on the end". The weekday row
+  was written the naive way anyway. **A decision recorded as a comment next to one row does
+  not protect the row above it** — a chip row that must fit a fixed set is a rule, and it
+  belongs somewhere both can see.
+
 - [x] **5e. The page carries no permanent chrome** — done 2026-08-15
   Mutalib's observation: settings and "read something else" sitting at the foot of the
   page does not survive the app filling out — you would scroll to the end of the Qur'an to
