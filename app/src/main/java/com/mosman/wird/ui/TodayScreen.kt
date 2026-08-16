@@ -237,6 +237,7 @@ fun TodayScreen(
                 surah = pageInfo[current]?.first.orEmpty(),
                 page = current,
                 juz = pageInfo[current]?.second ?: 0,
+                progress = progress,
                 offToday = current !in todaysPages,
                 onBackToToday = {
                     jumpCount++
@@ -278,6 +279,7 @@ private fun ChromeBar(
     surah: String,
     page: Int,
     juz: Int,
+    progress: com.mosman.wird.domain.Progress?,
     offToday: Boolean,
     onBackToToday: () -> Unit,
     onJump: () -> Unit,
@@ -304,6 +306,17 @@ private fun ChromeBar(
                 color = colors.onSurfaceRaised,
                 style = TextStyle(fontSize = Scale.caption),
             )
+            // How it is going, reachable from anywhere with one tap rather than only at
+            // the foot of the page. Mutalib could not find it: it existed, but it lived
+            // somewhere you only reach by finishing, which is the wrong place for the
+            // number that is supposed to keep you going.
+            progress?.takeIf { it.totalDaysRead > 0 }?.let { p ->
+                Text(
+                    text = streakLine(p),
+                    color = colors.onSurfaceRaised,
+                    style = TextStyle(fontSize = Scale.caption),
+                )
+            }
         }
 
         if (offToday) {
@@ -322,6 +335,12 @@ private fun ChromeBar(
         BarIcon(Icons.AutoMirrored.Filled.List, "Read something else", onJump)
         BarIcon(Icons.Filled.Settings, "Settings", onSettings)
     }
+}
+
+/** Same rules as the foot of the page: never the streak alone, never a nought. */
+private fun streakLine(p: com.mosman.wird.domain.Progress): String {
+    val total = if (p.totalDaysRead == 1) "1 day read" else "${p.totalDaysRead} days read"
+    return if (p.currentStreak <= 1) total else "${p.currentStreak} in a row, $total"
 }
 
 @Composable

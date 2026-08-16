@@ -54,6 +54,13 @@ adb devices                      # confirm the phone is attached first
   `C:\Users\...` silently becomes an invalid path and Gradle fails with
   `java.io.IOException: Invalid file path` during lint; and lint's `PropertyEscape`
   check separately requires the `:` to be escaped. Both halves bit us on 2026-08-14.
+- **Seeding app data for a demo: `run-as` + `tee`, never a shell redirect.** On this
+  device `run-as com.mosman.wird sh -c 'cat > files/x'` fails with permission denied, but
+  `cat local.json | adb shell run-as com.mosman.wird tee files/x` works. `shared_prefs`
+  refuses both, so settings cannot be seeded from outside at all.
+- **Delete demo data the moment the demo is over.** Seeded days claim he recited when he
+  did not, and a false record is the one thing this app must never hold. See Sacred Rule 6.
+
 - **Lint runs with `warningsAsErrors = true`**, with exactly three checks disabled and a
   written reason for each in `app/build.gradle.kts`. If you need to disable a fourth,
   write down why — a silently growing disable list is how a check stops meaning
