@@ -450,6 +450,53 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   All recordings plus the day log, into one folder the user can copy off the phone.
   *Done when:* the folder appears and opens on a computer.
 
+## Milestone 4b — The companion
+
+Approved 2026-08-16 (PROFILE.md § 5b). **The order here is the whole point:** the cheapest
+version tests the assumption first, and nothing expensive gets built until it holds.
+
+- [ ] **21. ⚠ The commitment loop — no model at all**
+  The nudge stops being a statement and becomes a question. Reply from the notification:
+  *After Isha · In an hour · Tonight · Not today.* Each is a button, not typing. Picking one
+  re-arms the reminder for that moment — **task 8's scheduler already turns "after Isha"
+  into a real alarm**, so this is mostly wiring. If the named time passes unmarked, it asks
+  once more, gently, and then stops.
+  *Risky because:* this is the experiment. If naming a time to the app changes nothing, the
+  chat and the model would not have saved it, and this cost a day instead of three weeks.
+  *Every commitment is logged* — what was promised, whether it was kept — because task 24
+  cannot measure what was not recorded.
+  *Done when:* a week of real use exists, with the kept-vs-broken numbers written down.
+  **Not "when it works" — when there is evidence about whether it helps.**
+
+- [ ] **22. Plain words instead of buttons**
+  Replaces the four buttons with typing, once 21 has earned it. "not today, travelling till
+  Friday" → the right schedule change. This is task 13 folded in — same problem, same
+  parser, one feature instead of two.
+  *Stack decision belongs to Mutalib and is not made yet.* See the open question below.
+  *Done when:* five messy sentences from him produce the correct schedule, and anything it
+  does not understand says so plainly rather than guessing.
+
+- [ ] **23. ⚠ WhatsApp, for Mutalib only**
+  Meta Cloud API, free test number, his number as a verified recipient. **Never in the
+  tester build** — a build flag, not a preference, so it cannot ship by accident.
+  *Risky because:* it hands Wird a backend and a second source of truth. The phone stays
+  authoritative; WhatsApp proposes, the phone applies.
+  *Done when:* he replies "after Isha" in WhatsApp and the phone's reminder actually moves —
+  **and the tester build is verified to contain none of it.**
+
+- [ ] **24. Does it actually work?**
+  Thirty days against PROFILE.md § 5b: **did the procrastination half move?** Baseline is
+  ~8 of 14 missed days to procrastination. Commitments made vs kept, and missed days with
+  and without a commitment.
+  *Done when:* real numbers exist and there is an honest verdict. **"It was theatre, cut it"
+  is a legitimate outcome** and the feature gets removed rather than kept because it was
+  work.
+
+**⬜ Open, and Mutalib's to decide before task 22:** what powers the plain-words parsing.
+On-device small model (free, private, weak), a cloud LLM (capable, costs money, text leaves
+the phone, needs a network), or hand-written rules (free, private, brittle, and honestly
+enough for six phrasings). Not chosen unilaterally — § 7 is his call.
+
 ## Milestone 5 — The verdict
 
 - [ ] **20. Thirty-day measurement**

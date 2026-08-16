@@ -76,7 +76,9 @@ Explicit exclusions. No session builds these "helpfully."
   better. Link out.
 - **Live word-by-word recitation following.** Measured at ~5× slower than real time
   on-device. Not worth it, probably not ever.
-- A chatbot of any kind
+- ~~A chatbot of any kind~~ — **REOPENED 2026-08-16 with Mutalib's explicit approval.**
+  See § 5b below. The exclusion stood for four months and is being lifted deliberately,
+  not drifted past.
 - Hifdh / memorisation tracking
 - Full Qur'an reader — browse anywhere, bookmarks, search, translations, tafsir
 - Prayer times as a user-facing feature (used internally for nudge timing only)
@@ -106,6 +108,75 @@ to be changed to anytime the user wants."
 this and said so plainly. It is parked, not deleted. Blocked on: (a) mushaf image and
 font licensing, (b) v1 first proving he actually uses this for 30 days. Reopening it is
 his call and needs no permission — but it does not happen before the 30-day measurement.
+
+## 5b. THE ACCOUNTABILITY COMPANION — approved 2026-08-16
+
+Mutalib reopened the "no chatbot" exclusion after Phase 0 interrogation on 2026-08-16 and
+said GO. This section is what he approved. It is **scope, not a Sacred Rule** — it can be
+cut if it does not earn its place, and § 5b's own success test below is how that is decided.
+
+### Why it exists
+
+§ 2 records the finding this rests on: over two weeks he missed ~14 days, **~6 to
+forgetting and ~8 to procrastination**. Every feature built so far — the nudge, the widget,
+the streak — addresses forgetting, which is *the smaller half*. Nothing in the app yet
+speaks to the 8.
+
+What historically worked was reciting to a teacher: a person who expected him. This is an
+attempt at that, and it is the first feature aimed squarely at the larger half of the
+problem.
+
+### What it does
+
+1. Asks whether today's wird is done
+2. He replies in ordinary words — "after Isha", "I'll do it at 9", "not today, I'm
+   travelling", "already did it"
+3. **It changes the app** — re-arms the reminder for the time he named, adjusts the
+   schedule, or marks the day
+4. If he named a time and did not show, it notices
+
+Three jobs, in the order he chose them: **commitment** (naming a time to something that
+checks back — the one aimed at procrastination), then **rescheduling without menus**, then
+**presence**.
+
+### ⚠ The assumption the whole thing rests on
+
+**Does this create real pressure when you know it is a bot?** Unproven. Phase 0 research
+found every AI-accountability project with near-zero traction, and the sharpest comment came
+from someone who built a *human-powered* version instead:
+
+> "AI might not be able to deliver the feeling of being held accountable to some people. A
+> huge part of having an accountability partner is having somebody there that you don't want
+> to disappoint."
+
+That is this feature's thesis, doubted by someone who bet against it with their own build.
+**Nothing here is worth polishing until that assumption is tested on Mutalib himself.**
+
+### Success test — decided before building, on purpose
+
+Over 30 days with the companion live, **does the procrastination half move?** Baseline is
+~8 missed days in 14 to procrastination. If naming a time to the app does not reduce that,
+the feature is theatre and gets cut regardless of how good it feels to use. Days marked
+after a commitment was made are logged so this is measurable rather than a vibe.
+
+### Two surfaces
+
+- **In the app** — for everyone, including testers.
+- **On WhatsApp — for Mutalib only, and never in the tester build.** His decision,
+  2026-08-16. See § 9 for why this is safe and what it costs.
+
+### Boundaries
+
+- **Sacred Rule 3 applies hardest here.** Never guilt-based, never disappointed, never
+  passive-aggressive, never "you broke your streak". A companion that makes him feel worse
+  is a worse outcome than no companion.
+- **Sacred Rule 2 stands: it never produces Qur'anic text.** It talks about the schedule,
+  not about the Qur'an. It does not quote ayahs, explain them, or answer religious
+  questions — Wird is not a scholar and must never sound like one.
+- **It may not mark a day recited.** It can mark a day *tapped* if he says he read it, and
+  it can move the schedule. Only a real recording can be a recitation. Sacred Rule 6.
+- No streaks, guilt, or personality that pretends to be a person. It should not claim to
+  be human or to have feelings about his performance.
 
 ## 6. SACRED RULES
 
@@ -265,6 +336,28 @@ copy off the phone.
 | whisper model weights | **None** — Apache-2.0 | n/a |
 | Firebase App Distribution | `FIREBASE_APP_ID`, service account JSON | `DRY_RUN=1` → build locally, do not upload |
 | Feedback → WhatsApp | none (intent to the user's own WhatsApp) | `DRY_RUN=1` → compose the message, do not send |
+| **Companion on WhatsApp — MUTALIB ONLY, never in the tester build** | Meta WhatsApp **Cloud API** (official), free test number | `DRY_RUN=1` → log the message, do not send |
+
+**The WhatsApp companion, researched 2026-08-16 before any commitment:**
+
+- **It is safe for his account this time, and the reason matters.** The 2026-07 Green API
+  incident restricted his personal number because that number was linked *as the gateway*.
+  Here his personal number is simply **the customer messaging a business account** — ordinary
+  WhatsApp use, no gateway, no linking, no risk. That is the whole difference.
+- **It is genuinely $0 for one user.** Meta's free test number allows unlimited messages to
+  and from **up to 5 verified numbers**. No template fees, no per-message billing, no number
+  to buy. ⚠ This is *only* true at this scale — the 1 October 2026 per-message pricing change
+  and the template requirement both bite the moment it serves anyone but him, which is the
+  hard reason it stays personal-only.
+- **⚠ It requires a server, and that breaks § 7's "Backend: None".** WhatsApp delivers
+  inbound replies *only* by pushing to a publicly reachable HTTPS endpoint with a valid
+  certificate, answering within 5–10 seconds. There is no polling and no inbox to read. A
+  Vercel function on the free tier covers it, but **Wird gains a backend for one user**, and
+  that must never quietly become a backend for everyone.
+- **The state has to be shared**, which is the real engineering cost: if he tells WhatsApp
+  "I'll do it at 8", the phone has to learn it. That is a second source of truth for the
+  position, and **sync is where correctness bugs live** — in an app whose entire value is an
+  honest record.
 
 `.env.example` names every one. **`DRY_RUN=1` is the default** for anything that sends
 or uploads. Never link a personal WhatsApp number to an unofficial gateway — see the
@@ -314,6 +407,9 @@ or uploads. Never link a personal WhatsApp number to an unofficial gateway — s
 
 | Risk | What would resolve it |
 |---|---|
+| ⚠⚠ **The companion's core assumption is unproven and may simply be false.** Does a bot create real pressure when you know it is a bot? Phase 0 found near-zero traction across every AI-accountability project, and a builder who chose humans over AI said the feeling of not wanting to disappoint someone *is* the mechanic. | Test the cheap version first — the commitment loop with no model at all — before spending anything on intelligence. § 5b's 30-day test decides it. **"It does not work" is a legitimate outcome and gets it cut.** |
+| ⚠ **The WhatsApp companion gives Wird a backend and a second source of truth for the position.** Sync bugs, in an app whose entire value is an honest record, are the worst class of bug it can have. | The phone stays authoritative for position and the day log. WhatsApp may *propose* a change; the phone applies it. Never the reverse. |
+| ⚠ **Companion scope.** Larger than tasks 10–20 combined, and Milestone 2 still has the widget outstanding. | Sequenced after the widget. The no-model commitment loop is deliberately first, so the assumption is tested before the expensive parts are built. |
 | **He stops using it in two weeks.** The likely failure and not a technical one. | The 30-day measurement. Guarded by unfakeable recordings, prayer-time timing, the honest split, and the widget. |
 | **Scope drift into the full Qur'an app** before v1 proves anything. He has said his mind is already there. | NOT IN V1 above, plus the parked-not-killed note. Revisit after day 30. |
 | **He cannot recite aloud where he actually reads** — he uses the mushaf in class. | Two weeks of real use. If most reading is silent, the recording mechanic is weaker than it looks. |
