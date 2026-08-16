@@ -172,10 +172,26 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
 
 ## Milestone 2 — The loop
 
-- [ ] **6. Mark done — record or tap**
-  Both paths. Audio to app-private storage. Which method was used is logged on the
-  `DayEntry`.
-  *Done when:* both paths work and a recording survives a reboot and an app kill.
+- [x] **6. Mark done — record or tap** — built 2026-08-16, tap path verified on the phone
+  At the foot of the page, where you arrive when you have actually finished reading.
+  "Recite it out loud" is the primary; "I read it" is the quieter second route, and every
+  tap is logged as a tap. Sacred Rule 6.
+  *Storage:* `days.json` in app-private storage, one short row per day — plain JSON so it
+  can be read with your own eyes, and so task 19 has something to export. Audio is AAC in
+  MP4, mono 64 kbps, which is what WhatsApp takes as a voice note without re-encoding
+  (task 11). Missed days are simply absent; there is no row saying you failed.
+  *Evidence:* tapping "I read it" wrote
+  `{date, method: TAPPED, startUnit: 880, units: 2}` and advanced the position 880 → 882.
+  Undo removed the row and put the position back to 880 exactly.
+  *A design bug this found:* today's portion was computed from the live position, so
+  marking done instantly rewrote what today *was* — the page you had just read went pale
+  and the confirmation vanished. A finished day now records what it covered, and the
+  screen shows that until tomorrow.
+  *A zero-byte recording is not a recitation.* `MediaRecorder` throws if stopped within a
+  moment of starting and leaves an empty file; the app deletes it and says nothing was
+  saved, rather than logging a recitation that does not exist.
+  *⬜ Not verified:* the recording path itself. It needs the microphone permission, which
+  is Mutalib's consent to give, not mine to grant on his behalf.
 
 - [ ] **7. Streak, total days read, and the honest split**
   Two numbers side by side, never one alone. "22 marked, 4 recited" visible without

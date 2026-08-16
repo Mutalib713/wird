@@ -68,6 +68,12 @@ fun TodayScreen(
     /** False until the reader has been shown, once, that the page is tappable. */
     hasSeenChrome: Boolean = true,
     onChromeSeen: () -> Unit = {},
+    /** How today was marked, or null if it has not been. */
+    doneMethod: com.mosman.wird.domain.Method? = null,
+    hasRecording: Boolean = false,
+    audioFile: () -> java.io.File = { java.io.File("") },
+    onDone: (com.mosman.wird.domain.Method, java.io.File?) -> Unit = { _, _ -> },
+    onUndo: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val todaysPages = remember(assignment) { assignment.pages }
@@ -131,6 +137,19 @@ fun TodayScreen(
                 pageInfo[page.page] = surahLabelFor(page, litFor(page)) to page.juz
             },
             lit = litFor,
+            footer = { page ->
+                // Only under today's reading. On a page you are browsing there is nothing
+                // to finish, and a "done" button there would be marking the wrong thing.
+                if (page.page == todaysPages.last()) {
+                    DoneControl(
+                        doneMethod = doneMethod,
+                        hasRecording = hasRecording,
+                        audioFile = audioFile,
+                        onDone = onDone,
+                        onUndo = onUndo,
+                    )
+                }
+            },
         )
 
         AnimatedVisibility(

@@ -256,6 +256,43 @@ class WirdQaTest {
         assertEquals(null, page440.lineOf(36, 40))
     }
 
+    // ---- 8. Marking done moves the position, and undo puts it back exactly ----
+
+    @Test
+    fun `finishing a day advances the position, and undo returns it`() {
+        val plan = ReadingPlan(defaultUnits = 2)
+        val monday = LocalDate.of(2026, 8, 17)
+
+        // Ya-Sin begins on page 440.
+        var position = (440 - 1) * Mushaf.UNITS_PER_PAGE
+        val assignment = todaysAssignment(position, plan, monday)
+
+        // Done: the position moves to where tomorrow starts.
+        position = assignment.nextStartUnit
+        assertEquals("a one-page day lands on the next page", 441, Mushaf.pageOf(position))
+
+        // Undo: back by exactly what the day covered, not by a guess.
+        position = Math.floorMod(position - assignment.units, Mushaf.TOTAL_UNITS)
+        assertEquals(440, Mushaf.pageOf(position))
+        assertEquals("undo is exact, not approximate", (440 - 1) * Mushaf.UNITS_PER_PAGE, position)
+
+        // The same round trip has to survive the wrap past the end of the mushaf, which
+        // is where a naive minus would produce a negative unit and crash or misplace.
+        var atEnd = Mushaf.TOTAL_UNITS - 1
+        val last = todaysAssignment(atEnd, plan, monday)
+        atEnd = last.nextStartUnit
+        assertEquals("finishing 604 continues at page 1", 1, Mushaf.pageOf(atEnd))
+        atEnd = Math.floorMod(atEnd - last.units, Mushaf.TOTAL_UNITS)
+        assertEquals("and undo goes back over the wrap", 604, Mushaf.pageOf(atEnd))
+        assertEquals(Mushaf.TOTAL_UNITS - 1, atEnd)
+
+        // A half-page day moves half a page, so two undos are not needed for one done.
+        val half = todaysAssignment(position, ReadingPlan(defaultUnits = 1), monday)
+        val afterHalf = half.nextStartUnit
+        assertEquals(440, Mushaf.pageOf(afterHalf))
+        assertEquals(position + 1, afterHalf)
+    }
+
     private fun glyph(verseKey: String, line: Int) =
         Glyph(code = "x", line = line, verseKey = verseKey, isEndMarker = false)
 }
