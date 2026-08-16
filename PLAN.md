@@ -149,6 +149,18 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   `hasSeenChrome`. The real weakness he had spotted was not words-versus-icon, it was that
   the tap was undiscoverable.
 
+- [ ] **5f. Walk Milestone 1 on the phone, once, deliberately**
+  Everything below is built and `check`-green, but a batch of it has never been eyeballed
+  on the device — his phone was in use each time, and the device rule says leave it.
+  Worth one deliberate pass rather than trusting that code which compiles works.
+  - settings survive a force-stop (theme, daily amount, lighter days, position)
+  - the chrome bar hides on a second tap
+  - the bar shows the right surah, page and juz, and **updates as you swipe** (fixed, unseen)
+  - "Today's portion" actually jumps back (fixed, unseen)
+  - go-to-surah actually jumps (fixed, unseen)
+  - the first-run bar appears and withdraws after 3.5s
+  *Done when:* each line above is confirmed, or a bug is written down.
+
 ## Milestone 2 — The loop
 
 - [ ] **6. Mark done — record or tap**

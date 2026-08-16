@@ -15,18 +15,35 @@ Reminders fix forgetting. Forgetting was the smaller half of the problem. The th
 actually worked was having a teacher to recite to — someone who expected you, and in
 front of whom you had to open your mouth. School ended that. Wird is a stand-in for it.
 
-## Status — 5 of 21 tasks done
+## Status — Milestones 0 and 1 done
 
-| | What works today |
+**You can install Wird, tell it where you are, and read today's portion from a real
+mushaf page.** What you cannot yet do is tell it you have read — that is task 6, and it is
+the reason the app exists.
+
+| | |
 |---|---|
-| ✅ 1 | Project builds. `check` runs lint + tests. 3 tests pass. |
-| ✅ 2 | App installs and opens on the Pixel 6 Pro. |
-| ✅ 3 | A scheduled notification fires, and tapping it opens the page. |
-| ✅ 4 | The real mushaf page renders, with today's portion lit and the rest dimmed. |
-| ✅ 5 | It remembers where you are and how much you read a day. |
-| ⬜ 6 | Marking a day done — recording yourself, or tapping. |
+| ✅ **Milestone 0** | It builds, it installs, and a scheduled notification fires and opens the page. |
+| ✅ **Milestone 1** | The mushaf renders; it knows where you are; you can browse, jump, and change your mind. |
+| ⬜ **Milestone 2** | Marking a day done, the streak, prayer-time timing, the reciter, the widget. |
 
-Everything after task 6 is in `PLAN.md`.
+What Milestone 1 actually gave you:
+
+- **Setup asks the question you can answer.** Pick your surah from a searchable list, see
+  the page, tap the ayah you are on. Type the number instead if you know it.
+- **The real Madani mushaf page**, in its own per-page font, with the bismillah where the
+  printed page puts it.
+- **Today's portion in dark ink; everything else pale** — on every page, no exceptions —
+  and the ayah range named in words so nothing depends on telling two shades apart.
+- **Swipe to any page, jump to any surah**, with "Today's portion" to come back.
+- **Settings**: paper or ink, how much a day, lighter days, and where you are.
+- **A page that carries no chrome.** Tap it to reveal the bar; tap again and it goes.
+
+⚠ **A batch of Milestone 1 is built and `check`-green but has never been watched on the
+phone** — his phone was in use each time and the device rule says leave it alone. Task 5f
+is one deliberate pass to confirm it, and it should happen before task 6 builds on top.
+
+Everything after that is in `PLAN.md`.
 
 ---
 
@@ -317,7 +334,40 @@ missed.
 Note "whatever lines that page rendered" — a page that opens a surah gives its first line
 to the bismillah, so it has 14, not 15.
 
-## 6. Colour
+## 6. Getting around, without a home screen
+
+Wird opens straight onto today's portion. There is no menu in front of it, on purpose:
+the Phase 0 numbers said the *decision* was the problem — 8 of the last 14 missed days
+were "saw it, didn't open it" — so every screen placed before the reading is another
+place to bounce off.
+
+That leaves a question: where do the controls live?
+
+**The page carries none.** Tap it and a slim bar slides down with where you are (surah,
+page, juz) and the ways out (another surah, settings). Tap again and it goes. That is what
+Kindle and Quran for Android both do, and it is the only arrangement that takes more
+controls without eating into the page.
+
+**The gesture is invisible, so it gets taught.** The bar is showing the first time you
+open the app and withdraws after 3.5 seconds. Once, ever. The alternative — a permanent
+hamburger icon — announces itself but parks a mark on the Qur'an forever, and ☰ promises
+a menu of destinations this app does not have.
+
+Two bugs worth remembering, both found by using the app rather than by testing it:
+
+- **The bar's surah name never changed.** The update was guarded by "only if this is the
+  page we're on", and during a swipe those two are briefly out of step, so it was dropped
+  every time. Now every drawn page is remembered by number and the bar looks up the one
+  you are on.
+- **"Today's portion" and go-to-surah did nothing.** `rememberPagerState` reads its
+  starting page *once*; changing it later moves nothing. Both controls only ever worked on
+  first composition. Jumping is now an explicit instruction, and it carries a counter —
+  because swiping away from page 440 and back means a jump to 440 looks identical to the
+  last one, which is exactly the case that failed.
+
+**When something is named `initialX`, assume it is read once.**
+
+## 7. Colour
 
 Your five colours from coolors.co are canon (Sacred Rule 8) — they don't get "improved"
 later.
@@ -346,7 +396,7 @@ is one journey from dark to light. Excellent for text on a ground; useless for a
 that must pop out of a paragraph. That's why the accent works on a *button* (deep teal on
 paper is 9.37:1) but failed on numerals sitting inside text.
 
-## 7. Backups, and why they're off
+## 8. Backups, and why they're off
 
 Android normally backs apps up to Google Drive automatically. Wird switches that off
 three times over, because the setting changed across Android versions and all three are
