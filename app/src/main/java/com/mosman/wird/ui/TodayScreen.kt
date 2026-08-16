@@ -237,6 +237,9 @@ fun TodayScreen(
                 pageInfo[page.page] = surahLabelFor(page, litFor(page)) to page.juz
             },
             lit = litFor,
+            // Only while it is actually playing. A download in progress marks nothing —
+            // the page should not start rearranging itself before you hear anything.
+            reciting = (audio as? AudioState.Playing)?.verseKey,
             footer = { page ->
                 // Only under today's reading. On a page you are browsing there is nothing
                 // to finish, and a "done" button there would be marking the wrong thing.

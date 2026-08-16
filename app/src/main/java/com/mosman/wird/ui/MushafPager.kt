@@ -66,6 +66,18 @@ fun MushafPager(
     onPageChanged: (Int) -> Unit = {},
     onWordTap: ((verseKey: String) -> Unit)? = null,
     onBackgroundTap: (() -> Unit)? = null,
+    /**
+     * The ayah being recited right now, or null when nothing is playing.
+     *
+     * Sacred Rule 5 says the portion is marked by everything *else* stepping back rather
+     * than by painting a wash over the Qur'an, so this follows the same mechanic one level
+     * down: while audio plays, the ayah you are hearing keeps full ink and the rest of the
+     * portion recedes to the same slate used for text outside today's reading. No new
+     * colour is introduced, and both pairs are already contrast-checked (16.68:1 and
+     * 3.72:1). A tint was not an option regardless — deep teal on ink is 1.78:1 and sage on
+     * paper is 1.69:1, measured when the ayah numerals were tried and rejected.
+     */
+    reciting: String? = null,
     onPageShown: (MushafPage) -> Unit = {},
     footer: @Composable (MushafPage) -> Unit = {},
 ) {
@@ -136,6 +148,7 @@ fun MushafPager(
                 MushafPageView(
                     state = state,
                     lit = lit,
+            reciting = reciting,
                     showSkeleton = dressAsSkeleton,
                     onBackgroundTap = onBackgroundTap,
                     onPageShown = onPageShown,

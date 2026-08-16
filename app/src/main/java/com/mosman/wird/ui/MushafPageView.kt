@@ -73,6 +73,18 @@ fun MushafPageView(
     /** Tapping the page itself, used to show and hide the chrome. */
     onBackgroundTap: (() -> Unit)? = null,
     /** Fires when a page is drawn, so the chrome can name where you are. */
+    /**
+     * The ayah being recited right now, or null when nothing is playing.
+     *
+     * Sacred Rule 5 says the portion is marked by everything *else* stepping back rather
+     * than by painting a wash over the Qur'an, so this follows the same mechanic one level
+     * down: while audio plays, the ayah you are hearing keeps full ink and the rest of the
+     * portion recedes to the same slate used for text outside today's reading. No new
+     * colour is introduced, and both pairs are already contrast-checked (16.68:1 and
+     * 3.72:1). A tint was not an option regardless — deep teal on ink is 1.78:1 and sage on
+     * paper is 1.69:1, measured when the ayah numerals were tried and rejected.
+     */
+    reciting: String? = null,
     onPageShown: (MushafPage) -> Unit = {},
     footer: @Composable (MushafPage) -> Unit = {},
 ) {
@@ -106,6 +118,7 @@ fun MushafPageView(
                     typeface = state.typeface,
                     bismillahTypeface = state.bismillahTypeface,
                     lit = lit(state.page),
+                    reciting = reciting,
                     onWordTap = onWordTap,
                     footer = footer,
                 )
@@ -120,6 +133,7 @@ private fun DrawnPage(
     typeface: Typeface,
     bismillahTypeface: Typeface?,
     lit: Set<Int>,
+    reciting: String?,
     onWordTap: ((String) -> Unit)?,
     footer: @Composable (MushafPage) -> Unit,
 ) {
@@ -188,6 +202,7 @@ private fun DrawnPage(
             }
             MushafLine(
                 glyphs = page.glyphsOn(line),
+                reciting = reciting,
                 family = family,
                 inPortion = line in lit,
                 onWordTap = onWordTap,
@@ -313,10 +328,21 @@ private fun MushafLine(
     glyphs: List<Glyph>,
     family: FontFamily,
     inPortion: Boolean,
+    reciting: String?,
     onWordTap: ((String) -> Unit)?,
 ) {
     val colors = LocalWirdColors.current
-    val bodyColor: Color = if (inPortion) colors.textPrimary else colors.textOutsidePortion
+    // While a recitation is playing, the ayah being heard is the only thing at full ink
+    // and the rest of the portion steps back — the same mechanic that separates today's
+    // reading from the rest of the page, applied one level down. Nothing is painted over
+    // the text and no new colour enters the palette. Sacred Rule 5.
+    val recitingHere = reciting != null && glyphs.any { it.verseKey == reciting }
+    val bodyColor: Color = when {
+        !inPortion -> colors.textOutsidePortion
+        reciting == null -> colors.textPrimary
+        recitingHere -> colors.textPrimary
+        else -> colors.textOutsidePortion
+    }
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
@@ -357,7 +383,14 @@ private fun MushafLine(
                     // dimming already says where the portion ends, plainly.
                     Text(
                         text = g.code,
-                        color = bodyColor,
+                        // Per glyph, not per line: a mushaf line often carries the end of
+                        // one ayah and the start of the next, and marking the whole line
+                        // would light words nobody is reciting.
+                        color = if (reciting != null && inPortion && g.verseKey != reciting) {
+                            colors.textOutsidePortion
+                        } else {
+                            bodyColor
+                        },
                         maxLines = 1,
                         softWrap = false,
                         style = TextStyle(fontFamily = family, fontSize = fitted),
