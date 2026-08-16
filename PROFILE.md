@@ -86,6 +86,20 @@ Explicit exclusions. No session builds these "helpfully."
 - Public Play Store launch
 - iOS
 
+**Refined 2026-08-16, with Mutalib's explicit approval, on the prayer-times line above.**
+Asked at the start of task 8; he answered "for now lets make it magrib it should be able
+to be changed to anytime the user wants."
+
+- **Still refused:** a prayer timetable, a next-prayer countdown, adhan audio, qibla, or
+  any screen whose subject is prayer times. Wird is not a prayer app and Muslim Pro is
+  already on his phone doing that job well.
+- **Allowed:** choosing which prayer the reminder follows, and by how much. The reader
+  picks a landmark they already know; **no computed prayer time is ever printed on
+  screen**, and a QA check asserts that no label can leak one. The only clock time the
+  settings screen will show is the fixed-hour fallback, which is not a prayer time.
+- Prayer times remain internal in the sense that matters: they exist to place a
+  notification, and nothing in the app reads them for their own sake.
+
 ### Recorded for later, deliberately not killed
 
 **A full mushaf reader with Tarteel-style live correction inside Wird.** Mutalib wants
@@ -214,6 +228,8 @@ testers show up."
 | Recitation checking | **whisper.cpp Android AAR** + `tarteel-ai/whisper-base-ar-quran` (Apache-2.0) | On-device, batch not streaming. Batch measured fast on Android; streaming ~5× slower than real time. |
 | Tester distribution | **Firebase App Distribution** (Spark, free) | 500 testers per project. No $25 yet. Play Console can come later. |
 | Landing + feedback | **One Vercel page**, noindex until launch | His home turf, $0, gives a URL to paste into a GMSA group. |
+| Prayer times | **Computed on device**, standard PrayTimes.org solar geometry | No API, no key, no network, works offline forever. Verified against the Aladhan API for Accra and Kumasi across both solstices: all 24 values matched to the minute, zero error (task 8, 2026-08-16). |
+| Location | **`ACCESS_COARSE_LOCATION`, plain `LocationManager`** | Mutalib's pick on 2026-08-16 over a timezone lookup. No Play Services dependency, so no size cost. Asked once and cached; rounded to 2dp (~1 km); never uploaded. Falls back to timezone, then to a fixed hour, and says which it used. |
 | Backend | **None** | No server, no accounts, no sync. Everything local. |
 
 **Cost: $0/month.** No paid API, no server, no database.
@@ -309,6 +325,10 @@ or uploads. Never link a personal WhatsApp number to an unofficial gateway — s
 | ⚠ **woff2 would cut data cost by 77%, but Android cannot load it directly.** `Typeface` wants TTF/OTF. Using woff2 means decompressing on device or rendering the page in a WebView. | Task 4 decides: TTF at ~372 KB/page, or woff2 at ~80 KB plus a decoder. Measure both on a real 3G connection before choosing. |
 | ⚠ **Whisper accuracy on his voice, in his room, is unknown.** The 5.75% WER is on clean professional recitation and the model card lists no limitations. | Task 13, measured on real recordings. |
 | **Deep links into Quran for Android / Tarteel may not exist.** | Task 11. If they do not, the buttons get deleted, not faked. |
+| ~~Nothing in the app scheduled a nudge~~ **FOUND AND FIXED task 8, 2026-08-16.** Task 3's temporary "fire in 15 seconds" button was removed in the task 4/5 rewrite, and from then until task 8 the alarm machinery was real and idle. `NudgeReceiver` was also still hardcoded to page 453. **The lesson worth keeping: a gate task proved with a throwaway trigger leaves nothing behind.** | Resolved. `NudgeScheduler.arm` is now called from three overlapping places, and the receiver reads the real position. |
+| ⚠ **The nudge has not been seen to FIRE with the task-8 receiver.** Timing is proven three ways, but re-arming tomorrow, staying quiet on a day already read, and reading the real position are proven only by unit test and by log. | Watch the next time it fires. Cheap to confirm and it must not be assumed. |
+| ⚠ **The reminder depends on a permission Transsion testers are the likeliest to refuse.** Refusal is handled — timezone, then a fixed hour — but a refused fix in Kumasi is 6 minutes out, and in an unlisted timezone there is no fix at all. | Task 15, on a real Transsion phone. Watch how many testers actually grant it. |
+| **Muslim Pro's Maghrib alarm is 3 minutes later than ours** (18:23 vs 18:20 on 2026-08-16, same phone, same place). Its Dhuhr, Asr and Isha match us exactly, so this is not a general disagreement. | Most likely its own deliberate delay on the Maghrib adhan, which is a common convention. Not chased — the nudge is a reading reminder, not a call to prayer, and 3 minutes does not matter to it. Recorded so nobody later reads it as a bug in our arithmetic. |
 
 ## 12. VERIFICATION
 

@@ -15,19 +15,19 @@ Reminders fix forgetting. Forgetting was the smaller half of the problem. The th
 actually worked was having a teacher to recite to — someone who expected you, and in
 front of whom you had to open your mouth. School ended that. Wird is a stand-in for it.
 
-## Status — Milestones 0 and 1 done
+## Status — the loop closes
 
-**You can install Wird, tell it where you are, and read today's portion from a real
-mushaf page.** What you cannot yet do is tell it you have read — that is task 6, and it is
-the reason the app exists.
+**Wird is now the thing it was described as.** It knows where you are, shows today's
+portion on a real mushaf page, reminds you at a moment that follows the sun, and lets you
+finish the day by reciting it out loud.
 
 | | |
 |---|---|
 | ✅ **Milestone 0** | It builds, it installs, and a scheduled notification fires and opens the page. |
 | ✅ **Milestone 1** | The mushaf renders; it knows where you are; you can browse, jump, and change your mind. |
-| ⬜ **Milestone 2** | Marking a day done, the streak, prayer-time timing, the reciter, the widget. |
+| 🔸 **Milestone 2** | Done: marking a day (6), the streak and the honest split (7), prayer-time timing (8). Left: the reciter's audio (9) and the home-screen widget (10). |
 
-What Milestone 1 actually gave you:
+What Milestones 1 and 2 gave you:
 
 - **Setup asks the question you can answer.** Pick your surah from a searchable list, see
   the page, tap the ayah you are on. Type the number instead if you know it.
@@ -36,12 +36,20 @@ What Milestone 1 actually gave you:
 - **Today's portion in dark ink; everything else pale** — on every page, no exceptions —
   and the ayah range named in words so nothing depends on telling two shades apart.
 - **Swipe to any page, jump to any surah**, with "Today's portion" to come back.
-- **Settings**: paper or ink, how much a day, lighter days, and where you are.
 - **A page that carries no chrome.** Tap it to reveal the bar; tap again and it goes.
+- **Done means you said it out loud.** Record yourself reciting, or tap "I read it" —
+  both allowed, both logged separately, and the split shown honestly.
+- **The streak next to the total days read**, which never resets, and a streak of nought
+  is never held up to you.
+- **A reminder that follows sunset**, not a clock hour — thirty minutes after Maghrib by
+  default, movable to any prayer, any fixed hour, or off.
+- **Settings**: paper or ink, how much a day, lighter days, when to be reminded, and
+  where you are in the mushaf.
 
-⚠ **A batch of Milestone 1 is built and `check`-green but has never been watched on the
-phone** — his phone was in use each time and the device rule says leave it alone. Task 5f
-is one deliberate pass to confirm it, and it should happen before task 6 builds on top.
+⚠ **One thing is built and unwatched:** the nudge has not been seen to *fire* since task 8
+rewired it. The timing is verified three separate ways and the alarm is registered on the
+phone, but the notification itself last fired under task 3's code. Confirm it the next
+time it goes off.
 
 Everything after that is in `PLAN.md`.
 
@@ -177,6 +185,79 @@ on an alarm firing at all — it just sits there.
 background apps to save battery. Your nudge can fire perfectly on a Pixel and never arrive
 on a friend's Tecno. Task 15 handles that by detecting the manufacturer and walking the
 user through their specific phone's settings.
+
+### 3b. When the nudge arrives — following the sun (task 8)
+
+**Plain version:** a fixed hour like "remind me at 7pm" is wrong half the year, because
+7pm is broad daylight in one season and long after dark in another. So instead of a clock
+hour, Wird hangs the reminder off a moment you already know: **thirty minutes after
+Maghrib.** As sunset moves through the year, the reminder moves with it, and you never
+touch a setting.
+
+**The one idea worth remembering:** the app *calculates* prayer times rather than *asking
+a server* for them. Where the sun is, for any date and any point on Earth, is settled
+arithmetic — about forty lines of it. That means no API key, no monthly cost, no data
+used, and it still works with the phone in airplane mode in a year's time. It is also why
+none of this can break when someone else's free service shuts down.
+
+**The thing that made this safe.** Different Islamic bodies define the twilight prayers
+differently, so Fajr and Isha genuinely disagree depending on whose method you pick. We
+measured that: across five published methods, Accra's Fajr ranged over nineteen minutes.
+**Maghrib was 18:14 in every single one.** Maghrib *is* sunset, and sunset is astronomy
+rather than convention — so anchoring on Maghrib means the setting nobody will ever open
+is almost unable to do harm.
+
+**How we know the maths is right.** Not by trusting it. Every value is checked against the
+[Aladhan API](https://aladhan.com/prayer-times-api) — a completely separate implementation
+— for two cities and both solstices. All twenty-four matched **to the minute, with zero
+error**, and those exact numbers are QA checks 10 and 11. Then a third check landed by
+accident: **Muslim Pro, already installed on the phone**, had its own adhan alarms at
+12:11, 15:25 and 19:28 — our Dhuhr, Asr and Isha for that spot, exactly.
+
+**Why it asks for location.** Sunset depends on where you are. Accra and Kumasi are only
+130 km apart and still differ by seven minutes. You chose coarse location over guessing a
+city from the phone's timezone, and the first real test proved you right: the phone
+reported **6.68, −1.58 — Kumasi, not Accra**. The timezone guess would have said 18:44;
+your actual position says 18:50.
+
+Terms:
+
+- **Coarse location** — the low-accuracy kind, roughly which neighbourhood you're in
+  rather than which building. It is all sunset needs, it works indoors, and it doesn't
+  wake the GPS radio and eat battery.
+- **Declination** — how far north or south of the equator the sun stands on a given day.
+  It's what makes days long in June and short in December.
+- **Equation of time** — the gap between clock noon and actual solar noon, up to about
+  sixteen minutes, because Earth's orbit is an ellipse rather than a circle.
+
+**What it deliberately will not do.** It never shows you a prayer timetable, a countdown,
+or an adhan. Wird is not a prayer app — you already have one. You pick a landmark you know
+("after Maghrib") and the app quietly does the arithmetic. **No computed prayer time is
+ever printed on screen**, and there's a test that fails if any label leaks one.
+
+**When it can't do what you asked**, it says so rather than guessing. No location yet →
+it falls back to the phone's timezone. Timezone it doesn't recognise → a plain 8pm, and
+the settings screen tells you that's what happened. It will not invent a latitude: you can
+work out longitude from a timezone, but not latitude, and a wrong latitude produces a
+reminder that is confidently an hour out in December.
+
+**What I got wrong, and what it cost.** Two things.
+
+First, the smaller one: I asserted in a test that tomorrow's Maghrib would be a minute
+earlier than today's. It isn't — in mid-August, Accra's sunset barely moves. The test
+failed, which is exactly what a test is for; the fix was to prove "recomputed daily, not
+just plus-24-hours" using the September equinox instead, where sunset really does shift a
+minute a day.
+
+Second, the one that matters: **wiring this up revealed that nothing in the app had been
+scheduling a nudge at all.** Task 3 proved the alarm worked using a temporary button that
+fired it fifteen seconds later, and that button was deleted during the task 4/5 rewrite.
+Everything since then has been real machinery sitting idle. The receiver was also still
+hardcoded to page 453, so had it ever fired, it would have announced the wrong portion.
+The lesson is general: **a gate task proved with a throwaway trigger leaves nothing
+behind.** Both are fixed, and the reminder is now armed from three overlapping places —
+when the app opens, after each nudge fires, and after a reboot — because a reminder that
+silently stops is worse than no reminder at all.
 
 ## 4. The mushaf page — the hard part
 

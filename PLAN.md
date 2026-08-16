@@ -220,11 +220,59 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   6 marked, and the split always accounting for every day. It also asserts a day marked
   and later recited counts once as recited, and that a tap can never undo a recitation.
 
-- [ ] **8. Prayer-time nudge timing**
-  Compute prayer times for the user's location, offset the nudge from one of them
-  instead of using a fixed hour. Prayer times stay internal — not a user-facing feature.
-  *Done when:* the nudge fires at the right offset from Maghrib for Accra, checked
-  against a known prayer-time source.
+- [x] **8. Prayer-time nudge timing** — done 2026-08-16, verified on the phone
+  Computed on the device, not fetched: no API, no key, no network, works in airplane
+  mode a year from now. The standard PrayTimes.org solar geometry, ~40 lines.
+  *Verified against a known source three ways:*
+  1. **Aladhan API (Muslim World League)** for Accra and Kumasi, across both solstices
+     and today — **all 24 values matched to the minute, zero error.** QA checks 10–11
+     assert them exactly rather than with a tolerance.
+  2. **On the phone:** `next nudge 2026-08-16T18:50Z[Africa/Accra] (inexact, LOCATION)`,
+     and `dumpsys alarm` shows `origWhen=2026-08-16 18:50:00.000` against
+     `*walarm*:com.mosman.wird/.nudge.NudgeReceiver`. Aladhan at the phone's own stored
+     fix gives Maghrib 18:20, so +30 = 18:50. They agree.
+  3. **Muslim Pro, already installed on the same phone**, has adhan alarms at 12:11,
+     15:25 and 19:28 — our Dhuhr, Asr and Isha for that location, exactly. Its Maghrib
+     alarm is 18:23 against our 18:20; most likely its own few-minute delay on the
+     Maghrib adhan, which is a common convention, but it is a 3-minute gap and is
+     recorded rather than explained away.
+
+  **Mutalib's two decisions, both asked rather than assumed:**
+  - Default is 30 minutes after Maghrib, **and it can be moved** — any of the five
+    prayers with an offset, a fixed hour, or off entirely. This makes the anchor
+    user-facing, which brushes against § 5; PROFILE.md now records the refinement.
+  - **Coarse location** over a timezone lookup. *This turned out to be the right call
+    and the evidence is unusually direct:* his phone's real fix is **6.68, −1.58 —
+    Kumasi, not Accra.** The timezone path computed 18:44; the real fix computed 18:50.
+    Six minutes, on the very first test, exactly the case he chose it for.
+
+  *Measured, and why the default anchor is the safe one:* Maghrib came out at **18:14 in
+  all five published calculation methods** while Fajr ranged over nineteen minutes.
+  Maghrib is sunset, and sunset is astronomy rather than convention — so the one setting
+  nobody will ever open is nearly unable to do harm. A QA check asserts this.
+
+  **The thing this task actually found: nothing had been scheduling a nudge at all.**
+  Task 3 proved the alarm plumbing with a temporary "fire in 15 seconds" button, and
+  that button was removed in the task 4/5 rewrite. From then until now the machinery was
+  real and idle. `NudgeReceiver` was also still hardcoded to page 453, so it would have
+  announced the wrong portion to anyone it reached. Both fixed.
+
+  *Also verified on the phone:* switching the reminder Off logs
+  `reminder is off, nothing scheduled` and leaves **no pending alarm**; switching it back
+  restores `18:50`. The settings screen prints no prayer time at any point, and a QA
+  check asserts no label can leak one.
+
+  *⬜ Not yet proven on the phone:* the nudge **firing** with the new receiver code. It
+  is set for 18:50 tonight. Task 3 proved alarm → notification → tap, but the three new
+  things in the receiver — re-arming tomorrow, staying quiet on a day already read, and
+  reading the real position — have only been proven by unit test and by reading the log.
+  Confirm the next time it fires.
+
+  *Recorded, not explained:* `BootReceiver` logs `boot completed` on the first launch
+  after a force-stop, with no reboot involved (uptime 1h35m). Isolated by experiment — it
+  does **not** happen when the app is merely brought to the foreground. Almost certainly
+  the queued `BOOT_COMPLETED` being delivered when the app leaves Android's "stopped"
+  state. Harmless: arming is idempotent, and `dumpsys` shows exactly one alarm.
 
 - [ ] **9. Abu Bakr al-Shatri audio for today's portion**
   Reciter id 4. Per-ayah MP3s fetched on demand, cached, playable offline afterwards.
