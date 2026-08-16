@@ -120,5 +120,19 @@ Any UI work runs the **design-studio** skill first, including the palette picker
 colour is Mutalib's choice, not a session's. `docs/ui-guidelines.md` gets filled the
 first time that runs.
 
+**Two of the three hard gates apply here; the third cannot. Measured 2026-08-16.**
+
+| Gate | On this repo |
+|---|---|
+| `design-studio/scripts/gate.py` | ✅ works on `.kt` |
+| humanizer `gate.py` on user-facing strings | ✅ works — run it on the strings, not the file |
+| `impeccable ... detect` | ❌ **no-op** |
+
+The impeccable detector only reads `.js`, `.css` and `.html`. Pointed at a Compose `.kt`
+file it exits 0 with `[]` — and it does the same on a CSS control file written to fail,
+so **zero findings here is not a pass, it is silence.** Say so rather than reporting a
+third green. This whole app is Compose, so that gate never applies; reach for impeccable's
+*playbooks* by name instead, which are prose and transfer fine.
+
 The mushaf page itself is a reproduction, not a design decision. Everything around it
 is design work.
