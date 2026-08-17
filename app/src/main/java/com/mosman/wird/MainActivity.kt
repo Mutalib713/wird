@@ -26,7 +26,16 @@ import com.mosman.wird.domain.todaysAssignment
 import com.mosman.wird.nudge.Armed
 import com.mosman.wird.nudge.Nudge
 import com.mosman.wird.nudge.NudgeScheduler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import com.mosman.wird.audio.Recitation
+import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
+import com.mosman.wird.ui.SurahsTab
+import com.mosman.wird.ui.WirdTab
+import com.mosman.wird.ui.WirdTabBar
 import com.mosman.wird.ui.SetupScreen
 import com.mosman.wird.ui.TodayScreen
 import com.mosman.wird.ui.positionLabelFor
@@ -55,6 +64,10 @@ class MainActivity : ComponentActivity() {
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var armed by remember { mutableStateOf<Armed?>(null) }
+            var tab by remember { mutableStateOf(WirdTab.TODAY) }
+            /** Set when a surah is picked from the Sūrahs tab; consumed by TodayScreen. */
+            var openPage by remember { mutableStateOf<Int?>(null) }
+            val playback = remember { Recitation(this@MainActivity) }
 
             /**
              * Re-arm and remember what happened.
@@ -124,8 +137,11 @@ class MainActivity : ComponentActivity() {
             }
 
             WirdTheme(mode = theme) {
-                when (screen) {
-                    Screen.SETUP -> SetupScreen(
+                // Setup sits outside the tabs on purpose: there is nowhere else to be
+                // until it is finished, and a tab bar during setup is four ways to
+                // abandon the one thing being asked.
+                if (screen == Screen.SETUP) {
+                    SetupScreen(
                         onDone = { page, unitsPerDay, verse ->
                             store.positionPage = page
                             store.plan = ReadingPlan(defaultUnits = unitsPerDay)
@@ -140,10 +156,16 @@ class MainActivity : ComponentActivity() {
                         },
                     )
 
-                    Screen.TODAY -> TodayScreen(
+                } else {
+                  Column(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.weight(1f)) {
+                      when (tab) {
+                        WirdTab.TODAY -> TodayScreen(
                         assignment = assignment,
                         startVerse = startVerse,
-                        onSettings = { screen = Screen.SETTINGS },
+                        onSettings = { tab = WirdTab.MORE },
+                            openPage = openPage,
+                            onOpenPageHandled = { openPage = null },
                         hasSeenChrome = seenChrome,
                         onChromeSeen = { store.hasSeenChrome = true; seenChrome = true },
                         doneMethod = doneMethod,
@@ -187,7 +209,22 @@ class MainActivity : ComponentActivity() {
                         },
                     )
 
-                    Screen.SETTINGS -> SettingsScreen(
+                        WirdTab.SURAHS -> SurahsTab(
+                            onPick = { surah ->
+                                // Picking a surah is a reading action, so it lands you on
+                                // the page rather than leaving you in a list admiring it.
+                                openPage = surah.firstPage
+                                tab = WirdTab.TODAY
+                            },
+                        )
+
+                        WirdTab.RECITE -> RecitationsScreen(
+                            logs = days.all(),
+                            audioFor = { d -> days.audioFor(d) },
+                            onPlay = { f -> playback.play(f) },
+                        )
+
+                        WirdTab.MORE -> SettingsScreen(
                         theme = theme,
                         plan = plan,
                         positionLabel = positionLabelFor(
@@ -209,8 +246,12 @@ class MainActivity : ComponentActivity() {
                         onAudioQuality = { store.audioQuality = it; audioQuality = it },
                         onUseLocation = { askLocation.launch(Where.PERMISSION) },
                         onChangePosition = { screen = Screen.SETUP },
-                        onBack = { screen = Screen.TODAY },
-                    )
+                            onBack = { tab = WirdTab.TODAY },
+                        )
+                      }
+                    }
+                    WirdTabBar(current = tab, onPick = { tab = it })
+                  }
                 }
             }
         }

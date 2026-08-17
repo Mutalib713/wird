@@ -75,6 +75,9 @@ fun TodayScreen(
     /** Where the reader said they were, when that is partway down the first page. */
     startVerse: Pair<Int, Int>? = null,
     onSettings: () -> Unit = {},
+    /** A page to open, set when a surah is picked from the Sūrahs tab. Consumed once. */
+    openPage: Int? = null,
+    onOpenPageHandled: () -> Unit = {},
     /** False until the reader has been shown, once, that the page is tappable. */
     hasSeenChrome: Boolean = true,
     onChromeSeen: () -> Unit = {},
@@ -134,6 +137,16 @@ fun TodayScreen(
             if (++ticks % 12 == 0) seconds++
         }
         level = 0f
+    }
+
+    // A pick from the Sūrahs tab arrives as a page number rather than a navigation event,
+    // because the pager owns where it is. Consumed once, so returning to the tab later does
+    // not silently jump you again.
+    LaunchedEffect(openPage) {
+        val p = openPage ?: return@LaunchedEffect
+        jumpCount++
+        jump = PageJump(p, jumpCount)
+        onOpenPageHandled()
     }
 
     LaunchedEffect(hasSeenChrome) {
