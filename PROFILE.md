@@ -584,3 +584,31 @@ or uploads. Never link a personal WhatsApp number to an unofficial gateway — s
   anything touching notifications or background work.
 - **Before the first public deploy:** `docs/security-checklist.md` worked end to end and
   the ticks committed.
+
+### 5e. Settings follows the design's *after* variant — decided 2026-08-17, not yet built
+
+Mutalib, having seen both: *"the settings side, go to the after Claude Design — that one is
+way better."* He is right, and the difference is structural rather than decorative.
+
+**What is built now (the *before* pattern):** every control is inline. Each row shows its
+name, its explanation, and its chips all at once. Readable — that rebuild fixed the real
+complaint — but **long**, because five groups of inline chips is a screen you scroll rather
+than scan.
+
+**What the *after* variant does:** each setting collapses to **one row showing its current
+value**, with a chevron to drill in and change it:
+
+> **Lighter days**
+> `FRIDAY AND SUNDAY · HALF A PAGE`  ›
+
+The value *is* the caption. You scan the whole of settings in one screen and see what
+everything is currently set to, and only the thing you came to change costs a tap. This is
+what iOS and Android settings actually do, and it is why they stay legible at forty rows.
+
+**What building it needs:** a detail screen per setting and navigation state to reach it —
+the current screen has neither. The inline controls already written become the bodies of
+those detail screens, so **the rebuild is not wasted**; it gets moved rather than replaced.
+
+**Also still outstanding on this screen:** the *after* variant styles rows with the serif
+display face for titles and small-caps for the value line. That depends on the fonts being
+bundled, which has not happened yet.
