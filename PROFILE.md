@@ -206,6 +206,25 @@ Decisions no future session may reopen without Mutalib's explicit approval.
    - He said "maybe I might change my mind" about going further. If he does, it is a
      deliberate re-scoping conversation, not a feature someone adds quietly.
 
+   **⚠ REVERSED 2026-08-17 — "no menu in between" no longer holds.** Mutalib reviewed
+   three designs (Claude Design *before* and *after*, plus a Figma direction) and chose the
+   variant with **cards and a five-tab bottom bar** — `TODAY · SŪRAHS · READ · RECITE ·
+   MORE`. He said plainly: *"reopen rule 5, i like the tabs."*
+
+   The argument he accepted, and the one against, both recorded so this is not re-litigated
+   from scratch later:
+   - **Against:** his own Phase 0 numbers say the *decision* is the problem — 8 of 14 missed
+     days were procrastination, not forgetting — and a five-tab bar adds decisions in front
+     of the reading. That is why the rule existed.
+   - **For:** the app has grown since 2026-08-15. There are now genuinely five places to be,
+     and hiding them behind a tap-to-reveal bar is the weakness he already spotted himself
+     in task 5e when he asked whether it should be a hamburger. The rule described a smaller
+     app than the one that now exists.
+
+   **What survives the reversal:** the app still *opens* on today's portion — the Today tab
+   is the launch tab, not a dashboard in front of it. Tabs are a way back, not a gate.
+   **Still refused:** bookmarks, in-text search, tafsir, translations.
+
    **No user-chosen highlight colour.** Raised and declined on 2026-08-15. There is no
    highlight by design — the portion is marked by everything else stepping back, because
    painting a wash over the Qur'an is what defaces it. An arbitrary colour would also
@@ -218,6 +237,27 @@ Decisions no future session may reopen without Mutalib's explicit approval.
 8. **The palette below is canon.** Pinned by Mutalib on 2026-08-14. It does not get
    "improved", extended with a sixth colour, or swapped for something a later session
    likes better.
+
+   **⚠ REVERSED 2026-08-17, by Mutalib, on seeing it rendered.** He chose the Claude Design
+   direction on its colour and type: *"i like the claude design one we can see the font and
+   colours."* The five-colour ink/teal/slate/sage/paper palette below is **superseded**, and
+   § 6b is kept as the record of what it was rather than what to build.
+
+   **The new direction:** gold `#C9A24B` on cream `#FBF9F3`, with midnight `#14101F` — a
+   classical illuminated-mushaf register rather than the paper-and-ink one. Type is
+   Cinzel / Playfair Display / EB Garamond / Oswald, with **Amiri** carrying the Arabic.
+
+   **Two things a later session must check rather than assume**, because they were flagged
+   at the time and not yet resolved:
+   - The token names in the source (`--curtain`, `--crimson`, `--evergreen`, `--snow`) are
+     inherited from a **Nutcracker poster design system** the design was built on top of.
+     In the rendered screens the red is barely used — 5 elements in total — but **it is
+     there, and nothing in Wird is an error worth alarming someone about.** Strip what is
+     unused rather than porting the whole token set.
+   - **The contrast pairs in § 6b were computed for the old palette and do not transfer.**
+     Gold on cream is the pairing to measure first; it is the one most likely to fail AA.
+   - The rule itself is not abolished: **the new palette is canon in the same way**, and
+     changing it again needs the same explicit approval.
 
 ## 6b. PALETTE — pinned, canon
 
