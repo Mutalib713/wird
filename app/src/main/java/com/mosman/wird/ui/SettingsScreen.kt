@@ -1,8 +1,10 @@
 package com.mosman.wird.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,23 +13,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.PlaceSource
 import com.mosman.wird.data.ThemeMode
@@ -47,13 +50,17 @@ import java.time.LocalTime
 /**
  * Settings.
  *
- * Five things now: how it looks, how much a day, when to be reminded, how the recitation
- * is fetched, and where he is. The reminder section arrived with task 8; the recitation
- * one with task 9, where a page of audio turned out to cost fifteen times the page itself.
+ * **Rebuilt 2026-08-17.** The first version was five sections of chip rows stacked
+ * identically, and Mutalib's verdict was that it "looks terrible and is not readable — it
+ * doesn't have sections, it just looks someway." He was right, and the fault was
+ * structural rather than cosmetic: every section rendered the same, so nothing told you
+ * where one ended and the next began, and each section's explanation floated below the
+ * whole block instead of attaching to the thing it explained.
  *
- * Notably absent: choosing a highlight colour. Raised and declined — see Sacred Rule 5.
- * There is no highlight to colour; the portion is marked by everything else stepping
- * back, and arbitrary colours would break the contrast pairs in PROFILE.md § 6b.
+ * The shape now is the one the design used and the one every settings screen worth reading
+ * uses: **a titled group, holding rows, each row carrying its own name, its own one-line
+ * explanation of what it actually does, and its control.** The explanation is the part that
+ * makes it readable — you should never have to change a setting to find out what it means.
  */
 @Composable
 fun SettingsScreen(
@@ -90,215 +97,270 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.surface)
-            .safeDrawingPadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = Scale.space6, vertical = Scale.space4),
+            .padding(horizontal = Scale.space4),
     ) {
-        TextButton(
-            onClick = onBack,
-            modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
-        ) {
-            Text("Back to today's portion", color = colors.accent)
-        }
-
-        Spacer(Modifier.height(Scale.space4))
+        Spacer(Modifier.height(Scale.space6))
         Text("Settings", color = colors.textPrimary, style = TextStyle(fontSize = Scale.display))
+        Spacer(Modifier.height(Scale.space4))
 
-        // ---- how it looks ----
-        Section("How it looks")
-        Row(horizontalArrangement = Arrangement.spacedBy(Scale.space2)) {
-            Choice("Paper", theme == ThemeMode.LIGHT) { onTheme(ThemeMode.LIGHT) }
-            Choice("Ink", theme == ThemeMode.DARK) { onTheme(ThemeMode.DARK) }
-            Choice("Match phone", theme == ThemeMode.SYSTEM) { onTheme(ThemeMode.SYSTEM) }
-        }
-        Hint("Ink is easier at night.")
-
-        // ---- how much ----
-        Section("How much a day")
-        Row(horizontalArrangement = Arrangement.spacedBy(Scale.space2)) {
-            Choice("Half a page", plan.defaultUnits == 1) { push(default = 1) }
-            Choice("One page", plan.defaultUnits == 2) { push(default = 2) }
-            Choice("Two pages", plan.defaultUnits == 4) { push(default = 4) }
-        }
-        Hint("This changes today's portion too, not just tomorrow's.")
-
-        // ---- lighter days ----
-        //
-        // Four then three, because seven do not fit. Measured on the Pixel: each chip
-        // sits on a 66dp pitch (48dp minimum target, widened to Material's 58dp button
-        // floor, plus the 4dp gap), so a week costs 458dp across — and 411dp of screen
-        // minus the 24dp margins leaves 363dp. One row was 95dp short, which is not a
-        // squeeze that degrades gracefully: Saturday broke onto two lines and Sunday was
-        // given zero width, so it was absent from the accessibility tree entirely. Two
-        // days that could not be picked at all, by touch or by TalkBack.
-        //
-        // Scrolling sideways was the alternative and it is the same bug wearing a hat —
-        // the day on the end stays hidden. Same call as the prayer rows below. The hour
-        // chips further down do scroll, and that is not inconsistent: twenty hours can
-        // never be shown at once, whereas a week is a small complete set you should be
-        // able to take in at a glance.
-        //
-        // The gap between the rows earns its place. Several days can be lit at once, so
-        // two selected chips stacked flush would merge into one sage block and read as a
-        // single thing. The prayer rows never need it — only one prayer can be chosen,
-        // so their grounds can never touch.
-        Section("Go easier on some days")
-        Column(verticalArrangement = Arrangement.spacedBy(Scale.space1)) {
-            DayOfWeek.entries.chunked(4).forEach { days ->
-                Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
-                    days.forEach { day ->
-                        Choice(
-                            label = day.name.take(2).lowercase().replaceFirstChar(Char::titlecase),
-                            on = day in overrideDays,
-                        ) {
-                            overrideDays =
-                                if (day in overrideDays) overrideDays - day
-                                else overrideDays + day
-                            push()
-                        }
-                    }
-                }
+        // ---- reading ----
+        Group("Reading") {
+            SettingRow("How much a day", "The size of today's portion") {
+                Chips(
+                    listOf(1 to "Half a page", 2 to "One page", 4 to "Two pages"),
+                    plan.defaultUnits,
+                ) { push(default = it) }
             }
-        }
-        if (overrideDays.isNotEmpty()) {
-            Spacer(Modifier.height(Scale.space2))
-            Row(horizontalArrangement = Arrangement.spacedBy(Scale.space2)) {
-                Choice("Half a page", overrideUnits == 1) { overrideUnits = 1; push() }
-                Choice("One page", overrideUnits == 2) { overrideUnits = 2; push() }
-            }
-        }
-        Hint(
-            if (overrideDays.isEmpty()) {
-                "Pick a day if some are heavier than others."
-            } else {
-                "Those days ask for less. Everything else stays as above."
-            }
-        )
-
-        // ---- when to remind you ----
-        //
-        // PROFILE.md § 5 keeps prayer times out of v1 as a feature, and this respects
-        // that: you pick a landmark you already know, and no time is ever printed. The
-        // one exception is the fallback below, where the hour shown is a plain fixed
-        // hour rather than a computed prayer.
-        Section("When to remind you")
-        Row(horizontalArrangement = Arrangement.spacedBy(Scale.space2)) {
-            Choice("After a prayer", schedule is NudgeSchedule.AfterPrayer) {
-                onSchedule(NudgeSchedule.Default)
-            }
-            Choice("At a set time", schedule is NudgeSchedule.AtClockTime) {
-                onSchedule(NudgeSchedule.AtClockTime(NudgeScheduler.FALLBACK_TIME))
-            }
-            Choice("Off", schedule is NudgeSchedule.Off) { onSchedule(NudgeSchedule.Off) }
-        }
-
-        when (schedule) {
-            is NudgeSchedule.AfterPrayer -> {
-                Spacer(Modifier.height(Scale.space3))
-                // Two rows rather than one: five prayer names do not fit across a phone,
-                // and a row that scrolls sideways hides the option on the end.
-                Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
-                    listOf(Prayer.FAJR, Prayer.DHUHR, Prayer.ASR).forEach { p ->
-                        Choice(p.label, schedule.prayer == p) {
-                            onSchedule(schedule.copy(prayer = p))
-                        }
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
-                    listOf(Prayer.MAGHRIB, Prayer.ISHA).forEach { p ->
-                        Choice(p.label, schedule.prayer == p) {
-                            onSchedule(schedule.copy(prayer = p))
-                        }
-                    }
-                }
-                Spacer(Modifier.height(Scale.space3))
-                Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
-                    listOf(0 to "Right at it", 15 to "15 min", 30 to "30 min", 60 to "An hour")
-                        .forEach { (minutes, label) ->
-                            Choice(label, schedule.offsetMinutes == minutes) {
-                                onSchedule(schedule.copy(offsetMinutes = minutes))
+            Divider()
+            SettingRow(
+                title = "Go easier on some days",
+                caption = if (overrideDays.isEmpty()) {
+                    "Pick a day if some are heavier than others"
+                } else {
+                    "Those days ask for less; everything else stays as above"
+                },
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(Scale.space1)) {
+                    DayOfWeek.entries.chunked(4).forEach { days ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
+                            days.forEach { day ->
+                                Choice(
+                                    label = day.name.take(2).lowercase()
+                                        .replaceFirstChar(Char::titlecase),
+                                    on = day in overrideDays,
+                                ) {
+                                    overrideDays =
+                                        if (day in overrideDays) overrideDays - day
+                                        else overrideDays + day
+                                    push()
+                                }
                             }
                         }
-                }
-            }
-
-            is NudgeSchedule.AtClockTime -> {
-                Spacer(Modifier.height(Scale.space3))
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(Scale.space1),
-                ) {
-                    // Waking hours only. A reminder at three in the morning is a bug
-                    // someone tapped by accident, not a choice.
-                    (4..23).forEach { hour ->
-                        val at = LocalTime.of(hour, 0)
-                        Choice(shortClock(at), schedule.time.hour == hour) {
-                            onSchedule(NudgeSchedule.AtClockTime(at))
-                        }
                     }
                 }
             }
-
-            is NudgeSchedule.Off -> Unit
+            if (overrideDays.isNotEmpty()) {
+                Divider()
+                SettingRow("How much on those days", "The lighter amount") {
+                    Chips(listOf(1 to "Half a page", 2 to "One page"), overrideUnits) {
+                        overrideUnits = it; push()
+                    }
+                }
+            }
+            Divider()
+            SettingRow("Where you are", positionLabel) {
+                Action("Move to a different place", onChangePosition)
+            }
         }
 
-        Hint(reminderHint(schedule, armed))
+        // ---- the reminder ----
+        Group("The reminder") {
+            SettingRow("When it arrives", reminderCaption(schedule, armed)) {
+                Chips3(
+                    listOf(
+                        "After a prayer" to (schedule is NudgeSchedule.AfterPrayer),
+                        "At a set time" to (schedule is NudgeSchedule.AtClockTime),
+                        "Off" to (schedule is NudgeSchedule.Off),
+                    )
+                ) { i ->
+                    onSchedule(
+                        when (i) {
+                            0 -> NudgeSchedule.Default
+                            1 -> NudgeSchedule.AtClockTime(NudgeScheduler.FALLBACK_TIME)
+                            else -> NudgeSchedule.Off
+                        }
+                    )
+                }
+            }
 
-        if (schedule is NudgeSchedule.AfterPrayer && wantsLocation(armed)) {
-            Spacer(Modifier.height(Scale.space2))
-            TextButton(
-                onClick = onUseLocation,
-                modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
+            when (schedule) {
+                is NudgeSchedule.AfterPrayer -> {
+                    Divider()
+                    SettingRow("Which prayer", "It moves with the sun through the year") {
+                        Column(verticalArrangement = Arrangement.spacedBy(Scale.space1)) {
+                            Prayer.entries.chunked(3).forEach { row ->
+                                Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
+                                    row.forEach { p ->
+                                        Choice(p.label, schedule.prayer == p) {
+                                            onSchedule(schedule.copy(prayer = p))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Divider()
+                    SettingRow("How long after", "Time to finish praying and settle") {
+                        Chips(
+                            listOf(0 to "At it", 15 to "15 min", 30 to "30 min", 60 to "An hour"),
+                            schedule.offsetMinutes,
+                        ) { onSchedule(schedule.copy(offsetMinutes = it)) }
+                    }
+                }
+
+                is NudgeSchedule.AtClockTime -> {
+                    Divider()
+                    SettingRow("What time", "The same time every day, wherever you are") {
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(Scale.space1),
+                        ) {
+                            (4..23).forEach { hour ->
+                                val at = LocalTime.of(hour, 0)
+                                Choice(shortClock(at), schedule.time.hour == hour) {
+                                    onSchedule(NudgeSchedule.AtClockTime(at))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                is NudgeSchedule.Off -> Unit
+            }
+
+            if (schedule is NudgeSchedule.AfterPrayer && wantsLocation(armed)) {
+                Divider()
+                SettingRow(
+                    "Where you are on Earth",
+                    "Sunset needs a rough location. It never leaves the phone.",
+                ) { Action("Let Wird check", onUseLocation) }
+            }
+        }
+
+        // ---- listening ----
+        Group("Listening") {
+            SettingRow(
+                title = "Audio quality",
+                caption = "Abu Bakr al-Shatri, ${audioQuality.perPageMb}. " +
+                    "Downloaded once, then it plays with no signal.",
             ) {
-                Text("Let Wird check where I am", color = colors.accent)
+                Chips3(AudioQuality.entries.map { it.label to (it == audioQuality) }) { i ->
+                    onAudioQuality(AudioQuality.entries[i])
+                }
             }
         }
 
-        // ---- the recitation ----
-        //
-        // A quality setting is normally a lazy way of avoiding a decision. This one is
-        // not: it is a data setting wearing a quality label, and the numbers are real.
-        // Mutalib asked for the choice on 2026-08-16 rather than take either default.
-        Section("Listening to it")
-        Row(horizontalArrangement = Arrangement.spacedBy(Scale.space2)) {
-            AudioQuality.entries.forEach { q ->
-                Choice(q.label, audioQuality == q) { onAudioQuality(q) }
+        // ---- appearance ----
+        Group("How it looks") {
+            SettingRow("Theme", "Ink is easier at night") {
+                Chips3(
+                    listOf(
+                        "Paper" to (theme == ThemeMode.LIGHT),
+                        "Ink" to (theme == ThemeMode.DARK),
+                        "Match phone" to (theme == ThemeMode.SYSTEM),
+                    )
+                ) { i ->
+                    onTheme(listOf(ThemeMode.LIGHT, ThemeMode.DARK, ThemeMode.SYSTEM)[i])
+                }
             }
         }
-        Hint(
-            "Abu Bakr al-Shatri, ${audioQuality.perPageMb}. Downloaded once, then it plays " +
-                "with no signal at all."
-        )
 
-        // ---- where you are ----
-        Section("Where you are")
-        Text(positionLabel, color = colors.textPrimary, style = TextStyle(fontSize = Scale.body))
-        Spacer(Modifier.height(Scale.space2))
-        TextButton(
-            onClick = onChangePosition,
-            modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
-        ) {
-            Text("Move to a different place", color = colors.accent)
-        }
-        Hint("For when you read ahead on paper, or fall behind.")
-
+        Spacer(Modifier.height(Scale.space6))
+        Action("Back to today's portion", onBack)
         Spacer(Modifier.height(Scale.space8))
     }
 }
 
+// ---- the pieces this screen is built from ----
+
+/**
+ * A titled group of rows.
+ *
+ * The title sits *outside* the group's surface, small and letterspaced, so the eye reads
+ * it as a heading rather than as the first row. This is the piece the old screen was
+ * missing entirely.
+ */
 @Composable
-private fun Section(title: String) {
+private fun Group(title: String, content: @Composable () -> Unit) {
     val colors = LocalWirdColors.current
     Spacer(Modifier.height(Scale.space6))
-    Text(title, color = colors.textPrimary, style = TextStyle(fontSize = Scale.title))
-    Spacer(Modifier.height(Scale.space2))
+    Text(
+        text = title.uppercase(),
+        color = colors.textSecondary,
+        style = TextStyle(fontSize = 11.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.Medium),
+        modifier = Modifier.padding(start = Scale.space2, bottom = Scale.space2),
+    )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Scale.radius))
+            .background(colors.surfaceRaised.copy(alpha = 0.35f)),
+    ) {
+        content()
+    }
+}
+
+/**
+ * One setting: what it is, what it does, and the control.
+ *
+ * The caption is the whole point of the rebuild. Previously the explanation floated under
+ * a whole section, so "This changes today's portion too" sat below three unrelated
+ * controls. Attached to its own row, it answers the question at the moment you ask it.
+ */
+@Composable
+private fun SettingRow(title: String, caption: String, control: @Composable () -> Unit) {
+    val colors = LocalWirdColors.current
+    Column(modifier = Modifier.fillMaxWidth().padding(Scale.space4)) {
+        Text(
+            text = title,
+            color = colors.textPrimary,
+            style = TextStyle(fontSize = Scale.body, fontWeight = FontWeight.Medium),
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = caption,
+            color = colors.textSecondary,
+            style = TextStyle(fontSize = Scale.caption),
+        )
+        Spacer(Modifier.height(Scale.space3))
+        control()
+    }
 }
 
 @Composable
-private fun Hint(text: String) {
+private fun Divider() {
     val colors = LocalWirdColors.current
-    Spacer(Modifier.height(Scale.space2))
-    Text(text, color = colors.textSecondary, style = TextStyle(fontSize = Scale.caption))
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Scale.space4)
+            .height(1.dp)
+            .background(colors.textOutsidePortion.copy(alpha = 0.22f))
+    )
+}
+
+/** Chips whose value is an Int — amounts, offsets. */
+@Composable
+private fun Chips(options: List<Pair<Int, String>>, selected: Int, onPick: (Int) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
+        options.forEach { (value, label) ->
+            Choice(label, value == selected) { onPick(value) }
+        }
+    }
+}
+
+/** Chips already resolved to label + selected, picked by index. */
+@Composable
+private fun Chips3(options: List<Pair<String, Boolean>>, onPick: (Int) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
+        options.forEachIndexed { i, (label, on) -> Choice(label, on) { onPick(i) } }
+    }
+}
+
+@Composable
+private fun Action(label: String, onClick: () -> Unit) {
+    val colors = LocalWirdColors.current
+    Text(
+        text = label,
+        color = colors.accent,
+        style = TextStyle(fontSize = Scale.body),
+        modifier = Modifier
+            .clip(RoundedCornerShape(Scale.radius))
+            .clickable(onClick = onClick)
+            .defaultMinSize(minHeight = Scale.minTarget)
+            .padding(vertical = Scale.space3, horizontal = Scale.space2),
+    )
 }
 
 /**
@@ -309,29 +371,28 @@ private fun Hint(text: String) {
 @Composable
 private fun Choice(label: String, on: Boolean, onPick: () -> Unit) {
     val colors = LocalWirdColors.current
-    TextButton(
-        onClick = onPick,
+    Box(
         modifier = Modifier
-            .defaultMinSize(minHeight = Scale.minTarget)
             .clip(RoundedCornerShape(Scale.radius))
             .background(if (on) colors.done else Color.Transparent)
-            .padding(horizontal = 2.dp),
+            .clickable(onClick = onPick)
+            .defaultMinSize(minHeight = Scale.minTarget)
+            .padding(horizontal = Scale.space3, vertical = Scale.space2),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
             color = if (on) colors.onSurfaceRaised else colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
+            style = TextStyle(
+                fontSize = Scale.body,
+                fontWeight = if (on) FontWeight.Medium else FontWeight.Normal,
+            ),
         )
     }
 }
 
-/**
- * True when the reminder is prayer-based but we are not working from a real fix.
- *
- * Covers both the timezone guess and the fixed-hour fallback, because in both cases the
- * reader can improve things by letting the app look, and in neither case should it just
- * ask again on its own.
- */
+// ---- copy ----
+
 private fun wantsLocation(armed: Armed?): Boolean = when (armed) {
     is Armed.AtFallback -> true
     is Armed.At -> armed.source == PlaceSource.TIMEZONE
@@ -341,28 +402,20 @@ private fun wantsLocation(armed: Armed?): Boolean = when (armed) {
 /**
  * What the reminder is actually doing, in one line.
  *
- * Never prints a prayer time — see PROFILE.md § 5. The only clock time that appears here
- * is the fixed-hour fallback, which is a plain hour rather than a computed sunset, and it
- * appears precisely because the reader needs to know the app could not do what they
- * asked.
+ * Never prints a prayer time — PROFILE.md § 5. The only clock time here is the fixed-hour
+ * fallback, which is a plain hour rather than a computed sunset, and it appears precisely
+ * because the reader needs to know the app could not do what they asked.
  */
-private fun reminderHint(schedule: NudgeSchedule, armed: Armed?): String {
-    val drift = if (armed.isInexact()) " Android may let it drift by a few minutes." else ""
+private fun reminderCaption(schedule: NudgeSchedule, armed: Armed?): String {
+    val drift = if (armed.isInexact()) " Android may let it drift a few minutes." else ""
     return when (schedule) {
-        is NudgeSchedule.Off ->
-            "Nothing will arrive. Turn it back on whenever you want."
-
-        is NudgeSchedule.AtClockTime ->
-            "${schedule.label()}, every day.$drift"
-
+        is NudgeSchedule.Off -> "Nothing will arrive. Turn it back on whenever you want."
+        is NudgeSchedule.AtClockTime -> "${schedule.label()}, every day.$drift"
         is NudgeSchedule.AfterPrayer -> when (armed) {
             is Armed.AtFallback ->
-                "Wird can't work out sunset without knowing roughly where you are, " +
-                    "so it will come at ${NudgeScheduler.FALLBACK_TIME.let(::shortClockLong)} " +
-                    "until it does.$drift"
-
-            else ->
-                "${schedule.label()}. It follows the sun, so it stays right all year.$drift"
+                "Wird can't work out sunset without knowing roughly where you are, so it " +
+                    "will come at ${shortClockLong(NudgeScheduler.FALLBACK_TIME)} until it does.$drift"
+            else -> "${schedule.label()}.$drift"
         }
     }
 }
