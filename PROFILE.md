@@ -225,6 +225,34 @@ Decisions no future session may reopen without Mutalib's explicit approval.
    is the launch tab, not a dashboard in front of it. Tabs are a way back, not a gate.
    **Still refused:** bookmarks, in-text search, tafsir, translations.
 
+   **Confirmed 2026-08-17 after viewing the design rendered:** the chosen variant is the
+   one with the **bottom** tab bar (`TODAY · SŪRAHS · READ · RECITE · MORE`), not the
+   top-tab variant on the neighbouring screen. He also said "we will change the designs
+   tho" — so **the mockups are a direction, not a specification.** What is fixed is what is
+   written here; the pixels are expected to move.
+
+### 5c. Verified against the design, 2026-08-17
+
+Checked by rendering the file rather than reading its tokens, after the token-only reading
+misled once already:
+
+- ✅ **No wash is painted over the Arabic. Sacred Rule 5's other half survives.** The
+  reading page is ink on cream, untouched, and an ayah is marked by a **gold rule in the
+  margin** plus a circled gold numeral. A different mechanism from "everything else
+  recedes", but the same principle: nothing is laid on top of the Qur'an.
+- ✅ **The reading surface stays cream inside an otherwise dark app**, which is exactly what
+  the contrast maths forced independently — gold is unreadable on cream (2.06:1) and AAA on
+  midnight (7.79:1). ⚠ **Consequence not yet built: the app's default theme must flip to
+  dark.** Wird currently defaults to light. Dark becomes the app; cream becomes the page.
+- ⚠ **The companion is not a screen.** "Are you reading tonight? · after Isha · at 9 · not
+  today" sits at the top of Today, above the portion. That is a stronger placement than
+  § 5b assumed and should be kept.
+- **A name is now asked for.** Approved 2026-08-17 — the design greets "Good evening,
+  Amina" and he confirmed he wants it. Wird has never had a name, an account, or anything
+  to hold one. **It is a local string and nothing more**: no account, no sync, no
+  validation, skippable, and it never leaves the phone. Sacred Rule 1 is untouched by it.
+- Red earns exactly one place: the small record dot on "Recite it aloud".
+
    **No user-chosen highlight colour.** Raised and declined on 2026-08-15. There is no
    highlight by design — the portion is marked by everything else stepping back, because
    painting a wash over the Qur'an is what defaces it. An arbitrary colour would also
