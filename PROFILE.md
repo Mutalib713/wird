@@ -109,6 +109,43 @@ this and said so plainly. It is parked, not deleted. Blocked on: (a) mushaf imag
 font licensing, (b) v1 first proving he actually uses this for 30 days. Reopening it is
 his call and needs no permission — but it does not happen before the 30-day measurement.
 
+**⚠ RAISED AGAIN 2026-08-17, and not yet resolved.** Two things he said, both of which
+change scope more than they look:
+
+**1. "I want this app to be my go-to app for my Qur'an rather than using another app."**
+That is this parked item, verbatim, and it reverses the core of Sacred Rule 5 — *"a habit
+tool, not a Qur'an reader; reading features link out."* **The 30-day condition above is
+the only thing standing in the way, and it exists for a reason:** v1 has not yet proved he
+uses it, and a full reader is the biggest possible way to spend effort before knowing that.
+Not refused — *sequenced*. Worth asking him directly whether he wants to spend the 30 days
+first or reopen now with that risk understood.
+
+**2. "I won't actually send the audio to anyone."** Two real consequences:
+
+- **Task 11 (share a recording to WhatsApp) loses its reason to exist.** It was built on
+  the assumption that sending a recitation to someone was the accountability. If nothing is
+  ever sent, that task should be **cut**, not built. Confirm before deleting it.
+- **He wants the recording analysed instead:** *"when I finish the audio then it compiles
+  and shows me where I did mistakes, where I can tap on that section and see if it's a
+  tajweed mistake or any kind."*
+
+  ⚠ **This sits on the NOT IN V1 list twice, and only one of those refusals still holds:**
+  - *"Live word-by-word recitation following — measured at ~5× slower than real time."*
+    **This objection does not apply.** He is asking for **post-hoc batch analysis** — record,
+    finish, then review — which is exactly what task 14 already does and is tractable.
+  - *"Tajweed scoring or pronunciation correction. That is Tarteel's job and it does it
+    better."* **This objection does still apply**, and it is a quality argument rather than
+    a technical one. Task 14's model (`whisper-base-ar-quran`) is trained to transcribe, not
+    to judge tajweed. **It can plausibly tell you where you diverged from the expected
+    words; it cannot reliably tell you whether a madd was held long enough.** Promising
+    tajweed feedback it cannot deliver would be the worst failure this app could have —
+    wrong correction on the Qur'an is worse than none.
+
+  **The honest middle, and what should be scoped first:** task 14 already knows the assigned
+  passage, so *"here is where what you said stopped matching what was expected, tap to hear
+  it back"* is achievable. **Naming the error type is not**, on this model. Whether that
+  narrower version is worth building is his call.
+
 ## 5b. THE ACCOUNTABILITY COMPANION — approved 2026-08-16
 
 Mutalib reopened the "no chatbot" exclusion after Phase 0 interrogation on 2026-08-16 and
