@@ -122,6 +122,7 @@ fun TodayScreen(
     var seconds by remember { mutableIntStateOf(0) }
     var level by remember { mutableFloatStateOf(0f) }
     var problem by remember { mutableStateOf<String?>(null) }
+    var companionReply by remember { mutableStateOf<String?>(null) }
 
     DisposableEffect(Unit) { onDispose { recitation.release() } }
 
@@ -238,6 +239,32 @@ fun TodayScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+      Column(modifier = Modifier.fillMaxSize()) {
+        // The companion sits ABOVE the page, and only while the day is unfinished.
+        //
+        // Home is page-first (PROFILE § 5f) so this must not become a dashboard in front
+        // of the reading. Two things keep it honest: it is a band rather than a screen,
+        // and **it disappears the moment the day is marked** — once you have read, there
+        // is nothing left to ask, and the page gets its full height back.
+        if (doneMethod == null && !recording) {
+            Companion(
+                question = companionQuestion(),
+                shortcuts = listOf("After Isha", "In an hour", "Not today"),
+                lastReply = companionReply,
+                onReply = { said ->
+                    // Recorded, not yet acted on. Turning "after Isha" into a real alarm
+                    // is PLAN task 21, and task 8's scheduler already does the hard half.
+                    // Saying it back is not a stub: it is the difference between something
+                    // that heard you and a box that swallowed your text.
+                    companionReply = "You said: $said"
+                },
+                modifier = Modifier.safeDrawingPadding().padding(
+                    horizontal = Scale.space4,
+                    vertical = Scale.space2,
+                ),
+            )
+        }
+        Box(modifier = Modifier.weight(1f)) {
         MushafPager(
             initialPage = todaysPages.first(),
             jump = jump,
@@ -286,6 +313,9 @@ fun TodayScreen(
                 }
             },
         )
+
+        }
+      }
 
         // The listening glow, at the edges where it cannot cover the page.
         RecitationGlow(active = recording, level = level)
@@ -496,3 +526,19 @@ private fun BarIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
 // numbers typed from memory — which is precisely the kind of Qur'anic metadata this
 // project refuses to guess at. The API reports `juz_number` for every page and
 // MushafPage already carries it, so the bar reads the page it is actually showing.
+
+/**
+ * What the companion asks, phrased for the time of day.
+ *
+ * Sacred Rule 3 is the whole constraint here: it asks whether you are reading, never
+ * whether you have failed to. "Still reading today?" in the evening is a question; "you
+ * haven't read yet" is the same fact turned into an accusation.
+ */
+private fun companionQuestion(): String {
+    val hour = java.time.LocalTime.now().hour
+    return when {
+        hour < 12 -> "Reading this morning?"
+        hour < 17 -> "Reading today?"
+        else -> "Are you reading tonight?"
+    }
+}
