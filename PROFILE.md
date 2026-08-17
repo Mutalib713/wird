@@ -639,3 +639,35 @@ nothing signals a reply is possible. The fix is not decoration — it is making 
 the primary affordance**, with the chips as shortcuts *under* it rather than instead of it,
 and the companion's messages appearing as its own turns so something is visibly addressing
 you and waiting. Design this properly rather than bolting it on.
+
+### 5g. Home is a dashboard after all — reversed 2026-08-17, same day as § 5f
+
+§ 5f recorded "page-first, keep the mushaf as the front door", built as a companion band
+above the page. Seeing it, he rejected it: *"it shouldn't be like that, it should be like
+the design in the Claude Design… this looks bad. Like a complete home screen, like how the
+Claude Design did theirs."*
+
+**So § 5f is superseded. Home is a dashboard; the mushaf page sits behind "Open the page →".**
+The band was reverted rather than left in.
+
+**Why it did not work, which is worth keeping so it is not retried:** a band above the page
+is neither thing. It is not a home screen — too thin to carry the greeting, the two numbers
+and the day's state — and it is not a clean page either, because something permanent is now
+parked above the Qur'an. Half-measures between "page first" and "dashboard" land in the gap.
+
+**What Home must contain**, from the design's own Today screen, in its order:
+
+1. Eyebrow: weekday and the Hijri date — `THURSDAY · 3 RABĪʿ AL-AWWAL`
+2. Greeting in the serif display face — `Good evening, <name>` (the name § 5c approved)
+3. The companion card, already built in `Companion.kt` — question, input, shortcuts
+4. **Today's portion card:** surah and ayah range, `3 ayahs · half a page · page 293`, the
+   surah name in Arabic, a progress bar, `JUZ' 15 · 41% THROUGH`, and **`OPEN THE PAGE →`**
+5. The two numbers as a row of figures: `7 IN A ROW · 23 DAYS READ · 5 RECITED`
+6. `MARKING IT DONE` — the three controls
+7. `YOUR WIRD` — the last few days, which the History tab already renders
+
+**What survives from § 5f and must not be lost:** § 2's finding still stands — 8 of 14 missed
+days were procrastination, so every extra step before reading costs something. The dashboard
+earns its place only if `OPEN THE PAGE →` is unmissable and one tap. **Watch this at the
+30-day measurement:** if days start being missed after the dashboard lands, this is the first
+suspect.
