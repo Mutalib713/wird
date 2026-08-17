@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -52,6 +54,11 @@ fun SurahList(
             label = { Text("Search surah") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
+            // Without this the field draws in Material's default purple — a sixth colour
+            // on a five-colour palette, on the first screen of a brand-new install.
+            // Sacred Rule 8. Caught on the emulator 2026-08-17; invisible on the dev phone
+            // because it was already past setup and never saw this screen again.
+            colors = wirdFieldColors(),
         )
         Spacer(Modifier.height(Scale.space2))
 
@@ -136,4 +143,27 @@ internal fun searchSurahs(query: String): List<Surah> {
         val name = surah.name.lowercase().filter(Char::isLetterOrDigit)
         name.contains(q) || surah.number.toString() == q
     }
+}
+
+/**
+ * Text fields in the app's own palette.
+ *
+ * Material's defaults are purple, which is a sixth colour on a five-colour palette
+ * (Sacred Rule 8) and it landed on the very first screen of a new install. Defined once
+ * here and used by both fields, so the next one added cannot quietly reintroduce it.
+ */
+@Composable
+fun wirdFieldColors(): TextFieldColors {
+    val colors = LocalWirdColors.current
+    return OutlinedTextFieldDefaults.colors(
+        focusedTextColor = colors.textPrimary,
+        unfocusedTextColor = colors.textPrimary,
+        cursorColor = colors.accent,
+        focusedBorderColor = colors.accent,
+        unfocusedBorderColor = colors.textOutsidePortion,
+        focusedLabelColor = colors.accent,
+        unfocusedLabelColor = colors.textSecondary,
+        focusedContainerColor = colors.surface,
+        unfocusedContainerColor = colors.surface,
+    )
 }

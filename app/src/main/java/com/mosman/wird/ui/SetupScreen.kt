@@ -185,6 +185,7 @@ private fun FindYourPlace(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 isError = typedOutOfRange,
                 modifier = Modifier.fillMaxWidth(),
+                colors = wirdFieldColors(),
             )
 
             Spacer(Modifier.height(Scale.space3))
