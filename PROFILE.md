@@ -612,3 +612,30 @@ those detail screens, so **the rebuild is not wasted**; it gets moved rather tha
 **Also still outstanding on this screen:** the *after* variant styles rows with the serif
 display face for titles and small-caps for the value line. That depends on the fonts being
 bundled, which has not happened yet.
+
+### 5f. Home is page-first — decided 2026-08-17
+
+Asked directly, because the design assumed the opposite and it changes the shape of the
+app. His answer: *"page-first home, keep the mushaf as the front door."*
+
+**So the Home tab stays the mushaf page.** You open Wird and you are reading. The design's
+Home is a dashboard — greeting, portion card, stats — with the page behind an
+"OPEN THE PAGE →" button; **that half is not taken.**
+
+**Why it matters, and why it was worth asking rather than assuming:** this is the one thing
+that survived every other reversal today. Sacred Rule 5 lost "no menu in between" to the tab
+bar and "not a Qur'an reader" to the full-reader decision, and what stayed both times was
+*the app opens on today's portion*. § 2's number is the reason — **8 of 14 missed days were
+procrastination**, so every screen between him and the page is one more place to stop.
+
+**What still gets built, and where it goes:** the greeting, the two numbers and the
+companion are all wanted. They live **above the page, reached by scrolling up** from it, or
+as a sheet — not as a screen in front of it. Combine the *before* and *after* variants for
+their look; take neither's navigation.
+
+**⚠ Open, and the sharpest note he has given: the companion does not read as something you
+can talk to.** Three fixed chips (*after Isha · at 9 · not today*) look like a poll, and
+nothing signals a reply is possible. The fix is not decoration — it is making **the input
+the primary affordance**, with the chips as shortcuts *under* it rather than instead of it,
+and the companion's messages appearing as its own turns so something is visibly addressing
+you and waiting. Design this properly rather than bolting it on.
