@@ -112,6 +112,22 @@ his call and needs no permission — but it does not happen before the 30-day me
 **⚠ RAISED AGAIN 2026-08-17, and not yet resolved.** Two things he said, both of which
 change scope more than they look:
 
+**✅ RESOLVED, same day.** *"For the 30 days judgement we will do it, but I just want this
+to be my Qur'an app."* So the measurement still happens — **it stops being a gate.** Wird
+becomes a Qur'an app he reads in, and Sacred Rule 5's *"a habit tool, not a Qur'an reader;
+reading features link out"* is **reversed in full**, alongside the tab-bar reversal above.
+
+What that changes in practice: browsing, a real reader, and the recitation review all become
+in-scope rather than link-outs. **What it does not change:** the app still opens on today's
+portion, and § 3's success metric is unchanged — 20 of 30 days, 10 of them recited aloud.
+
+*The risk he is knowingly taking, stated once and then not laboured:* the 30-day number was
+meant to come in **before** large effort went into a reader, because it answers whether the
+habit mechanic works at all. Building both in parallel means that effort is spent before the
+answer exists. He has decided that trade is worth it. **If the 30-day verdict comes back bad,
+the reader is not the thing that failed** — do not let a good reader disguise a habit
+mechanic that did not work.
+
 **1. "I want this app to be my go-to app for my Qur'an rather than using another app."**
 That is this parked item, verbatim, and it reverses the core of Sacred Rule 5 — *"a habit
 tool, not a Qur'an reader; reading features link out."* **The 30-day condition above is
