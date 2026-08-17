@@ -10,12 +10,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,91 +33,100 @@ import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 
 /**
- * Where the app can be, now that Sacred Rule 5's "no menu in between" is lifted
- * (PROFILE.md § 6, reversed 2026-08-17 — Mutalib: *"reopen rule 5, i like the tabs"*).
+ * The four places the app has.
  *
- * **Four, not the design's five.** Its set was `TODAY · SŪRAHS · READ · RECITE · MORE`, and
- * READ is redundant here: in Wird, Today *is* the reading screen — tapping Today already
- * lands you on the mushaf page. A tab that goes where the previous tab already went is a
- * tab people learn to ignore, and the whole reason this bar exists is to make five places
- * findable rather than to have five of them. Mutalib gave explicit licence to rearrange.
+ * Order and names are Mutalib's, 2026-08-17: *"the first tab should be the home tab, second
+ * with the surah, third change the name since it has something to do with history, and
+ * fourth will be more."*
  *
- * Words, not icons. The same argument as the chrome bar in task 5e: there is no glyph that
- * means "the bit you were supposed to read today", and a row of little pictures over a
- * Qur'an app needs explaining. Four short words fit across a phone comfortably — measured
- * in the weekday-chip fix, a 4-across row has room to spare.
+ * [HISTORY] was called Recite until he renamed it, and the rename is the more honest label
+ * — reciting happens at the foot of today's page, not in a tab. What lives here is the
+ * record of what you already did.
  */
-enum class WirdTab(val label: String) {
-    TODAY("Today"),
-    SURAHS("Sūrahs"),
-    RECITE("Recite"),
-    MORE("More"),
+enum class WirdTab(val label: String, val icon: ImageVector) {
+    HOME("Home", Icons.Filled.Home),
+    SURAHS("Sūrahs", Icons.AutoMirrored.Filled.List),
+    HISTORY("History", Icons.Filled.DateRange),
+    MORE("More", Icons.Filled.Settings),
 }
 
 /**
- * The bottom bar.
+ * Icon above a label, the way every app does it.
  *
- * Deliberately not a Material `NavigationBar`: that component brings its own container
- * colour, its own indicator pill and its own 80dp height, and overriding all three to reach
- * the palette is more work than drawing a row. It is also the component most responsible
- * for the "boxy" feeling Mutalib objected to.
+ * The first version was words alone, and Mutalib's note was direct: *"that's not how I like
+ * it — do it like how apps do it, with a favicon and the name beneath it."* He is right, and
+ * it is not only familiarity: four bare words in a row read as a sentence rather than as
+ * four destinations, and nothing showed which was current except weight.
  *
- * The active tab is marked by **a gold rule above it and full-strength text**, not by a
- * filled pill. Gold as a rule rather than a ground is the same discipline the palette
- * forced everywhere else: gold is unreadable as text on light, and a filled gold pill with
- * a label on it would be exactly that mistake at the bottom of every screen.
+ * **The rule the rest of the app follows does not apply down here.** On the page, meaning is
+ * carried by ink and paleness and never by colour alone. A tab bar is the opposite case —
+ * it is chrome, it is glanced at rather than read, and it earns colour. The active tab is
+ * gold *and* full-weight *and* topped by a gold rule, so it survives being colour-blind or
+ * looked at sideways in the dark.
  */
 @Composable
 fun WirdTabBar(current: WirdTab, onPick: (WirdTab) -> Unit) {
     val colors = LocalWirdColors.current
     Column(modifier = Modifier.fillMaxWidth().background(colors.surface)) {
-        // A single hairline across the whole bar, so the bar reads as one edge rather than
-        // as four boxes sitting in a row.
+        // One hairline across the whole bar, not a box around each tab. Mutalib's word for
+        // the design that did the latter was "boxy".
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(colors.textOutsidePortion.copy(alpha = 0.35f))
+                .background(colors.textOutsidePortion.copy(alpha = 0.3f))
         )
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(top = Scale.space1),
             horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.Top,
         ) {
-            WirdTab.entries.forEach { tab ->
-                TabItem(tab = tab, active = tab == current, onPick = { onPick(tab) })
-            }
+            WirdTab.entries.forEach { t -> TabItem(t, t == current, onPick) }
         }
     }
 }
 
 @Composable
-private fun TabItem(tab: WirdTab, active: Boolean, onPick: () -> Unit) {
+private fun TabItem(tab: WirdTab, active: Boolean, onPick: (WirdTab) -> Unit) {
     val colors = LocalWirdColors.current
+    val tint = if (active) colors.accent else colors.textSecondary
+
     Column(
         modifier = Modifier
-            .defaultMinSize(minHeight = Scale.minTarget)
-            .clickable(onClick = onPick)
-            .padding(horizontal = Scale.space2),
+            .defaultMinSize(minWidth = Scale.minTarget, minHeight = Scale.minTarget)
+            .clickable { onPick(tab) }
+            .padding(horizontal = Scale.space2, vertical = Scale.space1),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // The mark sits above the word, so the words themselves stay on one baseline.
+        // The marker sits above the icon rather than under the label, so it reads as
+        // "this one" without adding height below where the gesture bar already is.
         Box(
             Modifier
-                .padding(top = Scale.space1)
-                .width(20.dp)
+                .width(Scale.space6)
                 .height(2.dp)
-                .background(if (active) colors.ornament else androidx.compose.ui.graphics.Color.Transparent)
+                .background(if (active) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
         )
-        Spacer(Modifier.height(Scale.space2))
+        Spacer(Modifier.height(Scale.space1))
+        Icon(
+            imageVector = tab.icon,
+            // The label is right underneath, so repeating it here would make TalkBack say
+            // everything twice.
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.height(2.dp))
         Text(
             text = tab.label,
-            color = if (active) colors.textPrimary else colors.textSecondary,
+            color = tint,
             style = TextStyle(
-                fontSize = 13.sp,
-                fontWeight = if (active) FontWeight.Medium else FontWeight.Normal,
-                letterSpacing = 0.4.sp,
+                fontSize = 11.sp,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                letterSpacing = 0.3.sp,
             ),
         )
-        Spacer(Modifier.height(Scale.space3))
     }
 }

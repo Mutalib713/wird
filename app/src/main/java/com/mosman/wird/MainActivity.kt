@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var armed by remember { mutableStateOf<Armed?>(null) }
-            var tab by remember { mutableStateOf(WirdTab.TODAY) }
+            var tab by remember { mutableStateOf(WirdTab.HOME) }
             /** Set when a surah is picked from the Sūrahs tab; consumed by TodayScreen. */
             var openPage by remember { mutableStateOf<Int?>(null) }
             val playback = remember { Recitation(this@MainActivity) }
@@ -160,7 +160,7 @@ class MainActivity : ComponentActivity() {
                   Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.weight(1f)) {
                       when (tab) {
-                        WirdTab.TODAY -> TodayScreen(
+                        WirdTab.HOME -> TodayScreen(
                         assignment = assignment,
                         startVerse = startVerse,
                         onSettings = { tab = WirdTab.MORE },
@@ -214,11 +214,11 @@ class MainActivity : ComponentActivity() {
                                 // Picking a surah is a reading action, so it lands you on
                                 // the page rather than leaving you in a list admiring it.
                                 openPage = surah.firstPage
-                                tab = WirdTab.TODAY
+                                tab = WirdTab.HOME
                             },
                         )
 
-                        WirdTab.RECITE -> RecitationsScreen(
+                        WirdTab.HISTORY -> RecitationsScreen(
                             logs = days.all(),
                             audioFor = { d -> days.audioFor(d) },
                             onPlay = { f -> playback.play(f) },
@@ -246,7 +246,7 @@ class MainActivity : ComponentActivity() {
                         onAudioQuality = { store.audioQuality = it; audioQuality = it },
                         onUseLocation = { askLocation.launch(Where.PERMISSION) },
                         onChangePosition = { screen = Screen.SETUP },
-                            onBack = { tab = WirdTab.TODAY },
+                            onBack = { tab = WirdTab.HOME },
                         )
                       }
                     }
