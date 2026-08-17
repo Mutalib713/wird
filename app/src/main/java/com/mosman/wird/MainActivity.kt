@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import com.mosman.wird.audio.Recitation
+import com.mosman.wird.ui.HomeScreen
 import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
 import com.mosman.wird.ui.SurahsTab
@@ -67,6 +68,8 @@ class MainActivity : ComponentActivity() {
             var tab by remember { mutableStateOf(WirdTab.HOME) }
             /** Set when a surah is picked from the Sūrahs tab; consumed by TodayScreen. */
             var openPage by remember { mutableStateOf<Int?>(null) }
+            /** Home is a dashboard (PROFILE 5g); the page is one tap behind it. */
+            var onPage by remember { mutableStateOf(false) }
             val playback = remember { Recitation(this@MainActivity) }
 
             /**
@@ -160,7 +163,13 @@ class MainActivity : ComponentActivity() {
                   Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.weight(1f)) {
                       when (tab) {
-                        WirdTab.HOME -> TodayScreen(
+                        WirdTab.HOME -> if (!onPage) HomeScreen(
+                            assignment = assignment,
+                            progress = progress,
+                            doneMethod = doneMethod,
+                            recent = days.all().sortedByDescending { it.date },
+                            onOpenPage = { onPage = true },
+                        ) else TodayScreen(
                         assignment = assignment,
                         startVerse = startVerse,
                         onSettings = { tab = WirdTab.MORE },
@@ -214,6 +223,7 @@ class MainActivity : ComponentActivity() {
                                 // Picking a surah is a reading action, so it lands you on
                                 // the page rather than leaving you in a list admiring it.
                                 openPage = surah.firstPage
+                                onPage = true
                                 tab = WirdTab.HOME
                             },
                         )
