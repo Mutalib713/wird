@@ -244,9 +244,29 @@ misled once already:
   the contrast maths forced independently — gold is unreadable on cream (2.06:1) and AAA on
   midnight (7.79:1). ⚠ **Consequence not yet built: the app's default theme must flip to
   dark.** Wird currently defaults to light. Dark becomes the app; cream becomes the page.
-- ⚠ **The companion is not a screen.** "Are you reading tonight? · after Isha · at 9 · not
-  today" sits at the top of Today, above the portion. That is a stronger placement than
-  § 5b assumed and should be kept.
+- ⚠ **The companion is not a screen** — it lives on Today rather than behind a tab.
+  **But NOT above the portion. Overruled by Mutalib the same day:** *"today's portion should
+  be first."* The design put the greeting and the companion card first and pushed the
+  portion below them, which is the front door losing its place to a greeting. Portion first,
+  companion under it.
+- ⚠ **The companion does not read as something you can talk to.** His words: *"the user
+  won't know it's even a chat bot."* Three fixed reply chips look like a poll, not a
+  conversation, and the plain-words input is the part that makes it a companion at all. It
+  has to invite a reply, not just offer buttons.
+
+### 5d. Direction notes — the design is a reference, not a spec
+
+Mutalib, 2026-08-17, having seen it rendered:
+
+- **"That design looks boxy."** Everything is a bordered card stacked on another bordered
+  card. Take its colour, its type and its restraint; **do not take its box-per-thing
+  layout.** Rules, spacing and hierarchy can separate things without a border round each one.
+- **Element order is ours to set**, not the mockup's. Today's portion first.
+- ✅ **The mushaf page keeps what it already has.** *"The design of the font and pages of
+  the Qur'an, maintain the ones we did earlier — I like those ones."* The QCF per-page
+  glyph fonts, the fifteen-line layout, the lit/receded treatment and the ayah-range
+  headline all **stay exactly as built**. The redesign is chrome only. This is the part of
+  the app that took the most work to get right and it is not being reopened.
 - **A name is now asked for.** Approved 2026-08-17 — the design greets "Good evening,
   Amina" and he confirmed he wants it. Wird has never had a name, an account, or anything
   to hold one. **It is a local string and nothing more**: no account, no sync, no

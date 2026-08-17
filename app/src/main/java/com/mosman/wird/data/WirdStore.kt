@@ -71,14 +71,23 @@ class WirdStore(context: Context) {
     /**
      * Paper, ink, or whatever the phone is set to.
      *
-     * Defaults to [ThemeMode.LIGHT] rather than following the system: a mushaf is a paper
-     * object, and the app follows the thing it stands in for. But he reads at night, and a
-     * paper-white screen in a dark room is unkind, so this is a switch rather than a rule.
+     * **Default flipped to [ThemeMode.DARK] on 2026-08-17**, with the palette. The old
+     * default was light and the reasoning was sound at the time — a mushaf is a paper
+     * object, so the app followed the thing it stood in for.
+     *
+     * The new palette makes that untenable rather than merely unfashionable: gold is
+     * **2.06:1 on cream**, which is unreadable, and **7.79:1 on midnight**, which is AAA.
+     * The accent colour only works on a dark ground, so a light-by-default app would be one
+     * that never shows its own accent. The design agrees — it is dark everywhere except the
+     * page itself.
+     *
+     * **The page stays cream in both modes.** That is not an inconsistency; it is the whole
+     * idea. The app is dark, and the mushaf is a lit page inside it.
      */
     var themeMode: ThemeMode
         get() = runCatching {
-            ThemeMode.valueOf(prefs.getString(KEY_THEME, ThemeMode.LIGHT.name)!!)
-        }.getOrDefault(ThemeMode.LIGHT)
+            ThemeMode.valueOf(prefs.getString(KEY_THEME, ThemeMode.DARK.name)!!)
+        }.getOrDefault(ThemeMode.DARK)
         set(value) = prefs.edit { putString(KEY_THEME, value.name) }
 
     /**
