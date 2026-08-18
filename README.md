@@ -15,73 +15,64 @@ Reminders fix forgetting. Forgetting was the smaller half of the problem. The th
 actually worked was having a teacher to recite to — someone who expected you, and in
 front of whom you had to open your mouth. School ended that. Wird is a stand-in for it.
 
-## Status — the loop closes
+## Status: the loop closes, and the app grew a front door
 
-**Wird is now the thing it was described as.** It knows where you are, shows today's
-portion on a real mushaf page, reminds you at a moment that follows the sun, and lets you
-finish the day by reciting it out loud.
+**Wird is now the thing it was described as, and then some.** It knows where you are, shows
+today's portion on a real mushaf page, reminds you at a moment that follows the sun, and lets
+you finish the day by reciting it out loud. Since then it has also become a Qur'an app you
+could use for reading, which was a deliberate reversal rather than scope creep. See
+`PROFILE.md § 5`.
 
 | | |
 |---|---|
 | ✅ **Milestone 0** | It builds, it installs, and a scheduled notification fires and opens the page. |
 | ✅ **Milestone 1** | The mushaf renders; it knows where you are; you can browse, jump, and change your mind. |
 | 🔸 **Milestone 2** | Done: marking a day (6), the streak and the honest split (7), prayer-time timing (8), Shatri's recitation offline (9). Left: the home-screen widget (10). |
+| 🔸 **Milestone 4b** | The companion exists and holds a real conversation. What powers its understanding is still undecided (task 22). |
 
-What Milestones 1 and 2 gave you:
+What the first two milestones gave you:
 
-- **Setup asks the question you can answer.** Pick your surah from a searchable list, see
-  the page, tap the ayah you are on. Type the number instead if you know it.
+- **Setup asks the question you can answer.** What to call you, whether you read from the
+  mushaf or from memory, then your surah, the ayah you are on, and how much a day.
 - **The real Madani mushaf page**, in its own per-page font, with the bismillah where the
   printed page puts it.
-- **Today's portion in dark ink; everything else pale** — on every page, no exceptions —
-  and the ayah range named in words so nothing depends on telling two shades apart.
+- **Today's portion in dark ink; everything else pale**, on every page, no exceptions, with
+  the ayah range named in words so nothing depends on telling two shades apart.
 - **Swipe to any page, jump to any surah**, with "Today's portion" to come back.
 - **A page that carries no chrome.** Tap it to reveal the bar; tap again and it goes.
-- **Done means you said it out loud.** Record yourself reciting, or tap "I read it" —
-  both allowed, both logged separately, and the split shown honestly.
-- **The streak next to the total days read**, which never resets, and a streak of nought
-  is never held up to you.
-- **A reminder that follows sunset**, not a clock hour — thirty minutes after Maghrib by
-  default, movable to any prayer, any fixed hour, or off.
-- **Hear it recited.** Abu Bakr al-Shatri, fetched once and then playable with the phone
-  in airplane mode. The escape hatch for a day reading is not going to happen.
-- **Settings**: paper or ink, how much a day, lighter days, when to be reminded, how the
-  recitation is fetched, and where you are in the mushaf.
+- **Done means you said it out loud.** Record yourself reciting, or tap the quieter route,
+  and the app never blurs which of the two you did.
+- **A reminder that follows the sun**, computed on the phone with no network and no key.
+- **Shatri's recitation**, fetched once and playable offline afterwards.
 
-⚠ **One thing is built and unwatched:** the nudge has not been seen to *fire* since task 8
-rewired it. The timing is verified three separate ways and the alarm is registered on the
-phone, but the notification itself last fired under task 3's code. Confirm it the next
-time it goes off.
+What the sessions since added:
 
-Everything after that is in `PLAN.md`.
-
----
-
-# How it works
-
-Written for someone who owns this project but is still learning the vocabulary. Every
-term is explained the first time it appears. Skim the bold sentences if you want the
-short version.
+- **A home screen**: greeting, today's portion, your numbers, and the week behind you.
+- **A companion you can talk to**, which turns "after Isha" into a real alarm.
+- **The whole Qur'an, browsable**, grouped into juz' with each surah's meaning beside it.
+- **Light and dark**, following your phone unless you say otherwise.
 
 ## The shape of the whole thing
 
-There is no server. Nothing is uploaded. The app talks to two places on the internet, and
-only to *download*:
+There is no server. Nothing is uploaded. The app talks to three places on the internet, and
+only ever to *download*:
 
 ```
-   quran.com API  ──►  which words are on page 453, and on which line
-   qpc-fonts repo ──►  the font that draws those words
+   quran.com API   ──►  which words are on page 453, and on which line
+   qpc-fonts repo  ──►  the font that draws those words
+   qurancdn audio  ──►  Shatri reciting the ayahs you were assigned
                             │
                             ▼
                    saved to the phone's own storage
                             │
                             ▼
-                   drawn on screen, works offline forever after
+                   drawn or played, works offline forever after
 ```
 
-That's it. Your reading history, your position, and later your recordings never leave the
-phone. This isn't a privacy feature bolted on — it's Sacred Rule 1 in `PROFILE.md`, and
-it's enforced in the build itself (see *Backups* below).
+That's it. Your reading history, your position, your name, your conversation with the
+companion and your recordings never leave the phone. This isn't a privacy feature bolted on
+— it's Sacred Rule 1 in `PROFILE.md`, and it's enforced in the build itself (see *Backups*
+below).
 
 ## 1. The build system
 
@@ -456,97 +447,94 @@ missed.
 Note "whatever lines that page rendered" — a page that opens a surah gives its first line
 to the bismillah, so it has 14, not 15.
 
-## 6. Getting around, without a home screen
+## 6. Getting around
 
-Wird opens straight onto today's portion. There is no menu in front of it, on purpose:
-the Phase 0 numbers said the *decision* was the problem — 8 of the last 14 missed days
-were "saw it, didn't open it" — so every screen placed before the reading is another
-place to bounce off.
+**This section used to be called "without a home screen", and that is no longer true.** It is
+worth saying why it changed rather than quietly editing it, because the reasoning was sound
+and it was the app underneath that moved.
 
-That leaves a question: where do the controls live?
+The original argument: Wird opens straight onto today's portion, because the Phase 0 numbers
+said the *decision* was the problem. 8 of the last 14 missed days were "saw it, didn't open
+it", so every screen placed before the reading is another place to bounce off.
 
-**The page carries none.** Tap it and a slim bar slides down with where you are (surah,
-page, juz) and the ways out (another surah, settings). Tap again and it goes. That is what
-Kindle and Quran for Android both do, and it is the only arrangement that takes more
-controls without eating into the page.
+That argument still holds. What changed is that the app grew past what it described. Once
+there was a whole Qur'an to browse, a history to look at and a companion to answer, "no menu"
+described a smaller app than the one that existed. So there is a home screen now, and the
+rule it has to earn its place against is unchanged: **`Open the page →` is the loudest thing
+on it, full width, one tap.** If missed days go up, that screen is the first suspect.
 
-**The gesture is invisible, so it gets taught.** The bar is showing the first time you
-open the app and withdraws after 3.5 seconds. Once, ever. The alternative — a permanent
-hamburger icon — announces itself but parks a mark on the Qur'an forever, and ☰ promises
-a menu of destinations this app does not have.
+### Three tabs, at the top
 
-Two bugs worth remembering, both found by using the app rather than by testing it:
+**Home · Sūrahs · History**, under a bar carrying the app's name and a `⋮`.
 
-- **The bar's surah name never changed.** The update was guarded by "only if this is the
-  page we're on", and during a swipe those two are briefly out of step, so it was dropped
-  every time. Now every drawn page is remembered by number and the bar looks up the one
-  you are on.
-- **"Today's portion" and go-to-surah did nothing.** `rememberPagerState` reads its
-  starting page *once*; changing it later moves nothing. Both controls only ever worked on
-  first composition. Jumping is now an explicit instruction, and it carries a counter —
-  because swiping away from page 440 and back means a jump to 440 looks identical to the
-  last one, which is exactly the case that failed.
+They sit at the top rather than the bottom, which is the second reversal here. At the bottom,
+tabs are thumb targets and want mass, which is why Wird had icons above labels. At the top
+they are a heading: you read them once and read past them, so weight there competes with the
+screen's own title. Hence an underline rather than a filled pill. The active tab is still
+accented **and** bolder **and** underlined, so colour is never the only signal.
 
-**When something is named `initialX`, assume it is read once.**
+**There were four tabs; "More" is gone.** Settings was never somewhere you visit alongside
+your wird. It is a drawer you open, change one thing in, and leave, and it was spending a
+quarter of the bar on that. It lives behind the `⋮` now, next to a night-mode checkbox.
 
-### How many buttons actually fit across a phone
+### The page still carries nothing
 
-Settings laid all seven weekday buttons in one row. The last two of them, Saturday and
-Sunday, could not be tapped at all.
+Tap the mushaf and a slim bar slides down: where you are, a back arrow, play, and a `⋮`
+holding night mode, "read something else" and settings. Tap again and it goes. That is what
+Kindle and Quran for Android both do, and it is the only arrangement that keeps a permanent
+mark off the Qur'an.
 
-The arithmetic is worth carrying around, because it settles this every time. Your Pixel is
-1440 pixels wide. But pixels are not the unit layouts get written in: Android uses **dp**,
-*density-independent pixels*, a unit that stays the same physical size on every screen, so
-a 48dp button is the same amount of fingertip on a cheap phone as on an expensive one. Your
-phone packs 3.5 real pixels into every dp. So 1440 pixels is 411dp of room, and the screen's
-own 24dp margins leave 363dp to build in.
+**The top bar hides here too**, because the page is the one screen that should have nothing
+parked above it.
 
-A button has a floor of **48dp**, roughly the pad of an adult finger, which is what
-`Scale.minTarget` is for. Material widens its buttons to 58dp, and there is a 4dp gap
-between each. So a day costs 66dp. Seven days want 458dp. There is 363dp. It never fit.
-
-**What a `Row` does when it runs out of room is the half that bites.** It doesn't shrink
-things to cope. It doesn't complain either. It hands out space in order, first come first
-served, and whatever is still queueing gets whatever is left, which by then is nothing.
-Saturday got a sliver and broke onto two lines. Sunday got zero. Something zero pixels wide
-isn't merely off the edge of the screen; it never enters the accessibility tree, so someone
-using TalkBack couldn't reach it either. Two days, quietly unselectable, in a setting whose
-whole job is picking days.
-
-Four then three now. The prayer buttons directly below had already hit this and been split
-the same way. The note beside them even said a sideways-scrolling row is no fix, because
-the option on the end simply stays hidden. The weekday row got written the naive way anyway.
-
-**A rule written as a comment beside one row does not protect the row above it.**
+**That combination once produced a dead end**, and it is the clearest bug this project has
+shipped: the page hides the bar, the bottom bar it replaced was gone, and the app had no
+back handling at all, so opening today's portion left you stuck, and the system back gesture
+quit the app instead of returning. Fixed with both a visible arrow and real back handling.
+The lesson is not about back buttons: **two changes that are each safe alone can remove the
+last route out**, and only using the thing finds it.
 
 ## 7. Colour
 
-Your five colours from coolors.co are canon (Sacred Rule 8) — they don't get "improved"
-later.
+**The palette has been pinned three times.** All three are in `PROFILE.md`: § 6b the
+original, § 6c the gold, § 6d the current one. They stay because a colour decision that gets reversed
+is worth keeping as a record of *why*, not deleting.
 
-| | | |
+The current palette is **teal and manila, taken from Quran for Android** and pinned on
+2026-08-18. It was read from that project's own `colors.xml` rather than eyedropped from
+screenshots.
+
+| | light | dark |
 |---|---|---|
-| `#01161E` | ink | text on light, background on dark |
-| `#124559` | deep teal | secondary text on light; a raised surface on dark |
-| `#598392` | slate | **only** the ayahs outside today's portion |
-| `#AEC3B0` | sage | accent on dark, "done" states |
-| `#EFF6E0` | paper | background on light, text on dark |
+| app background | `#FAF8F7` | `#212121` |
+| **the mushaf page** | `#FFF4CB` | `#1A1A1A` |
+| main text | `#212529` | `#FFFFFF` |
+| secondary text | `#656E76` | `#B5B5B5` |
+| accent | `#00767F` | `#B2DFDB` |
+| juz' section band | `#DEE2E6` | `#424242` |
 
-**Contrast ratio** measures how far apart two colours are in brightness. 4.5:1 is the
-accessibility floor for body text; below 3:1 two colours read as the same colour. Every
-pair was computed, not eyeballed — the full table is in `PROFILE.md § 6b`.
+**Contrast ratio** measures how far apart two colours are in brightness. 4.5:1 is the floor
+for body text; below 3:1 two colours read as the same colour. Every pair here was computed,
+not eyeballed.
 
-Two things that matter:
+Three things worth knowing:
 
-- **ink on paper is 16.68:1.** That's your reading pair, and it's excellent. Dense Arabic
-  needs it.
-- **slate is never body text** — it fails on both backgrounds. Its low contrast is
-  precisely why it's the right colour for the dimmed ayahs.
+- **The page has its own colour, and that is the point.** Warm manila inside near-white
+  chrome; near-black inside dark grey at night. The app is the room and the mushaf is the lit
+  page on the table. Earlier versions of this file claimed that was already true. It wasn't:
+  the code painted the page with the same colour as every other screen, and § 6d is where it
+  became real.
+- **Two of the borrowed colours were darkened, and the reason is measurable.** Their detail
+  grey was 4.43:1 on their own background and their teal was 4.27:1, both under the floor.
+  That is fine in their app, where those roles carry short labels; Wird puts whole sentences
+  in them. Darkened to 4.90 and 5.09. **Their dark palette needed no correction at all.**
+- **The accent is a different colour in each theme.** Deep teal on light, pale teal on dark.
+  The palette before this one had a single gold that measured **2.06:1 on cream**, literally
+  unreadable, which forced the whole app to default to dark. Lightening the accent for the
+  dark ground instead is the honest fix, and it is why the app can now follow your phone.
 
-**The palette is a value ramp, not a hue wheel.** ink → deep teal → slate → sage → paper
-is one journey from dark to light. Excellent for text on a ground; useless for a colour
-that must pop out of a paragraph. That's why the accent works on a *button* (deep teal on
-paper is 9.37:1) but failed on numerals sitting inside text.
+**One rule this palette carries.** On the light juz' band, the secondary grey is **3.99:1 and
+fails**. Section labels there use the main text colour. On the dark band either works.
 
 ## 8. Backups, and why they're off
 
@@ -564,6 +552,107 @@ The cost is real and accepted: **a new phone starts empty.** Task 19 adds an exp
 choose to run, which is a thing you decide rather than a thing that happens to you.
 
 ---
+
+## 9. Home, and the shape of a day
+
+Home is a dashboard, and it took three attempts to get there. The first version was
+page-first with a thin band above the reading; that was rejected as neither thing. The
+second reproduced the design's *text order* but none of its structure, and read as one long
+column. `PROFILE.md § 5o` keeps that mistake written down because it is repeatable: **read a
+design's structure, not its strings.** Sections are divided by edges, not by empty space.
+
+What it carries, top to bottom:
+
+1. **Where you are**: surah, ayah, page.
+2. **The date**, weekday plus the Hijri date, computed on the device.
+3. **A greeting**, with your name if you gave one.
+4. **Today's portion**: the surah, how much, whether it is done, the page as a figure, and a
+   bar showing how far through the mushaf you are. Then three ways to finish, and
+   `Open the page →`.
+5. **The check-in**, while the day is unfinished.
+6. **Your numbers**: the streak, the total, and the split written out.
+7. **This week**: the last four days, each with the page it covered, and a marker that
+   separates a recitation from a tap at a glance.
+
+**Three rules govern this screen and none of them are cosmetic:**
+
+- **Today's portion does not change when you finish it.** The position advances on done, so a
+  screen computed from the live position would rewrite what today *was* the moment you marked
+  it. A finished day records what it covered and shows that until tomorrow.
+- **A streak of nought is never announced.** Someone who missed yesterday does not need a zero
+  held up to them.
+- **Missed days are absent, and the screen says so.** "Days you missed aren't listed. There is
+  no row saying you failed."
+
+### The name, and how you read
+
+Setup asks two things before the Qur'an ones, and both are small on purpose.
+
+**Your name** is one string on this phone, used for the greeting and nothing else. It is
+skippable, and the Skip is a full-width control rather than a grey word in a corner, because a skip
+nobody can find is not a choice. If you skip it, the greeting is just the hour, which is what
+it was before the feature existed.
+
+**Whether you read from the mushaf or recite from memory** changes what the app calls things:
+"Recite it out loud" becomes "Recite from memory", "I read it" becomes "I revised it". That
+is small today and it is meant to be. The larger consequence is checking a recitation
+against memory rather than against the page, and that lands with task 14. The setup screen
+says only what is true.
+
+## 10. The companion
+
+The one feature aimed at the larger half of the problem. Phase 0 found ~6 missed days to
+forgetting and ~8 to procrastination; the nudge, the widget and the streak all address the
+first. This addresses the second.
+
+**It is a conversation, and that was the second attempt.** The first was a question with three
+chips under it, which reads as a poll: three answers, pick one, nothing suggesting you could
+say anything else. Now: turns that persist to a file, its lines left and yours right, and an
+input pinned to the bottom where every messaging app has taught people to look.
+
+**The mechanic is the promise, not the chat.** Say "after Isha" and it repeats your own words
+back and holds them in view: `YOU SAID "after Isha"`, the real alarm time, and a breathing
+dot. Your own sentence at display size is something you can fail to keep; "reminder set for
+8:00 pm" is a setting.
+
+What it understands: a time, a refusal, "already did it", how you are doing, where you are,
+open a surah, play today's portion.
+
+**What it cannot do, stated plainly because the interface promises otherwise.** Underneath
+is a set of hand-written rules understanding a handful of phrasings, not a language model. A
+chat box invites anyone to type anything, so this interface promises more than the parser can
+keep. Ask it what a surah means and it shrugs. The reply names what it *does* know rather
+than apologising, and the shortcut buttons stay on screen, but that is mitigation and not a
+fix. **What powers it is still undecided.** PLAN task 22, and the choice is between rules,
+an on-device model, and a cloud one.
+
+**Sacred Rule 3 governs every line it says.** No guilt, no disappointment, no "you broke your
+streak". Saying "not today" gets "That's fine. It'll be here tomorrow" and changes nothing.
+There is a test that fails if a refusal reply ever contains the words *streak*, *failed*,
+*sure?* or *missed*.
+
+## 11. The whole Qur'an
+
+The Sūrahs tab is the visible half of reversing "a habit tool, not a Qur'an reader". Browsing
+costs nothing: today's portion only moves when a day is marked done, never by reading
+elsewhere, and the screen says so.
+
+Built to match Quran for Android, because that is the app the reference screenshots came from:
+
+- **Grouped into juz'**, each a full-width band with the juz' number and its opening page.
+- **The meaning beside the name**, so it reads `An-Nisa (The Women)`.
+- **Where it was revealed and how many verses**, underneath.
+- **The opening page as a bare number.** Not "pp. 22–49". You tap a surah to reach its
+  beginning, so where it ends is not the number you need.
+
+**None of that data was typed.** The surah columns come from the Quran.com `/chapters`
+endpoint and the juz' pages from `/verses/by_juz`, taking the page of each juz's first verse.
+The regeneration was diffed against the previous file before replacing it, 114 rows with zero
+mismatches, and the juz' numbers independently match the reference screenshots.
+
+**One thing the data got wrong and a person caught:** six surahs are named for a person or a
+word, and the API's translated name is that same word, so the list read "Hud (Hud)". The
+parenthetical is now dropped whenever the meaning folds to the same string as the name.
 
 ## Building it yourself
 
