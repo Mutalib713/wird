@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -152,6 +153,20 @@ class MainActivity : ComponentActivity() {
             // Read here, in composable context. SYSTEM has no answer of its own, so both
             // overflow toggles have to ask what is actually being painted.
             val pageDark = isDark(theme)
+
+            // **The app had no back handling at all until 2026-08-18.** Pressing back on the
+            // page, in the chat or in Settings quit Wird outright. That was survivable while
+            // a bottom tab bar was always on screen; § 5t moved the bar to the top and hides
+            // it over the mushaf, which turned a rough edge into a dead end.
+            //
+            // Order matters: the innermost thing closes first, and Home falls through to the
+            // system so back still leaves the app from where leaving makes sense.
+            BackHandler(enabled = onChat) { onChat = false }
+            BackHandler(enabled = !onChat && screen == Screen.SETTINGS) { screen = Screen.TODAY }
+            BackHandler(enabled = !onChat && screen == Screen.TODAY && onPage) { onPage = false }
+            BackHandler(enabled = !onChat && screen == Screen.TODAY && !onPage && tab != WirdTab.HOME) {
+                tab = WirdTab.HOME
+            }
 
             val today = LocalDate.now()
             var doneMethod by remember { mutableStateOf(days.methodFor(today)) }
@@ -364,6 +379,7 @@ class MainActivity : ComponentActivity() {
                         audioQuality = audioQuality,
                         readingMode = readingMode,
                         dark = pageDark,
+                        onBack = { onPage = false },
                         onNightMode = {
                             store.themeMode = if (pageDark) ThemeMode.LIGHT else ThemeMode.DARK
                             theme = store.themeMode

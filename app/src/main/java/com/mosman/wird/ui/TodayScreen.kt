@@ -6,6 +6,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -19,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
@@ -99,6 +105,8 @@ fun TodayScreen(
     dark: Boolean = true,
     /** Flips light/dark from the page itself, which is where it is wanted. */
     onNightMode: () -> Unit = {},
+    /** Leaves the mushaf. Also what the system back gesture does here. */
+    onBack: () -> Unit = {},
     onDone: (com.mosman.wird.domain.Method, java.io.File?) -> Unit = { _, _ -> },
     onUndo: () -> Unit = {},
 ) {
@@ -353,6 +361,7 @@ fun TodayScreen(
                 onListen = { listen() },
                 dark = dark,
                 onNightMode = onNightMode,
+                onBack = onBack,
             )
         }
     }
@@ -395,6 +404,7 @@ private fun ChromeBar(
     onListen: () -> Unit,
     dark: Boolean,
     onNightMode: () -> Unit,
+    onBack: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     Row(
@@ -406,6 +416,22 @@ private fun ChromeBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // **The way back, and it was missing.** Moving the tabs to the top (§ 5t) meant the
+        // bar hides while the page is open, and the bottom bar it replaced is gone — so
+        // between those two changes there was no route out of the mushaf at all. The
+        // reference has an arrow in exactly this position.
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Back",
+            tint = colors.onSurfaceRaised,
+            modifier = Modifier
+                .clip(CircleShape)
+                .clickable(onClick = onBack)
+                .defaultMinSize(minWidth = Scale.minTarget, minHeight = Scale.minTarget)
+                .padding(Scale.space3),
+        )
+        Spacer(Modifier.width(Scale.space2))
+
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = surah,
