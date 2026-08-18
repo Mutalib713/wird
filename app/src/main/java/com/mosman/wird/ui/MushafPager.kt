@@ -78,6 +78,8 @@ fun MushafPager(
      * paper is 1.69:1, measured when the ayah numerals were tried and rejected.
      */
     reciting: String? = null,
+    selected: String? = null,
+    onWordLongPress: ((String) -> Unit)? = null,
     onPageShown: (MushafPage) -> Unit = {},
     footer: @Composable (MushafPage) -> Unit = {},
 ) {
@@ -149,6 +151,8 @@ fun MushafPager(
                     state = state,
                     lit = lit,
             reciting = reciting,
+            selected = selected,
+            onWordLongPress = onWordLongPress,
                     showSkeleton = dressAsSkeleton,
                     onBackgroundTap = onBackgroundTap,
                     onPageShown = onPageShown,

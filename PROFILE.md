@@ -1362,3 +1362,50 @@ Placing a widget over adb means fighting the launcher's own drag-and-drop, and s
 attempts with `input swipe`, `input draganddrop` and a motion-event sequence all failed to
 bind it. **A hand on the screen does this in five seconds**, so that is the honest next step,
 and the "next morning" half needs a night to pass regardless.
+
+### 5x. The two highlights, after the reference. 2026-08-18
+
+Both colours had been sitting in the palette unused since § 6d. Now they are on the page.
+
+**Green while reciting** (`#46A646` at 25%, their `audio_highlight`) and **blue while selected**
+(`#4694A6` at 25%, their `selection_highlight`).
+
+**This replaced task 9's mechanic rather than joining it.** That version marked the ayah being
+recited by *dimming every other word in the portion*. It worked, and it was wrong for a reason
+worth keeping: dimming is already how the page separates today's portion from the rest of the
+mushaf, so during playback the screen carried two meanings of "pale" at once. A wash is a
+different channel, so the two stop competing. The reference does it this way and the reference
+is right.
+
+**⚠ The first attempt looked wrong and had to be redone.** Giving each highlighted glyph its
+own background works, but the glyphs sit in a `SpaceBetween` row, so the word-gaps stayed
+unpainted and the highlight read as stepping stones instead of a band. I had written a comment
+calling that deliberate — it was not, it was the easy version. Now each highlighted glyph
+reports its position with `onGloballyPositioned` and the row paints **one rounded rect** across
+the run in `drawBehind`.
+
+**It is per-run, never per-line, and the screenshot proves it.** A mushaf line usually carries
+the end of one ayah and the start of the next. With ayah 3 playing, the green band covers only
+its words and stops where ayah 4 begins on the same line. A per-line implementation would have
+lit both.
+
+### 5y. The verse toolbar — long-press an ayah
+
+Ported from the reference: hold an ayah, it tints, and a small toolbar appears.
+
+**Only what the app can actually do is on it.** Theirs carries bookmark, tag, share,
+translation and play. Wird has **play and share**; bookmarks and translations do not exist yet,
+and three dead buttons would be worse than two live ones. The row grows when the features do.
+
+**Long-press, not tap.** A plain tap on the page still belongs to the handler that reveals the
+chrome, so selecting an ayah cannot happen by accident while reading.
+
+**Anchored to the foot, not floated over the word.** The reference pins its toolbar to the
+selection, which needs the word's screen position; the page is a pager of measured glyph rows
+and chasing that would be guesswork. A fixed anchor is honest and always reachable.
+
+**⚠ Share sends a reference and a link, never Qur'anic text.** Sacred Rule 2 governs what
+leaves this app as much as what enters it — and the app has no verified plain-text copy of the
+words to quote, only glyph codes for a per-page font. Anything it "shared" as text would be
+reconstructed. So it shares `Al-Kahf 18:10 — https://quran.com/18/10` and lets a published
+source carry the words.

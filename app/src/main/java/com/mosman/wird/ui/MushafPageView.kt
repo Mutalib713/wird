@@ -1,8 +1,11 @@
 package com.mosman.wird.ui
 
 import android.graphics.Typeface
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +29,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.positionInParent
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -85,6 +98,10 @@ fun MushafPageView(
      * paper is 1.69:1, measured when the ayah numerals were tried and rejected.
      */
     reciting: String? = null,
+    /** The ayah the reader long-pressed, if any. */
+    selected: String? = null,
+    /** Long-press an ayah. Null on screens where selecting means nothing, like setup. */
+    onWordLongPress: ((String) -> Unit)? = null,
     onPageShown: (MushafPage) -> Unit = {},
     footer: @Composable (MushafPage) -> Unit = {},
 ) {
@@ -119,7 +136,9 @@ fun MushafPageView(
                     bismillahTypeface = state.bismillahTypeface,
                     lit = lit(state.page),
                     reciting = reciting,
+                    selected = selected,
                     onWordTap = onWordTap,
+                    onWordLongPress = onWordLongPress,
                     footer = footer,
                 )
             }
@@ -134,7 +153,9 @@ private fun DrawnPage(
     bismillahTypeface: Typeface?,
     lit: Set<Int>,
     reciting: String?,
+    selected: String?,
     onWordTap: ((String) -> Unit)?,
+    onWordLongPress: ((String) -> Unit)?,
     footer: @Composable (MushafPage) -> Unit,
 ) {
     val colors = LocalWirdColors.current
@@ -203,9 +224,11 @@ private fun DrawnPage(
             MushafLine(
                 glyphs = page.glyphsOn(line),
                 reciting = reciting,
+                selected = selected,
                 family = family,
                 inPortion = line in lit,
                 onWordTap = onWordTap,
+                onWordLongPress = onWordLongPress,
             )
         }
 
@@ -323,26 +346,28 @@ private fun Bismillah(codes: String, typeface: Typeface, inPortion: Boolean) {
  * words that must sit on one line: it cannot wrap and it cannot be clipped, because
  * either one loses Qur'anic text. So the type size bends and the line survives whole.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MushafLine(
     glyphs: List<Glyph>,
     family: FontFamily,
     inPortion: Boolean,
     reciting: String?,
+    selected: String?,
     onWordTap: ((String) -> Unit)?,
+    onWordLongPress: ((String) -> Unit)?,
 ) {
     val colors = LocalWirdColors.current
-    // While a recitation is playing, the ayah being heard is the only thing at full ink
-    // and the rest of the portion steps back — the same mechanic that separates today's
-    // reading from the rest of the page, applied one level down. Nothing is painted over
-    // the text and no new colour enters the palette. Sacred Rule 5.
-    val recitingHere = reciting != null && glyphs.any { it.verseKey == reciting }
-    val bodyColor: Color = when {
-        !inPortion -> colors.textOutsidePortion
-        reciting == null -> colors.textPrimary
-        recitingHere -> colors.textPrimary
-        else -> colors.textOutsidePortion
-    }
+    // **Changed 2026-08-18 to match the reference.** Task 9 marked the ayah being recited by
+    // dimming every other word in the portion. That worked, but it is the opposite of what
+    // Quran for Android does and what Mutalib asked for: there, the ayah being heard gets a
+    // soft green wash and nothing else moves.
+    //
+    // The reference's way is better here, and not only because he asked. The old mechanic
+    // spent the *same* signal — dimming — that already separates today's portion from the
+    // rest of the page, so during playback the page carried two meanings of "pale" at once.
+    // A wash is a different channel, so the two stop competing.
+    val bodyColor: Color = if (inPortion) colors.textPrimary else colors.textOutsidePortion
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
@@ -370,40 +395,97 @@ private fun MushafLine(
             else Scale.mushafLine
         }
 
+        // **One band behind the run, not a patch per word.**
+        //
+        // The first attempt gave every highlighted glyph its own background. It worked, but
+        // the row is laid out with SpaceBetween, so the word-gaps stayed unpainted and the
+        // highlight read as stepping stones rather than the continuous band the reference
+        // has. So the glyphs report where they landed and the row paints once across them.
+        //
+        // Still per-run and not per-line: a mushaf line usually carries the end of one ayah
+        // and the start of the next, and painting the whole row would highlight words nobody
+        // is reciting.
+        var band by remember(glyphs, reciting, selected) {
+            mutableStateOf<Pair<Float, Float>?>(null)
+        }
+        val washColor = when {
+            glyphs.any { it.verseKey == reciting } -> colors.highlightReciting
+            glyphs.any { it.verseKey == selected } -> colors.highlightSelected
+            else -> Color.Transparent
+        }
+
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .drawBehind {
+                        val b = band ?: return@drawBehind
+                        val pad = 4.dp.toPx()
+                        drawRoundRect(
+                            color = washColor,
+                            topLeft = Offset(b.first - pad, -pad),
+                            size = Size(
+                                width = (b.second - b.first) + pad * 2,
+                                height = size.height + pad * 2,
+                            ),
+                            cornerRadius = CornerRadius(3.dp.toPx()),
+                        )
+                    },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 glyphs.forEach { g ->
+                    val lit = g.verseKey == reciting || g.verseKey == selected
                     // No accent on the ayah numerals. It was tried and measured: deep
                     // teal against ink is 1.78:1 and sage against paper is 1.69:1, so the
                     // "marked" numeral was the same colour as the text around it. The
                     // dimming already says where the portion ends, plainly.
                     Text(
                         text = g.code,
-                        // Per glyph, not per line: a mushaf line often carries the end of
-                        // one ayah and the start of the next, and marking the whole line
-                        // would light words nobody is reciting.
-                        color = if (reciting != null && inPortion && g.verseKey != reciting) {
-                            colors.textOutsidePortion
-                        } else {
-                            bodyColor
-                        },
+                        color = bodyColor,
                         maxLines = 1,
                         softWrap = false,
                         style = TextStyle(fontFamily = family, fontSize = fitted),
-                        modifier = if (onWordTap == null) {
-                            Modifier
-                        } else {
-                            Modifier
-                                .clickable { onWordTap(g.verseKey) }
-                                // A word is smaller than a fingertip. The row is already
-                                // tall enough; this widens the target sideways so tapping
-                                // a one-letter word is not a game of accuracy.
-                                .padding(horizontal = 2.dp)
-                        },
+                        modifier = Modifier
+                            .then(
+                                if (lit) {
+                                    // Report where this word landed so the row can paint one
+                                    // band behind the whole run. See `band` above.
+                                    Modifier.onGloballyPositioned { c ->
+                                        val left = c.positionInParent().x
+                                        val right = left + c.size.width
+                                        val cur = band
+                                        band = if (cur == null) {
+                                            left to right
+                                        } else {
+                                            minOf(cur.first, left) to maxOf(cur.second, right)
+                                        }
+                                    }
+                                } else {
+                                    Modifier
+                                }
+                            )
+                            .then(
+                                if (onWordTap == null && onWordLongPress == null) {
+                                    Modifier
+                                } else {
+                                    Modifier
+                                        .combinedClickable(
+                                            // A plain tap on the page must still reach the
+                                            // background handler that shows the chrome, so
+                                            // where there is no tap action there is no tap.
+                                            onClick = { onWordTap?.invoke(g.verseKey) },
+                                            onLongClick = onWordLongPress?.let {
+                                                { it(g.verseKey) }
+                                            },
+                                        )
+                                        // A word is smaller than a fingertip. The row is
+                                        // already tall enough; this widens the target
+                                        // sideways so tapping a one-letter word is not a
+                                        // game of accuracy.
+                                        .padding(horizontal = 2.dp)
+                                }
+                            ),
                     )
                 }
             }

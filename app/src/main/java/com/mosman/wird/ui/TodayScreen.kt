@@ -131,6 +131,8 @@ fun TodayScreen(
     // parked on the Qur'an forever. Showing the bar once and withdrawing it teaches the
     // same gesture and leaves the page alone afterwards.
     var chromeShown by remember { mutableStateOf(!hasSeenChrome) }
+    /** The ayah long-pressed, if any. Drives the wash and the floating toolbar. */
+    var selectedVerse by remember { mutableStateOf<String?>(null) }
 
     // Recording lives up here, not in the footer control. The record button is at the
     // foot of the page, so the moment you start you scroll up to read — and anything down
@@ -272,6 +274,13 @@ fun TodayScreen(
             // Only while it is actually playing. A download in progress marks nothing —
             // the page should not start rearranging itself before you hear anything.
             reciting = (audio as? AudioState.Playing)?.verseKey,
+            selected = selectedVerse,
+            // Long-press selects; a plain tap still belongs to the background handler that
+            // shows the chrome, so selecting cannot be done by accident while reading.
+            onWordLongPress = { key ->
+                selectedVerse = if (selectedVerse == key) null else key
+                chromeShown = false
+            },
             footer = { page ->
                 // Only under today's reading. On a page you are browsing there is nothing
                 // to finish, and a "done" button there would be marking the wrong thing.
@@ -362,6 +371,41 @@ fun TodayScreen(
                 dark = dark,
                 onNightMode = onNightMode,
                 onBack = onBack,
+            )
+        }
+    }
+
+    // The toolbar for a selected ayah. Pinned near the foot rather than floated over the
+    // exact word: the reference anchors it to the selection, which needs the word's screen
+    // position, and the page is a scrolling pager of measured glyph rows. A fixed anchor is
+    // honest and reachable; chasing the word would be guesswork.
+    selectedVerse?.let { key ->
+        val surahName = com.mosman.wird.domain.SurahIndex
+            .byNumber(key.substringBefore(':').toIntOrNull() ?: 0)?.name.orEmpty()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .safeDrawingPadding()
+                .padding(bottom = Scale.space8),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            VerseActions(
+                verseKey = key,
+                onPlay = { listen() },
+                onShare = {
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(
+                            android.content.Intent.EXTRA_TEXT,
+                            shareTextFor(key, surahName),
+                        )
+                    }
+                    context.startActivity(
+                        android.content.Intent.createChooser(send, "Share this ayah")
+                    )
+                    selectedVerse = null
+                },
+                onDismiss = { selectedVerse = null },
             )
         }
     }
