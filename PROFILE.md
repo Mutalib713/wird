@@ -1501,3 +1501,74 @@ reasoning:** the bookmark work was verified on the emulator but never committed 
 `git add -A` swept it into **8f3f77a**, whose message describes only the Juzʾ band fix. Pushed
 history was left alone rather than rewritten — CLAUDE.md prefers a new commit to an amend — so
 this paragraph is the correction. **Verify, then commit, before starting the next thing.**
+
+### 5ab. Translations — built 2026-08-18
+
+§ 5z decided it; this is what shipped. `Translations.kt`, `TranslationScreen.kt`, a
+`tools/fetch-translations.py`, and 1,812 bundled asset files.
+
+**A second reading mode, reached from the page's ⋮: Mushaf ⇄ Translation.** Each ayah shows
+its number, then its Arabic, then English, Hausa and the transliteration, each labelled — and
+**an attribution bar pinned at the foot that never scrolls away**: Saheeh International,
+Abubakar Mahmud Gumi, Quran.com. Sacred Rule 2 in its plainest form: translations differ
+theologically, so a reader is entitled to know whose reading they have.
+
+**The Arabic is the page's own glyphs, filtered to one ayah.** Wird holds QCF glyph codes for
+a per-page font, not readable Arabic — the same fact that makes `share` send a link rather
+than words. Rendering the glyphs is the only way to show Qur'anic text without reconstructing
+it, and the font is already on disk for the mushaf view, so it costs no extra data.
+
+⚠ **The lines do not match the printed mushaf here, and that is correct.** A mushaf line is a
+typesetting fact about a page; an ayah is a unit of meaning. This screen is organised by ayah,
+so glyphs wrap to the phone's width. The printed layout is one tap away.
+
+**The mode is not persisted**, on purpose: the mushaf is what Wird is for, and a session that
+ended in translation mode should not open there tomorrow.
+
+### Four things that went wrong, all worth keeping
+
+**1. ⚠ The footnote trap, which nearly shipped.** The API returns
+`<sup foot_note=195932>1</sup>`. Stripping tags alone leaves the digit welded to the previous
+word: *"In the name of Allāh,1 the Entirely Merciful"*. Measured before it shipped: **1,400 of
+Saheeh's 6,236 verses**, so 22% of the Qur'an. **This is exactly the flaw Maududi was rejected
+for in § 5z**, about to ship in the translation chosen instead of it. The fix removes the tag
+*and its contents*. Verified after: **0 of 6,236**.
+
+**2. ⚠ Never edit a regex through a shell heredoc.** Three attempts to patch the cleaner that
+way turned `\b` into a literal **backspace byte** and a `\1` backreference into a **0x01
+control character** — one of which would have deleted punctuation rather than a space. `cat -A`
+was the only thing that showed it. Fixed by rewriting the file with the editor instead.
+
+**3. ⚠ A retry that caught the wrong exception, twice, silently.** The fetcher caught
+`urllib.error.URLError`, which does **not** cover `http.client.RemoteDisconnected` — what
+quran.com throws when it has had enough. Two runs died at pages 398 and 403 with **exit code
+0**, so they looked successful until the page count was checked. Now catches
+`http.client.HTTPException` and `ConnectionError` too, retries six times, and paces requests.
+**A completed run that wrote 403 of 604 files is the kind of failure this project is most
+likely to miss.**
+
+**4. ⚠ A regression the long-press work introduced, found here.** Adding `combinedClickable`
+to every glyph meant each word **consumed** the tap — and on the reading page `onWordTap` is
+null, so tapping the page stopped revealing the chrome bar. The code comment claimed the
+opposite. A glyph with no tap action of its own now hands the tap to the background handler by
+name.
+
+### The size, measured three ways because the first two disagreed
+
+| | |
+|---|---|
+| Text on disk | **2.66 MB** across 1,812 files |
+| Compressed inside the APK | **1.30 MB** |
+| **APK growth** | **136 KB** — 17.52 MB → 17.66 MB |
+
+Those look contradictory and are not. The APK already carried **4.72 MB of zip alignment
+padding**; the translation entries largely fitted into existing slack, so the file grew far
+less than the data added. Verified by building the same tree with and without the assets, and
+by confirming the "without" APK contains zero translation entries.
+
+⚠ **That 136 KB is a debug build.** A release build re-aligns after R8, so the real-world
+delta could land nearer the full 1.30 MB. Do not quote 136 KB as the shipping number.
+
+**Integrity check worth repeating for any future data import:** the fetched Saheeh text has
+**exactly 6,236 verses**, which is the Qur'an's verse count. A count that matches the thing
+itself is worth more than a byte total.

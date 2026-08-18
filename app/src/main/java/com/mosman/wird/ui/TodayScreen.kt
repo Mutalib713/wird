@@ -138,6 +138,13 @@ fun TodayScreen(
     var selectedVerse by remember { mutableStateOf<String?>(null) }
     /** Bumped on every bookmark toggle, so the icon re-reads the store. */
     var bookmarkTick by remember { mutableIntStateOf(0) }
+    /**
+     * Reading the translation instead of the mushaf. PROFILE.md section 5z.
+     *
+     * Not persisted on purpose: the mushaf is what Wird is for, so a session that ends in
+     * translation mode should not open there tomorrow.
+     */
+    var translationMode by remember { mutableStateOf(false) }
 
     // Recording lives up here, not in the footer control. The record button is at the
     // foot of the page, so the moment you start you scroll up to read — and anything down
@@ -264,6 +271,16 @@ fun TodayScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
+        // **Two ways to read the same page, and the mushaf is the default every time.**
+        // section 5z: the translation is a separate mode rather than English poured between
+        // the mushaf's lines, because those lines are a per-page font's typesetting and an
+        // inserted paragraph destroys them.
+        if (translationMode) {
+            TranslationScreen(
+                pageNumber = current,
+                modifier = Modifier.safeDrawingPadding(),
+            )
+        } else {
         MushafPager(
             initialPage = todaysPages.first(),
             jump = jump,
@@ -321,6 +338,8 @@ fun TodayScreen(
             },
         )
 
+        }
+
         // The listening glow, at the edges where it cannot cover the page.
         RecitationGlow(active = recording, level = level)
 
@@ -376,6 +395,8 @@ fun TodayScreen(
                 dark = dark,
                 onNightMode = onNightMode,
                 onBack = onBack,
+                translation = translationMode,
+                onToggleTranslation = { translationMode = !translationMode },
             )
         }
     }
@@ -461,6 +482,8 @@ private fun ChromeBar(
     dark: Boolean,
     onNightMode: () -> Unit,
     onBack: () -> Unit,
+    translation: Boolean,
+    onToggleTranslation: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     Row(
@@ -571,6 +594,15 @@ private fun ChromeBar(
                         )
                     },
                     onClick = { menuOpen = false; onNightMode() },
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            if (translation) "Mushaf" else "Translation",
+                            color = colors.onSurfaceRaised,
+                        )
+                    },
+                    onClick = { menuOpen = false; onToggleTranslation() },
                 )
                 DropdownMenuItem(
                     text = { Text("Read something else", color = colors.onSurfaceRaised) },

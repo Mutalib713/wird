@@ -139,6 +139,7 @@ fun MushafPageView(
                     selected = selected,
                     onWordTap = onWordTap,
                     onWordLongPress = onWordLongPress,
+                    onBackgroundTap = onBackgroundTap,
                     footer = footer,
                 )
             }
@@ -156,6 +157,7 @@ private fun DrawnPage(
     selected: String?,
     onWordTap: ((String) -> Unit)?,
     onWordLongPress: ((String) -> Unit)?,
+    onBackgroundTap: (() -> Unit)?,
     footer: @Composable (MushafPage) -> Unit,
 ) {
     val colors = LocalWirdColors.current
@@ -229,6 +231,7 @@ private fun DrawnPage(
                 inPortion = line in lit,
                 onWordTap = onWordTap,
                 onWordLongPress = onWordLongPress,
+                onBackgroundTap = onBackgroundTap,
             )
         }
 
@@ -356,6 +359,7 @@ private fun MushafLine(
     selected: String?,
     onWordTap: ((String) -> Unit)?,
     onWordLongPress: ((String) -> Unit)?,
+    onBackgroundTap: (() -> Unit)?,
 ) {
     val colors = LocalWirdColors.current
     // **Changed 2026-08-18 to match the reference.** Task 9 marked the ayah being recited by
@@ -471,10 +475,24 @@ private fun MushafLine(
                                 } else {
                                     Modifier
                                         .combinedClickable(
-                                            // A plain tap on the page must still reach the
-                                            // background handler that shows the chrome, so
-                                            // where there is no tap action there is no tap.
-                                            onClick = { onWordTap?.invoke(g.verseKey) },
+                                            // ⚠ **A glyph consumes the tap it is given**, so
+                                            // an empty onClick does not fall through to the
+                                            // page behind it - it swallows it. That is
+                                            // exactly what happened when long-press was
+                                            // added: on the reading page onWordTap is null,
+                                            // every word ate the tap, and the chrome bar
+                                            // stopped appearing. Found on the emulator, not
+                                            // by reading this.
+                                            //
+                                            // So a word with no tap action of its own hands
+                                            // the tap to the background handler by name.
+                                            onClick = {
+                                                if (onWordTap != null) {
+                                                    onWordTap(g.verseKey)
+                                                } else {
+                                                    onBackgroundTap?.invoke()
+                                                }
+                                            },
                                             onLongClick = onWordLongPress?.let {
                                                 { it(g.verseKey) }
                                             },
