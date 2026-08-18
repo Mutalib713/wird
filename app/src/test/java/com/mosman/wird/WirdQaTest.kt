@@ -3,6 +3,8 @@ package com.mosman.wird
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.data.encodeSchedule
+import com.mosman.wird.domain.CompanionAction
+import com.mosman.wird.domain.CompanionBrain
 import com.mosman.wird.domain.Coordinates
 import com.mosman.wird.domain.DayLog
 import com.mosman.wird.domain.Method
@@ -664,6 +666,73 @@ class WirdQaTest {
         AudioQuality.entries.forEach { q ->
             assertTrue("${q.name} should state its size", q.perPageMb.contains("MB"))
         }
+    }
+
+
+    // ---- 13. The companion understands what he actually types ----
+
+    /**
+     * Phrasings taken from how he writes, not from how a parser wishes people wrote.
+     *
+     * This is the check that decides whether the rule-based version is worth shipping
+     * before a model: if it handles the sentences he really uses, PLAN task 21 can test
+     * the mechanic for the cost of a day rather than three weeks.
+     */
+    @Test
+    fun `the companion understands commitments, refusals and questions`() {
+        val evening = LocalTime.of(19, 0)
+        fun u(s: String) = CompanionBrain.understand(s, evening)
+
+        // Commitments anchored on a prayer become a real prayer schedule - task 8's
+        // scheduler already turns these into alarms that move with the sun.
+        val isha = u("after isha") as CompanionAction.CommitTo
+        assertEquals(NudgeSchedule.AfterPrayer(Prayer.ISHA, 30), isha.schedule)
+        val straight = u("straight after maghrib") as CompanionAction.CommitTo
+        assertEquals(NudgeSchedule.AfterPrayer(Prayer.MAGHRIB, 0), straight.schedule)
+
+        // "at 9" said in the EVENING means tonight, not nine tomorrow morning. This is the
+        // one that would quietly ruin the feature - a reminder twelve hours late.
+        val nine = u("at 9") as CompanionAction.CommitTo
+        assertEquals(NudgeSchedule.AtClockTime(LocalTime.of(21, 0)), nine.schedule)
+        val morning = CompanionBrain.understand("at 9", LocalTime.of(6, 0))
+        assertEquals(
+            NudgeSchedule.AtClockTime(LocalTime.of(9, 0)),
+            (morning as CompanionAction.CommitTo).schedule,
+        )
+        assertEquals(
+            // 9:30 PM is 21:30. My first assertion here said 9:30 and the parser was
+            // right - an explicit pm must beat the time-of-day guess, not be ignored by it.
+            NudgeSchedule.AtClockTime(LocalTime.of(21, 30)),
+            (u("at 9:30 pm") as CompanionAction.CommitTo).schedule,
+        )
+
+        // Relative times are resolved against now.
+        val hour = u("in an hour") as CompanionAction.CommitTo
+        assertEquals(NudgeSchedule.AtClockTime(LocalTime.of(20, 0)), hour.schedule)
+
+        // Refusals. Never treated as a failure - Sacred Rule 3.
+        assertTrue(u("not today") is CompanionAction.NotToday)
+        assertTrue(u("cant today, im travelling") is CompanionAction.NotToday)
+        assertTrue(u("too tired") is CompanionAction.NotToday)
+
+        // "already read it" is a completion even though it contains "read", which is the
+        // collision that makes intent order matter.
+        assertTrue(u("i already read it") is CompanionAction.MarkDone)
+        assertTrue(u("just finished") is CompanionAction.MarkDone)
+
+        assertTrue(u("how am i doing") is CompanionAction.HowAmIDoing)
+        assertTrue(u("where am i") is CompanionAction.WhereAmI)
+        assertTrue(u("play it") is CompanionAction.Listen)
+
+        val kahf = u("open al-kahf") as CompanionAction.OpenSurah
+        assertEquals(18, kahf.surah.number)
+        assertEquals(36, (u("go to yasin") as CompanionAction.OpenSurah).surah.number)
+
+        // **It says it did not understand rather than guessing.** The thing it edits is a
+        // record of someone's worship; a wrong guess there is worse than an admission.
+        assertTrue(u("what is the weather") is CompanionAction.NotUnderstood)
+        assertTrue(u("") is CompanionAction.NotUnderstood)
+        assertTrue(u("asdfgh") is CompanionAction.NotUnderstood)
     }
 
     private fun glyph(verseKey: String, line: Int) =
