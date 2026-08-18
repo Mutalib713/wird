@@ -17,6 +17,7 @@ import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.DayLogStore
 import com.mosman.wird.data.Where
 import com.mosman.wird.data.WirdStore
+import com.mosman.wird.domain.CompanionAction
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.ReadingPlan
@@ -169,6 +170,44 @@ class MainActivity : ComponentActivity() {
                             doneMethod = doneMethod,
                             recent = days.all().sortedByDescending { it.date },
                             onOpenPage = { onPage = true },
+                            positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
+                            onCompanionAction = { action ->
+                                when (action) {
+                                    // A commitment becomes a real alarm. This is the whole
+                                    // point: task 8's scheduler already turns "after Isha"
+                                    // into a time that moves with the sun, so the sentence
+                                    // lands on machinery rather than on a promise.
+                                    is CompanionAction.CommitTo -> {
+                                        store.nudgeSchedule = action.schedule
+                                        schedule = action.schedule
+                                        reArm()
+                                    }
+                                    is CompanionAction.MarkDone -> {
+                                        days.markDone(
+                                            date = today,
+                                            method = Method.TAPPED,
+                                            audio = null,
+                                            startUnit = assignment.startUnit,
+                                            units = assignment.units,
+                                        )
+                                        doneMethod = days.methodFor(today)
+                                        progress = progressOf(days.all(), today)
+                                        store.positionUnit = assignment.nextStartUnit
+                                        position = store.positionUnit
+                                        store.startVerse = null
+                                        startVerse = null
+                                    }
+                                    is CompanionAction.OpenSurah -> {
+                                        openPage = action.surah.firstPage
+                                        onPage = true
+                                    }
+                                    is CompanionAction.Listen -> onPage = true
+                                    // Saying "not today" changes nothing on purpose. There
+                                    // is no row for a missed day and no penalty to apply -
+                                    // the reply already said it is fine. Sacred Rule 3.
+                                    else -> Unit
+                                }
+                            },
                         ) else TodayScreen(
                         assignment = assignment,
                         startVerse = startVerse,

@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mosman.wird.domain.Assignment
+import com.mosman.wird.domain.CompanionAction
+import com.mosman.wird.domain.CompanionBrain
 import com.mosman.wird.domain.DayLog
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Progress
@@ -66,7 +68,9 @@ fun HomeScreen(
     doneMethod: Method?,
     recent: List<DayLog>,
     onOpenPage: () -> Unit,
-    onCompanionReply: (String) -> Unit = {},
+    /** What the companion worked out you wanted. MainActivity is what can act on it. */
+    onCompanionAction: (CompanionAction) -> Unit = {},
+    positionLabel: String = "",
 ) {
     val colors = LocalWirdColors.current
     var companionReply by remember { mutableStateOf<String?>(null) }
@@ -116,8 +120,11 @@ fun HomeScreen(
                 shortcuts = listOf("After Isha", "In an hour", "Not today"),
                 lastReply = companionReply,
                 onReply = { said ->
-                    companionReply = "You said: $said"
-                    onCompanionReply(said)
+                    // Understood here, acted on upstairs. The brain is pure and testable;
+                    // only MainActivity can actually move a schedule or mark a day.
+                    val action = CompanionBrain.understand(said)
+                    companionReply = replyTo(action, progress, positionLabel)
+                    onCompanionAction(action)
                 },
             )
             Spacer(Modifier.height(Scale.space4))
@@ -331,4 +338,39 @@ private fun dayName(date: LocalDate): String {
         today.minusDays(1) -> "Yesterday"
         else -> date.format(DateTimeFormatter.ofPattern("EEEE"))
     }
+}
+
+/**
+ * What the companion says back.
+ *
+ * **It repeats the commitment in its own words rather than saying "OK".** That is the whole
+ * mechanic: "I'll hold you to after Isha" is a thing you can fail to do, and being told your
+ * own promise back is what makes it one. "Saved" would make this a form.
+ *
+ * Sacred Rule 3 governs every line. A refusal gets no argument and no guilt — the app says
+ * fine and gets out of the way, because the day someone is told off is the day they delete
+ * a habit app.
+ */
+private fun replyTo(
+    action: CompanionAction,
+    progress: com.mosman.wird.domain.Progress?,
+    positionLabel: String,
+): String = when (action) {
+    is CompanionAction.CommitTo -> "Alright — I'll ask again ${action.spoken}."
+    is CompanionAction.NotToday -> "That's fine. It'll be here tomorrow."
+    is CompanionAction.MarkDone -> "Good. Marked as read."
+    is CompanionAction.Listen -> "Playing today's portion."
+    is CompanionAction.OpenSurah -> "Opening ${action.surah.name}."
+    is CompanionAction.WhereAmI ->
+        if (positionLabel.isNotEmpty()) "You're at $positionLabel." else "Let me check the page."
+    is CompanionAction.HowAmIDoing -> progress?.let { p ->
+        val total = if (p.totalDaysRead == 1) "1 day" else "${p.totalDaysRead} days"
+        val streak = if (p.currentStreak > 1) "${p.currentStreak} in a row, " else ""
+        "$streak$total read — ${p.recitedDays} recited aloud, ${p.tappedDays} marked."
+    } ?: "Nothing recorded yet."
+    // Says so plainly, and shows what it does know rather than leaving you guessing at the
+    // magic words.
+    is CompanionAction.NotUnderstood ->
+        "I didn't catch that. Try a time (\"after Isha\", \"at 9\"), \"not today\", " +
+            "or ask how you're doing."
 }
