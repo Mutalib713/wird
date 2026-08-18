@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.DayLogStore
+import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.Where
 import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.CompanionAction
@@ -74,6 +75,7 @@ class MainActivity : ComponentActivity() {
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var readerName by remember { mutableStateOf(store.readerName) }
+            var readingMode by remember { mutableStateOf(store.readingMode) }
             var turns by remember { mutableStateOf(chat.all()) }
             var commitment by remember { mutableStateOf(store.commitment) }
             /** The chat, opened from Home's companion card. */
@@ -243,12 +245,14 @@ class MainActivity : ComponentActivity() {
                     )
                 } else if (screen == Screen.SETUP) {
                     SetupScreen(
-                        onDone = { page, unitsPerDay, verse, name ->
+                        onDone = { page, unitsPerDay, verse, name, mode ->
                             store.positionPage = page
                             store.plan = ReadingPlan(defaultUnits = unitsPerDay)
                             store.startVerse = verse
                             store.readerName = name
                             readerName = store.readerName
+                            store.readingMode = mode
+                            readingMode = mode
                             plan = store.plan
                             position = store.positionUnit
                             startVerse = verse
@@ -271,6 +275,7 @@ class MainActivity : ComponentActivity() {
                             onOpenPage = { onPage = true },
                             positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
                             readerName = readerName,
+                            mode = readingMode,
                             // The week's page column. Days marked before task 6 began
                             // storing what they covered have no page, and show none.
                             pageFor = { date -> days.coveredOn(date)?.first?.let(Mushaf::pageOf) },
@@ -307,6 +312,7 @@ class MainActivity : ComponentActivity() {
                         hasRecording = hasRecording,
                         audioFile = { days.audioFileFor(today) },
                         audioQuality = audioQuality,
+                        readingMode = readingMode,
                         onDone = { method, file ->
                             days.markDone(
                                 date = today,
@@ -369,7 +375,9 @@ class MainActivity : ComponentActivity() {
                         schedule = schedule,
                         armed = armed,
                         audioQuality = audioQuality,
+                        readingMode = readingMode,
                         onTheme = { store.themeMode = it; theme = it },
+                        onReadingMode = { store.readingMode = it; readingMode = it },
                         onPlan = { store.plan = it; plan = it },
                         onSchedule = {
                             store.nudgeSchedule = it

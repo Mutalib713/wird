@@ -1,6 +1,8 @@
 package com.mosman.wird.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +37,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.SurahIndex
@@ -59,12 +62,20 @@ import com.mosman.wird.ui.theme.Scale
  */
 @Composable
 fun SetupScreen(
-    onDone: (page: Int, unitsPerDay: Int, startVerse: Pair<Int, Int>?, name: String?) -> Unit,
+    onDone: (
+        page: Int,
+        unitsPerDay: Int,
+        startVerse: Pair<Int, Int>?,
+        name: String?,
+        mode: ReadingMode,
+    ) -> Unit,
 ) {
     var name by remember { mutableStateOf<String?>(null) }
     var askedName by remember { mutableStateOf(false) }
+    var mode by remember { mutableStateOf<ReadingMode?>(null) }
     var chosen by remember { mutableStateOf<Surah?>(null) }
     val surah = chosen
+    val picked = mode
 
     when {
         !askedName -> YourName(
@@ -74,13 +85,93 @@ fun SetupScreen(
             },
         )
 
+        picked == null -> HowYouRead { mode = it }
+
         surah == null -> ChooseSurah { chosen = it }
 
         else -> FindYourPlace(
             surah = surah,
             onBack = { chosen = null },
-            onDone = { page, units, verse -> onDone(page, units, verse, name) },
+            onDone = { page, units, verse -> onDone(page, units, verse, name, picked) },
         )
+    }
+}
+
+/**
+ * "How do you read?"
+ *
+ * **PROFILE.md § 5l.** Mutalib's ask, in his words: *"we ask if u are memorizing the quran or
+ * u are reading, cos some people memorize and some to look in the mushaf to read."*
+ *
+ * Two cards rather than a toggle, because a toggle needs a label that names one side as the
+ * default and this question has no default worth implying. Each card says what the app will
+ * do differently, so the choice is answerable without having used the app yet.
+ *
+ * ⚠ **It is honest about being small today.** The line underneath says the setting can be
+ * changed later, which is true and is the right thing to say when the larger consequence —
+ * checking a recitation against memory rather than against the page, PLAN task 14 — has not
+ * been built. Overselling it here would be a promise the app cannot keep.
+ */
+@Composable
+private fun HowYouRead(onPick: (ReadingMode) -> Unit) {
+    val colors = LocalWirdColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.surface)
+            .safeDrawingPadding()
+            .padding(horizontal = Scale.space6, vertical = Scale.space4),
+    ) {
+        Spacer(Modifier.height(Scale.space8))
+        Text(
+            "How do you read?",
+            color = colors.textPrimary,
+            style = TextStyle(fontSize = Scale.display),
+        )
+        Spacer(Modifier.height(Scale.space2))
+        Text(
+            text = "So Wird uses the right words for what you're doing.",
+            color = colors.textSecondary,
+            style = TextStyle(fontSize = Scale.body),
+        )
+
+        Spacer(Modifier.height(Scale.space6))
+        ModeCard(
+            title = "From the mushaf",
+            detail = "You read the page in front of you.",
+            onClick = { onPick(ReadingMode.READING) },
+        )
+        Spacer(Modifier.height(Scale.space3))
+        ModeCard(
+            title = "From memory",
+            detail = "You're memorising, and the page is there to check yourself.",
+            onClick = { onPick(ReadingMode.MEMORISING) },
+        )
+
+        Spacer(Modifier.height(Scale.space4))
+        Text(
+            text = "You can change this later in More.",
+            color = colors.textOutsidePortion,
+            style = TextStyle(fontSize = Scale.caption),
+        )
+    }
+}
+
+@Composable
+private fun ModeCard(title: String, detail: String, onClick: () -> Unit) {
+    val colors = LocalWirdColors.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(Scale.radius))
+            .border(1.dp, colors.ornament.copy(alpha = 0.45f), RoundedCornerShape(Scale.radius))
+            .clickable(onClick = onClick)
+            .defaultMinSize(minHeight = Scale.minTarget)
+            .padding(Scale.space4),
+    ) {
+        Text(title, color = colors.textPrimary, style = TextStyle(fontSize = Scale.title))
+        Spacer(Modifier.height(Scale.space1))
+        Text(detail, color = colors.textSecondary, style = TextStyle(fontSize = Scale.caption))
     }
 }
 

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Assignment
 import com.mosman.wird.domain.DayLog
 import com.mosman.wird.domain.Method
@@ -96,6 +97,8 @@ fun HomeScreen(
     pageFor: (LocalDate) -> Int? = { null },
     /** Marks today read without leaving Home. The tap route, logged as a tap. */
     onMarkRead: () -> Unit = {},
+    /** Reading from the mushaf or reciting from memory. Changes labels only - § 5r. */
+    mode: ReadingMode = ReadingMode.READING,
 ) {
     val colors = LocalWirdColors.current
 
@@ -155,7 +158,7 @@ fun HomeScreen(
         }
 
         // ---- what you are reading ----
-        PortionSection(assignment, doneMethod, onOpenPage, onMarkRead)
+        PortionSection(assignment, doneMethod, onOpenPage, onMarkRead, mode)
 
         // ---- what is being asked ----
         if (doneMethod == null) {
@@ -203,6 +206,7 @@ private fun PortionSection(
     doneMethod: Method?,
     onOpenPage: () -> Unit,
     onMarkRead: () -> Unit,
+    mode: ReadingMode,
 ) {
     val colors = LocalWirdColors.current
     val surahs = remember(assignment) { assignment.surahs }
@@ -270,9 +274,9 @@ private fun PortionSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Scale.space2),
         ) {
-            Pill("Recite it aloud", filled = true, modifier = Modifier.weight(1f), onClick = onOpenPage)
+            Pill(reciteLabel(mode), filled = true, modifier = Modifier.weight(1f), onClick = onOpenPage)
             if (doneMethod == null) {
-                Pill("I read it", filled = false, modifier = Modifier.weight(1f), onClick = onMarkRead)
+                Pill(tapLabel(mode), filled = false, modifier = Modifier.weight(1f), onClick = onMarkRead)
             }
             Pill("Listen", filled = false, modifier = Modifier.weight(1f), onClick = onOpenPage)
         }

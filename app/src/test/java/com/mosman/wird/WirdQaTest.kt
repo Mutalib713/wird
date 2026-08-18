@@ -2,6 +2,7 @@ package com.mosman.wird
 
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.ConversationStore
+import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.data.encodeSchedule
 import com.mosman.wird.domain.CompanionAction
@@ -28,6 +29,8 @@ import com.mosman.wird.domain.surahs
 import com.mosman.wird.domain.todaysAssignment
 import com.mosman.wird.mushaf.Glyph
 import com.mosman.wird.mushaf.MushafPage
+import com.mosman.wird.ui.reciteLabel
+import com.mosman.wird.ui.tapLabel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -820,5 +823,39 @@ class ConversationTest {
         } finally {
             dir.deleteRecursively()
         }
+    }
+}
+
+/**
+ * Check 25 — the reading mode renames things without ever blurring them.
+ *
+ * PROFILE.md § 5r. The mode is a lens on one mechanic, not a second one, so the thing worth
+ * asserting is that **Sacred Rule 6 survives the rename**: whatever the buttons are called,
+ * the recording route and the tap route must never end up describing each other.
+ */
+class ReadingModeTest {
+
+    @Test
+    fun `both modes name the recitation and the tap as different things`() {
+        ReadingMode.entries.forEach { mode ->
+            val recite = reciteLabel(mode)
+            val tap = tapLabel(mode)
+            assertTrue("$mode: recite label is empty", recite.isNotBlank())
+            assertTrue("$mode: tap label is empty", tap.isNotBlank())
+            assertTrue("$mode: the two routes must not share a label", recite != tap)
+            assertTrue(
+                "$mode: only the recording route may say 'recite' — tap said '$tap'",
+                !tap.lowercase().contains("recite"),
+            )
+        }
+    }
+
+    @Test
+    fun `memorising changes the words and reading keeps the originals`() {
+        assertEquals("Recite it out loud", reciteLabel(ReadingMode.READING))
+        assertEquals("I read it", tapLabel(ReadingMode.READING))
+        assertEquals("Recite from memory", reciteLabel(ReadingMode.MEMORISING))
+        // "I read it" would be wrong for someone deliberately not looking at the page.
+        assertEquals("I revised it", tapLabel(ReadingMode.MEMORISING))
     }
 }

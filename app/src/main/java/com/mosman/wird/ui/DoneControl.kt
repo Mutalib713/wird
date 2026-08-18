@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.core.content.ContextCompat
 import com.mosman.wird.audio.AudioState
+import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Method
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
@@ -47,6 +48,15 @@ import com.mosman.wird.ui.theme.Scale
 @Composable
 fun DoneControl(
     doneMethod: Method?,
+    /**
+     * Changes what the two controls are called, and nothing else.
+     *
+     * PROFILE.md § 5r. A memoriser pressing "Recite it out loud" while deliberately not
+     * looking at the page is being described wrongly by their own app. The mechanic is
+     * untouched: a recording is still a recitation, a tap is still a tap, and Sacred Rule 6
+     * still keeps them apart.
+     */
+    mode: ReadingMode = ReadingMode.READING,
     hasRecording: Boolean,
     recording: Boolean,
     problem: String?,
@@ -76,6 +86,7 @@ fun DoneControl(
             doneMethod != null -> AlreadyDone(doneMethod, hasRecording, onPlay, onUndo)
 
             else -> NotYet(
+                mode = mode,
                 onRecite = {
                     val granted = ContextCompat.checkSelfPermission(
                         context, Manifest.permission.RECORD_AUDIO,
@@ -97,6 +108,7 @@ fun DoneControl(
 
 @Composable
 private fun NotYet(
+    mode: ReadingMode,
     onRecite: () -> Unit,
     onTap: () -> Unit,
     audio: AudioState,
@@ -112,14 +124,14 @@ private fun NotYet(
                 contentColor = colors.surface,
             ),
         ) {
-            Text("Recite it out loud", style = TextStyle(fontSize = Scale.body))
+            Text(reciteLabel(mode), style = TextStyle(fontSize = Scale.body))
         }
         TextButton(
             onClick = onTap,
             modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
         ) {
             // Quieter, and honest about what it is. Not "done" — read.
-            Text("I read it", color = colors.textSecondary, style = TextStyle(fontSize = Scale.body))
+            Text(tapLabel(mode), color = colors.textSecondary, style = TextStyle(fontSize = Scale.body))
         }
         // Quietest of the three, and deliberately not a way of finishing.
         //
@@ -194,4 +206,27 @@ private fun AlreadyDone(
             }
         }
     }
+}
+
+/**
+ * What the recording control is called.
+ *
+ * The design's own wording for the memorising case, kept verbatim: *"the same loop, pointed
+ * at revision."* Reciting aloud is still how a day gets marked either way.
+ */
+internal fun reciteLabel(mode: ReadingMode): String = when (mode) {
+    ReadingMode.READING -> "Recite it out loud"
+    ReadingMode.MEMORISING -> "Recite from memory"
+}
+
+/**
+ * What the tap route is called.
+ *
+ * Still plainly the quieter of the two, and still logged as a tap. Sacred Rule 6 turns on
+ * the app never blurring these, so the memorising wording has to stay just as clearly *not*
+ * a recitation.
+ */
+internal fun tapLabel(mode: ReadingMode): String = when (mode) {
+    ReadingMode.READING -> "I read it"
+    ReadingMode.MEMORISING -> "I revised it"
 }

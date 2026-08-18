@@ -30,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import com.mosman.wird.audio.AudioQuality
+import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.audio.AudioState
 import com.mosman.wird.audio.PortionAudio
 import com.mosman.wird.audio.Recitation
@@ -88,6 +89,7 @@ fun TodayScreen(
     audioFile: () -> java.io.File = { java.io.File("") },
     /** Which Shatri recording to fetch. The reader's data, so the reader's choice. */
     audioQuality: AudioQuality = AudioQuality.LIGHT,
+    readingMode: ReadingMode = ReadingMode.READING,
     onDone: (com.mosman.wird.domain.Method, java.io.File?) -> Unit = { _, _ -> },
     onUndo: () -> Unit = {},
 ) {
@@ -259,6 +261,7 @@ fun TodayScreen(
                 if (page.page == todaysPages.last()) {
                     DoneControl(
                         doneMethod = doneMethod,
+                        mode = readingMode,
                         hasRecording = hasRecording,
                         recording = recording,
                         problem = problem,

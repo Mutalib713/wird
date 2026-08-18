@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.PlaceSource
+import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.ThemeMode
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
@@ -53,7 +54,7 @@ import java.time.DayOfWeek
 import java.time.LocalTime
 
 /** Which setting is open. Null means the list. */
-private enum class Detail { AMOUNT, LIGHTER, REMINDER, AUDIO, THEME }
+private enum class Detail { AMOUNT, LIGHTER, MODE, REMINDER, AUDIO, THEME }
 
 /**
  * Settings.
@@ -87,10 +88,12 @@ fun SettingsScreen(
     schedule: NudgeSchedule,
     armed: Armed?,
     audioQuality: AudioQuality,
+    readingMode: ReadingMode,
     onTheme: (ThemeMode) -> Unit,
     onPlan: (ReadingPlan) -> Unit,
     onSchedule: (NudgeSchedule) -> Unit,
     onAudioQuality: (AudioQuality) -> Unit,
+    onReadingMode: (ReadingMode) -> Unit,
     onUseLocation: () -> Unit,
     onChangePosition: () -> Unit,
     onBack: () -> Unit,
@@ -113,6 +116,7 @@ fun SettingsScreen(
     when (val open = detail) {
         null -> SettingsList(
             plan = plan,
+            readingMode = readingMode,
             overrideDays = overrideDays,
             overrideUnits = overrideUnits,
             positionLabel = positionLabel,
@@ -161,6 +165,23 @@ fun SettingsScreen(
                         Chips(listOf(1 to "Half a page", 2 to "One page"), overrideUnits) {
                             overrideUnits = it; push()
                         }
+                    }
+                }
+
+                Detail.MODE -> {
+                    Explain(
+                        "Changes what the buttons are called. Reciting aloud is still how " +
+                            "a day gets marked, either way."
+                    )
+                    Chips3(
+                        listOf(
+                            "From the mushaf" to (readingMode == ReadingMode.READING),
+                            "From memory" to (readingMode == ReadingMode.MEMORISING),
+                        ),
+                    ) { i ->
+                        onReadingMode(
+                            if (i == 0) ReadingMode.READING else ReadingMode.MEMORISING
+                        )
                     }
                 }
 
@@ -261,6 +282,7 @@ fun SettingsScreen(
 private fun Detail.title(): String = when (this) {
     Detail.AMOUNT -> "How much a day"
     Detail.LIGHTER -> "Lighter days"
+    Detail.MODE -> "How you read"
     Detail.REMINDER -> "The reminder"
     Detail.AUDIO -> "Listening"
     Detail.THEME -> "How it looks"
@@ -271,6 +293,7 @@ private fun Detail.title(): String = when (this) {
 @Composable
 private fun SettingsList(
     plan: ReadingPlan,
+    readingMode: ReadingMode,
     overrideDays: Set<DayOfWeek>,
     overrideUnits: Int,
     positionLabel: String,
@@ -295,6 +318,8 @@ private fun SettingsList(
 
         Group("Reading") {
             ValueRow("How much a day", amountLabel(plan.defaultUnits)) { onOpen(Detail.AMOUNT) }
+            Divider()
+            ValueRow("How you read", modeLabel(readingMode)) { onOpen(Detail.MODE) }
             Divider()
             ValueRow("Lighter days", lighterLabel(overrideDays, overrideUnits)) {
                 onOpen(Detail.LIGHTER)
@@ -582,3 +607,9 @@ fun positionLabelFor(startVerse: Pair<Int, Int>?, page: Int): String {
 
 /** Guards against a stored page outside the mushaf, however it got there. */
 fun clampPage(page: Int): Int = page.coerceIn(1, Mushaf.PAGES)
+
+/** "From the mushaf" / "From memory", for the settings value row. */
+private fun modeLabel(mode: ReadingMode): String = when (mode) {
+    ReadingMode.READING -> "From the mushaf"
+    ReadingMode.MEMORISING -> "From memory"
+}

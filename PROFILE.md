@@ -997,3 +997,59 @@ a shrug** — which is § 5h's approved feature and is flatly impossible on rule
 acknowledged, the not-understood reply carries an example and a pointer, Sacred Rule 3 is
 asserted by *banned words* on a refusal (`streak`, `failed`, `sure?`, `missed`), and the log
 round-trips, rejects whitespace and stays capped.
+
+### 5r. Memorising or reading — built 2026-08-18
+
+§ 5l recorded the ask and left it blocked on one question: *what actually changes when
+someone answers "memorising"?* His answer settled it — *"it has to do with the audio"*, i.e.
+it selects what a recitation is checked against: from memory with no page, or read from the
+mushaf.
+
+**⚠ That check is PLAN task 14 and does not exist yet.** So this ships as the question, the
+setting, and the wording — and the substantive behaviour lands with task 14, where his answer
+says it belongs.
+
+**§ 5l's own warning was the thing to design around:** *storing an answer the app ignores is
+worse than not asking, because it promises something.* Two decisions follow from it:
+
+1. **It changes what the app calls things, today, on every screen that names the action.**
+   Not nothing: a memoriser pressing a button labelled *"Recite it out loud"* while
+   deliberately not looking at the page is being described wrongly by their own app.
+
+   | | Reading | Memorising |
+   |---|---|---|
+   | recording route | Recite it out loud | **Recite from memory** |
+   | tap route | I read it | **I revised it** |
+
+2. **The setup screen does not oversell it.** It says *"So Wird uses the right words for what
+   you're doing"* and *"You can change this later in More"* — both true. Promising a
+   memorisation mode that does not exist would be the failure § 5l named.
+
+**The design settled the shape, so this is not invented.** `Wird v2.dc.html`'s hifdh screen
+says it in one line, kept verbatim in the code: *"the same loop, pointed at revision.
+Reciting aloud is still how a day gets marked."* This is a lens on one mechanic, not a second
+app — which is also why the Memorisation *screen* in that file stays unbuilt and stays filed
+under its own "Beyond v1".
+
+**Where it lives:** step two of first run, after the name and before the sūrah. Two cards
+rather than a toggle, because a toggle implies one side is the default and this question has
+no default worth implying. Changeable afterwards at **More → Reading → How you read**,
+following § 5e's value-and-chevron pattern.
+
+**Defaults to READING** — the larger group, and the value every existing screen already
+assumes, so anyone who upgrades into this or never sees the question gets exactly the app
+they had.
+
+**What was deliberately NOT done:** the amount step still offers the same options in both
+modes. Smaller portions for memorisers is plausible and might be right, but nobody decided
+it, and § 5i says ask rather than infer. The `mode` parameter was removed from that screen
+rather than left unused as a hint that something was half-built.
+
+**QA check 25** asserts the thing that actually matters here: **Sacred Rule 6 survives the
+rename.** Whatever the buttons are called, the recording route and the tap route must never
+describe each other — the test fails if the tap label ever contains the word "recite".
+
+**Verified on the emulator**, fresh install, choosing *From memory*: Home renders "Recite from
+memory" and "I revised it", and More shows `How you read · FROM MEMORY`. The name was skipped
+on that run, which also confirmed the fallback — the greeting reads a bare "Good morning" with
+no invented name.

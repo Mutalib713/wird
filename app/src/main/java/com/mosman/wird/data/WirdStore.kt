@@ -16,6 +16,24 @@ import java.time.LocalTime
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
 
 /**
+ * Whether you read from the mushaf or recite from memory.
+ *
+ * **PROFILE.md § 5l and § 5r.** Mutalib's own words: *"some people memorize and some look
+ * in the mushaf to read"*, and asked what it changes, *"it has to do with the audio"* — it
+ * selects what a recitation is checked against.
+ *
+ * ⚠ **That check is PLAN task 14 and does not exist yet.** What this changes today is what
+ * the app calls things, which is small but is not nothing: a memoriser pressing a button
+ * labelled "Recite it out loud" while looking at a page they are deliberately not reading is
+ * being described wrongly by their own app.
+ *
+ * The design agrees on the shape, and its wording is worth keeping: *"the same loop, pointed
+ * at revision. Reciting aloud is still how a day gets marked."* This is a lens on one
+ * mechanic, not a second app.
+ */
+enum class ReadingMode { READING, MEMORISING }
+
+/**
  * Where you are and what you've asked of yourself, kept on this phone.
  *
  * SharedPreferences rather than a database: this is a handful of integers, and a database
@@ -116,6 +134,19 @@ class WirdStore(context: Context) {
         }
 
     /**
+     * Reading from the mushaf, or reciting from memory.
+     *
+     * Defaults to [ReadingMode.READING] because it is the larger group and because it is
+     * what every screen already assumes — a default that changes nothing is the safe one for
+     * anybody who skipped the question or upgraded into it.
+     */
+    var readingMode: ReadingMode
+        get() = runCatching {
+            ReadingMode.valueOf(prefs.getString(KEY_MODE, ReadingMode.READING.name)!!)
+        }.getOrDefault(ReadingMode.READING)
+        set(value) = prefs.edit { putString(KEY_MODE, value.name) }
+
+    /**
      * The promise currently being held, if any.
      *
      * **Stored, because a promise that evaporates when you close the app is not a promise.**
@@ -210,6 +241,7 @@ class WirdStore(context: Context) {
         const val KEY_SEEN_CHROME = "seen_chrome"
         const val KEY_NAME = "reader_name"
         const val KEY_COMMITMENT = "commitment"
+        const val KEY_MODE = "reading_mode"
         const val KEY_NUDGE = "nudge_schedule"
         const val KEY_AUDIO = "audio_quality"
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
