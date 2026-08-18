@@ -50,6 +50,14 @@ import com.mosman.wird.ui.theme.Scale
 fun SurahList(
     modifier: Modifier = Modifier,
     onPick: (Surah) -> Unit,
+    /**
+     * Jump straight to a page rather than to a surah's beginning.
+     *
+     * Needed by the "still inside" row: Juz' 2 starts on page 22, in the middle of
+     * Al-Baqarah, and picking the surah would send you to page 2 instead. Null on screens
+     * where a bare page means nothing, like setup, and the row is then not tappable.
+     */
+    onOpenPage: ((Int) -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     var query by remember { mutableStateOf("") }
@@ -58,14 +66,18 @@ fun SurahList(
     // Null while searching. Computed once per query rather than per row: a surah belongs to
     // the juz' its FIRST page falls in, which is what puts Al-Mu'minun, An-Nur and Al-Furqan
     // together under Juz' 18 exactly as the reference does.
+    //
+    // **⚠ Every juz' gets a band, including the two that no surah starts in.** Grouping alone
+    // produced a list that ran 1, 3, 4, 6 — arithmetically correct, because Al-Baqarah spans
+    // juz 1-3 and An-Nisa spans 4-5, so nothing *begins* in juz 2 or 5. It read as a bug, and
+    // worse, someone looking for Juz' 2 could not find it. So the list walks all thirty and a
+    // juz' with no surah start says which surah you are still inside.
     val grouped: List<Pair<Juz, List<Surah>>>? = remember(query) {
         if (query.isNotBlank()) {
             null
         } else {
-            matches
-                .groupBy { JuzIndex.of(it.firstPage) }
-                .toList()
-                .sortedBy { it.first.number }
+            val startsIn = matches.groupBy { JuzIndex.of(it.firstPage).number }
+            JuzIndex.all.map { juz -> juz to startsIn[juz.number].orEmpty() }
         }
     }
 
@@ -97,7 +109,15 @@ fun SurahList(
                     // Browsing: Juz' bands, the way Quran for Android does it.
                     grouped.forEach { (juz, surahs) ->
                         item(key = "juz-" + juz.number) { JuzBand(juz) }
-                        items(surahs, key = { it.number }) { surah -> SurahRow(surah, onPick) }
+                        if (surahs.isEmpty()) {
+                            item(key = "ongoing-" + juz.number) {
+                                StillInside(juz, onOpenPage)
+                            }
+                        } else {
+                            items(surahs, key = { it.number }) { surah ->
+                                SurahRow(surah, onPick)
+                            }
+                        }
                     }
                 } else {
                     // Searching: bands would be noise. Four results scattered under four
@@ -263,4 +283,48 @@ fun wirdFieldColors(): TextFieldColors {
         focusedContainerColor = colors.surface,
         unfocusedContainerColor = colors.surface,
     )
+}
+
+/**
+ * "You are still inside Al-Baqarah."
+ *
+ * Shown under a juz' that no surah begins in. Two exist: **Juz' 2**, which is all Al-Baqarah,
+ * and **Juz' 5**, which is all An-Nisa. Without this the list skipped straight from Juz' 1 to
+ * Juz' 3, which is arithmetically honest and reads as a missing row.
+ *
+ * It jumps to the **juz' opening page**, not the surah's — Juz' 2 begins on page 22, and
+ * sending someone to page 2 because that is where Al-Baqarah starts would be answering a
+ * question they did not ask.
+ */
+@Composable
+private fun StillInside(juz: Juz, onOpenPage: ((Int) -> Unit)?) {
+    val colors = LocalWirdColors.current
+    val ongoing = SurahIndex.on(juz.firstPage).lastOrNull()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onOpenPage == null) {
+                    Modifier
+                } else {
+                    Modifier.clickable { onOpenPage(juz.firstPage) }
+                }
+            )
+            .defaultMinSize(minHeight = Scale.minTarget)
+            .padding(horizontal = Scale.space4, vertical = Scale.space3),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = ongoing?.let { "Still in ${it.name}" } ?: "Continues",
+            color = colors.textSecondary,
+            style = TextStyle(fontSize = Scale.body),
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = juz.firstPage.toString(),
+            color = colors.textSecondary,
+            style = TextStyle(fontSize = Scale.body),
+        )
+    }
 }

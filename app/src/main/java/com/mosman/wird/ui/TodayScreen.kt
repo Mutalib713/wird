@@ -107,6 +107,9 @@ fun TodayScreen(
     onNightMode: () -> Unit = {},
     /** Leaves the mushaf. Also what the system back gesture does here. */
     onBack: () -> Unit = {},
+    /** Whether a given ayah is saved. Asked per selection, not held as a list. */
+    isBookmarked: (String) -> Boolean = { false },
+    onToggleBookmark: (String) -> Unit = {},
     onDone: (com.mosman.wird.domain.Method, java.io.File?) -> Unit = { _, _ -> },
     onUndo: () -> Unit = {},
 ) {
@@ -133,6 +136,8 @@ fun TodayScreen(
     var chromeShown by remember { mutableStateOf(!hasSeenChrome) }
     /** The ayah long-pressed, if any. Drives the wash and the floating toolbar. */
     var selectedVerse by remember { mutableStateOf<String?>(null) }
+    /** Bumped on every bookmark toggle, so the icon re-reads the store. */
+    var bookmarkTick by remember { mutableIntStateOf(0) }
 
     // Recording lives up here, not in the footer control. The record button is at the
     // foot of the page, so the moment you start you scroll up to read — and anything down
@@ -391,6 +396,13 @@ fun TodayScreen(
         ) {
             VerseActions(
                 verseKey = key,
+                // Read through a counter so the icon flips the moment it is tapped: the store
+                // is a file, and a plain call would be recomposed from stale state.
+                bookmarked = remember(key, bookmarkTick) { isBookmarked(key) },
+                onBookmark = {
+                    onToggleBookmark(key)
+                    bookmarkTick++
+                },
                 onPlay = { listen() },
                 onShare = {
                     val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {

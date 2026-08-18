@@ -34,3 +34,15 @@ data class Commitment(
     val spoken: String,
     val madeAt: LocalDateTime,
 )
+
+/**
+ * An ayah you saved.
+ *
+ * The verse key is all that is stored — "18:10", not the words. The app can always find the
+ * page and the surah from that, and it means a bookmark is nine bytes rather than a copy of
+ * Qur'anic text sitting in a second place where it could drift from the source.
+ */
+data class Bookmark(
+    val verseKey: String,
+    val savedAt: LocalDateTime,
+)

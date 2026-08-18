@@ -1,6 +1,7 @@
 package com.mosman.wird
 
 import com.mosman.wird.audio.AudioQuality
+import com.mosman.wird.data.BookmarkStore
 import com.mosman.wird.data.ConversationStore
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.decodeSchedule
@@ -922,6 +923,31 @@ class SurahIndexTest {
     }
 
     /**
+     * Check 27b — exactly two juz' have no surah starting in them, and the list must still
+     * show all thirty.
+     *
+     * Found on the emulator 2026-08-18: grouping by starting juz' alone produced a list that
+     * ran 1, 3, 4, 6. That is arithmetically right — Al-Baqarah spans juz 1-3 and An-Nisa
+     * spans 4-5 — and it read as a bug. This pins the two so a data change cannot make the
+     * gap silently bigger.
+     */
+    @Test
+    fun `only juz 2 and 5 have no surah beginning in them`() {
+        val startsIn = SurahIndex.all.groupBy { JuzIndex.of(it.firstPage).number }
+        val empty = (1..30).filterNot { startsIn.containsKey(it) }
+        assertEquals("the two known gaps, and no others", listOf(2, 5), empty)
+
+        // And each gap must be able to name what you are still inside, or the row is blank.
+        empty.forEach { n ->
+            val juz = JuzIndex.all.first { it.number == n }
+            val ongoing = SurahIndex.on(juz.firstPage)
+            assertTrue("juz $n must land inside some surah", ongoing.isNotEmpty())
+        }
+        assertEquals("Al-Baqarah", SurahIndex.on(JuzIndex.all.first { it.number == 2 }.firstPage).last().name)
+        assertEquals("An-Nisa", SurahIndex.on(JuzIndex.all.first { it.number == 5 }.firstPage).last().name)
+    }
+
+    /**
      * Check 28 — the grouping reproduces Mutalib's reference screenshot.
      *
      * From his Quran for Android screenshot, 2026-08-18: `Juz' 18 · 342` with Al-Mu'minun,
@@ -939,5 +965,77 @@ class SurahIndexTest {
         listOf(23, 24, 25).forEach { assertEquals("surah $it belongs to juz 18", 18, juzOf(it)) }
         listOf(26, 27).forEach { assertEquals("surah $it belongs to juz 19", 19, juzOf(it)) }
         listOf(28, 29).forEach { assertEquals("surah $it belongs to juz 20", 20, juzOf(it)) }
+    }
+}
+
+/**
+ * Checks 29–31 — bookmarks.
+ *
+ * The store is the whole feature: one toggle, newest-first order, and survival across a
+ * restart. All three are JVM-testable now that `org.json` is a real implementation on the
+ * test classpath rather than a throwing stub.
+ */
+class BookmarkTest {
+
+    private fun tempStore(): Pair<BookmarkStore, java.io.File> {
+        val dir = java.nio.file.Files.createTempDirectory("wird-marks").toFile()
+        return BookmarkStore(dir) to dir
+    }
+
+    /** Check 29 — one control does both jobs, and it reports which it did. */
+    @Test
+    fun `toggle saves then unsaves, and says which`() {
+        val (store, dir) = tempStore()
+        try {
+            assertTrue("a fresh store is empty", store.all().isEmpty())
+            assertFalse("nothing is saved yet", store.has("18:10"))
+
+            assertTrue("first toggle saves", store.toggle("18:10"))
+            assertTrue(store.has("18:10"))
+            assertEquals(1, store.all().size)
+
+            assertFalse("second toggle removes", store.toggle("18:10"))
+            assertFalse(store.has("18:10"))
+            assertTrue(store.all().isEmpty())
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    /** Check 30 — newest first, because that is the only order anyone wants. */
+    @Test
+    fun `bookmarks come back newest first`() {
+        val (store, dir) = tempStore()
+        try {
+            val t = java.time.LocalDateTime.of(2026, 8, 18, 9, 0)
+            store.toggle("2:255", t)
+            store.toggle("18:10", t.plusHours(1))
+            store.toggle("36:1", t.plusHours(2))
+
+            val order = store.all().map { it.verseKey }
+            assertEquals(listOf("36:1", "18:10", "2:255"), order)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
+
+    /** Check 31 — it survives a restart, since a bookmark that forgets itself is useless. */
+    @Test
+    fun `bookmarks survive a reload`() {
+        val (store, dir) = tempStore()
+        try {
+            store.toggle("18:10")
+            store.toggle("36:1")
+            val reread = BookmarkStore(dir).all()
+            assertEquals(2, reread.size)
+            assertTrue(reread.any { it.verseKey == "18:10" })
+            // And the key is all that is stored - never the words. Sacred Rule 2.
+            assertTrue(
+                "a bookmark must not carry Qur'anic text",
+                reread.all { it.verseKey.matches(Regex("""\d+:\d+""")) },
+            )
+        } finally {
+            dir.deleteRecursively()
+        }
     }
 }

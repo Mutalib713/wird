@@ -48,6 +48,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.Modifier
 import com.mosman.wird.audio.Recitation
+import com.mosman.wird.data.BookmarkStore
 import com.mosman.wird.data.ConversationStore
 import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.Speaker
@@ -76,6 +77,7 @@ class MainActivity : ComponentActivity() {
         val store = WirdStore(this)
         val days = DayLogStore(this)
         val chat = ConversationStore(filesDir)
+        val bookmarks = BookmarkStore(filesDir)
 
         setContent {
             var screen by remember {
@@ -91,6 +93,7 @@ class MainActivity : ComponentActivity() {
             var readerName by remember { mutableStateOf(store.readerName) }
             var readingMode by remember { mutableStateOf(store.readingMode) }
             var turns by remember { mutableStateOf(chat.all()) }
+            var saved by remember { mutableStateOf(bookmarks.all()) }
             var commitment by remember { mutableStateOf(store.commitment) }
             /** The chat, opened from Home's companion card. */
             var onChat by remember { mutableStateOf(false) }
@@ -393,6 +396,11 @@ class MainActivity : ComponentActivity() {
                         readingMode = readingMode,
                         dark = pageDark,
                         onBack = { onPage = false },
+                        isBookmarked = { key -> bookmarks.has(key) },
+                        onToggleBookmark = { key ->
+                            bookmarks.toggle(key)
+                            saved = bookmarks.all()
+                        },
                         onNightMode = {
                             store.themeMode = if (pageDark) ThemeMode.LIGHT else ThemeMode.DARK
                             theme = store.themeMode
@@ -439,6 +447,16 @@ class MainActivity : ComponentActivity() {
                     )
 
                         WirdTab.SURAHS -> SurahsTab(
+                            bookmarks = saved,
+                            onOpenPage = { p -> openPage = p; onPage = true },
+                            onOpenBookmark = { b ->
+                                // The page for the ayah itself, resolved once here rather
+                                // than per row in the list.
+                                openPage = com.mosman.wird.domain.SurahIndex
+                                    .byNumber(b.verseKey.substringBefore(':').toIntOrNull() ?: 0)
+                                    ?.firstPage
+                                onPage = true
+                            },
                             onPick = { surah ->
                                 // Picking a surah is a reading action, so it lands you on
                                 // the page rather than leaving you in a list admiring it.
