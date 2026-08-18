@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    What the FileProvider is allowed to hand out.
+
+    Deliberately ONE directory: the export folder in the cache. Sacred Rule 1 means the app's
+    own files - the day log, the recordings, the conversation - are never exposed to another
+    app by accident, and a broader path here would do exactly that. Only the zip the reader
+    explicitly asked for can leave.
+-->
+<paths>
+    <cache-path name="export" path="export/" />
+</paths>

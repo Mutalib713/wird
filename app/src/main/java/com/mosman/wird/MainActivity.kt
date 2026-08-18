@@ -50,6 +50,8 @@ import androidx.compose.ui.Modifier
 import com.mosman.wird.audio.Recitation
 import com.mosman.wird.data.BookmarkStore
 import com.mosman.wird.data.ConversationStore
+import com.mosman.wird.data.DataOnDevice
+import com.mosman.wird.data.Export
 import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.Speaker
 import com.mosman.wird.ui.ChatScreen
@@ -94,6 +96,9 @@ class MainActivity : ComponentActivity() {
             var readingMode by remember { mutableStateOf(store.readingMode) }
             var turns by remember { mutableStateOf(chat.all()) }
             var saved by remember { mutableStateOf(bookmarks.all()) }
+            /** What is on the phone, for the "Your data" row. Refreshed after either action. */
+            var onDevice by remember { mutableStateOf<DataOnDevice?>(null) }
+            var exportNote by remember { mutableStateOf<String?>(null) }
             var commitment by remember { mutableStateOf(store.commitment) }
             /** The chat, opened from Home's companion card. */
             var onChat by remember { mutableStateOf(false) }
@@ -149,6 +154,8 @@ class MainActivity : ComponentActivity() {
                     askLocation.launch(Where.PERMISSION)
                 }
             }
+
+            LaunchedEffect(Unit) { onDevice = Export.whatIsHere(this@MainActivity) }
 
             LaunchedEffect(Unit) {
                 // A no-op without permission, and a no-op while the stored fix is fresh.
@@ -490,6 +497,48 @@ class MainActivity : ComponentActivity() {
                         armed = armed,
                         audioQuality = audioQuality,
                         readingMode = readingMode,
+                        onDevice = onDevice,
+                        exportNote = exportNote,
+                        onExport = {
+                            widgetScope.launch {
+                                exportNote = "Preparing…"
+                                val r = Export.run(this@MainActivity)
+                                if (r == null) {
+                                    exportNote = "Couldn't build the file. Nothing was changed."
+                                    return@launch
+                                }
+                                val uri = androidx.core.content.FileProvider.getUriForFile(
+                                    this@MainActivity,
+                                    "$packageName.files",
+                                    r.file,
+                                )
+                                val send = android.content.Intent(
+                                    android.content.Intent.ACTION_SEND
+                                ).apply {
+                                    type = "application/zip"
+                                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                startActivity(
+                                    android.content.Intent.createChooser(send, "Your Wird data")
+                                )
+                                val mb = r.bytes / 1024.0 / 1024.0
+                                exportNote = "Built ${r.file.name}, ${r.recordings} recordings, " +
+                                    String.format(java.util.Locale.getDefault(), "%.1f MB", mb) + "."
+                            }
+                        },
+                        onDeleteRecordings = {
+                            widgetScope.launch {
+                                val n = Export.deleteRecordings(this@MainActivity)
+                                onDevice = Export.whatIsHere(this@MainActivity)
+                                hasRecording = days.audioFor(today) != null
+                                exportNote = if (n == 1) {
+                                    "1 recording deleted. Your record of reciting is untouched."
+                                } else {
+                                    "$n recordings deleted. Your record of reciting is untouched."
+                                }
+                            }
+                        },
                         onTheme = { store.themeMode = it; theme = it },
                         onReadingMode = { store.readingMode = it; readingMode = it },
                         onPlan = { store.plan = it; plan = it },

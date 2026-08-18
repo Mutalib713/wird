@@ -463,9 +463,29 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *Done when:* a message reaches him from a tester's phone and the privacy line is
   visible in-app.
 
-- [ ] **19. Export everything**
-  All recordings plus the day log, into one folder the user can copy off the phone.
-  *Done when:* the folder appears and opens on a computer.
+- [x] **19. Export everything** — done 2026-08-18, verified by opening the file on this computer
+  Everything Wird knows about you in one zip: `days.json`, `chat.json`, `bookmarks.json`,
+  every recording, and a README that explains each of them.
+
+  *Evidence:* built on the emulator, pulled off with `adb exec-out run-as ... cat`, and
+  opened here — 4 entries, 81,482 bytes, README first. That is the done-when, done on a
+  real computer rather than asserted.
+
+  *A zip rather than the loose folder this task asked for.* A folder is several things to
+  move and easy to half-copy; a zip is one item that keeps its structure and opens as a
+  folder anywhere. The intent — *get my data off this device in a form I can read* — is
+  better served by the single file.
+
+  *The retention choice PROFILE.md § 5a asked for, in the same place:* **Delete recordings**,
+  offered only when there are any. ⚠ **Verified that it does not falsify anything** — after
+  deleting, `days.json` still reads `"method":"RECITED"`. The log stores *how* a day was
+  finished separately from the audio, so removing the files removes recordings, not the fact
+  that you recited. Sacred Rule 6 holds.
+
+  *Sacred Rule 1 is why this exists at all.* A promise that your data never leaves the phone
+  is only kind if you can get it off when you want to; otherwise private and trapped are the
+  same thing. The FileProvider is scoped to exactly one directory — the export folder in the
+  cache — so nothing else can ever be handed to another app.
 
 ## Milestone 4b — The companion
 

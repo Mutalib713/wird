@@ -107,6 +107,24 @@
                 android:resource="@xml/wird_widget_info" />
         </receiver>
 
+
+        <!--
+            Hands the export zip to whatever app the reader picks from the share sheet.
+
+            exported="false" with grantUriPermissions="true" is the safe pairing: nothing can
+            query this provider, and the only thing another app ever receives is the single
+            URI attached to a share the reader started themselves.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 
 </manifest>

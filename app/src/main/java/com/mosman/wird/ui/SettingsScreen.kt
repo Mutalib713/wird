@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.PlaceSource
+import com.mosman.wird.data.DataOnDevice
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.ThemeMode
 import com.mosman.wird.domain.Mushaf
@@ -54,7 +55,7 @@ import java.time.DayOfWeek
 import java.time.LocalTime
 
 /** Which setting is open. Null means the list. */
-private enum class Detail { AMOUNT, LIGHTER, MODE, REMINDER, AUDIO, THEME }
+private enum class Detail { AMOUNT, LIGHTER, MODE, REMINDER, AUDIO, THEME, DATA }
 
 /**
  * Settings.
@@ -89,6 +90,12 @@ fun SettingsScreen(
     armed: Armed?,
     audioQuality: AudioQuality,
     readingMode: ReadingMode,
+    /** What is on the phone right now, for the sentence before you decide. */
+    onDevice: DataOnDevice?,
+    onExport: () -> Unit,
+    onDeleteRecordings: () -> Unit,
+    /** Set after an export runs, so the screen can say what happened. */
+    exportNote: String?,
     onTheme: (ThemeMode) -> Unit,
     onPlan: (ReadingPlan) -> Unit,
     onSchedule: (NudgeSchedule) -> Unit,
@@ -123,6 +130,7 @@ fun SettingsScreen(
             schedule = schedule,
             audioQuality = audioQuality,
             theme = theme,
+            onDevice = onDevice,
             onOpen = { detail = it },
             onChangePosition = onChangePosition,
             onBack = onBack,
@@ -165,6 +173,24 @@ fun SettingsScreen(
                         Chips(listOf(1 to "Half a page", 2 to "One page"), overrideUnits) {
                             overrideUnits = it; push()
                         }
+                    }
+                }
+
+                Detail.DATA -> {
+                    Explain(
+                        "One file with your day log, your saved ayahs, your check-ins and " +
+                            "every recording. Nothing is uploaded to make it."
+                    )
+                    Action("Export everything", onExport)
+                    exportNote?.let { Explain(it) }
+
+                    if ((onDevice?.recordings ?: 0) > 0) {
+                        Spacer(Modifier.height(Scale.space4))
+                        Explain(
+                            "Recordings are the big thing here. Deleting them keeps your " +
+                                "record of having recited - only the audio goes."
+                        )
+                        Action("Delete recordings", onDeleteRecordings)
                     }
                 }
 
@@ -286,6 +312,7 @@ private fun Detail.title(): String = when (this) {
     Detail.REMINDER -> "The reminder"
     Detail.AUDIO -> "Listening"
     Detail.THEME -> "How it looks"
+    Detail.DATA -> "Your data"
 }
 
 // ---- the list ----
@@ -300,6 +327,7 @@ private fun SettingsList(
     schedule: NudgeSchedule,
     audioQuality: AudioQuality,
     theme: ThemeMode,
+    onDevice: DataOnDevice?,
     onOpen: (Detail) -> Unit,
     onChangePosition: () -> Unit,
     onBack: () -> Unit,
@@ -340,6 +368,12 @@ private fun SettingsList(
 
         Group("How it looks") {
             ValueRow("Theme", themeLabel(theme)) { onOpen(Detail.THEME) }
+        }
+
+        // **PLAN task 19.** Sacred Rule 1 promises nothing leaves the phone; this is the other
+        // half of that promise, because private and trapped are otherwise the same thing.
+        Group("Your data") {
+            ValueRow("Export everything", dataLabel(onDevice)) { onOpen(Detail.DATA) }
         }
 
         Spacer(Modifier.height(Scale.space6))
@@ -612,4 +646,16 @@ fun clampPage(page: Int): Int = page.coerceIn(1, Mushaf.PAGES)
 private fun modeLabel(mode: ReadingMode): String = when (mode) {
     ReadingMode.READING -> "From the mushaf"
     ReadingMode.MEMORISING -> "From memory"
+}
+
+/** "3 recordings, 1.2 MB" - or the honest nothing, when there is nothing yet. */
+private fun dataLabel(d: DataOnDevice?): String {
+    if (d == null) return "Checking…"
+    if (d.days == 0 && d.recordings == 0) return "Nothing recorded yet"
+    val days = if (d.days == 1) "1 day" else "${d.days} days"
+    if (d.recordings == 0) return days
+    val mb = d.recordingBytes / 1024.0 / 1024.0
+    val size = if (mb < 1) "${d.recordingBytes / 1024} KB" else String.format(java.util.Locale.getDefault(), "%.1f MB", mb)
+    val recs = if (d.recordings == 1) "1 recording" else "${d.recordings} recordings"
+    return "$days · $recs · $size"
 }
