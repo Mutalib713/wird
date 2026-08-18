@@ -256,14 +256,20 @@ private fun ChooseSurah(onPick: (Surah) -> Unit) {
             .fillMaxSize()
             .background(colors.surface)
             .safeDrawingPadding()
-            .padding(horizontal = Scale.space6, vertical = Scale.space4),
+            .padding(vertical = Scale.space4),
     ) {
-        Text("Where are you?", color = colors.textPrimary, style = TextStyle(fontSize = Scale.display))
+        Text(
+            "Where are you?",
+            color = colors.textPrimary,
+            style = TextStyle(fontSize = Scale.display),
+            modifier = Modifier.padding(horizontal = Scale.space4),
+        )
         Spacer(Modifier.height(Scale.space2))
         Text(
             text = "The surah you're reading now.",
             color = colors.textSecondary,
             style = TextStyle(fontSize = Scale.body),
+            modifier = Modifier.padding(horizontal = Scale.space4),
         )
         Spacer(Modifier.height(Scale.space3))
         SurahList(onPick = onPick)

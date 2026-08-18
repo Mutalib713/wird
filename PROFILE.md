@@ -1123,3 +1123,63 @@ on a band must use `textPrimary`. On the dark band it is 4.90:1 and either works
 `#404694A6` (their `selection_highlight`). Both 25% alpha over a solid. Not yet used — they
 belong to the reciting-highlight and select-a-verse behaviours Mutalib pointed at in his
 reference screenshots, which are still to build.
+
+### 5s. The sūrah list, after Quran for Android — built 2026-08-18
+
+Three asks in one screen, all his, all from the reference screenshots he sent.
+
+**1. The meaning beside the name.** *"Show the meaning of the surah next to the surah name,
+like Surah An-Nisa (The Women)."*
+
+**2. Bare page numbers.** *"Just write the number, don't bring the p there"*, and *"like 22 to
+49, don't do it like that, just write 22."* So `pp. 22–49` becomes `2`, and Ali 'Imran is
+`50`. The range was honest but it answered a question nobody asked — you tap a sūrah to reach
+its **beginning**, so where it ends is not the number you need.
+
+**3. Juz′ section bands**, full-width, `Juz' 18` left and its start page right.
+
+### Where the data came from, and why that mattered
+
+`SurahIndex` needed three columns it did not have — meaning, verse count, and Makki/Madani —
+plus a juz′ table it did not have at all. **None of it was typed.**
+
+- Sūrah columns: regenerated from `/chapters?language=en`, the same endpoint the file's own
+  provenance line has always named.
+- Juz′ start pages: fetched one at a time from `/verses/by_juz/{n}?fields=page_number`,
+  taking the page of each juz′'s first verse.
+
+**The regeneration was diffed against the old file before it replaced it** — 114 rows, on
+number, name and both page numbers: **zero mismatches.** So the new columns are additions to
+data already known good, not a re-derivation that might have quietly moved something.
+
+**And the juz′ numbers were confirmed against his own screenshots.** The API gives Juz′ 18 →
+342, 19 → 362, 20 → 382, 21 → 402. All four match what Quran for Android shows him. Two
+independent sources agreeing is worth more than either alone; QA check 28 asserts it.
+
+### Two things found by building it
+
+**"Hud (Hud)".** Six sūrahs are named for a person or a word, and the API's translated name
+is that same word again — Hud, Taha, Luqman, Ya-Sin, Muhammad, Quraysh. Each read as a
+stutter. Fixed with a rule rather than a list of six numbers: the parenthetical is dropped
+when the meaning folds to the same string as the name, folding away case, spacing, hyphens
+and diacritics, which is what makes "Ya-Sin" match "Ya Sin". **Caught by looking at the built
+screen, not by reading the data.**
+
+**The bands needed the list to run edge to edge.** `SurahsTab` had inset the whole column, so
+a band would have stopped short of the screen and read as a card rather than a section rule.
+All three callers of `SurahList` — the tab, setup's picker, and the jump sheet — now inset
+their own headings and let the list run full width.
+
+### ⚠ The measured rule this screen obeys
+
+Both strings on a Juz′ band use **`textPrimary`, not `textSecondary`**. On the light band
+`#DEE2E6` the secondary grey is **3.99:1 and fails AA**; primary is 11.85:1. § 6d.
+
+### Deliberately not done
+
+**Bands are suppressed while searching.** Four results scattered under four headings is
+harder to read than four results.
+
+**The search field is still an inline box** rather than the magnifier in a toolbar that the
+reference has. That belongs to the navigation work — asks 1 and 2 — and is queued behind
+this, not forgotten.

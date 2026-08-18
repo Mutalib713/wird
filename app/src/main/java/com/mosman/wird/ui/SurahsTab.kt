@@ -30,11 +30,17 @@ fun SurahsTab(onPick: (Surah) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.surface)
-            .padding(horizontal = Scale.space6),
+            .background(colors.surface),
     ) {
+        // The header is inset; the list is not. A Juz' band that stops short of the screen
+        // edge reads as a card rather than as a section rule.
         Spacer(Modifier.height(Scale.space6))
-        Text("The Qur'an", color = colors.textPrimary, style = TextStyle(fontSize = Scale.display))
+        Text(
+            "The Qur'an",
+            color = colors.textPrimary,
+            style = TextStyle(fontSize = Scale.display),
+            modifier = Modifier.padding(horizontal = Scale.space4),
+        )
         Spacer(Modifier.height(Scale.space2))
         Text(
             // Says plainly that browsing is not cheating and costs you nothing. Today's
@@ -42,6 +48,7 @@ fun SurahsTab(onPick: (Surah) -> Unit) {
             text = "Read anywhere you like. Today's portion stays where it is.",
             color = colors.textSecondary,
             style = TextStyle(fontSize = Scale.caption),
+            modifier = Modifier.padding(horizontal = Scale.space4),
         )
         Spacer(Modifier.height(Scale.space4))
         SurahList(onPick = onPick)

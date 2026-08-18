@@ -1,5 +1,6 @@
 package com.mosman.wird.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,7 +28,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.mosman.wird.domain.Juz
+import com.mosman.wird.domain.JuzIndex
+import com.mosman.wird.domain.RevealedIn
 import com.mosman.wird.domain.Surah
+import com.mosman.wird.domain.listLabel
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
@@ -47,13 +55,27 @@ fun SurahList(
     var query by remember { mutableStateOf("") }
     val matches = remember(query) { searchSurahs(query) }
 
+    // Null while searching. Computed once per query rather than per row: a surah belongs to
+    // the juz' its FIRST page falls in, which is what puts Al-Mu'minun, An-Nur and Al-Furqan
+    // together under Juz' 18 exactly as the reference does.
+    val grouped: List<Pair<Juz, List<Surah>>>? = remember(query) {
+        if (query.isNotBlank()) {
+            null
+        } else {
+            matches
+                .groupBy { JuzIndex.of(it.firstPage) }
+                .toList()
+                .sortedBy { it.first.number }
+        }
+    }
+
     Column(modifier = modifier) {
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
             label = { Text("Search surah") },
             singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Scale.space4),
             // Without this the field draws in Material's default purple — a sixth colour
             // on a five-colour palette, on the first screen of a brand-new install.
             // Sacred Rule 8. Caught on the emulator 2026-08-17; invisible on the dev phone
@@ -67,11 +89,21 @@ fun SurahList(
                 text = "Nothing matches \"$query\". Try part of the name, or its number.",
                 color = colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),
-                modifier = Modifier.padding(vertical = Scale.space3),
+                modifier = Modifier.padding(horizontal = Scale.space4, vertical = Scale.space3),
             )
         } else {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(matches, key = { it.number }) { surah -> SurahRow(surah, onPick) }
+                if (grouped != null) {
+                    // Browsing: Juz' bands, the way Quran for Android does it.
+                    grouped.forEach { (juz, surahs) ->
+                        item(key = "juz-" + juz.number) { JuzBand(juz) }
+                        items(surahs, key = { it.number }) { surah -> SurahRow(surah, onPick) }
+                    }
+                } else {
+                    // Searching: bands would be noise. Four results scattered under four
+                    // headings is harder to read than four results.
+                    items(matches, key = { it.number }) { surah -> SurahRow(surah, onPick) }
+                }
             }
         }
     }
@@ -86,9 +118,10 @@ fun SurahJumpSheet(onDismiss: () -> Unit, onPick: (Surah) -> Unit) {
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = colors.surface,
     ) {
-        Column(modifier = Modifier.padding(horizontal = Scale.space4, vertical = Scale.space2)) {
+        Column(modifier = Modifier.padding(vertical = Scale.space2)) {
             Text(
                 text = "Read something else",
+                modifier = Modifier.padding(horizontal = Scale.space4),
                 color = colors.textPrimary,
                 style = TextStyle(fontSize = Scale.title),
             )
@@ -96,6 +129,7 @@ fun SurahJumpSheet(onDismiss: () -> Unit, onPick: (Surah) -> Unit) {
                 text = "Today's portion stays where it is. Nothing here changes it.",
                 color = colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),
+                modifier = Modifier.padding(horizontal = Scale.space4),
             )
             Spacer(Modifier.height(Scale.space3))
             SurahList(onPick = onPick)
@@ -103,6 +137,50 @@ fun SurahJumpSheet(onDismiss: () -> Unit, onPick: (Surah) -> Unit) {
     }
 }
 
+/**
+ * A juz' section header.
+ *
+ * ⚠ **Both strings use [textPrimary], and that is measured, not stylistic.** On the light
+ * band `#DEE2E6` the secondary grey is **3.99:1** and fails AA; primary is 11.85:1. See
+ * PROFILE.md § 6d.
+ */
+@Composable
+private fun JuzBand(juz: Juz) {
+    val colors = LocalWirdColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.band)
+            .padding(horizontal = Scale.space4, vertical = Scale.space3),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Juz' ${juz.number}",
+            color = colors.textPrimary,
+            style = TextStyle(fontSize = Scale.body),
+        )
+        Text(
+            text = juz.firstPage.toString(),
+            color = colors.textPrimary,
+            style = TextStyle(fontSize = Scale.body),
+        )
+    }
+}
+
+/**
+ * One surah.
+ *
+ * Built to the reference Mutalib sent, and every part of it was something he asked for:
+ * the number in its own column, **the meaning beside the name** — "An-Nisa (The Women)" —
+ * where it was revealed and how many verses underneath, and **the start page as a bare
+ * number**.
+ *
+ * *"Just write the number, don't bring the p there"*, and *"like 22 to 49, don't do it like
+ * that, just write 22"*. So a range becomes its opening page: Al-Baqarah is 2, Ali 'Imran is
+ * 50. The range was honest but it was answering a question nobody asked — you tap a surah to
+ * go to its beginning, so where it ends is not the number you need.
+ */
 @Composable
 private fun SurahRow(surah: Surah, onPick: (Surah) -> Unit) {
     val colors = LocalWirdColors.current
@@ -111,25 +189,44 @@ private fun SurahRow(surah: Surah, onPick: (Surah) -> Unit) {
             .fillMaxWidth()
             .clickable { onPick(surah) }
             .defaultMinSize(minHeight = Scale.minTarget)
-            .padding(vertical = Scale.space3),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(horizontal = Scale.space4, vertical = Scale.space3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "${surah.number}. ${surah.name}",
-            color = colors.textPrimary,
+            text = surah.number.toString(),
+            color = colors.textSecondary,
+            style = TextStyle(fontSize = Scale.body),
+            textAlign = TextAlign.End,
+            modifier = Modifier.width(32.dp),
+        )
+        Spacer(Modifier.width(Scale.space3))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = surah.listLabel(),
+                color = colors.textPrimary,
+                style = TextStyle(fontSize = Scale.body),
+            )
+            Text(
+                text = "${revealedLabel(surah)} · ${surah.verses} verses",
+                color = colors.textSecondary,
+                style = TextStyle(fontSize = Scale.caption),
+            )
+        }
+
+        Spacer(Modifier.width(Scale.space3))
+        Text(
+            text = surah.firstPage.toString(),
+            color = colors.textSecondary,
             style = TextStyle(fontSize = Scale.body),
         )
-        Text(
-            text = if (surah.firstPage == surah.lastPage) {
-                "p. ${surah.firstPage}"
-            } else {
-                "pp. ${surah.firstPage}–${surah.lastPage}"
-            },
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.caption),
-        )
     }
+}
+
+/** How mushafs label it, rather than the API's "makkah" / "madinah". */
+private fun revealedLabel(surah: Surah): String = when (surah.revealedIn) {
+    RevealedIn.MAKKI -> "Makki"
+    RevealedIn.MADANI -> "Madani"
 }
 
 /**

@@ -9,6 +9,7 @@ import com.mosman.wird.domain.CompanionAction
 import com.mosman.wird.domain.CompanionBrain
 import com.mosman.wird.domain.Coordinates
 import com.mosman.wird.domain.DayLog
+import com.mosman.wird.domain.JuzIndex
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
@@ -21,6 +22,7 @@ import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.assignPortion
 import com.mosman.wird.domain.label
 import com.mosman.wird.domain.linesOn
+import com.mosman.wird.domain.listLabel
 import com.mosman.wird.domain.nextAfter
 import com.mosman.wird.domain.pages
 import com.mosman.wird.domain.progressOf
@@ -857,5 +859,85 @@ class ReadingModeTest {
         assertEquals("Recite from memory", reciteLabel(ReadingMode.MEMORISING))
         // "I read it" would be wrong for someone deliberately not looking at the page.
         assertEquals("I revised it", tapLabel(ReadingMode.MEMORISING))
+    }
+}
+
+/**
+ * Checks 26–28 — the surah index and its juz′ grouping.
+ *
+ * The data is generated from the Quran.com API rather than typed, so what needs asserting is
+ * not the values themselves but that the *generation* produced something whole: 114 complete
+ * rows, thirty juz′ that cover the mushaf with no gap, and a grouping that reproduces the
+ * reference Mutalib actually sent.
+ */
+class SurahIndexTest {
+
+    /** Check 26 — every row is complete. A blank meaning would render as "Al-Kahf ()". */
+    @Test
+    fun `all 114 surahs carry a name, a meaning, verses and a sane page range`() {
+        assertEquals(114, SurahIndex.all.size)
+        SurahIndex.all.forEachIndexed { i, s ->
+            assertEquals("numbers must run 1..114 in order", i + 1, s.number)
+            assertTrue("${s.number} has no name", s.name.isNotBlank())
+            assertTrue("${s.number} has no meaning", s.meaning.isNotBlank())
+            assertTrue("${s.number} has ${s.verses} verses", s.verses > 0)
+            assertTrue("${s.number} starts on page ${s.firstPage}", s.firstPage in 1..Mushaf.PAGES)
+            assertTrue("${s.number} ends before it starts", s.lastPage >= s.firstPage)
+        }
+        assertEquals("An-Nisa should read as the reference does", "The Women", SurahIndex.byNumber(4)!!.meaning)
+        assertEquals(176, SurahIndex.byNumber(4)!!.verses)
+    }
+
+    /**
+     * Check 26b — the label never repeats itself.
+     *
+     * Six surahs are named for a person or a word, and the API's translated name is that
+     * same word: "Hud (Hud)". Caught by looking at the built screen, not by reading the data.
+     */
+    @Test
+    fun `a meaning that only repeats the name is dropped`() {
+        assertEquals("An-Nisa (The Women)", SurahIndex.byNumber(4)!!.listLabel())
+        listOf(11 to "Hud", 20 to "Taha", 31 to "Luqman",
+               36 to "Ya-Sin", 47 to "Muhammad", 106 to "Quraysh").forEach { (n, expected) ->
+            assertEquals("surah $n should not stutter", expected, SurahIndex.byNumber(n)!!.listLabel())
+        }
+        // And nothing else lost its meaning on the way past.
+        assertTrue(SurahIndex.all.count { it.listLabel().contains("(") } >= 105)
+    }
+
+    /** Check 27 — the thirty juz′ cover every page, in order, with no gap. */
+    @Test
+    fun `juz cover the whole mushaf`() {
+        assertEquals(30, JuzIndex.all.size)
+        assertEquals("juz 1 starts at the first page", 1, JuzIndex.all.first().firstPage)
+        JuzIndex.all.zipWithNext { a, b ->
+            assertTrue("juz ${b.number} must start after juz ${a.number}", b.firstPage > a.firstPage)
+        }
+        // Every page resolves, including the last one.
+        (1..Mushaf.PAGES).forEach { page ->
+            val j = JuzIndex.of(page)
+            assertTrue("page $page landed in juz ${j.number}", j.number in 1..30)
+            assertTrue("page $page is before its own juz start", page >= j.firstPage)
+        }
+    }
+
+    /**
+     * Check 28 — the grouping reproduces Mutalib's reference screenshot.
+     *
+     * From his Quran for Android screenshot, 2026-08-18: `Juz' 18 · 342` with Al-Mu'minun,
+     * An-Nur and Al-Furqan under it; `Juz' 19 · 362` with Ash-Shu'ara and An-Naml; `Juz' 20 ·
+     * 382` with Al-Qasas and Al-'Ankabut. If the grouping rule is ever changed, this is what
+     * says so.
+     */
+    @Test
+    fun `surahs group under the juz their first page falls in`() {
+        assertEquals(342, JuzIndex.all.first { it.number == 18 }.firstPage)
+        assertEquals(362, JuzIndex.all.first { it.number == 19 }.firstPage)
+        assertEquals(382, JuzIndex.all.first { it.number == 20 }.firstPage)
+
+        fun juzOf(surah: Int) = JuzIndex.of(SurahIndex.byNumber(surah)!!.firstPage).number
+        listOf(23, 24, 25).forEach { assertEquals("surah $it belongs to juz 18", 18, juzOf(it)) }
+        listOf(26, 27).forEach { assertEquals("surah $it belongs to juz 19", 19, juzOf(it)) }
+        listOf(28, 29).forEach { assertEquals("surah $it belongs to juz 20", 20, juzOf(it)) }
     }
 }
