@@ -47,19 +47,25 @@ import java.time.temporal.ChronoField
 /**
  * Home — the dashboard.
  *
- * **PROFILE.md § 5g.** Wird spent a day as a page-first app with a companion band above the
- * reading; Mutalib looked at it and said it should be "a complete home screen, like how the
- * Claude Design did theirs". The band was neither thing — too thin to carry the day's state,
- * and no longer a clean page. This is the other answer, taken properly.
+ * **PROFILE.md § 5g, rebuilt to the design's *after* variant on 2026-08-18 — § 5j.**
+ * Mutalib identified the two mockups himself: the *before* is the one with the bottom tab
+ * bar and "Good evening, Amina"; the *after* is the one beside it with a toolbar and a top
+ * strip. He asked for the after's layout, the before's greeting, and our own colours.
  *
- * The order is the design's own: **the date, who you are, what is being asked, what you are
- * reading, how it has gone, and the way in.**
+ * **The top strip is deliberately absent.** The after navigates by a `TODAY · SŪRAH · JUZʾ`
+ * strip and has no bottom bar at all. Wird keeps the four-tab bottom bar, and running both
+ * would put "Sūrah" on the same screen twice. Asked directly; his answer was *"i just want
+ * the bottom tabs"*. So this takes the after's order and hierarchy and none of its
+ * navigation.
+ *
+ * The order is the after's own: **who you are, what you are reading, what is being asked,
+ * how it has gone, and the week behind you.**
  *
  * **The one number that governs this screen:** § 2 found that 8 of his 14 missed days were
  * procrastination rather than forgetting. A dashboard puts a screen between him and the
  * page, so every element here has to earn that cost — and `OPEN THE PAGE →` is deliberately
- * the loudest thing below the fold-line, full width and unmissable. If missed days go up
- * after this lands, this screen is the first suspect.
+ * the loudest thing on it, full width and unmissable. If missed days go up after this
+ * lands, this screen is the first suspect.
  */
 @Composable
 fun HomeScreen(
@@ -71,6 +77,10 @@ fun HomeScreen(
     /** What the companion worked out you wanted. MainActivity is what can act on it. */
     onCompanionAction: (CompanionAction) -> Unit = {},
     positionLabel: String = "",
+    /** What to call the reader, or null if they skipped the question. */
+    readerName: String? = null,
+    /** Which page a past day covered, for the week's page column. Null when unrecorded. */
+    pageFor: (LocalDate) -> Int? = { null },
 ) {
     val colors = LocalWirdColors.current
     var companionReply by remember { mutableStateOf<String?>(null) }
@@ -83,6 +93,27 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Scale.space4),
     ) {
+        // ---- the toolbar ----
+        //
+        // The after's own header: the app's name, and under it where you currently are.
+        // The juz' is not shown here as the design does — Home has the page number but not
+        // the juz', which only arrives with the page data itself, and § 10 says a number
+        // gets measured rather than guessed.
+        Spacer(Modifier.height(Scale.space4))
+        Text(
+            text = "WIRD",
+            color = colors.accent,
+            style = TextStyle(fontSize = 13.sp, letterSpacing = 3.sp, fontWeight = FontWeight.SemiBold),
+        )
+        if (positionLabel.isNotEmpty()) {
+            Spacer(Modifier.height(Scale.space1))
+            Text(
+                text = positionLabel.uppercase(),
+                color = colors.textOutsidePortion,
+                style = TextStyle(fontSize = 10.sp, letterSpacing = 1.2.sp),
+            )
+        }
+
         Spacer(Modifier.height(Scale.space6))
 
         // ---- the date ----
@@ -95,14 +126,23 @@ fun HomeScreen(
 
         // ---- the greeting ----
         //
-        // No name yet — PROFILE § 5c approved asking for one but setup does not yet. Until
-        // it does this greets the hour rather than inventing a name, because "Good evening,
-        // friend" is worse than "Good evening".
+        // The one thing taken from the *before* variant, at his instruction. The after has
+        // no greeting at all, which is why it had to be carried across.
+        //
+        // The name is optional by design — setup offers a Skip — and this falls back to the
+        // bare hour rather than inventing "friend", which reads worse than saying nothing.
         Text(
             text = greeting(),
             color = colors.textPrimary,
             style = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.Normal),
         )
+        readerName?.let { name ->
+            Text(
+                text = name,
+                color = colors.accent,
+                style = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.Normal),
+            )
+        }
 
         Spacer(Modifier.height(Scale.space6))
 
@@ -111,10 +151,11 @@ fun HomeScreen(
 
         // ---- what is being asked ----
         //
-        // UNDER the portion, not above it. Mutalib said "the daily portion must come
-        // first" twice; the design leads with the greeting and the companion, and taking
-        // that order put the thing the app exists for in second place.
+        // UNDER the portion, which is where the after puts it too. Mutalib said "the daily
+        // portion must come first" twice, and the before variant leads with the companion —
+        // one more reason the after's order is the one he picked.
         if (doneMethod == null) {
+            Spacer(Modifier.height(Scale.space4))
             Companion(
                 question = companionQuestion(),
                 shortcuts = listOf("After Isha", "In an hour", "Not today"),
@@ -127,7 +168,6 @@ fun HomeScreen(
                     onCompanionAction(action)
                 },
             )
-            Spacer(Modifier.height(Scale.space4))
         }
 
         // ---- how it has gone ----
@@ -136,38 +176,76 @@ fun HomeScreen(
             Numbers(p)
         }
 
-        // ---- the last few days ----
+        // ---- the week behind you ----
         if (recent.isNotEmpty()) {
             Spacer(Modifier.height(Scale.space6))
-            Label("Your wird")
-            Spacer(Modifier.height(Scale.space2))
-            recent.take(3).forEach { log ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = Scale.space2),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = dayName(log.date),
-                        color = colors.textPrimary,
-                        style = TextStyle(fontSize = Scale.body),
-                    )
-                    Text(
-                        text = if (log.method == Method.RECITED) "Recited aloud" else "Marked as read",
-                        color = colors.textSecondary,
-                        style = TextStyle(fontSize = Scale.caption),
-                    )
-                }
-            }
-            Text(
-                // Sacred Rule 3, said out loud rather than merely implemented.
-                text = "Days you missed aren't listed.",
-                color = colors.textOutsidePortion,
-                style = TextStyle(fontSize = Scale.caption),
-            )
+            ThisWeek(recent, pageFor)
         }
 
         Spacer(Modifier.height(Scale.space8))
     }
+}
+
+/**
+ * The last few days, with the page each one covered.
+ *
+ * **The page column is the after's addition and it is the useful one.** "Yesterday ·
+ * recited aloud" tells you that you read; "293" tells you *where*, which is the thing you
+ * actually want when you are wondering whether you have drifted.
+ *
+ * A day whose page was never recorded shows nothing rather than a zero or a dash-shaped
+ * apology. Days marked before task 6 started storing `startUnit` are exactly that case.
+ */
+@Composable
+private fun ThisWeek(recent: List<DayLog>, pageFor: (LocalDate) -> Int?) {
+    val colors = LocalWirdColors.current
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Label("This week")
+        Label("Page")
+    }
+    Spacer(Modifier.height(Scale.space2))
+
+    recent.take(3).forEach { log ->
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = Scale.space2),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = dayName(log.date),
+                    color = colors.textPrimary,
+                    style = TextStyle(fontSize = Scale.body),
+                )
+                Text(
+                    text = if (log.method == Method.RECITED) "Recited aloud" else "Marked as read",
+                    color = colors.textSecondary,
+                    style = TextStyle(fontSize = Scale.caption),
+                )
+            }
+            pageFor(log.date)?.let { page ->
+                Text(
+                    text = page.toString(),
+                    color = colors.textSecondary,
+                    style = TextStyle(fontSize = Scale.body),
+                )
+            }
+        }
+    }
+
+    Spacer(Modifier.height(Scale.space1))
+    Text(
+        // Sacred Rule 3, said out loud rather than merely implemented. The second sentence
+        // is the after's own wording and it is worth keeping — it names the absence, so an
+        // empty row is read as mercy rather than as a bug.
+        text = "Days you missed aren't listed. There is no row saying you failed.",
+        color = colors.textOutsidePortion,
+        style = TextStyle(fontSize = Scale.caption),
+    )
 }
 
 /**
@@ -205,9 +283,25 @@ private fun PortionCard(assignment: Assignment, doneMethod: Method?, onOpenPage:
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = portionDetail(assignment),
+                    text = portionDetail(assignment, doneMethod),
                     color = colors.textSecondary,
                     style = TextStyle(fontSize = Scale.caption),
+                )
+            }
+
+            // The page as a figure rather than as words in the detail line. This is the
+            // after's own move, and it is the better one: the page number is what you
+            // glance for, and buried in a sentence it has to be read.
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = assignment.startPage.toString(),
+                    color = colors.accent,
+                    style = TextStyle(fontSize = 26.sp),
+                )
+                Text(
+                    text = "PAGE",
+                    color = colors.textSecondary,
+                    style = TextStyle(fontSize = 9.sp, letterSpacing = 1.sp),
                 )
             }
         }
@@ -238,6 +332,12 @@ private fun PortionCard(assignment: Assignment, doneMethod: Method?, onOpenPage:
  * Sacred Rules 4 and 6 both land here: the streak never appears without the total, a streak
  * of nought is not announced at all, and the split is written out rather than shown as a
  * ratio.
+ *
+ * **The recited count is no longer a third figure.** The after shows two figures and then
+ * the sentence, and it is right — the old layout put "5 RECITED" directly above "5 recited
+ * aloud, 18 marked as read", saying the same number twice in two shapes. The sentence is
+ * the better of the two, because it is the one that also carries what it is being compared
+ * against.
  */
 @Composable
 private fun Numbers(p: Progress) {
@@ -248,7 +348,6 @@ private fun Numbers(p: Progress) {
     ) {
         if (p.currentStreak > 1) Figure(p.currentStreak.toString(), "In a row")
         Figure(p.totalDaysRead.toString(), if (p.totalDaysRead == 1) "Day read" else "Days read")
-        if (p.recitedDays > 0) Figure(p.recitedDays.toString(), "Recited")
     }
     Spacer(Modifier.height(Scale.space3))
     Text(
@@ -321,14 +420,26 @@ private val HIJRI_MONTHS = listOf(
     "Dhū al-Qaʿdah", "Dhū al-Ḥijjah",
 )
 
-private fun portionDetail(a: Assignment): String {
+/**
+ * "One page · not yet marked", the after's own shape for this line.
+ *
+ * The page number has left this sentence and become a figure beside it, so what is left is
+ * the amount and the state. When a portion runs across two pages the span is still spelled
+ * out here, because the figure can only show where it starts.
+ */
+private fun portionDetail(a: Assignment, doneMethod: Method?): String {
     val amount = when (a.units) {
-        1 -> "half a page"
-        2 -> "one page"
+        1 -> "Half a page"
+        2 -> "One page"
         else -> "${a.units / 2} pages"
     }
-    val pages = if (a.startPage == a.endPage) "page ${a.startPage}" else "pages ${a.startPage}–${a.endPage}"
-    return "$amount · $pages"
+    val span = if (a.startPage == a.endPage) null else "to ${a.endPage}"
+    val state = when (doneMethod) {
+        Method.RECITED -> "recited aloud"
+        Method.TAPPED -> "marked as read"
+        null -> "not yet marked"
+    }
+    return listOfNotNull(amount, span, state).joinToString(" · ")
 }
 
 private fun dayName(date: LocalDate): String {

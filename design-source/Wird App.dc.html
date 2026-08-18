@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_ds/nutcracker-poster-campaign-e1c110f1-6574-4016-a8e3-8f2730f24f7d/colors_and_type.css">
+<script src="_ds/nutcracker-poster-campaign-e1c110f1-6574-4016-a8e3-8f2730f24f7d/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Oswald:wght@300;400;500;600&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0C0913; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  a { color:#C9A24B; text-decoration:none; }
+  a:hover { color:#E7C97E; }
+  ::-webkit-scrollbar { width:0; height:0; }
+  @keyframes wUp { from { opacity:0; transform:translateY(10px);} to {opacity:1; transform:none;} }
+  @keyframes wSheet { from { transform:translateY(100%);} to {transform:none;} }
+  @keyframes wPulse { 0%,100% { opacity:.35; } 50% { opacity:1; } }
+  @keyframes wLvl { 0%,100% { transform:scaleY(0.25); } 50% { transform:scaleY(1); } }
+  @keyframes wStamp { 0% { opacity:0; transform:scale(1.5) rotate(-2deg);} 60% { opacity:1; } 100% { opacity:1; transform:scale(1) rotate(-2deg);} }
+  @keyframes wSweep { 0% { left:-30%; } 100% { left:100%; } }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; align-items:flex-start; justify-content:center; gap:40px; padding:40px 24px 60px; background:radial-gradient(130% 100% at 50% 8%, #1F1830 0%, #14101F 60%, #0C0913 100%); font-family:'EB Garamond', Georgia, serif;">
+
+<!-- screen index -->
+<sc-if value="{{ showIndex }}" hint-placeholder-val="{{ true }}">
+<div style="width:210px; flex:0 0 210px; padding-top:26px;">
+  <div style="font-family:'Cinzel', serif; font-weight:700; font-size:19px; letter-spacing:0.24em; color:#C9A24B;">WIRD</div>
+  <div style="height:1px; background:linear-gradient(90deg, #C9A24B, rgba(201,162,75,0.1)); margin:12px 0 22px;"></div>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+    <div style="margin-bottom:22px;">
+      <div style="font-family:'Oswald', sans-serif; font-weight:500; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(201,162,75,0.75);">{{ g.label }}</div>
+      <div style="display:flex; flex-direction:column; gap:1px; margin-top:8px;">
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="5">
+          <div role="button" tabindex="0" onClick="{{ it.go }}" style="padding:7px 10px; cursor:pointer; border-left:2px solid {{ it.mark }}; background:{{ it.bg }}; font-family:'EB Garamond', Georgia, serif; font-size:16px; color:{{ it.fg }};" style-hover="background:rgba(201,162,75,0.07);">{{ it.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</sc-if>
+
+<div style="display:flex; flex-direction:column; align-items:center; gap:18px;">
+<div style="{{ theme }}">
+<div style="width:390px; height:844px; border-radius:44px; overflow:hidden; position:relative; display:flex; flex-direction:column; background:#14101F; box-shadow:0 18px 48px rgba(12,9,19,0.55), 0 0 0 10px #0A0810, 0 0 0 11px rgba(201,162,75,0.28);">
+
+  <!-- status bar -->
+  <div style="height:52px; flex:0 0 52px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 26px 8px; font-family:'Oswald', sans-serif; font-size:13px; letter-spacing:0.04em; color:#FBF9F3; position:relative; z-index:6;">
+    <div>19:04</div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <div style="width:16px; height:9px; border:1px solid rgba(251,249,243,0.75); border-radius:2px; position:relative;"><div style="position:absolute; inset:1.5px; right:5px; background:#FBF9F3; border-radius:1px;"></div></div>
+      <div style="width:2px; height:9px; background:rgba(251,249,243,0.55);"></div>
+      <div style="width:2px; height:9px; background:#FBF9F3;"></div>
+    </div>
+  </div>
+
+  <div style="flex:1; overflow-y:auto; overflow-x:hidden; position:relative;">
+
+    <!-- ============ TODAY ============ -->
+    <sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+    <div style="min-height:100%; padding:8px 22px 28px; animation:wUp 320ms cubic-bezier(0.22,1,0.36,1);">
+
+      <div style="font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#C9A24B;">Thursday · 3 Rabīʿ al-Awwal</div>
+      <div style="font-family:'Playfair Display', Georgia, serif; font-size:34px; line-height:1.1; color:#FBF9F3; margin-top:8px;">Good evening,<br><span style="font-style:italic; color:#E7C97E;">Amina</span></div>
+
+      <div style="height:1px; background:linear-gradient(90deg, #C9A24B, rgba(201,162,75,0.12)); margin:22px 0 20px;"></div>
+
+      <!-- the companion asks first -->
+      <div style="border:1px solid rgba(201,162,75,0.35); border-radius:4px; background:linear-gradient(160deg, #241C33, #14101F); padding:18px 20px 20px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:7px; height:7px; background:#C9A24B; transform:rotate(45deg);"></div>
+          <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#C9A24B;">{{ compWhen }}</div>
+        </div>
+        <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:23px; line-height:1.3; color:#FBF9F3; margin-top:12px; text-wrap:pretty;">{{ compAsk }}</div>
+
+        <sc-if value="{{ compAsking }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-wrap:wrap; gap:7px; margin-top:16px;">
+            <sc-for list="{{ compHints }}" as="h" hint-placeholder-count="4">
+              <div role="button" tabindex="0" onClick="{{ h.pick }}" style="cursor:pointer; white-space:nowrap; padding:9px 14px; border:1px solid rgba(201,162,75,0.3); border-radius:999px; font-family:'EB Garamond', Georgia, serif; font-size:15px; color:#FBF9F3;" style-hover="border-color:#C9A24B;">{{ h.label }}</div>
+            </sc-for>
+          </div>
+          <div role="button" tabindex="0" onClick="{{ openComp }}" style="display:flex; align-items:center; gap:9px; margin-top:16px; cursor:pointer;">
+            <div style="width:26px; height:26px; border:1px solid rgba(201,162,75,0.45); border-radius:50%; display:flex; align-items:center; justify-content:center;"><div style="width:7px; height:11px; border-radius:4px 4px 3px 3px; background:#C9A24B;"></div></div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(251,249,243,0.66);">Or say it in your own words</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ compAnswered }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(201,162,75,0.2);">
+            <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:19px; color:#E7C97E;">“{{ compReply }}”</div>
+            <div style="display:flex; align-items:center; gap:9px; margin-top:10px;">
+              <div style="width:5px; height:5px; background:#C9A24B; transform:rotate(45deg);"></div>
+              <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#C9A24B;">{{ compDid }}</div>
+            </div>
+            <div role="button" tabindex="0" onClick="{{ openComp }}" style="display:inline-block; margin-top:14px; cursor:pointer; font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.66); border-bottom:1px solid rgba(201,162,75,0.4); padding-bottom:3px;">What I’ve told it</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- today's portion -->
+      <div role="button" tabindex="0" onClick="{{ openReader }}" style="border:1px solid rgba(201,162,75,0.35); border-radius:4px; padding:20px; background:linear-gradient(160deg, #1F1830, #14101F); cursor:pointer; margin-top:14px; transition:border-color 260ms cubic-bezier(0.22,1,0.36,1);" style-hover="border-color:#C9A24B;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px;">
+          <div>
+            <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:rgba(251,249,243,0.5);">Today’s portion</div>
+            <div style="font-family:'Playfair Display', Georgia, serif; font-size:25px; color:#FBF9F3; margin-top:7px;">Al-Kahf 1–3</div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:12px; letter-spacing:0.06em; color:rgba(251,249,243,0.66); margin-top:4px;">3 ayahs · half a page · page 293</div>
+          </div>
+          <div style="font-family:'Amiri', serif; font-size:30px; color:#C9A24B; line-height:1;">الكهف</div>
+        </div>
+        <div style="height:2px; background:rgba(201,162,75,0.18); margin-top:18px; position:relative;">
+          <div style="position:absolute; left:0; top:0; bottom:0; width:41%; background:linear-gradient(90deg, #A07A2E, #E7C97E);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:9px; font-family:'Oswald', sans-serif; font-weight:300; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(251,249,243,0.55);">
+          <span>Juzʾ 15 · 41% through the mushaf</span><span style="color:#C9A24B;">Open the page →</span>
+        </div>
+      </div>
+
+      <!-- the two numbers, never apart -->
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px;">
+        <div style="border:1px solid rgba(201,162,75,0.2); border-radius:4px; padding:14px 12px; text-align:center;">
+          <div style="font-family:'Cinzel', serif; font-weight:700; font-size:23px; color:#E7C97E;">7</div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.66); margin-top:3px;">In a row</div>
+        </div>
+        <div style="border:1px solid rgba(201,162,75,0.2); border-radius:4px; padding:14px 12px; text-align:center;">
+          <div style="font-family:'Cinzel', serif; font-weight:700; font-size:23px; color:#E7C97E;">23</div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.66); margin-top:3px;">Days read</div>
+        </div>
+        <div style="border:1px solid rgba(201,162,75,0.2); border-radius:4px; padding:14px 12px; text-align:center;">
+          <div style="font-family:'Cinzel', serif; font-weight:700; font-size:23px; color:#E7C97E;">5</div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.66); margin-top:3px;">Recited aloud</div>
+        </div>
+      </div>
+
+      <!-- how you finish -->
+      <div style="display:flex; align-items:center; gap:14px; color:#C9A24B; margin:28px 0 14px;">
+        <div style="flex:1; height:1px; background:linear-gradient(90deg, transparent, #C9A24B 40%, #C9A24B 60%, transparent);"></div>
+        <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase;">Marking it done</div>
+        <div style="flex:1; height:1px; background:linear-gradient(90deg, transparent, #C9A24B 40%, #C9A24B 60%, transparent);"></div>
+      </div>
+
+      <div role="button" tabindex="0" onClick="{{ startRecite }}" style="display:flex; align-items:center; justify-content:center; gap:12px; height:58px; cursor:pointer; background:linear-gradient(180deg, #E7C97E, #C9A24B 42%, #A07A2E 74%, #E7C97E); border-radius:3px; box-shadow:0 1px 0 rgba(231,201,126,0.5), 0 3px 12px rgba(160,122,46,0.35);">
+        <div style="width:11px; height:16px; border-radius:6px 6px 5px 5px; background:#560C15;"></div>
+        <div style="font-family:'Oswald', sans-serif; font-weight:600; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:#560C15;">Recite it aloud</div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <div role="button" tabindex="0" onClick="{{ markRead }}" style="flex:1; height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.5); border-radius:3px; font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#E7C97E;">I read it</div>
+        <div role="button" tabindex="0" onClick="{{ goListen }}" style="flex:1; height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.22); border-radius:3px; font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:rgba(251,249,243,0.66);">Listen to it</div>
+      </div>
+
+      <!-- the record -->
+      <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:#C9A24B; margin:30px 0 12px;">The last nine days</div>
+      <div style="display:flex; flex-direction:column; gap:1px; background:rgba(201,162,75,0.18); border:1px solid rgba(201,162,75,0.18); border-radius:4px; overflow:hidden;">
+        <sc-for list="{{ log }}" as="w" hint-placeholder-count="3">
+          <div style="display:flex; align-items:center; gap:14px; padding:15px 16px; background:#14101F;">
+            <div style="width:26px; height:26px; flex:0 0 26px; border:1px solid rgba(201,162,75,0.5); display:flex; align-items:center; justify-content:center; transform:rotate(45deg); background:{{ w.fill }};">
+              <span style="transform:rotate(-45deg); font-family:'Oswald', sans-serif; font-size:11px; color:{{ w.numColor }};">{{ w.n }}</span>
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-family:'Playfair Display', Georgia, serif; font-size:17px; color:#FBF9F3;">{{ w.title }}</div>
+              <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:11px; letter-spacing:0.05em; color:rgba(251,249,243,0.66); margin-top:2px;">{{ w.meta }}</div>
+            </div>
+            <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:{{ w.stateColor }};">{{ w.state }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:12px; text-wrap:pretty;">Days you missed aren’t listed. There is no row saying you failed.</div>
+
+    </div>
+    </sc-if>
+
+    <!-- ============ SŪRAHS ============ -->
+    <sc-if value="{{ isSurahs }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; padding:8px 0 28px; animation:wUp 320ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="padding:0 22px;">
+        <div style="font-family:'Cinzel', serif; font-weight:700; font-size:26px; letter-spacing:0.14em; text-transform:uppercase; color:#FBF9F3;">Sūrahs</div>
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:16px; color:rgba(251,249,243,0.66); margin-top:8px;">Jump anywhere. Your portion stays where it is.</div>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:16px; border:1px solid rgba(201,162,75,0.3); border-radius:2px; padding:11px 14px;">
+          <div style="width:13px; height:13px; border:1.5px solid #C9A24B; border-radius:50%; flex:0 0 13px;"></div>
+          <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="yasin, al kahf, 36…" style="flex:1; background:transparent; border:0; outline:none; font-family:'EB Garamond', Georgia, serif; font-size:16px; color:#FBF9F3;">
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.66);">{{ resultCount }}</div>
+        </div>
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:10px;">Spelling and punctuation don’t matter — “yasin” finds Ya-Sin.</div>
+      </div>
+
+      <div style="margin-top:18px;">
+        <sc-for list="{{ visibleSurahs }}" as="s" hint-placeholder-count="8">
+          <div role="button" tabindex="0" onClick="{{ s.open }}" style="display:flex; align-items:center; gap:16px; padding:14px 22px; cursor:pointer; border-bottom:1px solid rgba(201,162,75,0.12);" style-hover="background:#1F1830;">
+            <div style="width:34px; height:34px; flex:0 0 34px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(201,162,75,0.4); transform:rotate(45deg);">
+              <span style="transform:rotate(-45deg); font-family:'Oswald', sans-serif; font-weight:400; font-size:12px; color:#C9A24B;">{{ s.n }}</span>
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-family:'Playfair Display', Georgia, serif; font-size:18px; color:#FBF9F3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ s.name }}</div>
+              <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:rgba(251,249,243,0.6); margin-top:2px;">{{ s.meta }}</div>
+            </div>
+            <div style="font-family:'Amiri', serif; font-size:22px; color:#C9A24B; direction:rtl;">{{ s.ar }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:40px 22px; text-align:center; font-family:'EB Garamond', Georgia, serif; font-size:16px; color:rgba(251,249,243,0.6);">No sūrah matches that search.</div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ THE PAGE ============ -->
+    <sc-if value="{{ isReader }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; background:var(--pg-paper,#F4EDE0); animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+
+      <div style="position:sticky; top:0; z-index:4; display:flex; align-items:center; gap:14px; padding:12px 18px; background:var(--pg-paper,#F4EDE0); border-bottom:1px solid var(--pg-rule,rgba(26,19,32,0.16));">
+        <div role="button" tabindex="0" onClick="{{ goToday }}" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex:0 0 32px;">
+          <div style="width:11px; height:11px; border-left:1.5px solid var(--pg-gold,#A07A2E); border-bottom:1.5px solid var(--pg-gold,#A07A2E); transform:rotate(45deg); margin-left:4px;"></div>
+        </div>
+        <div style="flex:1; text-align:center;">
+          <div style="font-family:'Cinzel', serif; font-weight:600; font-size:14px; letter-spacing:0.16em; text-transform:uppercase; color:var(--pg-ink,#1A1320);">Al-Kahf</div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--pg-muted,rgba(26,19,32,0.68)); margin-top:2px;">Today · ayahs 1–3 · page 293</div>
+        </div>
+        <div role="button" tabindex="0" onClick="{{ cycleSize }}" style="width:32px; height:32px; flex:0 0 32px; display:flex; align-items:baseline; justify-content:center; gap:1px; cursor:pointer; border:1px solid var(--pg-gold,#A07A2E); border-radius:2px; font-family:'Amiri', serif; color:var(--pg-gold,#A07A2E); padding-top:6px;"><span style="font-size:11px;">ا</span><span style="font-size:16px;">ا</span></div>
+      </div>
+
+      <div style="padding:22px 24px 36px;">
+        <div style="border-top:2px solid var(--pg-gold,#A07A2E); border-bottom:1px solid var(--pg-gold,#A07A2E); padding:9px 0; text-align:center; margin-bottom:22px;">
+          <div style="font-family:'Amiri', serif; font-size:20px; color:var(--pg-ink,#1A1320);">سورة الكهف</div>
+        </div>
+
+        <sc-for list="{{ ayahs }}" as="a" hint-placeholder-count="5">
+          <div role="button" tabindex="0" onClick="{{ a.select }}" style="cursor:pointer; display:flex; gap:12px; padding:12px 0; direction:rtl;">
+            <div style="width:3px; flex:0 0 3px; background:{{ a.marker }};"></div>
+            <div style="flex:1; display:flex; align-items:flex-start; gap:12px;">
+              <div style="width:28px; height:28px; flex:0 0 28px; margin-top:8px; display:flex; align-items:center; justify-content:center; border:1px solid {{ a.rosette }}; border-radius:50%; font-family:'Amiri', serif; font-size:12px; color:{{ a.rosette }};">{{ a.n }}</div>
+              <div style="flex:1; font-family:'Amiri', serif; text-align:justify; line-height:2.15; font-size:var(--pg-ar,27px); color:{{ a.color }};">{{ a.ar }}</div>
+            </div>
+          </div>
+        </sc-for>
+
+        <div style="display:flex; align-items:center; gap:12px; color:var(--pg-gold,#A07A2E); margin-top:24px;">
+          <div style="flex:1; height:1px; background:currentColor; opacity:0.4;"></div>
+          <div style="font-family:'Amiri', serif; font-size:14px;">٢٩٣</div>
+          <div style="font-family:'Oswald', sans-serif; font-size:9px; letter-spacing:0.2em; text-transform:uppercase;">Juzʾ 15</div>
+          <div style="flex:1; height:1px; background:currentColor; opacity:0.4;"></div>
+        </div>
+
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; line-height:1.5; color:var(--pg-muted,rgba(26,19,32,0.68)); margin-top:20px; text-align:center; text-wrap:pretty;">Ayahs 4 and 5 are on this page but not in today’s portion, so they step back. Nothing is painted over the page.</div>
+
+        <div role="button" tabindex="0" onClick="{{ startRecite }}" style="display:flex; align-items:center; justify-content:center; gap:12px; height:56px; cursor:pointer; margin-top:24px; background:linear-gradient(180deg, #E7C97E, #C9A24B 42%, #A07A2E 74%, #E7C97E); border-radius:3px;">
+          <div style="width:11px; height:16px; border-radius:6px 6px 5px 5px; background:#560C15;"></div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:600; font-size:13px; letter-spacing:0.2em; text-transform:uppercase; color:#560C15;">Recite it aloud</div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ LISTEN ============ -->
+    <sc-if value="{{ isListen }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; padding:8px 22px 28px; animation:wUp 320ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="font-family:'Cinzel', serif; font-weight:700; font-size:26px; letter-spacing:0.14em; text-transform:uppercase; color:#FBF9F3;">Listen</div>
+
+      <div style="margin-top:20px; border:1px solid rgba(201,162,75,0.35); border-radius:4px; background:linear-gradient(160deg, #1F1830, #14101F); padding:24px 22px 22px; text-align:center;">
+        <div style="font-family:'Amiri', serif; font-size:40px; color:#C9A24B; line-height:1;">الكهف</div>
+        <div style="font-family:'Playfair Display', Georgia, serif; font-size:22px; color:#FBF9F3; margin-top:12px;">{{ nowPlaying }}</div>
+        <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(251,249,243,0.66); margin-top:5px;">Abū Bakr al-Shāṭrī</div>
+
+        <div style="height:2px; background:rgba(201,162,75,0.18); margin:22px 0 8px; position:relative;">
+          <div style="position:absolute; left:0; top:0; bottom:0; width:{{ progressPct }}%; background:linear-gradient(90deg, #A07A2E, #E7C97E);"></div>
+          <div style="position:absolute; top:-3px; left:{{ progressPct }}%; width:8px; height:8px; background:#E7C97E; transform:rotate(45deg) translateX(-4px);"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-family:'Oswald', sans-serif; font-weight:300; font-size:10px; letter-spacing:0.08em; color:rgba(251,249,243,0.6);">
+          <span>{{ elapsed }}</span><span>{{ duration }}</span>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:center; gap:26px; margin-top:20px;">
+          <div role="button" tabindex="0" onClick="{{ prevAyah }}" style="cursor:pointer; display:flex; align-items:center; gap:2px;">
+            <div style="width:2px; height:14px; background:#C9A24B;"></div>
+            <div style="width:0; height:0; border-top:7px solid transparent; border-bottom:7px solid transparent; border-right:11px solid #C9A24B;"></div>
+          </div>
+          <div role="button" tabindex="0" onClick="{{ togglePlay }}" style="width:62px; height:62px; border-radius:50%; background:linear-gradient(180deg, #E7C97E, #C9A24B 42%, #A07A2E 72%, #E7C97E); display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 10px rgba(160,122,46,0.5);">{{ playGlyph }}</div>
+          <div role="button" tabindex="0" onClick="{{ nextAyah }}" style="cursor:pointer; display:flex; align-items:center; gap:2px;">
+            <div style="width:0; height:0; border-top:7px solid transparent; border-bottom:7px solid transparent; border-left:11px solid #C9A24B;"></div>
+            <div style="width:2px; height:14px; background:#C9A24B;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:#C9A24B; margin:26px 0 4px;">Only today’s ayahs</div>
+      <div>
+        <sc-for list="{{ listenAyahs }}" as="a" hint-placeholder-count="3">
+          <div role="button" tabindex="0" onClick="{{ a.pick }}" style="display:flex; align-items:flex-start; gap:12px; padding:14px 0; cursor:pointer; border-bottom:1px solid rgba(201,162,75,0.12); direction:rtl;">
+            <div style="width:26px; height:26px; flex:0 0 26px; margin-top:4px; border:1px solid {{ a.mark }}; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Amiri', serif; font-size:12px; color:{{ a.mark }};">{{ a.n }}</div>
+            <div style="flex:1; font-family:'Amiri', serif; font-size:21px; line-height:2; text-align:right; color:{{ a.color }};">{{ a.ar }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px; margin-top:20px;">
+        <sc-for list="{{ quality }}" as="q" hint-placeholder-count="2">
+          <div role="button" tabindex="0" onClick="{{ q.pick }}" style="flex:1; padding:12px 14px; cursor:pointer; border:1px solid {{ q.border }}; background:{{ q.bg }}; border-radius:3px;">
+            <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:{{ q.fg }};">{{ q.label }}</div>
+            <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:3px;">{{ q.size }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; line-height:1.5; color:rgba(251,249,243,0.66); margin-top:12px; text-wrap:pretty;">Cached after the first play, so it works with no signal. Listening on its own doesn’t mark the day.</div>
+    </div>
+    </sc-if>
+
+    <!-- ============ MORE ============ -->
+    <sc-if value="{{ isMore }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; padding:8px 22px 28px; animation:wUp 320ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="font-family:'Cinzel', serif; font-weight:700; font-size:26px; letter-spacing:0.14em; text-transform:uppercase; color:#FBF9F3;">Settings</div>
+
+      <sc-if value="{{ settingsToast }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:18px; padding:14px 16px; border-left:2px solid #C9A24B; background:rgba(201,162,75,0.09);">
+          <div style="font-family:'EB Garamond', Georgia, serif; font-size:17px; color:#FBF9F3; text-wrap:pretty;">Today is now one page — Al-Kahf 1–5. It applies from this moment.</div>
+        </div>
+      </sc-if>
+
+      <div style="margin-top:20px; border:1px solid rgba(201,162,75,0.25); border-radius:4px; padding:20px;">
+        <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:#C9A24B;">Arabic size</div>
+        <div style="font-family:'Amiri', serif; font-size:var(--pg-ar,27px); color:#FBF9F3; direction:rtl; text-align:right; margin:16px 0; line-height:1.9;">مَّاكِثِينَ فِيهِ أَبَدًا</div>
+        <div style="display:flex; gap:8px;">
+          <sc-for list="{{ sizes }}" as="z" hint-placeholder-count="3">
+            <div role="button" tabindex="0" onClick="{{ z.pick }}" style="flex:1; text-align:center; padding:11px 0; cursor:pointer; border:1px solid {{ z.border }}; background:{{ z.bg }}; color:{{ z.fg }}; font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; border-radius:2px;">{{ z.label }}</div>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-for list="{{ settingGroups }}" as="g" hint-placeholder-count="4">
+        <div style="margin-top:22px;">
+          <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:#C9A24B;">{{ g.label }}</div>
+          <div style="display:flex; flex-direction:column; gap:1px; background:rgba(201,162,75,0.18); border:1px solid rgba(201,162,75,0.18); border-radius:4px; overflow:hidden; margin-top:10px;">
+            <sc-for list="{{ g.rows }}" as="o" hint-placeholder-count="3">
+              <div role="button" tabindex="0" onClick="{{ o.tap }}" style="display:flex; align-items:center; gap:12px; padding:16px; background:#14101F; cursor:pointer;" style-hover="background:#1F1830;">
+                <div style="flex:1; min-width:0;">
+                  <div style="font-family:'EB Garamond', Georgia, serif; font-size:17px; color:#FBF9F3;">{{ o.label }}</div>
+                  <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(251,249,243,0.66); margin-top:3px;">{{ o.value }}</div>
+                </div>
+                <div style="width:7px; height:7px; border-top:1.5px solid #C9A24B; border-right:1.5px solid #C9A24B; transform:rotate(45deg);"></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="text-align:center; margin-top:30px;">
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; line-height:1.5; color:rgba(251,249,243,0.66); text-wrap:pretty;">Your recordings never leave this phone unless you send them yourself.</div>
+        <div style="font-family:'Cinzel', serif; font-weight:700; font-size:16px; letter-spacing:0.24em; color:#C9A24B; margin-top:22px;">WIRD</div>
+        <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(251,249,243,0.5); margin-top:6px;">No account · no server · nothing syncs</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ RECITING ============ -->
+    <sc-if value="{{ isRecite }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; display:flex; flex-direction:column; background:var(--pg-paper,#F4EDE0);">
+      <div style="position:sticky; top:0; z-index:6; background:#14101F; border-bottom:1px solid #C9A24B; padding:14px 20px 13px;">
+        <div style="display:flex; align-items:center; gap:14px;">
+          <div style="width:8px; height:8px; border-radius:50%; background:#B22234; animation:wPulse 1.4s ease-in-out infinite;"></div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:500; font-size:10px; letter-spacing:0.22em; text-transform:uppercase; color:#E7C97E;">Reciting</div>
+          <div style="display:flex; align-items:center; gap:3px; height:22px; flex:1;">
+            <div style="width:3px; height:22px; background:#C9A24B; animation:wLvl 900ms ease-in-out infinite;"></div>
+            <div style="width:3px; height:22px; background:#C9A24B; animation:wLvl 780ms ease-in-out infinite 90ms;"></div>
+            <div style="width:3px; height:22px; background:#C9A24B; animation:wLvl 1080ms ease-in-out infinite 40ms;"></div>
+            <div style="width:3px; height:22px; background:#C9A24B; animation:wLvl 820ms ease-in-out infinite 160ms;"></div>
+            <div style="width:3px; height:22px; background:#C9A24B; animation:wLvl 960ms ease-in-out infinite 220ms;"></div>
+            <div style="width:3px; height:22px; background:#C9A24B; animation:wLvl 700ms ease-in-out infinite 60ms;"></div>
+            <div style="width:3px; height:22px; background:#C9A24B; animation:wLvl 1140ms ease-in-out infinite 130ms;"></div>
+            <div style="width:3px; height:22px; background:#C9A24B; animation:wLvl 860ms ease-in-out infinite 200ms;"></div>
+          </div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:15px; letter-spacing:0.06em; color:#FBF9F3;">{{ recTime }}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:13px;">
+          <div role="button" tabindex="0" onClick="{{ finishRecite }}" style="flex:1; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; background:linear-gradient(180deg, #E7C97E, #C9A24B 42%, #A07A2E 74%, #E7C97E); border-radius:3px; font-family:'Oswald', sans-serif; font-weight:600; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:#560C15;">I’ve finished</div>
+          <div role="button" tabindex="0" onClick="{{ goToday }}" style="width:104px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.4); border-radius:3px; font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:rgba(251,249,243,0.7);">Discard</div>
+        </div>
+      </div>
+
+      <div style="padding:20px 24px 0;">
+        <sc-for list="{{ ayahs }}" as="a" hint-placeholder-count="5">
+          <div style="display:flex; gap:12px; padding:11px 0; direction:rtl;">
+            <div style="width:3px; flex:0 0 3px; background:{{ a.marker }};"></div>
+            <div style="flex:1; display:flex; align-items:flex-start; gap:12px;">
+              <div style="width:28px; height:28px; flex:0 0 28px; margin-top:8px; display:flex; align-items:center; justify-content:center; border:1px solid {{ a.rosette }}; border-radius:50%; font-family:'Amiri', serif; font-size:12px; color:{{ a.rosette }};">{{ a.n }}</div>
+              <div style="flex:1; font-family:'Amiri', serif; text-align:justify; line-height:2.15; font-size:var(--pg-ar,27px); color:{{ a.color }};">{{ a.ar }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="flex:1;"></div>
+      <div style="padding:16px 24px 26px; text-align:center; font-family:'EB Garamond', Georgia, serif; font-size:15px; color:var(--pg-muted,rgba(26,19,32,0.68));">Kept on this phone. Mono, 64 kbps.</div>
+    </div>
+    </sc-if>
+
+    <!-- ============ THE CHECK ============ -->
+    <sc-if value="{{ isCheck }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; display:flex; flex-direction:column; padding:8px 22px 26px; animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:7px; height:7px; background:#C9A24B; transform:rotate(45deg);"></div>
+        <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#C9A24B;">{{ checkKicker }}</div>
+      </div>
+
+      <!-- what it heard, on paper, receded -->
+      <div style="position:relative; overflow:hidden; margin-top:16px; background:#F4EDE0; border-radius:4px; padding:20px 18px; box-shadow:0 6px 18px rgba(12,9,19,0.4);">
+        <div style="direction:rtl; text-align:center; font-family:'Amiri', serif; font-size:20px; line-height:2; color:rgba(26,19,32,0.35);">مَّاكِثِينَ فِيهِ أَبَدًا · قَيِّمًا لِّيُنذِرَ بَأْسًا شَدِيدًا مِّن لَّدُنْهُ</div>
+        <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:rgba(26,19,32,0.68); text-align:center; margin-top:12px;">What you were given · Al-Kahf 1–3</div>
+        <sc-if value="{{ checkChecking }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute; top:0; bottom:0; width:30%; background:linear-gradient(90deg, transparent, rgba(160,122,46,0.25), transparent); animation:wSweep 1.5s linear infinite;"></div>
+        </sc-if>
+      </div>
+
+      <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:26px 0;">
+        <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:29px; line-height:1.22; color:#FBF9F3; text-wrap:pretty;">{{ checkHead }}</div>
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:17px; line-height:1.5; color:rgba(251,249,243,0.78); margin-top:16px; text-wrap:pretty;">{{ checkBody }}</div>
+
+        <sc-if value="{{ checkVerdict }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; align-items:center; gap:12px; margin-top:22px; padding:14px 16px; border:1px solid rgba(201,162,75,0.35); border-radius:3px; background:linear-gradient(160deg, #1F1830, #14101F);">
+            <div style="width:11px; height:11px; flex:0 0 11px; transform:rotate(45deg); background:{{ verdictFill }}; border:1px solid #C9A24B;"></div>
+            <div style="font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:#E7C97E;">{{ checkVerdict }}</div>
+          </div>
+        </sc-if>
+
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; line-height:1.5; color:rgba(251,249,243,0.66); margin-top:18px; text-wrap:pretty;">{{ checkFoot }}</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div role="button" tabindex="0" onClick="{{ checkPrimaryGo }}" style="height:52px; display:flex; align-items:center; justify-content:center; cursor:pointer; background:linear-gradient(180deg, #E7C97E, #C9A24B 42%, #A07A2E 74%, #E7C97E); border-radius:3px; font-family:'Oswald', sans-serif; font-weight:600; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:#560C15;">{{ checkPrimary }}</div>
+        <div role="button" tabindex="0" onClick="{{ checkSecondGo }}" style="height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.4); border-radius:3px; font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#E7C97E;">{{ checkSecond }}</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ MARKED DONE ============ -->
+    <sc-if value="{{ isSeal }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; display:flex; flex-direction:column; padding:8px 24px 26px; animation:wUp 320ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+        <div style="border:2px solid #C9A24B; padding:14px 22px 12px; transform:rotate(-2deg); animation:wStamp 520ms cubic-bezier(0.22,1,0.36,1) both;">
+          <div style="border-top:1px solid rgba(201,162,75,0.6); padding-top:10px;">
+            <div style="font-family:'Cinzel', serif; font-weight:700; font-size:15px; letter-spacing:0.24em; color:#E7C97E;">{{ sealStamp }}</div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#C9A24B; margin-top:6px;">3 Rabīʿ al-Awwal 1447</div>
+          </div>
+        </div>
+
+        <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:31px; line-height:1.25; color:#FBF9F3; margin-top:32px; text-wrap:pretty;">{{ sealLine }}</div>
+        <div style="font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(251,249,243,0.7); margin-top:14px;">Al-Kahf 1–3 · 3 ayahs</div>
+
+        <div style="width:56px; height:1px; background:#C9A24B; margin:28px 0;"></div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-family:'Cinzel', serif; font-weight:700; font-size:20px; color:#E7C97E;">8</div>
+          <div style="font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#FBF9F3;">in a row</div>
+          <div style="width:4px; height:4px; background:#C9A24B; transform:rotate(45deg);"></div>
+          <div style="font-family:'Cinzel', serif; font-weight:700; font-size:20px; color:#E7C97E;">24</div>
+          <div style="font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#FBF9F3;">days read</div>
+        </div>
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:16px; color:rgba(251,249,243,0.7); margin-top:8px;">{{ sealSplit }}</div>
+
+        <div style="display:flex; align-items:center; gap:9px; margin-top:30px;">
+          <div style="width:11px; height:11px; border:1px solid #C9A24B; transform:rotate(45deg);"></div>
+          <div style="width:11px; height:11px; background:#C9A24B; transform:rotate(45deg);"></div>
+          <div style="width:11px; height:11px; border:1px solid #C9A24B; transform:rotate(45deg);"></div>
+          <div style="width:11px; height:11px;"></div>
+          <div style="width:11px; height:11px; background:#C9A24B; transform:rotate(45deg);"></div>
+          <div style="width:11px; height:11px; background:#C9A24B; transform:rotate(45deg);"></div>
+          <div style="width:11px; height:11px; border:1px solid #C9A24B; transform:rotate(45deg);"></div>
+          <div style="width:11px; height:11px; background:#C9A24B; transform:rotate(45deg);"></div>
+          <div style="width:13px; height:13px; background:#E7C97E; transform:rotate(45deg); box-shadow:0 0 0 3px #14101F, 0 0 0 4px #C9A24B;"></div>
+        </div>
+        <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.6); margin-top:14px;">Filled, recited · hollow, read · blank, a day not held against you</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div role="button" tabindex="0" onClick="{{ goToday }}" style="height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.5); border-radius:3px; font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#E7C97E;">{{ sealShare }}</div>
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div role="button" tabindex="0" onClick="{{ goToday }}" style="cursor:pointer; font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:rgba(251,249,243,0.6);">Undo</div>
+          <div style="font-family:'EB Garamond', Georgia, serif; font-size:14px; color:rgba(251,249,243,0.6);">Nothing leaves the phone until you send it</div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ COMPANION ============ -->
+    <sc-if value="{{ isComp }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; display:flex; flex-direction:column; padding:8px 22px 26px; animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div role="button" tabindex="0" onClick="{{ goToday }}" style="width:32px; height:32px; flex:0 0 32px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+          <div style="width:10px; height:10px; border-left:1.5px solid #C9A24B; border-bottom:1.5px solid #C9A24B; transform:rotate(45deg); margin-left:3px;"></div>
+        </div>
+        <div style="font-family:'Cinzel', serif; font-weight:600; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:#FBF9F3;">{{ compWhen }}</div>
+      </div>
+
+      <div style="border-left:2px solid #C9A24B; padding:2px 0 2px 18px; margin-top:24px;">
+        <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:27px; line-height:1.3; color:#FBF9F3; text-wrap:pretty;">{{ compAsk }}</div>
+      </div>
+
+      <sc-if value="{{ compAsking }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:22px;">
+          <div style="display:flex; align-items:center; gap:12px; border:1px solid rgba(201,162,75,0.3); border-radius:3px; padding:14px 16px;">
+            <input value="{{ compDraft }}" onChange="{{ onCompDraft }}" placeholder="in your own words…" style="flex:1; background:transparent; border:0; outline:none; font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:19px; color:#FBF9F3;">
+            <div role="button" tabindex="0" onClick="{{ compSend }}" style="width:36px; height:36px; flex:0 0 36px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid #C9A24B; border-radius:50%;">
+              <div style="width:8px; height:12px; border-radius:4px 4px 3px 3px; background:#C9A24B;"></div>
+            </div>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+            <sc-for list="{{ compHints }}" as="h" hint-placeholder-count="4">
+              <div role="button" tabindex="0" onClick="{{ h.pick }}" style="cursor:pointer; white-space:nowrap; padding:10px 15px; border:1px solid rgba(201,162,75,0.3); border-radius:999px; font-family:'EB Garamond', Georgia, serif; font-size:16px; color:#FBF9F3;" style-hover="border-color:#C9A24B;">{{ h.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ compAnswered }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:22px; padding-left:20px;">
+          <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:22px; color:#E7C97E; border-bottom:1px solid rgba(201,162,75,0.45); padding-bottom:9px;">{{ compReply }}</div>
+          <div style="display:flex; align-items:center; gap:9px; margin-top:12px;">
+            <div style="width:5px; height:5px; background:#C9A24B; transform:rotate(45deg);"></div>
+            <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#C9A24B;">{{ compDid }}</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ compDue }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:22px; display:flex; flex-direction:column; gap:10px;">
+          <div role="button" tabindex="0" onClick="{{ openReader }}" style="height:52px; display:flex; align-items:center; justify-content:center; cursor:pointer; background:linear-gradient(180deg, #E7C97E, #C9A24B 42%, #A07A2E 74%, #E7C97E); border-radius:3px; font-family:'Oswald', sans-serif; font-weight:600; font-size:12px; letter-spacing:0.18em; text-transform:uppercase; color:#560C15;">Open Al-Kahf 1–3</div>
+          <div role="button" tabindex="0" onClick="{{ compAgain }}" style="height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.4); border-radius:3px; font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#E7C97E;">Say a different time</div>
+        </div>
+      </sc-if>
+
+      <div style="flex:1; min-height:26px;"></div>
+
+      <div style="border-top:1px solid rgba(201,162,75,0.3); padding-top:14px;">
+        <div style="font-family:'Oswald', sans-serif; font-weight:500; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:#C9A24B;">What you’ve told me</div>
+        <div style="margin-top:8px;">
+          <sc-for list="{{ compLog }}" as="l" hint-placeholder-count="3">
+            <div style="display:flex; align-items:baseline; gap:14px; padding:10px 0; border-bottom:1px solid rgba(201,162,75,0.12);">
+              <div style="width:44px; flex:0 0 44px; font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.66);">{{ l.day }}</div>
+              <div style="flex:1; font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:17px; color:#FBF9F3;">{{ l.said }}</div>
+              <div style="font-family:'Oswald', sans-serif; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:{{ l.tone }};">{{ l.kept }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:14px; text-wrap:pretty;">Asks once a day, never after you’ve read, and never asks twice.</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ SETUP ============ -->
+    <sc-if value="{{ isSetup }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; display:flex; flex-direction:column; padding:8px 22px 26px; animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="display:flex; gap:5px;">
+        <div style="flex:1; height:2px; background:#C9A24B;"></div>
+        <div style="flex:1; height:2px; background:{{ step2Bar }};"></div>
+        <div style="flex:1; height:2px; background:{{ step3Bar }};"></div>
+      </div>
+      <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:#C9A24B; margin-top:20px;">{{ setupStep }}</div>
+      <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:28px; line-height:1.22; color:#FBF9F3; margin-top:12px; text-wrap:pretty;">{{ setupHead }}</div>
+
+      <sc-if value="{{ setup1 }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:20px;">
+          <div style="display:flex; align-items:center; gap:12px; border-bottom:1px solid #C9A24B; padding:10px 2px;">
+            <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="al kahf, yasin, 36…" style="flex:1; background:transparent; border:0; outline:none; font-family:'EB Garamond', Georgia, serif; font-size:19px; color:#FBF9F3;">
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.66);">{{ resultCount }}</div>
+          </div>
+          <sc-for list="{{ visibleSurahs }}" as="s" hint-placeholder-count="5">
+            <div role="button" tabindex="0" onClick="{{ s.pickSetup }}" style="display:flex; align-items:center; gap:14px; padding:13px 2px; cursor:pointer; border-bottom:1px solid rgba(201,162,75,0.12);" style-hover="background:#1F1830;">
+              <div style="width:28px; flex:0 0 28px; font-family:'Oswald', sans-serif; font-weight:300; font-size:12px; color:rgba(251,249,243,0.66);">{{ s.n }}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-family:'EB Garamond', Georgia, serif; font-size:19px; color:#FBF9F3;">{{ s.name }}</div>
+                <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(251,249,243,0.6); margin-top:2px;">{{ s.meta }}</div>
+              </div>
+              <div style="font-family:'Amiri', serif; font-size:21px; color:#C9A24B;">{{ s.ar }}</div>
+            </div>
+          </sc-for>
+          <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:14px;">Nobody knows they’re on page 293. All 114 are here.</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ setup2 }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:18px; background:#F4EDE0; border-radius:4px; padding:18px 16px;">
+          <div style="border-top:2px solid #A07A2E; border-bottom:1px solid #A07A2E; padding:7px 0; text-align:center; font-family:'Amiri', serif; font-size:18px; color:#1A1320;">سورة الكهف</div>
+          <div style="margin-top:14px;">
+            <sc-for list="{{ setupAyahs }}" as="a" hint-placeholder-count="4">
+              <div role="button" tabindex="0" onClick="{{ a.pick }}" style="display:flex; align-items:flex-start; gap:10px; padding:9px 0; cursor:pointer; direction:rtl;">
+                <div style="width:24px; height:24px; flex:0 0 24px; margin-top:5px; display:flex; align-items:center; justify-content:center; border:1px solid {{ a.rosette }}; border-radius:50%; font-family:'Amiri', serif; font-size:11px; color:{{ a.rosette }}; box-shadow:{{ a.ring }};">{{ a.n }}</div>
+                <div style="flex:1; font-family:'Amiri', serif; font-size:20px; line-height:2.05; text-align:justify; color:{{ a.color }};">{{ a.ar }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px; margin-top:14px; padding:14px 16px; border:1px solid rgba(201,162,75,0.4); border-radius:3px;">
+          <div style="flex:1;">
+            <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#C9A24B;">You’re here</div>
+            <div style="font-family:'EB Garamond', Georgia, serif; font-size:18px; color:#FBF9F3; margin-top:3px;">Al-Kahf, ayah {{ setupAyah }} · page 293</div>
+          </div>
+          <div style="width:56px; text-align:center; border:1px solid rgba(201,162,75,0.3); border-radius:3px; padding:10px 0; font-family:'Oswald', sans-serif; font-size:16px; color:#FBF9F3;">{{ setupAyah }}</div>
+        </div>
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:12px;">Or type it. Al-Kahf has 110 — it won’t take 400.</div>
+      </sc-if>
+
+      <sc-if value="{{ setup3 }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ amounts }}" as="a" hint-placeholder-count="3">
+            <div role="button" tabindex="0" onClick="{{ a.pick }}" style="display:flex; align-items:center; gap:18px; padding:16px 18px; cursor:pointer; border:1px solid {{ a.border }}; background:{{ a.bg }}; border-radius:3px;">
+              <div style="width:34px; height:48px; flex:0 0 34px; border:1px solid rgba(201,162,75,0.3); padding:5px 4px; display:flex; flex-direction:column; gap:3px;">
+                <sc-for list="{{ a.lines }}" as="ln" hint-placeholder-count="7">
+                  <div style="height:2px; background:{{ ln.c }};"></div>
+                </sc-for>
+              </div>
+              <div style="flex:1;">
+                <div style="font-family:'EB Garamond', Georgia, serif; font-size:20px; color:#FBF9F3;">{{ a.label }}</div>
+                <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(251,249,243,0.66); margin-top:3px;">{{ a.note }}</div>
+              </div>
+              <div style="width:11px; height:11px; transform:rotate(45deg); background:{{ a.dot }}; border:1px solid #C9A24B;"></div>
+            </div>
+          </sc-for>
+          <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:4px; text-wrap:pretty;">Kept in half pages, so repeated halves never drift. Change it any day.</div>
+        </div>
+      </sc-if>
+
+      <div style="flex:1; min-height:20px;"></div>
+      <div role="button" tabindex="0" onClick="{{ setupNext }}" style="height:54px; display:flex; align-items:center; justify-content:center; cursor:pointer; background:linear-gradient(180deg, #E7C97E, #C9A24B 42%, #A07A2E 74%, #E7C97E); border-radius:3px; font-family:'Oswald', sans-serif; font-weight:600; font-size:12px; letter-spacing:0.2em; text-transform:uppercase; color:#560C15;">{{ setupCta }}</div>
+    </div>
+    </sc-if>
+
+    <!-- ============ REMINDER ============ -->
+    <sc-if value="{{ isReminder }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; display:flex; flex-direction:column; padding:8px 22px 26px; animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div role="button" tabindex="0" onClick="{{ goMore }}" style="width:32px; height:32px; flex:0 0 32px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+          <div style="width:10px; height:10px; border-left:1.5px solid #C9A24B; border-bottom:1.5px solid #C9A24B; transform:rotate(45deg); margin-left:3px;"></div>
+        </div>
+        <div style="font-family:'Cinzel', serif; font-weight:600; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:#FBF9F3;">When to remind you</div>
+      </div>
+
+      <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:26px; line-height:1.3; color:#FBF9F3; margin-top:24px; text-wrap:pretty;">Half an hour after Maghrib, wherever you are.</div>
+      <div style="font-family:'EB Garamond', Georgia, serif; font-size:16px; line-height:1.5; color:rgba(251,249,243,0.7); margin-top:10px; text-wrap:pretty;">A clock hour is wrong half the year. This one moves with the sun.</div>
+
+      <div style="display:flex; gap:6px; margin-top:22px;">
+        <sc-for list="{{ anchors }}" as="p" hint-placeholder-count="5">
+          <div role="button" tabindex="0" onClick="{{ p.pick }}" style="flex:1; padding:14px 0; text-align:center; cursor:pointer; border:1px solid {{ p.border }}; background:{{ p.bg }}; border-radius:2px; font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:{{ p.fg }};">{{ p.label }}</div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:12px; padding:16px 18px; border:1px solid rgba(201,162,75,0.28); border-radius:3px;">
+        <div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(251,249,243,0.6);">Offset</div>
+          <div style="font-family:'Cinzel', serif; font-weight:700; font-size:22px; color:#E7C97E; margin-top:4px;">{{ offsetLabel }}</div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <div role="button" tabindex="0" onClick="{{ offsetDown }}" style="width:48px; height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.4); border-radius:3px;"><div style="width:14px; height:1.5px; background:#C9A24B;"></div></div>
+          <div role="button" tabindex="0" onClick="{{ offsetUp }}" style="width:48px; height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.4); border-radius:3px; position:relative;">
+            <div style="width:14px; height:1.5px; background:#C9A24B;"></div>
+            <div style="width:1.5px; height:14px; background:#C9A24B; position:absolute;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <div role="button" tabindex="0" onClick="{{ noop }}" style="flex:1; height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.22); border-radius:3px; font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.66);">A fixed time instead</div>
+        <div role="button" tabindex="0" onClick="{{ noop }}" style="flex:1; height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid rgba(201,162,75,0.22); border-radius:3px; font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.66);">No reminder</div>
+      </div>
+
+      <div style="margin-top:20px; padding:16px 18px; background:#1F1830; border-left:2px solid #C9A24B;">
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:16px; line-height:1.5; color:#FBF9F3; text-wrap:pretty;">Worked out on this phone from a rough location. Nothing is sent anywhere, and it keeps working with no signal.</div>
+        <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:rgba(251,249,243,0.66); margin-top:10px;">No location? Your timezone, then 19:00 — and it says which.</div>
+      </div>
+
+      <div style="flex:1; min-height:18px;"></div>
+      <div style="display:flex; align-items:center; gap:14px; padding-top:16px; border-top:1px solid rgba(201,162,75,0.2);">
+        <div style="flex:1;">
+          <div style="font-family:'EB Garamond', Georgia, serif; font-size:17px; color:#FBF9F3;">Last one arrived 19:04 yesterday</div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(251,249,243,0.6); margin-top:3px;">You had already read, so it stayed quiet today</div>
+        </div>
+        <div role="button" tabindex="0" onClick="{{ goPhone }}" style="padding:12px 14px; cursor:pointer; border:1px solid #C9A24B; border-radius:3px; font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#E7C97E;">It didn’t</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ THIS PHONE ============ -->
+    <sc-if value="{{ isPhone }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; padding:8px 22px 26px; animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div role="button" tabindex="0" onClick="{{ goMore }}" style="width:32px; height:32px; flex:0 0 32px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+          <div style="width:10px; height:10px; border-left:1.5px solid #C9A24B; border-bottom:1.5px solid #C9A24B; transform:rotate(45deg); margin-left:3px;"></div>
+        </div>
+        <div style="font-family:'Cinzel', serif; font-weight:600; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:#FBF9F3;">This phone</div>
+      </div>
+
+      <div style="margin-top:20px; border:1px solid rgba(201,162,75,0.3); border-radius:4px; padding:18px; background:linear-gradient(160deg, #1F1830, #14101F);">
+        <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#C9A24B;">Detected</div>
+        <div style="font-family:'Playfair Display', Georgia, serif; font-size:22px; color:#FBF9F3; margin-top:5px;">Tecno Spark 10</div>
+        <div style="font-family:'EB Garamond', Georgia, serif; font-size:16px; line-height:1.5; color:rgba(251,249,243,0.7); margin-top:8px; text-wrap:pretty;">Tecno, Infinix and itel close background apps to save battery. Two switches keep the reminder alive.</div>
+      </div>
+
+      <sc-for list="{{ oemSteps }}" as="s" hint-placeholder-count="2">
+        <div style="display:flex; gap:16px; padding:18px 0; border-bottom:1px solid rgba(201,162,75,0.16);">
+          <div style="font-family:'Cinzel', serif; font-weight:700; font-size:20px; color:#C9A24B; width:22px; flex:0 0 22px;">{{ s.n }}</div>
+          <div style="flex:1;">
+            <div style="font-family:'EB Garamond', Georgia, serif; font-size:19px; color:#FBF9F3;">{{ s.title }}</div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:11px; letter-spacing:0.08em; color:rgba(251,249,243,0.66); margin-top:5px; line-height:1.5;">{{ s.path }}</div>
+            <div role="button" tabindex="0" onClick="{{ noop }}" style="display:inline-block; margin-top:12px; padding:11px 16px; cursor:pointer; border:1px solid #C9A24B; border-radius:3px; font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:#E7C97E;">Open that screen</div>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="margin-top:22px; padding:18px; background:#1F1830; border-radius:4px;">
+        <div style="font-family:'Oswald', sans-serif; font-weight:500; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:#C9A24B;">Did the last one arrive?</div>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
+          <div style="display:flex; justify-content:space-between; font-family:'EB Garamond', Georgia, serif; font-size:16px; color:#FBF9F3;"><span>Scheduled</span><span style="color:rgba(251,249,243,0.7);">19:04, after Maghrib</span></div>
+          <div style="display:flex; justify-content:space-between; font-family:'EB Garamond', Georgia, serif; font-size:16px; color:#FBF9F3;"><span>Fired</span><span style="color:rgba(251,249,243,0.7);">19:04 · on time</span></div>
+          <div style="display:flex; justify-content:space-between; font-family:'EB Garamond', Georgia, serif; font-size:16px; color:#FBF9F3;"><span>Re-armed</span><span style="color:rgba(251,249,243,0.7);">tomorrow, 19:06</span></div>
+        </div>
+        <div role="button" tabindex="0" onClick="{{ noop }}" style="margin-top:16px; height:48px; display:flex; align-items:center; justify-content:center; cursor:pointer; border:1px solid #C9A24B; border-radius:3px; font-family:'Oswald', sans-serif; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#E7C97E;">Send one to me now</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ EXPORT ============ -->
+    <sc-if value="{{ isExport }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; display:flex; flex-direction:column; padding:8px 22px 26px; animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div role="button" tabindex="0" onClick="{{ goMore }}" style="width:32px; height:32px; flex:0 0 32px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+          <div style="width:10px; height:10px; border-left:1.5px solid #C9A24B; border-bottom:1.5px solid #C9A24B; transform:rotate(45deg); margin-left:3px;"></div>
+        </div>
+        <div style="font-family:'Cinzel', serif; font-weight:600; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:#FBF9F3;">Your record</div>
+      </div>
+
+      <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:26px; line-height:1.28; color:#FBF9F3; margin-top:22px; text-wrap:pretty;">Everything you’ve done, in one folder you can copy off.</div>
+
+      <div style="margin-top:20px;">
+        <div style="display:flex; align-items:baseline; gap:14px; padding:15px 0; border-top:1px solid rgba(201,162,75,0.35);">
+          <div style="flex:1; font-family:'EB Garamond', Georgia, serif; font-size:19px; color:#FBF9F3;">Recordings</div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(251,249,243,0.66);">18 files · 118 MB</div>
+        </div>
+        <div style="display:flex; align-items:baseline; gap:14px; padding:15px 0; border-top:1px solid rgba(201,162,75,0.14);">
+          <div style="flex:1;">
+            <div style="font-family:'EB Garamond', Georgia, serif; font-size:19px; color:#FBF9F3;">Day log</div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(251,249,243,0.66); margin-top:3px;">wird-log.json · readable by eye</div>
+          </div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:rgba(251,249,243,0.66);">24 days · 14 KB</div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px; padding:14px 16px; background:#0F0C17; border:1px solid rgba(201,162,75,0.18); border-radius:3px; font-family:'Oswald', sans-serif; font-weight:300; font-size:11px; line-height:1.9; color:#AEC3B0;">
+        <div>{ "date": "1447-03-03", "method": "recited",</div>
+        <div style="padding-left:14px;">"covered": "18:1-3", "pages": 0.5 }</div>
+      </div>
+
+      <div style="margin-top:22px;">
+        <div style="font-family:'Oswald', sans-serif; font-weight:500; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:#C9A24B;">Recordings are using 118 MB</div>
+        <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+          <sc-for list="{{ retention }}" as="r" hint-placeholder-count="3">
+            <div role="button" tabindex="0" onClick="{{ r.pick }}" style="display:flex; align-items:center; gap:14px; padding:14px 16px; cursor:pointer; border:1px solid {{ r.border }}; background:{{ r.bg }}; border-radius:3px;">
+              <div style="width:10px; height:10px; flex:0 0 10px; transform:rotate(45deg); background:{{ r.dot }}; border:1px solid #C9A24B;"></div>
+              <div style="flex:1; font-family:'EB Garamond', Georgia, serif; font-size:18px; color:#FBF9F3;">{{ r.label }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex:1; min-height:20px;"></div>
+      <div role="button" tabindex="0" onClick="{{ noop }}" style="height:54px; display:flex; align-items:center; justify-content:center; cursor:pointer; background:linear-gradient(180deg, #E7C97E, #C9A24B 42%, #A07A2E 74%, #E7C97E); border-radius:3px; font-family:'Oswald', sans-serif; font-weight:600; font-size:12px; letter-spacing:0.2em; text-transform:uppercase; color:#560C15;">Export everything</div>
+      <div style="text-align:center; font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:12px;">Only what you send leaves the phone.</div>
+    </div>
+    </sc-if>
+
+    <!-- ============ APP ICON ============ -->
+    <sc-if value="{{ isIcon }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; padding:8px 22px 26px; animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="font-family:'Cinzel', serif; font-weight:600; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:#FBF9F3;">Three ways to sit on a launcher</div>
+      <div style="font-family:'EB Garamond', Georgia, serif; font-size:16px; line-height:1.5; color:rgba(251,249,243,0.7); margin-top:10px; text-wrap:pretty;">Beside apps that shout, the quiet one gets noticed. Sketches, not final art.</div>
+
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:22px;">
+        <div>
+          <div style="aspect-ratio:1; border-radius:22%; background:#F4EDE0; display:flex; flex-direction:column; justify-content:center; gap:7px; padding:22% 18%;">
+            <div style="height:3px; background:#A07A2E;"></div>
+            <div style="height:3px; background:rgba(26,19,32,0.25);"></div>
+            <div style="height:3px; background:rgba(26,19,32,0.25);"></div>
+          </div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(251,249,243,0.7); margin-top:9px; line-height:1.5;">Today’s line, on the page</div>
+        </div>
+        <div>
+          <div style="aspect-ratio:1; border-radius:22%; background:radial-gradient(120% 100% at 50% 0%, #1F1830, #14101F); display:flex; align-items:center; justify-content:center; border:1px solid rgba(201,162,75,0.3);">
+            <div style="width:44%; height:44%; border:2px solid #C9A24B; transform:rotate(45deg); display:flex; align-items:center; justify-content:center;">
+              <div style="width:52%; height:52%; background:linear-gradient(135deg, #E7C97E, #A07A2E);"></div>
+            </div>
+          </div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(251,249,243,0.7); margin-top:9px; line-height:1.5;">The seal, stamped</div>
+        </div>
+        <div>
+          <div style="aspect-ratio:1; border-radius:22%; background:#560C15; display:flex; align-items:center; justify-content:center;">
+            <div style="font-family:'Amiri', serif; font-size:38px; color:#E7C97E; line-height:1;">ورد</div>
+          </div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(251,249,243,0.7); margin-top:9px; line-height:1.5;">Its own name</div>
+        </div>
+      </div>
+
+      <div style="margin-top:30px; font-family:'Oswald', sans-serif; font-weight:500; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:#C9A24B;">At launcher size</div>
+      <div style="margin-top:14px; padding:20px 18px; border-radius:14px; background:linear-gradient(160deg, #241C33, #14101F);">
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:18px;">
+          <div style="text-align:center;">
+            <div style="aspect-ratio:1; border-radius:22%; background:radial-gradient(120% 100% at 50% 0%, #1F1830, #14101F); border:1px solid rgba(201,162,75,0.35); display:flex; align-items:center; justify-content:center;">
+              <div style="width:44%; height:44%; border:1.5px solid #C9A24B; transform:rotate(45deg); display:flex; align-items:center; justify-content:center;">
+                <div style="width:52%; height:52%; background:linear-gradient(135deg, #E7C97E, #A07A2E);"></div>
+              </div>
+            </div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.06em; color:#FBF9F3; margin-top:7px;">Wird</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="aspect-ratio:1; border-radius:22%; background:#2B2240;"></div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.06em; color:rgba(251,249,243,0.6); margin-top:7px;">Camera</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="aspect-ratio:1; border-radius:22%; background:#2B2240;"></div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.06em; color:rgba(251,249,243,0.6); margin-top:7px;">WhatsApp</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="aspect-ratio:1; border-radius:22%; background:#2B2240;"></div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:9px; letter-spacing:0.06em; color:rgba(251,249,243,0.6); margin-top:7px;">Files</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:16px; text-wrap:pretty;">No crescent, no dome, no mosque. Nothing to explain.</div>
+    </div>
+    </sc-if>
+
+    <!-- ============ WIDGET ============ -->
+    <sc-if value="{{ isWidget }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; display:flex; flex-direction:column; padding:16px 22px 26px; animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="text-align:center; margin-bottom:24px;">
+        <div style="font-family:'Cinzel', serif; font-weight:700; font-size:44px; letter-spacing:0.06em; color:#FBF9F3; line-height:1;">19:04</div>
+        <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(251,249,243,0.66); margin-top:8px;">Thursday · 3 Rabīʿ al-Awwal</div>
+      </div>
+
+      <div style="background:#F4EDE0; border-radius:6px; padding:16px 18px; box-shadow:0 8px 22px rgba(12,9,19,0.5);">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+          <div style="font-family:'Oswald', sans-serif; font-weight:500; font-size:9px; letter-spacing:0.22em; text-transform:uppercase; color:#A07A2E;">Today</div>
+          <div style="font-family:'Oswald', sans-serif; font-weight:400; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:{{ widgetTone }};">{{ widgetState }}</div>
+        </div>
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:14px; margin-top:12px;">
+          <div>
+            <div style="font-family:'Playfair Display', Georgia, serif; font-size:25px; color:#1A1320; line-height:1.1;">Al-Kahf 1–3</div>
+            <div style="font-family:'Oswald', sans-serif; font-weight:300; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:rgba(26,19,32,0.68); margin-top:5px;">3 ayahs · half a page</div>
+          </div>
+          <div style="width:16px; height:16px; flex:0 0 16px; transform:rotate(45deg); background:{{ widgetFill }}; border:1.5px solid #A07A2E;"></div>
+        </div>
+        <div style="height:1px; background:rgba(26,19,32,0.14); margin:14px 0 10px;"></div>
+        <div style="font-family:'Oswald', sans-serif; font-weight:400; font-size:10px; letter-spacing:0.16em; text-transform:uppercase; color:#1A1320;">{{ widgetNumbers }}</div>
+      </div>
+
+      <div style="text-align:center; font-family:'EB Garamond', Georgia, serif; font-size:15px; color:rgba(251,249,243,0.66); margin-top:16px;">Tap the card to open straight into the page.</div>
+
+      <div style="flex:1;"></div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:20px; padding:0 6px;">
+        <div style="aspect-ratio:1; border-radius:22%; background:radial-gradient(120% 100% at 50% 0%, #1F1830, #14101F); border:1px solid rgba(201,162,75,0.35); display:flex; align-items:center; justify-content:center;">
+          <div style="width:44%; height:44%; border:1.5px solid #C9A24B; transform:rotate(45deg); display:flex; align-items:center; justify-content:center;">
+            <div style="width:52%; height:52%; background:linear-gradient(135deg, #E7C97E, #A07A2E);"></div>
+          </div>
+        </div>
+        <div style="aspect-ratio:1; border-radius:22%; background:rgba(251,249,243,0.1);"></div>
+        <div style="aspect-ratio:1; border-radius:22%; background:rgba(251,249,243,0.1);"></div>
+        <div style="aspect-ratio:1; border-radius:22%; background:rgba(251,249,243,0.1);"></div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ WHEN IT FAILS ============ -->
+    <sc-if value="{{ isFails }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100%; padding:8px 22px 26px; animation:wUp 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="font-family:'Cinzel', serif; font-weight:600; font-size:14px; letter-spacing:0.2em; text-transform:uppercase; color:#FBF9F3;">When something is missing</div>
+      <div style="margin-top:18px; display:flex; flex-direction:column; gap:16px;">
+        <sc-for list="{{ fails }}" as="f" hint-placeholder-count="5">
+          <div style="border-top:1px solid rgba(201,162,75,0.3); padding-top:14px;">
+            <div style="font-family:'Oswald', sans-serif; font-weight:500; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#C9A24B;">{{ f.tag }}</div>
+            <div style="font-family:'Playfair Display', Georgia, serif; font-style:italic; font-size:22px; color:#FBF9F3; margin-top:8px;">{{ f.head }}</div>
+            <div style="font-family:'EB Garamond', Georgia, serif; font-size:16px; line-height:1.5; color:rgba(251,249,243,0.7); margin-top:6px; text-wrap:pretty;">{{ f.body }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
+  </div>
+
+  <!-- ============ AYAH SHEET ============ -->
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSheet }}" style="position:absolute; inset:0; z-index:8; background:rgba(12,9,19,0.6);"></div>
+    <div style="position:absolute; left:0; right:0; bottom:0; z-index:9; background:#1F1830; border-top:1px solid #C9A24B; border-radius:14px 14px 44px 44px; padding:20px 22px 32px; animation:wSheet 300ms cubic-bezier(0.22,1,0.36,1);">
+      <div style="width:38px; height:3px; background:rgba(201,162,75,0.5); border-radius:2px; margin:0 auto 18px;"></div>
+      <div style="font-family:'Oswald', sans-serif; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:#C9A24B;">{{ sheetRef }}</div>
+      <div style="display:flex; flex-direction:column; gap:1px; background:rgba(201,162,75,0.2); margin-top:16px; border-radius:3px; overflow:hidden;">
+        <sc-for list="{{ sheetActions }}" as="x" hint-placeholder-count="3">
+          <div role="button" tabindex="0" onClick="{{ x.tap }}" style="padding:15px 16px; background:#14101F; cursor:pointer; font-family:'EB Garamond', Georgia, serif; font-size:17px; color:#FBF9F3;" style-hover="background:#2B2240;">{{ x.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ MINI PLAYER ============ -->
+  <sc-if value="{{ miniPlayer }}" hint-placeholder-val="{{ false }}">
+    <div role="button" tabindex="0" onClick="{{ goListen }}" style="display:flex; align-items:center; gap:12px; padding:10px 20px; background:#7A1320; border-top:1px solid rgba(201,162,75,0.4); cursor:pointer; position:relative; z-index:5;">
+      <div style="display:flex; align-items:flex-end; gap:2px; height:14px;">
+        <div style="width:2px; height:6px; background:#E7C97E; animation:wPulse 900ms ease-in-out infinite;"></div>
+        <div style="width:2px; height:13px; background:#E7C97E; animation:wPulse 900ms ease-in-out infinite 150ms;"></div>
+        <div style="width:2px; height:9px; background:#E7C97E; animation:wPulse 900ms ease-in-out infinite 300ms;"></div>
+      </div>
+      <div style="flex:1; min-width:0; font-family:'Playfair Display', Georgia, serif; font-size:14px; color:#FBF9F3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ nowPlaying }} · al-Shāṭrī</div>
+      <div onClick="{{ togglePlay }}" style="width:26px; height:26px; flex:0 0 26px; display:flex; align-items:center; justify-content:center;">
+        <div style="display:flex; gap:3px;"><div style="width:3px; height:12px; background:#E7C97E;"></div><div style="width:3px; height:12px; background:#E7C97E;"></div></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ TAB BAR ============ -->
+  <div style="flex:0 0 82px; display:flex; align-items:flex-start; padding:12px 8px 0; background:#0F0C17; border-top:1px solid rgba(201,162,75,0.22); position:relative; z-index:5;">
+    <div role="button" tabindex="0" onClick="{{ goToday }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; padding-top:4px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ tabTodayColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M12 18v3"></path><circle cx="12" cy="12" r="4"></circle></svg>
+      <div style="font-family:'Oswald', sans-serif; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:{{ tabTodayColor }};">Today</div>
+    </div>
+    <div role="button" tabindex="0" onClick="{{ goSurahs }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; padding-top:4px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ tabSurahsColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h7v14H4zM13 5h7v14h-7z"></path><path d="M11 5v14"></path></svg>
+      <div style="font-family:'Oswald', sans-serif; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:{{ tabSurahsColor }};">Sūrahs</div>
+    </div>
+    <div role="button" tabindex="0" onClick="{{ openReader }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; padding-top:4px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ tabReadColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6a2 2 0 0 1 2 2v13a3 3 0 0 0-3-2H4zM20 4h-6a2 2 0 0 0-2 2v13a3 3 0 0 1 3-2h5z"></path></svg>
+      <div style="font-family:'Oswald', sans-serif; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:{{ tabReadColor }};">The page</div>
+    </div>
+    <div role="button" tabindex="0" onClick="{{ goListen }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; padding-top:4px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ tabListenColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v-2a8 8 0 0 1 16 0v2"></path><path d="M4 14h3v5H5a1 1 0 0 1-1-1zM20 14h-3v5h2a1 1 0 0 0 1-1z"></path></svg>
+      <div style="font-family:'Oswald', sans-serif; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:{{ tabListenColor }};">Listen</div>
+    </div>
+    <div role="button" tabindex="0" onClick="{{ goMore }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; padding-top:4px;">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="{{ tabMoreColor }}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4"></circle><circle cx="12" cy="12" r="1.4"></circle><circle cx="19" cy="12" r="1.4"></circle></svg>
+      <div style="font-family:'Oswald', sans-serif; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:{{ tabMoreColor }};">More</div>
+    </div>
+    <div style="position:absolute; bottom:9px; left:50%; transform:translateX(-50%); width:120px; height:4px; border-radius:2px; background:rgba(251,249,243,0.25);"></div>
+  </div>
+
+</div>
+</div>
+
+<sc-if value="{{ hasSubs }}" hint-placeholder-val="{{ false }}">
+  <div style="width:390px; display:flex; flex-wrap:wrap; gap:6px; justify-content:center;">
+    <sc-for list="{{ subs }}" as="s" hint-placeholder-count="3">
+      <div role="button" tabindex="0" onClick="{{ s.pick }}" style="cursor:pointer; padding:8px 13px; border:1px solid {{ s.border }}; background:{{ s.bg }}; border-radius:999px; font-family:'Oswald', sans-serif; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:{{ s.fg }};">{{ s.label }}</div>
+    </sc-for>
+  </div>
+</sc-if>
+</div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:700,&quot;height&quot;:1060},&quot;paperReader&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Reading&quot;},&quot;arabicScale&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:27,&quot;min&quot;:20,&quot;max&quot;:34,&quot;step&quot;:1,&quot;unit&quot;:&quot;px&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Reading&quot;},&quot;recede&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:35,&quot;min&quot;:20,&quot;max&quot;:60,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Reading&quot;},&quot;checker&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;showIndex&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;}}">
+const GOLD = "#C9A24B", GOLD_BRIGHT = "#E7C97E", DIM = "rgba(251,249,243,0.45)";
+const SURAHS = [
+  { n: 1, name: "Al-Fātiḥah", tr: "The Opening", ar: "الفاتحة", v: 7, key: "alfatihah fatiha opening" },
+  { n: 2, name: "Al-Baqarah", tr: "The Cow", ar: "البقرة", v: 286, key: "albaqarah baqara cow" },
+  { n: 18, name: "Al-Kahf", tr: "The Cave", ar: "الكهف", v: 110, key: "alkahf kahf cave" },
+  { n: 19, name: "Maryam", tr: "Mary", ar: "مريم", v: 98, key: "maryam mary" },
+  { n: 36, name: "Ya-Sin", tr: "Ya Sin", ar: "يس", v: 83, key: "yasin yaseen ya sin" },
+  { n: 55, name: "Ar-Raḥmān", tr: "The Merciful", ar: "الرحمن", v: 78, key: "arrahman rahman merciful" },
+  { n: 67, name: "Al-Mulk", tr: "The Sovereignty", ar: "الملك", v: 30, key: "almulk mulk sovereignty" },
+  { n: 78, name: "An-Nabaʾ", tr: "The Tidings", ar: "النبأ", v: 40, key: "annaba naba tidings" }
+];
+const PAGE = [
+  { n: "١", ar: "الْحَمْدُ لِلَّهِ الَّذِي أَنزَلَ عَلَىٰ عَبْدِهِ الْكِتَابَ وَلَمْ يَجْعَل لَّهُ عِوَجًا", inPortion: true },
+  { n: "٢", ar: "قَيِّمًا لِّيُنذِرَ بَأْسًا شَدِيدًا مِّن لَّدُنْهُ وَيُبَشِّرَ الْمُؤْمِنِينَ الَّذِينَ يَعْمَلُونَ الصَّالِحَاتِ أَنَّ لَهُمْ أَجْرًا حَسَنًا", inPortion: true },
+  { n: "٣", ar: "مَّاكِثِينَ فِيهِ أَبَدًا", inPortion: true },
+  { n: "٤", ar: "وَيُنذِرَ الَّذِينَ قَالُوا اتَّخَذَ اللَّهُ وَلَدًا", inPortion: false },
+  { n: "٥", ar: "مَّا لَهُم بِهِ مِنْ عِلْمٍ وَلَا لِآبَائِهِمْ ۚ كَبُرَتْ كَلِمَةً تَخْرُجُ مِنْ أَفْوَاهِهِمْ ۚ إِن يَقُولُونَ إِلَّا كَذِبًا", inPortion: false }
+];
+const CHECK = {
+  checking: {
+    kicker: "Listening back · on this phone", head: "Checking what it heard.",
+    body: "Comparing your recording with Al-Kahf 1–3 — the passage it already knows you were given.",
+    foot: "The audio never leaves the phone. A few seconds, and it isn’t marking you on anything.",
+    primary: "Keep the day and carry on", second: "Cancel"
+  },
+  matched: {
+    kicker: "Heard", head: "That was Al-Kahf 1–3.",
+    body: "Kept on the phone, and today is logged as recited.",
+    verdict: "Logged as recited", fill: GOLD,
+    foot: "No score, no tajwīd marking, no correction. It only ever asks whether a real recitation happened.",
+    primary: "Done", second: "Play it back"
+  },
+  nomatch: {
+    kicker: "Couldn’t follow it", head: "I couldn’t place that against Al-Kahf 1–3.",
+    body: "That’s a limit of what the app could hear — not a judgement on your recitation, and nothing is marked on the page.",
+    verdict: "The day stands · logged as read", fill: "transparent",
+    foot: "Your recording is kept either way. Read it again now if you like, or leave the day as it is.",
+    primary: "Leave the day as read", second: "Recite it again"
+  },
+  quiet: {
+    kicker: "Mostly room noise", head: "I could hear you, but not clearly.",
+    body: "Somewhere quieter, or a little closer to the phone, and it usually catches it.",
+    verdict: "The day stands · logged as read", fill: "transparent",
+    foot: "Nothing was wrong with the recitation. It just wasn’t loud enough to compare.",
+    primary: "Leave the day as read", second: "Try again"
+  },
+  unsure: {
+    kicker: "Not certain", head: "That sounded like recitation.",
+    body: "I couldn’t be sure it was this passage, so I’ll take your word for it rather than guess.",
+    verdict: "The day stands · logged as read", fill: "transparent",
+    foot: "When it can’t tell, it defers to you. It never overrules what you say you did.",
+    primary: "Yes, that was it", second: "Recite it again"
+  }
+};
+const LOG_BASE = [
+  { day: "Wed", said: "after Isha", kept: "read 21:12", tone: GOLD_BRIGHT },
+  { day: "Tue", said: "already did it", kept: "recited", tone: GOLD_BRIGHT },
+  { day: "Mon", said: "not today, travelling", kept: "left alone", tone: "rgba(251,249,243,0.6)" }
+];
+const COMP = {
+  asked: { when: "Thursday, after Maghrib", ask: "Are you reading tonight?" },
+  replied: { when: "Thursday, 19:06", ask: "Are you reading tonight?", reply: "after Isha, around 9", did: "Reminder moved to 21:00 tonight" },
+  due: { when: "Thursday, 21:40", ask: "You said after Isha. It’s twenty to ten.", reply: "after Isha, around 9", did: "Half a page waiting · Al-Kahf 1–3" }
+};
+const FAILS = [
+  { tag: "No connection", head: "The page is already here.", body: "Reading and reciting need nothing. Al-Shāṭrī’s audio will download when you’re back." },
+  { tag: "The page font didn’t load", head: "Showing plain Arabic for now.", body: "The words are right; the line breaks won’t match your printed mushaf until the 154 KB font arrives." },
+  { tag: "First day", head: "Today is the first one.", body: "No numbers yet — they start once there’s something true to say." },
+  { tag: "Undone", head: "Back to where you were.", body: "Al-Kahf 1, page 293. The day isn’t logged and the recording was deleted." },
+  { tag: "Too short to be real", head: "Nothing was saved.", body: "That was under two seconds, so it isn’t kept and the day is untouched." }
+];
+
+class Component extends DCLogic {
+  state = {
+    screen: "today", query: "", sheet: null, draft: "",
+    check: "matched", comp: "asked", seal: "recited", setup: 1, widget: "todo", settings: "rest",
+    size: 27, playing: true, idx: 1, pos: 0.36, qual: 0, rec: 42,
+    amount: 0, retain: 1, anchor: "Maghrib", offset: 30, setupAyah: 3
+  };
+
+  componentDidMount() {
+    this._t = setInterval(() => {
+      if (this.state.screen === "recite") this.setState(s => ({ rec: s.rec + 1 }));
+      else if (this.state.playing) this.setState(s => ({ pos: s.pos >= 1 ? 0 : s.pos + 0.012 }));
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+
+  go = (screen) => this.setState({ screen, sheet: null });
+  clock(sec) { const m = Math.floor(sec / 60), s = sec % 60; return m + ":" + (s < 10 ? "0" : "") + s; }
+  pill(on) {
+    return on
+      ? { border: GOLD, bg: "rgba(201,162,75,0.16)", fg: GOLD_BRIGHT }
+      : { border: "rgba(201,162,75,0.25)", bg: "transparent", fg: "rgba(251,249,243,0.66)" };
+  }
+
+  renderVals() {
+    const st = this.state;
+    const paper = this.props.paperReader ?? true;
+    const size = this.props.arabicScale ?? st.size;
+    const checker = this.props.checker ?? true;
+    const recede = (this.props.recede ?? 35) / 100;
+
+    const theme = paper
+      ? { "--pg-paper": "#F4EDE0", "--pg-ink": "#1A1320", "--pg-recede": "rgba(26,19,32," + recede + ")", "--pg-muted": "rgba(26,19,32,0.68)", "--pg-rule": "rgba(26,19,32,0.16)", "--pg-gold": "#A07A2E", "--pg-ar": size + "px" }
+      : { "--pg-paper": "#14101F", "--pg-ink": "#FBF9F3", "--pg-recede": "rgba(251,249,243," + recede + ")", "--pg-muted": "rgba(251,249,243,0.66)", "--pg-rule": "rgba(201,162,75,0.22)", "--pg-gold": GOLD, "--pg-ar": size + "px" };
+
+    const tabColor = (on) => on ? GOLD : "rgba(251,249,243,0.45)";
+    const nav = [
+      { label: "The app", items: [
+        { k: "today", label: "Today" }, { k: "surahs", label: "Sūrahs" }, { k: "reader", label: "The page" },
+        { k: "listen", label: "Listen" }, { k: "more", label: "Settings" }
+      ] },
+      { label: "The two AI moments", items: [
+        { k: "comp", label: "Companion" }, { k: "check", label: "Recitation check" }
+      ] },
+      { label: "Finishing the day", items: [
+        { k: "recite", label: "Reciting" }, { k: "seal", label: "Marked done" }
+      ] },
+      { label: "Around the app", items: [
+        { k: "setup", label: "First run" }, { k: "reminder", label: "The reminder" },
+        { k: "phone", label: "This phone" }, { k: "export", label: "Export" }
+      ] },
+      { label: "Never designed before", items: [
+        { k: "icon", label: "App icon" }, { k: "widget", label: "Home widget" }, { k: "fails", label: "When it fails" }
+      ] }
+    ];
+
+    const subSets = {
+      check: [["checking", "Checking"], ["matched", "Matched"], ["nomatch", "Didn’t match"], ["quiet", "Too quiet"], ["unsure", "Unsure"]],
+      comp: [["asked", "It asks"], ["replied", "You reply"], ["due", "It comes round"]],
+      seal: [["recited", "Recited aloud"], ["read", "Marked as read"]],
+      setup: [[1, "1 · Where"], [2, "2 · Which ayah"], [3, "3 · How much"]],
+      widget: [["todo", "Not done"], ["done", "Done"]],
+      more: [["rest", "At rest"], ["toast", "Amount changed"]]
+    };
+    const key = st.screen;
+    const subList = subSets[key] || null;
+    const cur = { check: st.check, comp: st.comp, seal: st.seal, setup: st.setup, widget: st.widget, more: st.settings }[key];
+
+    const chk = CHECK[st.check];
+    const cmp = COMP[st.comp];
+    const qc = st.query.replace(/[^a-z0-9]/gi, "").toLowerCase();
+    const visible = SURAHS.filter(s => !qc || s.key.replace(/\s+/g, "").includes(qc) || String(s.n) === qc);
+
+    const ayahRow = (a) => ({
+      n: a.n, ar: a.ar,
+      color: a.inPortion ? "var(--pg-ink,#1A1320)" : "var(--pg-recede,rgba(26,19,32,0.35))",
+      rosette: a.inPortion ? "var(--pg-gold,#A07A2E)" : "var(--pg-recede,rgba(26,19,32,0.35))",
+      marker: a.inPortion ? "var(--pg-gold,#A07A2E)" : "transparent",
+      select: () => this.setState({ sheet: a.n })
+    });
+
+    return {
+      showIndex: this.props.showIndex ?? true,
+      theme,
+      groups: nav.map(g => ({
+        label: g.label,
+        items: g.items.map(it => {
+          const on = st.screen === it.k;
+          return {
+            label: it.label, fg: on ? "#FBF9F3" : "rgba(251,249,243,0.6)",
+            bg: on ? "rgba(201,162,75,0.1)" : "transparent", mark: on ? GOLD : "transparent",
+            go: () => this.go(it.k)
+          };
+        })
+      })),
+      hasSubs: !!subList,
+      subs: (subList || []).map(([v, label]) => {
+        const p = this.pill(cur === v);
+        return { label, border: p.border, bg: p.bg, fg: p.fg, pick: () => this.setState({ [key === "more" ? "settings" : key]: v }) };
+      }),
+
+      isToday: st.screen === "today", isSurahs: st.screen === "surahs", isReader: st.screen === "reader",
+      isListen: st.screen === "listen", isMore: st.screen === "more", isRecite: st.screen === "recite",
+      isCheck: st.screen === "check", isSeal: st.screen === "seal", isComp: st.screen === "comp",
+      isSetup: st.screen === "setup", isReminder: st.screen === "reminder", isPhone: st.screen === "phone",
+      isExport: st.screen === "export", isIcon: st.screen === "icon", isWidget: st.screen === "widget",
+      isFails: st.screen === "fails",
+
+      tabTodayColor: tabColor(st.screen === "today"),
+      tabSurahsColor: tabColor(st.screen === "surahs" || st.screen === "setup"),
+      tabReadColor: tabColor(st.screen === "reader" || st.screen === "recite"),
+      tabListenColor: tabColor(st.screen === "listen"),
+      tabMoreColor: tabColor(st.screen === "more" || st.screen === "reminder" || st.screen === "phone" || st.screen === "export"),
+
+      goToday: () => this.go("today"), goSurahs: () => this.go("surahs"), goListen: () => this.go("listen"),
+      goMore: () => this.go("more"), goPhone: () => this.go("phone"), openReader: () => this.go("reader"),
+      openComp: () => this.go("comp"), noop: () => {},
+
+      compWhen: cmp.when, compAsk: cmp.ask, compReply: cmp.reply || "", compDid: cmp.did || "",
+      compAsking: st.comp === "asked", compAnswered: st.comp !== "asked", compDue: st.comp === "due",
+      compDraft: st.draft,
+      onCompDraft: (e) => this.setState({ draft: e.target.value }),
+      compSend: () => this.setState({ comp: "replied" }),
+      compHints: ["after Isha", "at 9", "not today", "already did it"].map(h => ({ label: h, pick: () => this.setState({ draft: h, comp: "replied" }) })),
+      compAgain: () => this.setState({ comp: "asked", draft: "" }),
+      compLog: LOG_BASE,
+
+      log: [
+        { n: "٣", title: "Today · Al-Kahf 1–3", meta: "Half a page · not yet marked", state: "Waiting", stateColor: GOLD, fill: "transparent", numColor: GOLD },
+        { n: "٢", title: "Yesterday · Al-Kahf 1", meta: "Recited aloud, 21:12", state: "Recited", stateColor: GOLD_BRIGHT, fill: "rgba(201,162,75,0.25)", numColor: "#FBF9F3" },
+        { n: "١", title: "Tuesday · Al-Isrāʾ 110–111", meta: "Marked as read", state: "Read", stateColor: "rgba(251,249,243,0.7)", fill: "transparent", numColor: GOLD }
+      ],
+
+      startRecite: () => this.setState({ screen: "recite", rec: 0, sheet: null }),
+      recTime: this.clock(st.rec),
+      finishRecite: () => checker ? this.setState({ screen: "check", check: "checking" }) : this.setState({ screen: "seal", seal: "recited" }),
+      markRead: () => this.setState({ screen: "seal", seal: "read" }),
+
+      checkChecking: st.check === "checking",
+      checkKicker: chk.kicker, checkHead: chk.head, checkBody: chk.body, checkFoot: chk.foot,
+      checkVerdict: chk.verdict || false, verdictFill: chk.fill || "transparent",
+      checkPrimary: chk.primary, checkSecond: chk.second,
+      checkPrimaryGo: () => st.check === "checking" ? this.setState({ check: "matched" }) : this.setState({ screen: "seal", seal: st.check === "matched" ? "recited" : "read" }),
+      checkSecondGo: () => st.check === "checking" ? this.go("today") : this.setState({ screen: "recite", rec: 0 }),
+
+      sealStamp: st.seal === "recited" ? "RECITED" : "READ",
+      sealLine: st.seal === "recited" ? "You said it aloud today." : "You read it today.",
+      sealSplit: st.seal === "recited" ? "6 recited, 18 marked as read" : "5 recited, 19 marked as read",
+      sealShare: st.seal === "recited" ? "Send it to someone on WhatsApp" : "Back to today",
+
+      query: st.query,
+      onQuery: (e) => this.setState({ query: e.target.value }),
+      resultCount: visible.length + (visible.length === 1 ? " match" : " matches"),
+      visibleSurahs: visible.map(s => ({
+        n: s.n, name: s.name, ar: s.ar, meta: s.tr + " · " + s.v + " ayahs",
+        open: () => this.go("reader"), pickSetup: () => this.setState({ setup: 2 })
+      })),
+      noResults: visible.length === 0,
+
+      ayahs: PAGE.map(ayahRow),
+      cycleSize: () => this.setState(s => ({ size: s.size >= 33 ? 23 : s.size + 5 })),
+      sizes: [{ label: "Small", v: 23 }, { label: "Medium", v: 27 }, { label: "Large", v: 33 }].map(z => {
+        const p = this.pill(size === z.v);
+        return { label: z.label, border: p.border, bg: p.bg, fg: p.fg, pick: () => this.setState({ size: z.v }) };
+      }),
+
+      sheetOpen: st.sheet !== null,
+      sheetRef: "Al-Kahf · ayah " + (st.sheet || ""),
+      closeSheet: () => this.setState({ sheet: null }),
+      sheetActions: [
+        { label: "Play this ayah", tap: () => this.setState({ sheet: null, screen: "listen", playing: true }) },
+        { label: "Start reciting from here", tap: () => this.setState({ sheet: null, screen: "recite", rec: 0 }) },
+        { label: "This is where I am now", tap: () => this.setState({ sheet: null }) }
+      ],
+
+      nowPlaying: "Al-Kahf " + (st.idx + 1) + " · " + (st.idx + 1) + " of 3",
+      listenAyahs: PAGE.slice(0, 3).map((a, i) => ({
+        n: a.n, ar: a.ar,
+        color: i === st.idx ? "#FBF9F3" : "rgba(251,249,243,0.32)",
+        mark: i === st.idx ? GOLD : "rgba(201,162,75,0.3)",
+        pick: () => this.setState({ idx: i, pos: 0, playing: true })
+      })),
+      progressPct: Math.round(st.pos * 100),
+      elapsed: this.clock(Math.round(st.pos * 74)), duration: "1:14",
+      miniPlayer: st.playing && st.screen !== "listen" && st.screen !== "recite",
+      togglePlay: (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState(s => ({ playing: !s.playing })); },
+      playGlyph: st.playing
+        ? React.createElement("div", { style: { display: "flex", gap: 5 } },
+            React.createElement("div", { style: { width: 4, height: 20, background: "#560C15" } }),
+            React.createElement("div", { style: { width: 4, height: 20, background: "#560C15" } }))
+        : React.createElement("div", { style: { width: 0, height: 0, borderTop: "11px solid transparent", borderBottom: "11px solid transparent", borderLeft: "17px solid #560C15", marginLeft: 5 } }),
+      prevAyah: () => this.setState(s => ({ idx: Math.max(0, s.idx - 1), pos: 0 })),
+      nextAyah: () => this.setState(s => ({ idx: Math.min(2, s.idx + 1), pos: 0 })),
+      quality: [{ label: "Smaller", size: "≈1.1 MB a page" }, { label: "Clearer", size: "≈2.3 MB a page" }].map((z, i) => {
+        const p = this.pill(st.qual === i);
+        return { label: z.label, size: z.size, border: p.border, bg: p.bg, fg: p.fg, pick: () => this.setState({ qual: i }) };
+      }),
+
+      settingsToast: st.settings === "toast",
+      settingGroups: [
+        { label: "Reading", rows: [
+          { label: "How much a day", value: "One page · applies to today too", tap: () => this.setState({ settings: "toast" }) },
+          { label: "Lighter days", value: "Friday and Sunday · half a page" },
+          { label: "Where you are", value: "Al-Kahf 3 · page 293 · move it", tap: () => this.setState({ screen: "setup", setup: 2 }) }
+        ] },
+        { label: "Being reminded", rows: [
+          { label: "When to remind you", value: "30 minutes after Maghrib", tap: () => this.go("reminder") },
+          { label: "This phone", value: "Tecno · reminders need two switches", tap: () => this.go("phone") },
+          { label: "The companion", value: "Asks once a day, after Maghrib", tap: () => this.go("comp") }
+        ] },
+        { label: "Sound and storage", rows: [
+          { label: "Audio quality", value: "Smaller · ≈1.1 MB a page" },
+          { label: "Your record", value: "18 recordings · 118 MB · export", tap: () => this.go("export") },
+          { label: "Feedback", value: "Tell me what broke" }
+        ] }
+      ].map(g => ({ label: g.label, rows: g.rows.map(r => ({ ...r, tap: r.tap || (() => {}) })) })),
+
+      setup1: st.setup === 1, setup2: st.setup === 2, setup3: st.setup === 3,
+      step2Bar: st.setup >= 2 ? GOLD : "rgba(201,162,75,0.2)",
+      step3Bar: st.setup >= 3 ? GOLD : "rgba(201,162,75,0.2)",
+      setupStep: ["Step one of three", "Step two of three", "Step three of three"][st.setup - 1],
+      setupHead: ["Where are you in the mushaf?", "Tap the ayah you’re on.", "How much a day?"][st.setup - 1],
+      setupCta: st.setup === 3 ? "Start tonight" : "Next",
+      setupNext: () => st.setup === 3 ? this.go("today") : this.setState({ setup: st.setup + 1 }),
+      setupAyah: st.setupAyah,
+      setupAyahs: PAGE.slice(0, 4).map((a, i) => {
+        const on = i + 1 === st.setupAyah;
+        return {
+          n: a.n, ar: a.ar,
+          color: on ? "#1A1320" : "rgba(26,19,32,0.42)",
+          rosette: on ? "#A07A2E" : "rgba(26,19,32,0.42)",
+          ring: on ? "0 0 0 3px rgba(160,122,46,0.18)" : "none",
+          pick: () => this.setState({ setupAyah: i + 1 })
+        };
+      }),
+      amounts: [
+        { label: "Half a page", note: "About four minutes", lines: [1, 1, 1, 1, 0, 0, 0] },
+        { label: "One page", note: "Fifteen lines, as printed", lines: [1, 1, 1, 1, 1, 1, 1] },
+        { label: "Two pages", note: "A spread a day", lines: [1, 1, 1, 1, 1, 1, 1] }
+      ].map((a, i) => {
+        const on = st.amount === i;
+        return {
+          label: a.label, note: a.note,
+          border: on ? GOLD : "rgba(201,162,75,0.22)", bg: on ? "rgba(201,162,75,0.1)" : "transparent",
+          dot: on ? GOLD : "transparent",
+          lines: a.lines.map(v => ({ c: v ? "#E7C97E" : "rgba(251,249,243,0.2)" })),
+          pick: () => this.setState({ amount: i })
+        };
+      }),
+
+      anchors: ["Fajr", "Ẓuhr", "ʿAṣr", "Maghrib", "ʿIshāʾ"].map(a => {
+        const p = this.pill(st.anchor === a);
+        return { label: a, border: p.border, bg: p.bg, fg: p.fg, pick: () => this.setState({ anchor: a }) };
+      }),
+      offsetLabel: (st.offset >= 0 ? "+" : "−") + Math.abs(st.offset) + " min",
+      offsetUp: () => this.setState(s => ({ offset: Math.min(90, s.offset + 5) })),
+      offsetDown: () => this.setState(s => ({ offset: Math.max(-90, s.offset - 5) })),
+
+      oemSteps: [
+        { n: "1", title: "Turn off power saving for Wird", path: "Settings → Battery Lab → Power saving → Wird → No restrictions" },
+        { n: "2", title: "Let it start on its own", path: "Phone Master → Auto-start management → Wird → On" }
+      ],
+      retention: ["Keep everything", "Keep the last thirty days", "Delete recordings after export"].map((label, i) => {
+        const on = st.retain === i;
+        return { label, border: on ? GOLD : "rgba(201,162,75,0.22)", bg: on ? "rgba(201,162,75,0.1)" : "transparent", dot: on ? GOLD : "transparent", pick: () => this.setState({ retain: i }) };
+      }),
+
+      widgetState: st.widget === "done" ? "Recited" : "Not yet",
+      widgetTone: st.widget === "done" ? "#A07A2E" : "rgba(26,19,32,0.68)",
+      widgetFill: st.widget === "done" ? "#A07A2E" : "transparent",
+      widgetNumbers: st.widget === "done" ? "8 in a row · 24 days read" : "7 in a row · 23 days read",
+
+      fails: FAILS
+    };
+  }
+}
+
+</script>
+</body>
+</html>

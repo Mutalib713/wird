@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
             var seenChrome by remember { mutableStateOf(store.hasSeenChrome) }
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
+            var readerName by remember { mutableStateOf(store.readerName) }
             var armed by remember { mutableStateOf<Armed?>(null) }
             var tab by remember { mutableStateOf(WirdTab.HOME) }
             /** Set when a surah is picked from the Sūrahs tab; consumed by TodayScreen. */
@@ -146,10 +147,12 @@ class MainActivity : ComponentActivity() {
                 // abandon the one thing being asked.
                 if (screen == Screen.SETUP) {
                     SetupScreen(
-                        onDone = { page, unitsPerDay, verse ->
+                        onDone = { page, unitsPerDay, verse, name ->
                             store.positionPage = page
                             store.plan = ReadingPlan(defaultUnits = unitsPerDay)
                             store.startVerse = verse
+                            store.readerName = name
+                            readerName = store.readerName
                             plan = store.plan
                             position = store.positionUnit
                             startVerse = verse
@@ -171,6 +174,10 @@ class MainActivity : ComponentActivity() {
                             recent = days.all().sortedByDescending { it.date },
                             onOpenPage = { onPage = true },
                             positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
+                            readerName = readerName,
+                            // The week's page column. Days marked before task 6 began
+                            // storing what they covered have no page, and show none.
+                            pageFor = { date -> days.coveredOn(date)?.first?.let(Mushaf::pageOf) },
                             onCompanionAction = { action ->
                                 when (action) {
                                     // A commitment becomes a real alarm. This is the whole

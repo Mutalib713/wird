@@ -743,3 +743,131 @@ dashboard that had to be reverted.
 **Not an option:** running the design's HTML in a WebView. It would cost the mushaf renderer,
 which is native, uses `Typeface.createFromFile` per page, and is the one thing he has said
 explicitly must not change (§ 5d).
+
+### 5j. The before/after, settled — and what Home actually takes. 2026-08-18
+
+Three prior sessions guessed at which mockup was which and two of them had to be reverted.
+This records the answer in his own words so it is never guessed again.
+
+**There are four design files, not two,** and they are not all the same generation:
+
+| File | Palette | Front door | Carries |
+|---|---|---|---|
+| `Wird.dc.html` (59 KB) | sage/teal | — | the earliest sketch |
+| `Wird v2.dc.html` (78 KB) | sage/teal | the page | a Memorisation screen, recitation-check states, a chat companion |
+| `Wird App.dc.html` (110 KB) | gold/cream/midnight | a dashboard | "Good evening, Amina", a five-tab bottom bar |
+| `wird-design.html` (1.9 MB) | gold/cream/midnight | — | **the newest export, and the one he is looking at** |
+
+All four now live in `design-source/`. They were only in `~/Downloads` before, which is not
+a place a project's canonical reference should live.
+
+**`wird-design.html` is newer than the zip** and is the only one holding *both* variants side
+by side. That is what he means by "two designs":
+
+- **BEFORE** — captioned *"CARDS, AND A BOTTOM TAB BAR"*. Has the greeting
+  `Good evening, / Amina`, and five bottom tabs.
+- **AFTER** — captioned *"NOW · TOOLBAR, TABS, PAGE CHROME"*. His words:
+  *"the after one is the one on the right, the ones with the tabs on top with today surah
+  and juz."* Has a `WIRD` toolbar, a `TODAY · SŪRAH · JUZʾ` top strip, **and no greeting at
+  all** — which is exactly why the greeting had to be carried across from the before.
+
+**What Home takes, decided 2026-08-18 and built the same day:**
+
+1. **The after's order and hierarchy** — toolbar, portion, companion, numbers, the week.
+2. **The before's greeting**, `Good evening, <name>`, the name in the accent colour on its
+   own line as the mockup has it.
+3. **Our colours, unchanged.** *"but maintain our colours tho."* The gold/cream/midnight of
+   § 6/8 stands; nothing is taken from any file's palette.
+4. **The top strip is NOT taken.** Asked, because it is a navigation decision and § 5i says
+   ask. His answer: *"i just want the bottom tabs."* The after has no bottom bar — the strip
+   *is* its navigation — so running both would have put "Sūrah" on one screen twice.
+   ⚠ **Consequence, recorded so it is not lost: Juzʾ now has nowhere to live.** The app still
+   cannot browse by juzʾ at all. That is a real gap, and it is a deliberate one.
+
+**Two smaller things the after got right, and both are now in:**
+- The page number is **a figure beside the portion, not words inside it**. It is glanced at,
+  and a number buried in a sentence has to be read instead.
+- The recited count **stopped being a third figure**. The old row put "5 RECITED" directly
+  above "5 recited aloud, 18 marked as read" — the same number twice, in two shapes.
+
+**Still not taken, and deferred deliberately:** the after also carries the three done
+controls (`RECITE IT ALOUD · I READ IT · LISTEN TO IT`) on Home. They live at the foot of
+the page today because the recorder's state — eight `remember`s, a `Recitation`, a
+`PortionAudio` and a `listen()` — all sits inside `TodayScreen`. Moving them means hoisting
+that state to `MainActivity`, which is a real refactor of the app's most-reverted screen.
+**Bolting on a half-version is how this screen got rejected before.** It is its own change.
+
+### 5k. The name — built 2026-08-18
+
+§ 5c approved this on 2026-08-17 and nothing was built; `HomeScreen` carried a comment
+saying so. Now done.
+
+**It is one string in SharedPreferences and it does exactly one job:** the greeting says a
+name. It is not an account, it is not a profile, and Sacred Rule 1 means it never leaves the
+phone — the setup screen says that out loud, because a text box asking your name is the
+shape of a signup form and this app has none.
+
+**Asked first, and skippable.** First because the greeting is the first thing Home draws, so
+asking later would mean one launch that greets you as nobody. Skippable because the fallback
+— the bare hour, which is what shipped before — already reads fine, and "Good evening,
+friend" reads worse than "Good evening". **Skip is a full-width control, not a grey word in
+a corner.**
+
+### 5l. ⚠ Memorisation is an ONBOARDING QUESTION, not a screen. Corrected 2026-08-18
+
+A session read "the memorisation screen" and found the Hifdh screen in `Wird v2.dc.html` —
+a full revision mode with *"Due today · An-Naba 1–20"*, per-surah progress bars and *"Recite
+from memory"*. **That is not what he meant**, and he corrected it before anything was built:
+
+> *"the memorization i was talking about was a page on the onboarding — we ask if u are
+> memorizing the quran or u are reading, cos some people memorize and some to look in the
+> mushaf to read."*
+
+**So the ask is one question at first run: are you memorising, or reading from the mushaf?**
+Much smaller than the screen, and a better idea — it is a fact about the reader that the
+whole app could act on, rather than a second mode bolted beside the first.
+
+**⬜ NOT BUILT, and blocked on a decision that is his:** *what actually changes when someone
+answers "memorising"?* Plausible answers — smaller daily portions, revision of what is
+already memorised rather than onward reading, the recitation check comparing from memory
+with the page hidden, or nothing at all in v1 beyond recording the answer. **Storing an
+answer the app ignores is worse than not asking**, because it promises something. This needs
+its own conversation before it is built.
+
+⚠ Note also that `Wird v2.dc.html`'s own index files Memorisation under a group called
+**"Beyond v1"** — the designer reached the same conclusion independently.
+
+### 5m. The companion becomes a real chat — approved 2026-08-18, not yet built
+
+> *"for the chat bot side it's not only that we discuss about it, it has more features, so
+> mk it like an actual chat bot interface instead of what's there, cos the user won't know
+> if it is a chat bot."*
+
+He is right about the symptom — § 5f already recorded that three fixed chips read as a poll.
+This is the fix, and it goes further than § 5f's: the *interface* becomes a chat, not just a
+better-arranged card.
+
+**`Wird v2.dc.html` has already drawn it**, and it is good: a `← Today's check-in` header; a
+card holding the commitment as an object (**YOU SAID** *"after Isha"* · Checking back at
+**8:10 pm** · a breathing dot reading *"Holding since 6:12 pm · reminder moved to match"*);
+real bubbles, its turns left and yours right; a text field pinned to the bottom reading
+*"Reply in your own words"*; and the missed case written out — *"You said 8:10. It is 8:40.
+Still tonight?"*, which the file annotates **"A fact and a question. No streak talk, nothing
+disappointed, nothing red."**
+
+⚠ **One tension to resolve rather than inherit:** that design's own header comment calls it
+*"a standing appointment, not a chat log"* — it speaks twice and no more, on purpose. He is
+asking for something more conversational. Those are different products, and the design's
+restraint was a deliberate answer to Sacred Rule 3.
+
+**⬜ The engine is still undecided, and stays his call — PLAN task 22.** Asked directly on
+2026-08-18; his answer was *"we will decide when we get there."* So it is open, and the
+honest risk is written down now rather than discovered later: **a chat box invites anyone to
+type anything, and `CompanionBrain` is hand-written rules that understand about seven
+phrasings.** Making it look like a chatbot raises the promise; the rules underneath do not
+rise with it. § 5h's approved tafsir and daily verse are flatly impossible on rules.
+
+### 5n. Tabs, confirmed unchanged. 2026-08-18
+
+*"the tabs there will be four right — home, surah, history and more."* Confirmed. That is
+exactly what `TabBar.kt` already ships. No change; recorded so it stops being re-asked.

@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mosman.wird.domain.Mushaf
@@ -42,29 +43,117 @@ import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 
 /**
- * First run, in two steps.
+ * First run, in three steps.
  *
  * Asks the question a person can answer. Nobody knows they are on page 453; most people
  * do not know the ayah number either. But everybody recognises the place when they see
- * it — so step two shows the mushaf and you tap where you are.
+ * it — so the mushaf step shows the page and you tap where you are.
  *
  * The ayah number box stays alongside, at Mutalib's request: typing is faster on the days
  * you do happen to know it.
+ *
+ * **The name comes first, and it is skippable** — PROFILE.md § 5j. It is first because the
+ * greeting is the first thing Home renders, so asking later would mean one launch that
+ * greets you as nobody. It is skippable because Sacred Rule 1 means this app has no
+ * accounts and never should feel like it does; the Skip is as prominent as the answer.
  */
 @Composable
 fun SetupScreen(
-    onDone: (page: Int, unitsPerDay: Int, startVerse: Pair<Int, Int>?) -> Unit,
+    onDone: (page: Int, unitsPerDay: Int, startVerse: Pair<Int, Int>?, name: String?) -> Unit,
 ) {
+    var name by remember { mutableStateOf<String?>(null) }
+    var askedName by remember { mutableStateOf(false) }
     var chosen by remember { mutableStateOf<Surah?>(null) }
     val surah = chosen
-    if (surah == null) {
-        ChooseSurah { chosen = it }
-    } else {
-        FindYourPlace(
+
+    when {
+        !askedName -> YourName(
+            onContinue = {
+                name = it
+                askedName = true
+            },
+        )
+
+        surah == null -> ChooseSurah { chosen = it }
+
+        else -> FindYourPlace(
             surah = surah,
             onBack = { chosen = null },
-            onDone = onDone,
+            onDone = { page, units, verse -> onDone(page, units, verse, name) },
         )
+    }
+}
+
+/**
+ * "What should I call you?"
+ *
+ * One field, one reassurance, and two ways out that both work. The reassurance is not
+ * decoration — a text box asking for your name is the shape of a signup form, and this app
+ * has no accounts at all, so the sentence has to say so before someone assumes otherwise.
+ *
+ * Skip is a full-width control rather than a grey word in a corner, because a Skip nobody
+ * can find is not a choice.
+ */
+@Composable
+private fun YourName(onContinue: (String?) -> Unit) {
+    val colors = LocalWirdColors.current
+    var typed by remember { mutableStateOf("") }
+    val name = typed.trim().takeIf { it.isNotEmpty() }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.surface)
+            .safeDrawingPadding()
+            .padding(horizontal = Scale.space6, vertical = Scale.space4),
+    ) {
+        Spacer(Modifier.height(Scale.space8))
+        Text(
+            "What should I call you?",
+            color = colors.textPrimary,
+            style = TextStyle(fontSize = Scale.display),
+        )
+        Spacer(Modifier.height(Scale.space2))
+        Text(
+            // True, and the reason the field is safe to show at all. Sacred Rule 1.
+            text = "Only to greet you. It stays on this phone.",
+            color = colors.textSecondary,
+            style = TextStyle(fontSize = Scale.body),
+        )
+
+        Spacer(Modifier.height(Scale.space6))
+        OutlinedTextField(
+            value = typed,
+            // A name, not a form field: no validation, no minimum, nothing rejected. The
+            // cap is there so a pasted paragraph cannot break the greeting's layout.
+            onValueChange = { typed = it.take(24) },
+            label = { Text("Your name") },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+            modifier = Modifier.fillMaxWidth(),
+            colors = wirdFieldColors(),
+        )
+
+        Spacer(Modifier.height(Scale.space6))
+        Button(
+            onClick = { onContinue(name) },
+            enabled = name != null,
+            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colors.accent,
+                contentColor = colors.surface,
+            ),
+        ) {
+            Text("Continue")
+        }
+
+        Spacer(Modifier.height(Scale.space2))
+        TextButton(
+            onClick = { onContinue(null) },
+            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
+        ) {
+            Text("Skip", color = colors.textSecondary, style = TextStyle(fontSize = Scale.body))
+        }
     }
 }
 

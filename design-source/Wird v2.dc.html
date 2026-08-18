@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#0A1317; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  a { color:#AEC3B0; text-decoration:none; }
+  a:hover { color:#EFF6E0; }
+  ::-webkit-scrollbar { width:0; height:0; }
+  @keyframes wRise { from { opacity:0; transform:translateY(14px);} to { opacity:1; transform:none; } }
+  @keyframes wFade { from { opacity:0; } to { opacity:1; } }
+  @keyframes wSheet { from { transform:translateY(101%);} to { transform:none; } }
+  @keyframes wBar { 0%,100% { transform:scaleY(0.25);} 50% { transform:scaleY(1);} }
+  @keyframes wSpin { to { transform:rotate(360deg);} }
+  @keyframes wBreathe { 0%,100% { opacity:0.45;} 50% { opacity:1;} }
+</style>
+</helmet>
+
+<div style="min-height:100vh; display:flex; align-items:flex-start; justify-content:center; gap:44px; padding:44px 40px 80px; background:#0A1317; font-family:'Instrument Sans', system-ui, sans-serif;">
+
+  <!-- ======================= NAV RAIL ======================= -->
+  <div style="width:252px; flex:0 0 252px; position:sticky; top:44px;">
+    <div style="font-family:'Instrument Serif', Georgia, serif; font-size:34px; color:#EFF6E0; line-height:1;">Wird</div>
+    <div style="font-size:13px; line-height:1.5; color:#598392; margin-top:8px;">Full UI · Android · every screen in the brief, including the parts not built yet.</div>
+
+    <div role="button" tabindex="0" onClick="{{ toggleDark }}" style="display:flex; align-items:center; gap:10px; margin-top:18px; padding:9px 12px; border:1px solid #1E3A44; border-radius:6px; cursor:pointer; background:#0E1B21;">
+      <div style="width:34px; height:19px; border-radius:999px; flex:0 0 34px; background:{{ switchTrack }}; position:relative; transition:background 200ms ease;">
+        <div style="position:absolute; top:3px; left:{{ switchX }}px; width:13px; height:13px; border-radius:50%; background:#01161E; transition:left 200ms cubic-bezier(0.2,0,0,1);"></div>
+      </div>
+      <div style="font-size:12px; font-weight:500; color:#AEC3B0;">{{ themeLabel }}</div>
+    </div>
+
+    <div style="margin-top:22px; display:flex; flex-direction:column; gap:20px;">
+      <sc-for list="{{ railGroups }}" as="g" hint-placeholder-count="4">
+        <div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#124559; margin-bottom:8px;">{{ g.title }}</div>
+          <div style="display:flex; flex-direction:column; gap:2px;">
+            <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="4">
+              <div role="button" tabindex="0" onClick="{{ i.go }}" style="display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:5px; cursor:pointer; background:{{ i.bg }}; border-left:2px solid {{ i.mark }};">
+                <div style="flex:1; font-size:13px; font-weight:{{ i.weight }}; color:{{ i.color }};">{{ i.label }}</div>
+                <div style="font-size:10px; color:#124559;">{{ i.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ======================= STAGE ======================= -->
+  <div>
+  <div style="display:flex; align-items:flex-start; gap:28px;">
+
+  <div style="width:390px; height:844px; flex:0 0 390px; border-radius:26px; overflow:hidden; position:relative; display:flex; flex-direction:column; background:{{ paper }}; box-shadow:0 24px 60px rgba(0,0,0,0.5), 0 0 0 8px #16232A, 0 0 0 9px #24383F;">
+
+    <!-- android status bar -->
+    <div style="height:30px; flex:0 0 30px; display:flex; align-items:center; justify-content:space-between; padding:0 16px; font-size:11px; font-weight:600; color:{{ onPaperSoft }}; position:relative; z-index:9;">
+      <div>{{ clock }}</div>
+      <div style="display:flex; align-items:center; gap:5px;">
+        <div style="display:flex; align-items:flex-end; gap:1.5px;">
+          <div style="width:3px; height:4px; background:{{ onPaperSoft }};"></div>
+          <div style="width:3px; height:6px; background:{{ onPaperSoft }};"></div>
+          <div style="width:3px; height:8px; background:{{ onPaperSoft }};"></div>
+          <div style="width:3px; height:10px; background:{{ onPaperSoft }}; opacity:0.35;"></div>
+        </div>
+        <div style="width:15px; height:8px; border:1px solid {{ onPaperSoft }}; border-radius:2px; position:relative;"><div style="position:absolute; inset:1px; right:4px; background:{{ onPaperSoft }};"></div></div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         THE PAGE — today's portion is the front door.
+         One screen, many states. No home screen, no dashboard.
+         ============================================================ -->
+    <sc-if value="{{ onPage }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1; display:flex; flex-direction:column; min-height:0; position:relative;">
+
+      <!-- recording meter — pinned TOP, because you scroll up to read while reciting -->
+      <sc-if value="{{ isRecording }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto; background:#124559; padding:12px 18px 13px; animation:wRise 240ms cubic-bezier(0.2,0,0,1); position:relative; z-index:8;">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:9px;">
+              <div style="width:7px; height:7px; border-radius:50%; background:#AEC3B0; animation:wBreathe 1.6s ease-in-out infinite;"></div>
+              <div style="font-size:13px; font-weight:600; color:#EFF6E0;">Reciting</div>
+            </div>
+            <div style="font-size:14px; font-weight:600; font-variant-numeric:tabular-nums; color:#AEC3B0;">{{ recTime }}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:3px; height:22px; margin-top:9px;">
+            <sc-for list="{{ meter }}" as="m" hint-placeholder-count="28">
+              <div style="flex:1; height:{{ m.h }}px; background:#AEC3B0; border-radius:1px; opacity:{{ m.o }};"></div>
+            </sc-for>
+          </div>
+          <div style="font-size:11px; color:rgba(239,246,224,0.62); margin-top:8px;">Ya-Sin 13–21 · scroll and read, it keeps listening</div>
+        </div>
+      </sc-if>
+
+      <!-- off-today banner -->
+      <sc-if value="{{ offToday }}" hint-placeholder-val="{{ false }}">
+        <div role="button" tabindex="0" onClick="{{ backToToday }}" style="flex:0 0 auto; background:{{ raised }}; padding:10px 18px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; animation:wFade 200ms ease;">
+          <div style="font-size:12px; color:{{ onRaised }};">Page {{ page }} — not today's portion</div>
+          <div style="font-size:12px; font-weight:600; color:{{ onRaised }};">Back to today ↩</div>
+        </div>
+      </sc-if>
+
+      <!-- chrome bar — words, not glyphs. Tap the page to reveal. -->
+      <sc-if value="{{ chromeOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto; background:{{ raised }}; animation:wRise 200ms cubic-bezier(0.2,0,0,1); position:relative; z-index:7;">
+          <div style="padding:12px 18px 10px;">
+            <div style="font-size:15px; font-weight:600; color:{{ onRaised }};">Ya-Sin 13–21 · 9 ayahs</div>
+            <div style="font-size:12px; color:{{ onRaisedSoft }}; margin-top:3px;">Page {{ page }} of 604 · one page a day</div>
+            <sc-if value="{{ hasStreak }}" hint-placeholder-val="{{ true }}">
+              <div style="font-size:12px; color:{{ onRaisedSoft }}; margin-top:6px;">{{ streakLine }} · {{ splitLine }}</div>
+            </sc-if>
+          </div>
+          <div style="display:flex; border-top:1px solid {{ hair }};">
+            <div role="button" tabindex="0" onClick="{{ goListen }}" style="flex:1; text-align:center; padding:14px 4px; font-size:14px; font-weight:600; color:{{ onRaised }}; cursor:pointer; border-right:1px solid {{ hair }};">Listen</div>
+            <div role="button" tabindex="0" onClick="{{ goSurah }}" style="flex:1; text-align:center; padding:14px 4px; font-size:14px; font-weight:600; color:{{ onRaised }}; cursor:pointer; border-right:1px solid {{ hair }};">Sūrah</div>
+            <div role="button" tabindex="0" onClick="{{ goSettings }}" style="flex:1; text-align:center; padding:14px 4px; font-size:14px; font-weight:600; color:{{ onRaised }}; cursor:pointer;">Settings</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- the mushaf page -->
+      <div onClick="{{ tapPage }}" style="flex:1; overflow-y:auto; min-height:0; cursor:pointer;">
+        <div style="padding:20px 20px 8px;">
+
+          <sc-if value="{{ isSetupAyah }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:2px 2px 18px;">
+              <div style="font-size:20px; font-weight:600; color:{{ onPaper }}; line-height:1.3;">Tap the ayah you're on.</div>
+              <div style="font-size:14px; color:{{ onPaperSoft }}; margin-top:6px; line-height:1.5;">Or type the number — Ya-Sin has 83 ayahs.</div>
+            </div>
+          </sc-if>
+
+          <!-- surah header band, as printed -->
+          <div style="border:1px solid {{ hairStrong }}; border-radius:3px; padding:9px 12px; text-align:center; margin-bottom:16px; display:flex; align-items:center; justify-content:center; gap:12px;">
+            <div style="width:5px; height:5px; transform:rotate(45deg); background:{{ recede }};"></div>
+            <div style="font-family:'Amiri', serif; font-size:19px; color:{{ recede }};">سُورَةُ يٰس</div>
+            <div style="width:5px; height:5px; transform:rotate(45deg); background:{{ recede }};"></div>
+          </div>
+
+          <!-- 15 lines of mushaf. Today's portion at full strength; the rest recedes.
+               No wash, no highlight — rule 3. -->
+          <div style="direction:rtl; text-align:justify; text-align-last:center; font-family:'Amiri', serif; font-size:{{ arabicPx }}px; line-height:2.45;">
+            <sc-for list="{{ ayahs }}" as="a" hint-placeholder-count="15">
+              <span role="button" tabindex="0" onClick="{{ a.tap }}" style="color:{{ a.color }}; cursor:{{ a.cursor }}; font-weight:{{ a.weight }}; border-bottom:{{ a.underline }}; padding-bottom:2px; transition:color 320ms ease;">{{ a.ar }}<span style="display:inline-flex; align-items:center; justify-content:center; width:{{ markSize }}px; height:{{ markSize }}px; margin:0 5px; border:1px solid {{ a.markColor }}; border-radius:50%; font-family:'Instrument Sans', sans-serif; font-size:10px; font-weight:600; color:{{ a.markColor }}; vertical-align:middle;">{{ a.n }}</span></span>
+            </sc-for>
+          </div>
+
+          <div style="text-align:center; font-size:11px; color:{{ recede }}; margin-top:20px; padding-bottom:6px;">{{ page }}</div>
+
+          <!-- portion named in words — nothing depends on telling two shades apart -->
+          <sc-if value="{{ isReading }}" hint-placeholder-val="{{ true }}">
+            <div style="border-top:1px solid {{ hair }}; margin-top:6px; padding:18px 2px 6px;">
+              <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onPaperSoft }};">Today</div>
+              <div style="font-size:20px; font-weight:600; color:{{ onPaper }}; margin-top:6px;">Ya-Sin 13–21, 9 ayahs</div>
+              <div style="font-size:14px; color:{{ onPaperSoft }}; margin-top:4px;">Ends partway down this page.</div>
+
+              <div style="display:flex; flex-direction:column; gap:9px; margin-top:20px;">
+                <div role="button" tabindex="0" onClick="{{ startRecite }}" style="padding:16px; border-radius:6px; background:{{ accent }}; color:{{ onAccent }}; text-align:center; font-size:16px; font-weight:600; cursor:pointer; min-height:48px;">Recite it out loud</div>
+                <div style="display:flex; gap:9px;">
+                  <div role="button" tabindex="0" onClick="{{ markRead }}" style="flex:1; padding:14px; border-radius:6px; border:1.5px solid {{ accent }}; color:{{ accent }}; text-align:center; font-size:15px; font-weight:600; cursor:pointer; min-height:48px;">I read it</div>
+                  <div role="button" tabindex="0" onClick="{{ goListen }}" style="flex:1; padding:14px; border-radius:6px; border:1.5px solid {{ hairStrong }}; color:{{ onPaperSoft }}; text-align:center; font-size:15px; font-weight:600; cursor:pointer; min-height:48px;">Listen to it</div>
+                </div>
+              </div>
+
+              <sc-if value="{{ hasStreak }}" hint-placeholder-val="{{ true }}">
+                <div style="text-align:center; font-size:13px; color:{{ onPaperSoft }}; margin-top:16px;">{{ streakLine }}</div>
+                <div style="text-align:center; font-size:13px; color:{{ onPaperSoft }}; margin-top:3px;">{{ splitLine }}</div>
+              </sc-if>
+              <div style="height:14px;"></div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isSetupAyah }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid {{ hair }}; margin-top:8px; padding:18px 2px 10px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <input value="{{ ayahInput }}" onChange="{{ onAyahInput }}" placeholder="Ayah no." style="width:104px; padding:13px 12px; border-radius:6px; border:1.5px solid {{ hairStrong }}; background:transparent; font-family:'Instrument Sans', sans-serif; font-size:15px; color:{{ onPaper }}; outline:none;">
+                <div style="flex:1; font-size:13px; color:{{ onPaperSoft }}; line-height:1.4;">{{ ayahHint }}</div>
+              </div>
+              <div role="button" tabindex="0" onClick="{{ toAmount }}" style="margin-top:14px; padding:16px; border-radius:6px; background:{{ accent }}; color:{{ onAccent }}; text-align:center; font-size:16px; font-weight:600; cursor:pointer; min-height:48px;">Continue</div>
+              <div style="height:12px;"></div>
+            </div>
+          </sc-if>
+
+          <div style="height:20px;"></div>
+        </div>
+      </div>
+
+      <!-- first-run gesture teach — 3.5s, once, then never -->
+      <sc-if value="{{ teach }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute; left:0; right:0; bottom:0; background:#124559; padding:14px 18px; animation:wRise 260ms cubic-bezier(0.2,0,0,1); z-index:9;">
+          <div style="font-size:14px; font-weight:600; color:#EFF6E0;">Tap the page for controls.</div>
+          <div style="font-size:12px; color:rgba(239,246,224,0.62); margin-top:3px;">Shown once. Tap again and they go away.</div>
+        </div>
+      </sc-if>
+
+      <!-- ============ LISTEN ============ -->
+      <sc-if value="{{ isListen }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto; background:{{ raised }}; animation:wSheet 260ms cubic-bezier(0.2,0,0,1); position:relative; z-index:8;">
+          <div style="height:2px; background:{{ hair }};"><div style="height:2px; width:{{ audioPct }}%; background:{{ onRaised }};"></div></div>
+          <div style="padding:14px 18px 16px;">
+            <div style="display:flex; align-items:center; gap:14px;">
+              <div role="button" tabindex="0" onClick="{{ toggleAudio }}" style="width:48px; height:48px; flex:0 0 48px; border-radius:50%; background:{{ onRaised }}; display:flex; align-items:center; justify-content:center; cursor:pointer;">{{ audioGlyph }}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:15px; font-weight:600; color:{{ onRaised }};">Playing Ya-Sin {{ audioAyah }} · {{ audioIdx }} of 9</div>
+                <div style="font-size:12px; color:{{ onRaisedSoft }}; margin-top:2px;">Abu Bakr al-Shatri · cached, plays offline</div>
+              </div>
+              <div role="button" tabindex="0" onClick="{{ closeListen }}" style="font-size:13px; font-weight:600; color:{{ onRaised }}; cursor:pointer; padding:8px;">Done</div>
+            </div>
+            <div style="font-size:11px; color:{{ onRaisedSoft }}; margin-top:12px; line-height:1.45;">Listening on its own doesn't mark the day. You can still recite or tap when you're ready.</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ RECORDING CONTROLS ============ -->
+      <sc-if value="{{ isRecording }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto; background:{{ raised }}; padding:16px 18px; position:relative; z-index:8; display:flex; gap:10px;">
+          <div role="button" tabindex="0" onClick="{{ cancelRecite }}" style="flex:0 0 110px; padding:15px; border-radius:6px; border:1.5px solid {{ onRaised }}; color:{{ onRaised }}; text-align:center; font-size:15px; font-weight:600; cursor:pointer; min-height:48px;">Discard</div>
+          <div role="button" tabindex="0" onClick="{{ finishRecite }}" style="flex:1; padding:15px; border-radius:6px; background:{{ onRaised }}; color:{{ raised }}; text-align:center; font-size:16px; font-weight:600; cursor:pointer; min-height:48px;">Finished</div>
+        </div>
+      </sc-if>
+
+      <!-- ============ CHECKING ============ -->
+      <sc-if value="{{ isChecking }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto; background:{{ raised }}; padding:20px 18px 22px; animation:wSheet 240ms cubic-bezier(0.2,0,0,1); position:relative; z-index:8;">
+          <div style="display:flex; align-items:center; gap:13px;">
+            <div style="width:20px; height:20px; flex:0 0 20px; border-radius:50%; border:2px solid {{ hairStrong }}; border-top-color:{{ onRaised }}; animation:wSpin 800ms linear infinite;"></div>
+            <div style="flex:1;">
+              <div style="font-size:15px; font-weight:600; color:{{ onRaised }};">Listening back</div>
+              <div style="font-size:12px; color:{{ onRaisedSoft }}; margin-top:2px;">On this phone. The audio doesn't leave it.</div>
+            </div>
+          </div>
+          <div style="font-size:13px; color:{{ onRaisedSoft }}; margin-top:14px; line-height:1.5;">Today is already marked. This check can't take that back.</div>
+        </div>
+      </sc-if>
+
+      <!-- ============ MATCHED — the emotional peak ============ -->
+      <sc-if value="{{ isMatched }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto; background:{{ raised }}; animation:wSheet 320ms cubic-bezier(0.2,0,0,1); position:relative; z-index:8;">
+          <div style="padding:24px 20px 20px;">
+            <div style="display:flex; align-items:center; gap:11px;">
+              <div style="flex:1; height:1px; background:{{ hairStrong }};"></div>
+              <div style="width:7px; height:7px; transform:rotate(45deg); background:{{ onRaised }};"></div>
+              <div style="flex:1; height:1px; background:{{ hairStrong }};"></div>
+            </div>
+            <div style="font-family:'Instrument Serif', Georgia, serif; font-size:29px; line-height:1.2; color:{{ onRaised }}; margin-top:18px;">You recited Ya-Sin 13–21.</div>
+            <div style="font-size:14px; color:{{ onRaisedSoft }}; margin-top:10px; line-height:1.5;">Nine ayahs, out loud, on the 24th day.</div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+              <div style="flex:1; border:1px solid {{ hairStrong }}; border-radius:6px; padding:13px 14px;">
+                <div style="font-family:'Instrument Serif', Georgia, serif; font-size:26px; color:{{ onRaised }}; line-height:1;">8</div>
+                <div style="font-size:11px; color:{{ onRaisedSoft }}; margin-top:5px;">in a row</div>
+              </div>
+              <div style="flex:1; border:1px solid {{ hairStrong }}; border-radius:6px; padding:13px 14px;">
+                <div style="font-family:'Instrument Serif', Georgia, serif; font-size:26px; color:{{ onRaised }}; line-height:1;">24</div>
+                <div style="font-size:11px; color:{{ onRaisedSoft }}; margin-top:5px;">days read</div>
+              </div>
+            </div>
+            <div style="font-size:13px; color:{{ onRaisedSoft }}; margin-top:11px;">6 recited, 18 marked as read</div>
+
+            <div style="border-top:1px solid {{ hairStrong }}; margin-top:20px; padding-top:16px;">
+              <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onRaisedSoft }};">Tomorrow</div>
+              <div style="font-size:17px; font-weight:600; color:{{ onRaised }}; margin-top:5px;">Ya-Sin 22–30, 9 ayahs</div>
+            </div>
+
+            <div style="display:flex; gap:9px; margin-top:18px;">
+              <div role="button" tabindex="0" onClick="{{ noop }}" style="flex:1; padding:14px; border-radius:6px; border:1.5px solid {{ onRaised }}; color:{{ onRaised }}; text-align:center; font-size:14px; font-weight:600; cursor:pointer; min-height:48px;">Send to WhatsApp</div>
+              <div role="button" tabindex="0" onClick="{{ undo }}" style="flex:0 0 92px; padding:14px; border-radius:6px; color:{{ onRaisedSoft }}; text-align:center; font-size:14px; font-weight:600; cursor:pointer; min-height:48px;">Undo</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ DIDN'T MATCH — no red, no page marking ============ -->
+      <sc-if value="{{ isNoMatch }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto; background:{{ raised }}; animation:wSheet 300ms cubic-bezier(0.2,0,0,1); position:relative; z-index:8;">
+          <div style="padding:22px 20px 20px;">
+            <div style="font-family:'Instrument Serif', Georgia, serif; font-size:26px; line-height:1.25; color:{{ onRaised }};">That didn't come through clearly enough to match.</div>
+            <div style="font-size:14px; color:{{ onRaisedSoft }}; margin-top:11px; line-height:1.55;">It could be the room, the microphone, or that a different passage was read. The app isn't judging the recitation — it only checks that one happened.</div>
+            <div style="border:1px solid {{ hairStrong }}; border-radius:6px; padding:13px 14px; margin-top:16px;">
+              <div style="font-size:14px; font-weight:600; color:{{ onRaised }};">Today is still marked.</div>
+              <div style="font-size:12px; color:{{ onRaisedSoft }}; margin-top:4px; line-height:1.45;">Logged as read rather than recited. Nothing is taken away.</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:9px; margin-top:18px;">
+              <div role="button" tabindex="0" onClick="{{ startRecite }}" style="padding:15px; border-radius:6px; background:{{ onRaised }}; color:{{ raised }}; text-align:center; font-size:15px; font-weight:600; cursor:pointer; min-height:48px;">Recite it again</div>
+              <div style="display:flex; gap:9px;">
+                <div role="button" tabindex="0" onClick="{{ noop }}" style="flex:1; padding:13px; border-radius:6px; border:1.5px solid {{ hairStrong }}; color:{{ onRaised }}; text-align:center; font-size:14px; font-weight:600; cursor:pointer; min-height:48px;">Play it back</div>
+                <div role="button" tabindex="0" onClick="{{ closeResult }}" style="flex:1; padding:13px; border-radius:6px; border:1.5px solid {{ hairStrong }}; color:{{ onRaised }}; text-align:center; font-size:14px; font-weight:600; cursor:pointer; min-height:48px;">Leave it</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ TOO QUIET / UNSURE ============ -->
+      <sc-if value="{{ isUnclear }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto; background:{{ raised }}; animation:wSheet 300ms cubic-bezier(0.2,0,0,1); position:relative; z-index:8;">
+          <div style="padding:22px 20px 20px;">
+            <div style="font-family:'Instrument Serif', Georgia, serif; font-size:26px; line-height:1.25; color:{{ onRaised }};">Too quiet to tell.</div>
+            <div style="font-size:14px; color:{{ onRaisedSoft }}; margin-top:11px; line-height:1.55;">The recording came in very low. Holding the phone closer usually fixes it.</div>
+            <div style="display:flex; align-items:flex-end; gap:3px; height:26px; margin-top:18px;">
+              <sc-for list="{{ quietMeter }}" as="q" hint-placeholder-count="28">
+                <div style="flex:1; height:{{ q.h }}px; background:{{ onRaisedSoft }}; border-radius:1px;"></div>
+              </sc-for>
+            </div>
+            <div style="font-size:12px; color:{{ onRaisedSoft }}; margin-top:8px;">Saved anyway — 1m 48s. Today is marked as read.</div>
+            <div style="display:flex; gap:9px; margin-top:18px;">
+              <div role="button" tabindex="0" onClick="{{ startRecite }}" style="flex:1; padding:15px; border-radius:6px; background:{{ onRaised }}; color:{{ raised }}; text-align:center; font-size:15px; font-weight:600; cursor:pointer; min-height:48px;">Try again</div>
+              <div role="button" tabindex="0" onClick="{{ closeResult }}" style="flex:0 0 96px; padding:15px; border-radius:6px; border:1.5px solid {{ hairStrong }}; color:{{ onRaised }}; text-align:center; font-size:15px; font-weight:600; cursor:pointer; min-height:48px;">Close</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ MARKED BY TAP ============ -->
+      <sc-if value="{{ isReadTap }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:0 0 auto; background:{{ raised }}; animation:wSheet 300ms cubic-bezier(0.2,0,0,1); position:relative; z-index:8;">
+          <div style="padding:22px 20px 20px;">
+            <div style="font-family:'Instrument Serif', Georgia, serif; font-size:27px; line-height:1.2; color:{{ onRaised }};">You read Ya-Sin 13–21.</div>
+            <div style="font-size:13px; color:{{ onRaisedSoft }}; margin-top:9px;">8 in a row, 24 days read</div>
+            <div style="font-size:13px; color:{{ onRaisedSoft }}; margin-top:3px;">5 recited, 19 marked as read</div>
+            <div style="border-top:1px solid {{ hairStrong }}; margin-top:18px; padding-top:15px;">
+              <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onRaisedSoft }};">Tomorrow</div>
+              <div style="font-size:17px; font-weight:600; color:{{ onRaised }}; margin-top:5px;">Ya-Sin 22–30, 9 ayahs</div>
+            </div>
+            <div style="display:flex; gap:9px; margin-top:18px;">
+              <div role="button" tabindex="0" onClick="{{ startRecite }}" style="flex:1; padding:14px; border-radius:6px; border:1.5px solid {{ onRaised }}; color:{{ onRaised }}; text-align:center; font-size:14px; font-weight:600; cursor:pointer; min-height:48px;">Recite it too</div>
+              <div role="button" tabindex="0" onClick="{{ undo }}" style="flex:0 0 92px; padding:14px; border-radius:6px; color:{{ onRaisedSoft }}; text-align:center; font-size:14px; font-weight:600; cursor:pointer; min-height:48px;">Undo</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         SETUP — pick your sūrah
+         ============================================================ -->
+    <sc-if value="{{ isSetupSurah }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <div style="padding:20px 20px 14px;">
+        <div style="font-family:'Instrument Serif', Georgia, serif; font-size:30px; line-height:1.2; color:{{ onPaper }};">Where are you in the mushaf?</div>
+        <div style="font-size:14px; color:{{ onPaperSoft }}; margin-top:8px; line-height:1.5;">Nobody knows they're on page 440. Pick the sūrah you're in.</div>
+        <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Search — try “yasin”" style="width:100%; margin-top:16px; padding:14px; border-radius:6px; border:1.5px solid {{ hairStrong }}; background:transparent; font-family:'Instrument Sans', sans-serif; font-size:15px; color:{{ onPaper }}; outline:none;">
+      </div>
+      <div style="flex:1; overflow-y:auto; min-height:0;">
+        <sc-for list="{{ surahList }}" as="s" hint-placeholder-count="10">
+          <div role="button" tabindex="0" onClick="{{ s.pick }}" style="display:flex; align-items:center; gap:14px; padding:14px 20px; cursor:pointer; border-bottom:1px solid {{ hair }};">
+            <div style="width:30px; font-size:12px; font-weight:600; color:{{ recede }};">{{ s.n }}</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:16px; font-weight:600; color:{{ onPaper }};">{{ s.name }}</div>
+              <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:2px;">{{ s.meta }}</div>
+            </div>
+            <div style="font-family:'Amiri', serif; font-size:19px; color:{{ recede }};">{{ s.ar }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:36px 20px; text-align:center; font-size:15px; color:{{ onPaperSoft }};">Nothing matches that. Spelling and punctuation are forgiven — try fewer letters.</div>
+        </sc-if>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         SETUP — how much a day
+         ============================================================ -->
+    <sc-if value="{{ isSetupAmount }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; overflow-y:auto; padding:20px;">
+      <div style="font-family:'Instrument Serif', Georgia, serif; font-size:30px; line-height:1.2; color:{{ onPaper }};">How much a day?</div>
+      <div style="font-size:14px; color:{{ onPaperSoft }}; margin-top:8px; line-height:1.5;">Pick the amount you'd still manage on a bad day. You can change it whenever.</div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+        <sc-for list="{{ amounts }}" as="p" hint-placeholder-count="3">
+          <div role="button" tabindex="0" onClick="{{ p.pick }}" style="border:1.5px solid {{ p.border }}; background:{{ p.bg }}; border-radius:6px; padding:16px; cursor:pointer; display:flex; align-items:center; gap:14px; min-height:48px;">
+            <div style="width:18px; height:18px; flex:0 0 18px; border-radius:50%; border:1.5px solid {{ p.dot }}; display:flex; align-items:center; justify-content:center;">
+              <div style="width:9px; height:9px; border-radius:50%; background:{{ p.fill }};"></div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:16px; font-weight:600; color:{{ p.text }};">{{ p.label }}</div>
+              <div style="font-size:12px; color:{{ p.sub }}; margin-top:2px;">{{ p.detail }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:16px; line-height:1.5;">Stored in half-page units, so repeated halves never drift.</div>
+      <div role="button" tabindex="0" onClick="{{ finishSetup }}" style="margin-top:22px; padding:16px; border-radius:6px; background:{{ accent }}; color:{{ onAccent }}; text-align:center; font-size:16px; font-weight:600; cursor:pointer; min-height:48px;">Start</div>
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         ACCOUNTABILITY COMPANION — a standing appointment, not a chat log
+         ============================================================ -->
+    <sc-if value="{{ isCompanion }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; overflow-y:auto; min-height:0; display:flex; flex-direction:column;">
+      <div style="padding:16px 20px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid {{ hair }};">
+        <div role="button" tabindex="0" onClick="{{ backToToday }}" style="cursor:pointer; font-size:19px; color:{{ accent }}; width:32px;">←</div>
+        <div style="flex:1; font-size:16px; font-weight:600; color:{{ onPaper }};">Today's check-in</div>
+      </div>
+
+      <div style="padding:22px 20px;">
+        <!-- the commitment as an OBJECT, held in view. This is what makes it feel expected. -->
+        <div style="border:1.5px solid {{ accent }}; border-radius:6px; padding:18px;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onPaperSoft }};">You said</div>
+          <div style="font-family:'Instrument Serif', Georgia, serif; font-size:30px; line-height:1.15; color:{{ onPaper }}; margin-top:8px;">“after Isha”</div>
+          <div style="height:1px; background:{{ hairStrong }}; margin:16px 0;"></div>
+          <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+            <div style="font-size:14px; color:{{ onPaperSoft }};">Checking back at</div>
+            <div style="font-size:20px; font-weight:600; color:{{ onPaper }}; font-variant-numeric:tabular-nums;">8:10 pm</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:14px;">
+            <div style="width:6px; height:6px; border-radius:50%; background:{{ accent }}; animation:wBreathe 2.4s ease-in-out infinite;"></div>
+            <div style="font-size:12px; color:{{ onPaperSoft }};">Holding since 6:12 pm · reminder moved to match</div>
+          </div>
+        </div>
+
+        <div style="font-size:13px; color:{{ onPaperSoft }}; margin-top:14px; line-height:1.55;">It only speaks twice: when it asks, and at the time you named. Nothing in between.</div>
+
+        <!-- the exchange, short by design -->
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:24px;">
+          <div style="max-width:84%; align-self:flex-start; background:{{ raised }}; color:{{ onRaised }}; border-radius:6px 6px 6px 2px; padding:13px 15px; font-size:15px; line-height:1.45;">Is today's wird done?</div>
+          <div style="max-width:84%; align-self:flex-end; border:1.5px solid {{ hairStrong }}; color:{{ onPaper }}; border-radius:6px 6px 2px 6px; padding:13px 15px; font-size:15px; line-height:1.45;">after Isha</div>
+          <div style="max-width:84%; align-self:flex-start; background:{{ raised }}; color:{{ onRaised }}; border-radius:6px 6px 6px 2px; padding:13px 15px; font-size:15px; line-height:1.45;">Then I'll ask at 8:10. Ya-Sin 13–21 is waiting.</div>
+        </div>
+
+        <!-- the missed case: factual, never disappointed -->
+        <div style="border:1px solid {{ hairStrong }}; border-radius:6px; padding:16px; margin-top:24px;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onPaperSoft }};">If the time passes</div>
+          <div style="font-size:16px; color:{{ onPaper }}; margin-top:8px; line-height:1.45;">“You said 8:10. It's 8:40. Still tonight?”</div>
+          <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:8px; line-height:1.5;">A fact and a question. No streak talk, nothing disappointed, nothing red.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:auto; padding:14px 20px 18px; border-top:1px solid {{ hair }}; display:flex; gap:10px; align-items:center;">
+        <input value="{{ reply }}" onChange="{{ onReply }}" placeholder="Reply in your own words" style="flex:1; padding:14px; border-radius:6px; border:1.5px solid {{ hairStrong }}; background:transparent; font-family:'Instrument Sans', sans-serif; font-size:15px; color:{{ onPaper }}; outline:none;">
+        <div role="button" tabindex="0" onClick="{{ noop }}" style="width:48px; height:48px; flex:0 0 48px; border-radius:6px; background:{{ accent }}; color:{{ onAccent }}; display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer;">↑</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         SETTINGS
+         ============================================================ -->
+    <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; overflow-y:auto; min-height:0;">
+      <div style="padding:16px 20px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid {{ hair }};">
+        <div role="button" tabindex="0" onClick="{{ backToToday }}" style="cursor:pointer; font-size:19px; color:{{ accent }}; width:32px;">←</div>
+        <div style="flex:1; font-size:16px; font-weight:600; color:{{ onPaper }};">Settings</div>
+      </div>
+
+      <div style="padding:8px 0 24px;">
+        <sc-for list="{{ settingRows }}" as="r" hint-placeholder-count="7">
+          <div role="button" tabindex="0" onClick="{{ r.tap }}" style="display:flex; align-items:center; gap:14px; padding:16px 20px; border-bottom:1px solid {{ hair }}; cursor:pointer; min-height:48px;">
+            <div style="flex:1;">
+              <div style="font-size:16px; font-weight:500; color:{{ onPaper }};">{{ r.label }}</div>
+              <div style="font-size:13px; color:{{ onPaperSoft }}; margin-top:3px; line-height:1.4;">{{ r.value }}</div>
+            </div>
+            <div style="font-size:13px; font-weight:600; color:{{ accent }};">{{ r.action }}</div>
+          </div>
+        </sc-for>
+
+        <!-- lighter days: the seven-chip row the brief says broke onto two lines.
+             Reframed as a week strip with the amount written under each day. -->
+        <div style="padding:20px;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onPaperSoft }};">Lighter days</div>
+          <div style="font-size:13px; color:{{ onPaperSoft }}; margin-top:6px; line-height:1.5;">Tap a day to give it a smaller amount.</div>
+          <div style="display:flex; gap:5px; margin-top:14px;">
+            <sc-for list="{{ week }}" as="d" hint-placeholder-count="7">
+              <div role="button" tabindex="0" onClick="{{ d.tap }}" style="flex:1; border:1.5px solid {{ d.border }}; background:{{ d.bg }}; border-radius:6px; padding:9px 2px 8px; text-align:center; cursor:pointer; min-height:48px;">
+                <div style="font-size:12px; font-weight:600; color:{{ d.text }};">{{ d.d }}</div>
+                <div style="font-size:10px; color:{{ d.subColor }}; margin-top:4px;">{{ d.amt }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="padding:0 20px;">
+          <div style="border:1px solid {{ hairStrong }}; border-radius:6px; padding:15px;">
+            <div style="font-size:14px; font-weight:600; color:{{ onPaper }};">Changing the amount applies today.</div>
+            <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:5px; line-height:1.5;">Today's portion becomes Ya-Sin 13–17, 5 ayahs. Nothing you've already read is undone.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         POSITION — where you are, in words
+         ============================================================ -->
+    <sc-if value="{{ isPosition }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; overflow-y:auto; min-height:0;">
+      <div style="padding:16px 20px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid {{ hair }};">
+        <div role="button" tabindex="0" onClick="{{ goSettings }}" style="cursor:pointer; font-size:19px; color:{{ accent }}; width:32px;">←</div>
+        <div style="flex:1; font-size:16px; font-weight:600; color:{{ onPaper }};">Where you are</div>
+      </div>
+      <div style="padding:22px 20px;">
+        <div style="font-family:'Instrument Serif', Georgia, serif; font-size:32px; line-height:1.15; color:{{ onPaper }};">Ya-Sin, ayah 13.</div>
+        <div style="font-size:14px; color:{{ onPaperSoft }}; margin-top:8px; line-height:1.5;">Page 441 of 604. Juzʾ 23. Twenty-three days of reading behind it.</div>
+
+        <div style="height:1px; background:{{ hairStrong }}; margin:22px 0;"></div>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div role="button" tabindex="0" onClick="{{ goSetupSurah }}" style="padding:15px; border-radius:6px; border:1.5px solid {{ accent }}; color:{{ accent }}; font-size:15px; font-weight:600; cursor:pointer; text-align:center; min-height:48px;">Move to another sūrah</div>
+          <div role="button" tabindex="0" onClick="{{ noop }}" style="padding:15px; border-radius:6px; border:1.5px solid {{ hairStrong }}; color:{{ onPaperSoft }}; font-size:15px; font-weight:600; cursor:pointer; text-align:center; min-height:48px;">Nudge back one page</div>
+        </div>
+
+        <div style="border:1px solid {{ hairStrong }}; border-radius:6px; padding:16px; margin-top:22px;">
+          <div style="font-size:14px; font-weight:600; color:{{ onPaper }};">Page 604 wraps to page 1.</div>
+          <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:5px; line-height:1.5;">Finishing the Qur'an isn't an ending. The count carries on.</div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         STORAGE & EXPORT
+         ============================================================ -->
+    <sc-if value="{{ isStorage }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; overflow-y:auto; min-height:0;">
+      <div style="padding:16px 20px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid {{ hair }};">
+        <div role="button" tabindex="0" onClick="{{ goSettings }}" style="cursor:pointer; font-size:19px; color:{{ accent }}; width:32px;">←</div>
+        <div style="flex:1; font-size:16px; font-weight:600; color:{{ onPaper }};">Recordings & export</div>
+      </div>
+      <div style="padding:22px 20px;">
+        <div style="font-family:'Instrument Serif', Georgia, serif; font-size:30px; line-height:1.15; color:{{ onPaper }};">Your recordings are using 118 MB.</div>
+        <div style="font-size:14px; color:{{ onPaperSoft }}; margin-top:8px; line-height:1.5;">Six of them, from the last twenty-four days. Nothing is deleted without you saying so.</div>
+
+        <div style="display:flex; height:9px; border-radius:5px; overflow:hidden; margin-top:20px; background:{{ hair }};">
+          <div style="width:44%; background:{{ accent }};"></div>
+          <div style="width:19%; background:{{ recede }};"></div>
+        </div>
+        <div style="display:flex; gap:16px; margin-top:10px; font-size:12px; color:{{ onPaperSoft }};">
+          <div>118 MB recordings</div>
+          <div>51 MB cached audio</div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:24px;">
+          <div role="button" tabindex="0" onClick="{{ noop }}" style="padding:16px; border-radius:6px; background:{{ accent }}; color:{{ onAccent }}; font-size:15px; font-weight:600; cursor:pointer; text-align:center; min-height:48px;">Export everything to a folder</div>
+          <div role="button" tabindex="0" onClick="{{ noop }}" style="padding:15px; border-radius:6px; border:1.5px solid {{ hairStrong }}; color:{{ onPaper }}; font-size:15px; font-weight:600; cursor:pointer; text-align:center; min-height:48px;">Keep only the last 30 days</div>
+          <div role="button" tabindex="0" onClick="{{ noop }}" style="padding:15px; border-radius:6px; border:1.5px solid {{ hairStrong }}; color:{{ onPaperSoft }}; font-size:15px; font-weight:600; cursor:pointer; text-align:center; min-height:48px;">Clear cached reciter audio</div>
+        </div>
+
+        <div style="border:1px solid {{ hairStrong }}; border-radius:6px; padding:16px; margin-top:22px;">
+          <div style="font-size:15px; font-weight:600; color:{{ onPaper }}; line-height:1.4;">Your recordings never leave this phone unless you send them yourself.</div>
+          <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:6px; line-height:1.5;">No account, no server, nothing syncs. The day log is plain readable JSON — you can open it and read your own record.</div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         OEM SURVIVAL — Transsion phones
+         ============================================================ -->
+    <sc-if value="{{ isOem }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; overflow-y:auto; min-height:0;">
+      <div style="padding:16px 20px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid {{ hair }};">
+        <div role="button" tabindex="0" onClick="{{ goSettings }}" style="cursor:pointer; font-size:19px; color:{{ accent }}; width:32px;">←</div>
+        <div style="flex:1; font-size:16px; font-weight:600; color:{{ onPaper }};">Reminders on your Tecno</div>
+      </div>
+      <div style="padding:22px 20px;">
+        <div style="font-size:14px; color:{{ onPaperSoft }}; line-height:1.55;">Tecno closes background apps to save battery, which can swallow the reminder. Two settings fix it for good.</div>
+
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+          <sc-for list="{{ oemSteps }}" as="o" hint-placeholder-count="2">
+            <div style="border:1px solid {{ hairStrong }}; border-radius:6px; padding:16px; display:flex; gap:14px;">
+              <div style="width:26px; height:26px; flex:0 0 26px; border-radius:50%; background:{{ accent }}; color:{{ onAccent }}; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600;">{{ o.n }}</div>
+              <div style="flex:1;">
+                <div style="font-size:15px; font-weight:600; color:{{ onPaper }}; line-height:1.35;">{{ o.title }}</div>
+                <div style="font-size:13px; color:{{ onPaperSoft }}; margin-top:5px; line-height:1.5;">{{ o.body }}</div>
+                <div role="button" tabindex="0" onClick="{{ noop }}" style="display:inline-block; margin-top:11px; padding:10px 15px; border-radius:6px; border:1.5px solid {{ accent }}; color:{{ accent }}; font-size:13px; font-weight:600; cursor:pointer; min-height:44px; line-height:22px;">{{ o.cta }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="border:1.5px solid {{ accent }}; border-radius:6px; padding:16px; margin-top:20px;">
+          <div style="font-size:15px; font-weight:600; color:{{ onPaper }};">Did the last reminder arrive?</div>
+          <div style="font-size:13px; color:{{ onPaperSoft }}; margin-top:5px; line-height:1.5;">Expected 8:10 pm yesterday. Delivered 8:10 pm.</div>
+          <div style="display:flex; align-items:center; gap:9px; margin-top:12px;">
+            <div style="width:7px; height:7px; border-radius:50%; background:{{ accent }};"></div>
+            <div style="font-size:13px; font-weight:600; color:{{ onPaper }};">Working</div>
+            <div role="button" tabindex="0" onClick="{{ noop }}" style="margin-left:auto; font-size:13px; font-weight:600; color:{{ accent }}; cursor:pointer; padding:8px;">Check again</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         OFFLINE / ERROR
+         ============================================================ -->
+    <sc-if value="{{ isOffline }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; display:flex; flex-direction:column; min-height:0;">
+      <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:28px 24px;">
+        <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:26px;">
+          <div style="height:2px; width:70%; background:{{ hair }};"></div>
+          <div style="height:2px; width:52%; background:{{ hair }};"></div>
+          <div style="height:2px; width:64%; background:{{ hair }};"></div>
+        </div>
+        <div style="font-family:'Instrument Serif', Georgia, serif; font-size:29px; line-height:1.2; color:{{ onPaper }};">This page isn't downloaded yet.</div>
+        <div style="font-size:14px; color:{{ onPaperSoft }}; margin-top:10px; line-height:1.55;">The page layout and its font need one connection, once — 154 KB. After that this page opens with no signal at all.</div>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:24px;">
+          <div role="button" tabindex="0" onClick="{{ backToToday }}" style="padding:16px; border-radius:6px; background:{{ accent }}; color:{{ onAccent }}; text-align:center; font-size:15px; font-weight:600; cursor:pointer; min-height:48px;">Try again</div>
+          <div role="button" tabindex="0" onClick="{{ markRead }}" style="padding:15px; border-radius:6px; border:1.5px solid {{ hairStrong }}; color:{{ onPaper }}; text-align:center; font-size:15px; font-weight:600; cursor:pointer; min-height:48px;">Mark today read from memory</div>
+        </div>
+        <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:18px; line-height:1.5;">Ya-Sin 13–21 either way. Your position and your record don't need the network.</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         FULL READER (3.3) — exists without displacing the portion
+         ============================================================ -->
+    <sc-if value="{{ isReader }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; overflow-y:auto; min-height:0;">
+      <div style="padding:16px 20px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid {{ hair }};">
+        <div role="button" tabindex="0" onClick="{{ backToToday }}" style="cursor:pointer; font-size:19px; color:{{ accent }}; width:32px;">←</div>
+        <div style="flex:1; font-size:16px; font-weight:600; color:{{ onPaper }};">Read anywhere</div>
+      </div>
+      <div style="padding:20px;">
+        <!-- today keeps primacy: it sits above the browser, not beside it -->
+        <div role="button" tabindex="0" onClick="{{ backToToday }}" style="border:1.5px solid {{ accent }}; border-radius:6px; padding:16px; cursor:pointer;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onPaperSoft }};">Still owed today</div>
+          <div style="font-size:19px; font-weight:600; color:{{ onPaper }}; margin-top:6px;">Ya-Sin 13–21, 9 ayahs</div>
+          <div style="font-size:13px; font-weight:600; color:{{ accent }}; margin-top:8px;">Go there →</div>
+        </div>
+        <div style="font-size:13px; color:{{ onPaperSoft }}; margin-top:14px; line-height:1.55;">Anything below is reading for its own sake. It never counts toward the day.</div>
+
+        <div style="height:1px; background:{{ hairStrong }}; margin:20px 0;"></div>
+
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onPaperSoft }};">Browse</div>
+        <div style="display:flex; flex-direction:column; gap:1px; margin-top:12px; border:1px solid {{ hair }}; border-radius:6px; overflow:hidden;">
+          <sc-for list="{{ readerRows }}" as="b" hint-placeholder-count="3">
+            <div role="button" tabindex="0" onClick="{{ noop }}" style="padding:15px 16px; cursor:pointer; border-bottom:1px solid {{ hair }};">
+              <div style="font-size:15px; font-weight:500; color:{{ onPaper }};">{{ b.label }}</div>
+              <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:3px;">{{ b.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="border:1px solid {{ hairStrong }}; border-radius:6px; padding:16px; margin-top:20px;">
+          <div style="font-size:14px; font-weight:600; color:{{ onPaper }};">Live correction, when it arrives</div>
+          <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:6px; line-height:1.55;">A drift is shown in the margin beside the line, never painted onto the words. The page stays untouched.</div>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============================================================
+         HIFDH (3.4) — a mode, not a second app
+         ============================================================ -->
+    <sc-if value="{{ isHifdh }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1; overflow-y:auto; min-height:0;">
+      <div style="padding:16px 20px 14px; display:flex; align-items:center; gap:12px; border-bottom:1px solid {{ hair }};">
+        <div role="button" tabindex="0" onClick="{{ backToToday }}" style="cursor:pointer; font-size:19px; color:{{ accent }}; width:32px;">←</div>
+        <div style="flex:1; font-size:16px; font-weight:600; color:{{ onPaper }};">Memorisation</div>
+      </div>
+      <div style="padding:22px 20px;">
+        <div style="font-size:14px; color:{{ onPaperSoft }}; line-height:1.55;">The same loop, pointed at revision. Reciting aloud is still how a day gets marked.</div>
+
+        <div style="border:1.5px solid {{ accent }}; border-radius:6px; padding:18px; margin-top:20px;">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onPaperSoft }};">Due today</div>
+          <div style="font-family:'Instrument Serif', Georgia, serif; font-size:27px; line-height:1.2; color:{{ onPaper }}; margin-top:7px;">An-Naba 1–20</div>
+          <div style="font-size:13px; color:{{ onPaperSoft }}; margin-top:6px;">Last recited eleven days ago.</div>
+          <div role="button" tabindex="0" onClick="{{ startRecite }}" style="margin-top:15px; padding:15px; border-radius:6px; background:{{ accent }}; color:{{ onAccent }}; text-align:center; font-size:15px; font-weight:600; cursor:pointer; min-height:48px;">Recite from memory</div>
+        </div>
+
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:{{ onPaperSoft }}; margin-top:24px;">Your surahs</div>
+        <div style="display:flex; flex-direction:column; gap:9px; margin-top:12px;">
+          <sc-for list="{{ hifdhRows }}" as="h" hint-placeholder-count="4">
+            <div style="border:1px solid {{ hair }}; border-radius:6px; padding:14px 15px;">
+              <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+                <div style="font-size:15px; font-weight:600; color:{{ onPaper }};">{{ h.name }}</div>
+                <div style="font-size:12px; color:{{ onPaperSoft }};">{{ h.when }}</div>
+              </div>
+              <div style="height:5px; border-radius:3px; background:{{ hair }}; margin-top:10px;">
+                <div style="height:5px; border-radius:3px; width:{{ h.pct }}%; background:{{ h.tone }};"></div>
+              </div>
+              <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:7px;">{{ h.state }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="font-size:12px; color:{{ onPaperSoft }}; margin-top:16px; line-height:1.55;">Slipping is described, never scored. Nothing here says you failed.</div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- android gesture bar -->
+    <div style="flex:0 0 22px; display:flex; align-items:center; justify-content:center; background:{{ paper }}; position:relative; z-index:9;">
+      <div style="width:104px; height:3.5px; border-radius:2px; background:{{ recede }};"></div>
+    </div>
+
+  </div>
+
+  <!-- ======================= SURFACES: ICON + WIDGET ======================= -->
+  <sc-if value="{{ isSurfaces }}" hint-placeholder-val="{{ false }}">
+  <div style="width:320px; flex:0 0 320px; animation:wFade 240ms ease;">
+
+    <div style="font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#124559;">App icon</div>
+    <div style="font-size:13px; color:#598392; margin-top:7px; line-height:1.5;">The app's whole idea, drawn: a run of lines at full strength, the rest stepped back. Nothing else on a launcher looks like it.</div>
+
+    <div style="display:flex; align-items:flex-end; gap:16px; margin-top:16px;">
+      <svg width="96" height="96" viewBox="0 0 96 96" style="border-radius:22px; display:block;">
+        <rect width="96" height="96" rx="22" fill="#01161E"></rect>
+        <g stroke-linecap="round">
+          <line x1="22" y1="26" x2="74" y2="26" stroke="#598392" stroke-width="4"></line>
+          <line x1="30" y1="38" x2="74" y2="38" stroke="#598392" stroke-width="4"></line>
+          <line x1="22" y1="50" x2="74" y2="50" stroke="#AEC3B0" stroke-width="5"></line>
+          <line x1="22" y1="62" x2="74" y2="62" stroke="#AEC3B0" stroke-width="5"></line>
+          <line x1="40" y1="74" x2="74" y2="74" stroke="#AEC3B0" stroke-width="5"></line>
+        </g>
+      </svg>
+      <svg width="52" height="52" viewBox="0 0 96 96" style="border-radius:12px; display:block;">
+        <rect width="96" height="96" rx="22" fill="#01161E"></rect>
+        <g stroke-linecap="round">
+          <line x1="22" y1="26" x2="74" y2="26" stroke="#598392" stroke-width="4"></line>
+          <line x1="30" y1="38" x2="74" y2="38" stroke="#598392" stroke-width="4"></line>
+          <line x1="22" y1="50" x2="74" y2="50" stroke="#AEC3B0" stroke-width="5"></line>
+          <line x1="22" y1="62" x2="74" y2="62" stroke="#AEC3B0" stroke-width="5"></line>
+          <line x1="40" y1="74" x2="74" y2="74" stroke="#AEC3B0" stroke-width="5"></line>
+        </g>
+      </svg>
+      <svg width="30" height="30" viewBox="0 0 96 96" style="border-radius:7px; display:block;">
+        <rect width="96" height="96" rx="22" fill="#01161E"></rect>
+        <g stroke-linecap="round">
+          <line x1="22" y1="30" x2="74" y2="30" stroke="#598392" stroke-width="6"></line>
+          <line x1="22" y1="48" x2="74" y2="48" stroke="#AEC3B0" stroke-width="7"></line>
+          <line x1="22" y1="66" x2="74" y2="66" stroke="#AEC3B0" stroke-width="7"></line>
+        </g>
+      </svg>
+    </div>
+    <div style="font-size:11px; color:#124559; margin-top:9px;">48dp · 26dp · 15dp — the band survives to the smallest size.</div>
+
+    <div style="height:1px; background:#1E3A44; margin:26px 0;"></div>
+
+    <div style="font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#124559;">Home screen widget</div>
+    <div style="font-size:13px; color:#598392; margin-top:7px; line-height:1.5;">The reminder that can't be swiped away. Portion in words, and whether today is done.</div>
+
+    <div style="margin-top:16px; border-radius:14px; overflow:hidden; background:#EFF6E0; padding:15px 16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#598392;">Today</div>
+        <div style="width:16px; height:16px; border-radius:50%; border:2px solid #598392;"></div>
+      </div>
+      <div style="font-size:19px; font-weight:600; color:#01161E; margin-top:9px; line-height:1.25;">Ya-Sin 13–21</div>
+      <div style="font-size:12px; color:#124559; margin-top:3px;">9 ayahs · not yet</div>
+    </div>
+
+    <div style="margin-top:12px; border-radius:14px; overflow:hidden; background:#AEC3B0; padding:15px 16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <div style="font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:#124559;">Today</div>
+        <div style="width:16px; height:16px; border-radius:50%; background:#124559; display:flex; align-items:center; justify-content:center;">
+          <div style="width:5px; height:8px; border-right:2px solid #EFF6E0; border-bottom:2px solid #EFF6E0; transform:rotate(40deg) translateY(-1px);"></div>
+        </div>
+      </div>
+      <div style="font-size:19px; font-weight:600; color:#01161E; margin-top:9px; line-height:1.25;">Ya-Sin 13–21</div>
+      <div style="font-size:12px; color:#124559; margin-top:3px;">Recited · 8 in a row, 24 days read</div>
+    </div>
+
+    <div style="height:1px; background:#1E3A44; margin:26px 0;"></div>
+
+    <div style="font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#124559;">Notification</div>
+    <div style="margin-top:14px; border-radius:12px; background:#12232B; padding:14px 15px; border:1px solid #1E3A44;">
+      <div style="display:flex; align-items:center; gap:9px;">
+        <svg width="18" height="18" viewBox="0 0 96 96" style="border-radius:5px; display:block; flex:0 0 18px;">
+          <rect width="96" height="96" rx="22" fill="#01161E"></rect>
+          <line x1="22" y1="32" x2="74" y2="32" stroke="#598392" stroke-width="7"></line>
+          <line x1="22" y1="52" x2="74" y2="52" stroke="#AEC3B0" stroke-width="8"></line>
+          <line x1="22" y1="70" x2="74" y2="70" stroke="#AEC3B0" stroke-width="8"></line>
+        </svg>
+        <div style="font-size:11px; font-weight:600; color:#598392;">Wird · now</div>
+      </div>
+      <div style="font-size:15px; font-weight:600; color:#EFF6E0; margin-top:9px; line-height:1.4;">Ya-Sin 13–21 is waiting.</div>
+      <div style="font-size:13px; color:#AEC3B0; margin-top:4px; line-height:1.45;">Nine ayahs. Tap to open the page.</div>
+    </div>
+    <div style="font-size:11px; color:#124559; margin-top:10px; line-height:1.5;">Names the portion, never the streak. Silent if you've already read.</div>
+  </div>
+  </sc-if>
+
+  </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1120,&quot;height&quot;:1000}}">
+/* Page 441 of the Madani mushaf — Sūrat Ya-Sin 13–27.
+   Text is fixed data, not generated at runtime. */
+const AYAHS = [
+  {n:13,ar:"وَاضْرِبْ لَهُم مَّثَلًا أَصْحَابَ الْقَرْيَةِ إِذْ جَاءَهَا الْمُرْسَلُونَ"},
+  {n:14,ar:"إِذْ أَرْسَلْنَا إِلَيْهِمُ اثْنَيْنِ فَكَذَّبُوهُمَا فَعَزَّزْنَا بِثَالِثٍ فَقَالُوا إِنَّا إِلَيْكُم مُّرْسَلُونَ"},
+  {n:15,ar:"قَالُوا مَا أَنتُمْ إِلَّا بَشَرٌ مِّثْلُنَا وَمَا أَنزَلَ الرَّحْمَٰنُ مِن شَيْءٍ إِنْ أَنتُمْ إِلَّا تَكْذِبُونَ"},
+  {n:16,ar:"قَالُوا رَبُّنَا يَعْلَمُ إِنَّا إِلَيْكُمْ لَمُرْسَلُونَ"},
+  {n:17,ar:"وَمَا عَلَيْنَا إِلَّا الْبَلَاغُ الْمُبِينُ"},
+  {n:18,ar:"قَالُوا إِنَّا تَطَيَّرْنَا بِكُمْ لَئِن لَّمْ تَنتَهُوا لَنَرْجُمَنَّكُمْ وَلَيَمَسَّنَّكُم مِّنَّا عَذَابٌ أَلِيمٌ"},
+  {n:19,ar:"قَالُوا طَائِرُكُم مَّعَكُمْ أَئِن ذُكِّرْتُم بَلْ أَنتُمْ قَوْمٌ مُّسْرِفُونَ"},
+  {n:20,ar:"وَجَاءَ مِنْ أَقْصَى الْمَدِينَةِ رَجُلٌ يَسْعَىٰ قَالَ يَا قَوْمِ اتَّبِعُوا الْمُرْسَلِينَ"},
+  {n:21,ar:"اتَّبِعُوا مَن لَّا يَسْأَلُكُمْ أَجْرًا وَهُم مُّهْتَدُونَ"},
+  {n:22,ar:"وَمَا لِيَ لَا أَعْبُدُ الَّذِي فَطَرَنِي وَإِلَيْهِ تُرْجَعُونَ"},
+  {n:23,ar:"أَأَتَّخِذُ مِن دُونِهِ آلِهَةً إِن يُرِدْنِ الرَّحْمَٰنُ بِضُرٍّ لَّا تُغْنِ عَنِّي شَفَاعَتُهُمْ شَيْئًا وَلَا يُنقِذُونِ"},
+  {n:24,ar:"إِنِّي إِذًا لَّفِي ضَلَالٍ مُّبِينٍ"},
+  {n:25,ar:"إِنِّي آمَنتُ بِرَبِّكُمْ فَاسْمَعُونِ"},
+  {n:26,ar:"قِيلَ ادْخُلِ الْجَنَّةَ قَالَ يَا لَيْتَ قَوْمِي يَعْلَمُونَ"},
+  {n:27,ar:"بِمَا غَفَرَ لِي رَبِّي وَجَعَلَنِي مِنَ الْمُكْرَمِينَ"}
+];
+
+const SURAHS = [
+  {n:33,name:"Al-Ahzab",ar:"الأحزاب",v:73},
+  {n:34,name:"Saba",ar:"سبأ",v:54},
+  {n:35,name:"Fatir",ar:"فاطر",v:45},
+  {n:36,name:"Ya-Sin",ar:"يس",v:83},
+  {n:37,name:"As-Saffat",ar:"الصافات",v:182},
+  {n:38,name:"Sad",ar:"ص",v:88},
+  {n:39,name:"Az-Zumar",ar:"الزمر",v:75},
+  {n:40,name:"Ghafir",ar:"غافر",v:85},
+  {n:41,name:"Fussilat",ar:"فصلت",v:54},
+  {n:42,name:"Ash-Shura",ar:"الشورى",v:53},
+  {n:43,name:"Az-Zukhruf",ar:"الزخرف",v:89},
+  {n:78,name:"An-Naba",ar:"النبأ",v:40}
+];
+
+const INK = "#01161E", TEAL = "#124559", SLATE = "#598392", SAGE = "#AEC3B0", PAPER = "#EFF6E0";
+
+class Component extends DCLogic {
+  state = {
+    screen: "page", mode: "read", chrome: false, dark: false, teach: false,
+    page: 441, query: "", ayahInput: "", reply: "",
+    amount: "one", audio: true, audioIdx: 2, audioPct: 34,
+    recSec: 108, lighter: { Fri: true, Sun: true }, tick: 0
+  };
+
+  componentDidMount() {
+    this._t = setInterval(() => this.setState(s => ({
+      tick: s.tick + 1,
+      recSec: s.mode === "recording" ? s.recSec + 1 : s.recSec,
+      audioPct: (s.mode === "listen" && s.audio) ? (s.audioPct >= 100 ? 0 : s.audioPct + 1) : s.audioPct
+    })), 950);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+
+  set = (patch) => this.setState(patch);
+
+  theme() {
+    const d = this.state.dark;
+    return {
+      paper: d ? INK : PAPER,
+      onPaper: d ? PAPER : INK,
+      onPaperSoft: d ? "rgba(239,246,224,0.66)" : TEAL,
+      recede: d ? "#3C5C6A" : SLATE,
+      raised: d ? TEAL : SAGE,
+      onRaised: d ? PAPER : INK,
+      onRaisedSoft: d ? "rgba(239,246,224,0.68)" : "rgba(1,22,30,0.66)",
+      accent: d ? SAGE : TEAL,
+      onAccent: d ? INK : PAPER,
+      hair: d ? "rgba(174,195,176,0.16)" : "rgba(1,22,30,0.10)",
+      hairStrong: d ? "rgba(174,195,176,0.34)" : "rgba(18,69,89,0.30)"
+    };
+  }
+
+  rail() {
+    const S = this.state;
+    const g = (title, items) => ({ title, items });
+    const it = (label, screen, mode, note) => {
+      const on = S.screen === screen && (mode === undefined || S.mode === mode);
+      return {
+        label, note: note || "",
+        bg: on ? "#12232B" : "transparent",
+        mark: on ? SAGE : "transparent",
+        color: on ? PAPER : "#7C9AA5",
+        weight: on ? 600 : 400,
+        go: () => this.setState({
+          screen, mode: mode || S.mode, chrome: false,
+          teach: mode === "teach"
+        })
+      };
+    };
+    return [
+      g("The daily loop", [
+        it("Today's portion", "page", "read", "front door"),
+        it("Controls revealed", "page", "chrome"),
+        it("First run · teach", "page", "teach"),
+        it("Reciting", "page", "recording"),
+        it("Listening", "page", "listen"),
+        it("Marked by tap", "page", "readtap")
+      ]),
+      g("Recitation check", [
+        it("Checking", "page", "checking"),
+        it("Matched", "page", "matched", "the peak"),
+        it("Didn't match", "page", "nomatch"),
+        it("Too quiet", "page", "unclear")
+      ]),
+      g("First run", [
+        it("Pick your sūrah", "setup-surah"),
+        it("Tap your ayah", "page", "setupayah"),
+        it("How much a day", "setup-amount")
+      ]),
+      g("Beyond v1", [
+        it("Companion", "companion", undefined, "open"),
+        it("Full reader", "reader", undefined, "deferred"),
+        it("Memorisation", "hifdh", undefined, "mode")
+      ]),
+      g("Around the app", [
+        it("Settings", "settings"),
+        it("Where you are", "position"),
+        it("Recordings & export", "storage"),
+        it("Tecno reminders", "oem"),
+        it("Page not downloaded", "offline"),
+        it("Icon · widget", "surfaces", undefined, "new")
+      ])
+    ];
+  }
+
+  bars(seed, lo, hi) {
+    const out = [];
+    for (let i = 0; i < 28; i++) {
+      const v = Math.abs(Math.sin((i + seed) * 1.7) * Math.cos((i + seed) * 0.6));
+      out.push({ h: Math.round(lo + v * (hi - lo)), o: 0.45 + v * 0.55 });
+    }
+    return out;
+  }
+
+  renderVals() {
+    const S = this.state, T = this.theme();
+    const m = S.mode;
+    const onPage = S.screen === "page";
+    const surfaces = S.screen === "surfaces";
+    const from = 13, to = 21;
+
+    const isSetupAyah = onPage && m === "setupayah";
+    const isReading = onPage && (m === "read" || m === "chrome" || m === "teach");
+    const dimmed = m === "matched" || m === "readtap";
+
+    const q = S.query.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const list = SURAHS.filter(s => {
+      if (!q) return true;
+      const n = s.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return n.includes(q) || String(s.n) === q;
+    });
+
+    const ayahNum = parseInt(S.ayahInput, 10);
+    const bad = S.ayahInput !== "" && (isNaN(ayahNum) || ayahNum < 1 || ayahNum > 83);
+
+    const amounts = [
+      { k: "half", label: "Half a page", detail: "About 7 ayahs a day" },
+      { k: "one", label: "One page", detail: "About 15 ayahs a day" },
+      { k: "two", label: "Two pages", detail: "A juzʾ every ten days" }
+    ].map(a => {
+      const on = S.amount === a.k;
+      return {
+        label: a.label, detail: a.detail,
+        border: on ? T.accent : T.hairStrong,
+        bg: on ? T.raised : "transparent",
+        dot: on ? T.accent : T.hairStrong,
+        fill: on ? T.accent : "transparent",
+        text: on ? T.onRaised : T.onPaper,
+        sub: on ? T.onRaisedSoft : T.onPaperSoft,
+        pick: () => this.setState({ amount: a.k })
+      };
+    });
+
+    const week = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => {
+      const on = !!S.lighter[d];
+      return {
+        d: d.slice(0, 1) + d.slice(1, 2).toLowerCase(),
+        amt: on ? "½ pg" : "1 pg",
+        border: on ? T.accent : T.hairStrong,
+        bg: on ? T.raised : "transparent",
+        text: on ? T.onRaised : T.onPaper,
+        subColor: on ? T.onRaisedSoft : T.onPaperSoft,
+        tap: () => this.setState(p => ({ lighter: { ...p.lighter, [d]: !p.lighter[d] } }))
+      };
+    });
+
+    return {
+      ...T,
+      clock: "8:41",
+      page: S.page,
+      arabicPx: 25,
+      markSize: 21,
+
+      onPage, isSurfaces: surfaces,
+      isSetupSurah: S.screen === "setup-surah",
+      isSetupAmount: S.screen === "setup-amount",
+      isSettings: S.screen === "settings",
+      isPosition: S.screen === "position",
+      isStorage: S.screen === "storage",
+      isOem: S.screen === "oem",
+      isOffline: S.screen === "offline",
+      isCompanion: S.screen === "companion",
+      isReader: S.screen === "reader",
+      isHifdh: S.screen === "hifdh",
+
+      isReading, isSetupAyah,
+      isRecording: onPage && m === "recording",
+      isChecking: onPage && m === "checking",
+      isMatched: onPage && m === "matched",
+      isNoMatch: onPage && m === "nomatch",
+      isUnclear: onPage && m === "unclear",
+      isReadTap: onPage && m === "readtap",
+      isListen: onPage && m === "listen",
+      chromeOpen: onPage && (S.chrome || m === "chrome"),
+      teach: onPage && m === "teach",
+      offToday: onPage && S.page !== 441,
+
+      hasStreak: true,
+      streakLine: "7 in a row, 23 days read",
+      splitLine: "5 recited, 18 marked as read",
+
+      themeLabel: S.dark ? "Dark — sage carries the accent" : "Paper — the reading ground",
+      switchTrack: S.dark ? SAGE : "#1E3A44",
+      switchX: S.dark ? 18 : 3,
+      toggleDark: () => this.setState(p => ({ dark: !p.dark })),
+      railGroups: this.rail(),
+
+      /* the page — portion at full strength, everything else recedes. No wash. */
+      ayahs: AYAHS.map(a => {
+        const inPortion = a.n >= from && a.n <= to;
+        const strong = inPortion && !dimmed;
+        const playing = m === "listen" && a.n === from + S.audioIdx - 1;
+        let color = T.recede;
+        if (playing) color = T.onPaper;
+        else if (strong) color = T.onPaper;
+        else if (inPortion && dimmed) color = T.onPaperSoft;
+        return {
+          n: a.n, ar: a.ar, color,
+          markColor: (strong || playing) ? T.onPaperSoft : T.recede,
+          weight: playing ? 700 : 400,
+          cursor: isSetupAyah ? "pointer" : "inherit",
+          underline: (isSetupAyah && String(a.n) === S.ayahInput) ? "2px solid " + T.accent : "2px solid transparent",
+          tap: isSetupAyah ? (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.setState({ ayahInput: String(a.n) }); } : (() => {})
+        };
+      }),
+
+      tapPage: () => { if (isReading) this.setState(p => ({ chrome: !p.chrome, mode: "read" })); },
+      backToToday: () => this.setState({ screen: "page", mode: "read", page: 441, chrome: false }),
+      goSettings: () => this.setState({ screen: "settings", chrome: false }),
+      goSurah: () => this.setState({ screen: "setup-surah", chrome: false }),
+      goSetupSurah: () => this.setState({ screen: "setup-surah" }),
+      goListen: () => this.setState({ screen: "page", mode: "listen", chrome: false }),
+      closeListen: () => this.setState({ mode: "read" }),
+      startRecite: () => this.setState({ screen: "page", mode: "recording", chrome: false, recSec: 0 }),
+      cancelRecite: () => this.setState({ mode: "read" }),
+      finishRecite: () => {
+        this.setState({ mode: "checking" });
+        setTimeout(() => this.setState(p => (p.mode === "checking" ? { mode: "matched" } : {})), 1900);
+      },
+      markRead: () => this.setState({ screen: "page", mode: "readtap", chrome: false }),
+      closeResult: () => this.setState({ mode: "read" }),
+      undo: () => this.setState({ mode: "read" }),
+      noop: () => {},
+
+      recTime: Math.floor(S.recSec / 60) + ":" + (S.recSec % 60 < 10 ? "0" : "") + (S.recSec % 60),
+      meter: this.bars(S.tick, 3, 22),
+      quietMeter: this.bars(2, 2, 5),
+
+      audioPct: S.audioPct,
+      audioIdx: S.audioIdx,
+      audioAyah: from + S.audioIdx - 1,
+      toggleAudio: () => this.setState(p => ({ audio: !p.audio })),
+      audioGlyph: S.audio
+        ? React.createElement("div", { style: { display: "flex", gap: 4 } },
+            React.createElement("div", { style: { width: 4, height: 16, background: T.raised } }),
+            React.createElement("div", { style: { width: 4, height: 16, background: T.raised } }))
+        : React.createElement("div", { style: { width: 0, height: 0, borderTop: "9px solid transparent", borderBottom: "9px solid transparent", borderLeft: "14px solid " + T.raised, marginLeft: 4 } }),
+
+      query: S.query,
+      onQuery: (e) => this.setState({ query: e.target.value }),
+      noResults: list.length === 0,
+      surahList: list.map(s => ({
+        n: s.n, name: s.name, ar: s.ar, meta: s.v + " ayahs",
+        pick: () => this.setState({ screen: "page", mode: "setupayah", ayahInput: "", query: "" })
+      })),
+
+      ayahInput: S.ayahInput,
+      onAyahInput: (e) => this.setState({ ayahInput: e.target.value.replace(/[^0-9]/g, "") }),
+      ayahHint: bad ? "Ya-Sin only has 83 ayahs." : (S.ayahInput ? "Ayah " + S.ayahInput + " of 83. Tap Continue." : "Or tap the line above."),
+      toAmount: () => this.setState({ screen: "setup-amount" }),
+      finishSetup: () => this.setState({ screen: "page", mode: "teach", page: 441 }),
+
+      amounts, week,
+
+      settingRows: [
+        { label: "How it looks", value: S.dark ? "Dark" : "Paper", action: "Change", tap: () => this.setState(p => ({ dark: !p.dark })) },
+        { label: "How much a day", value: "One page · about 15 ayahs", action: "Change", tap: () => this.setState({ screen: "setup-amount" }) },
+        { label: "When to remind you", value: "30 minutes after Maghrib · moves with the sun", action: "Change", tap: () => {} },
+        { label: "Location for the reminder", value: "Using your area. Refused? It falls back to your timezone and says so.", action: "Change", tap: () => {} },
+        { label: "Audio quality", value: "Lighter · about 1.1 MB a page", action: "Change", tap: () => {} },
+        { label: "Where you are in the mushaf", value: "Ya-Sin, ayah 13 · page 441", action: "Open", tap: () => this.setState({ screen: "position" }) },
+        { label: "Recordings & export", value: "118 MB · six recordings", action: "Open", tap: () => this.setState({ screen: "storage" }) },
+        { label: "Reminders on your Tecno", value: "Two settings keep them arriving", action: "Open", tap: () => this.setState({ screen: "oem" }) }
+      ],
+
+      oemSteps: [
+        { n: "1", title: "Battery Lab → turn off power saving for Wird", body: "Tecno's battery saver closes apps overnight, which is exactly when the reminder is queued.", cta: "Open Battery Lab" },
+        { n: "2", title: "Phone Master → Auto-start management → allow Wird", body: "This is what lets the reminder come back after a restart.", cta: "Open Phone Master" }
+      ],
+
+      readerRows: [
+        { label: "By sūrah", sub: "All 114, searchable" },
+        { label: "By juzʾ", sub: "Thirty parts" },
+        { label: "By page", sub: "1 to 604" }
+      ],
+
+      hifdhRows: [
+        { name: "An-Naba", when: "11 days ago", pct: 42, tone: T.recede, state: "Due for revision" },
+        { name: "Al-Mulk", when: "3 days ago", pct: 86, tone: T.accent, state: "Solid" },
+        { name: "Ar-Rahman", when: "5 days ago", pct: 71, tone: T.accent, state: "Holding" },
+        { name: "Al-Waqia", when: "24 days ago", pct: 28, tone: T.recede, state: "Wants attention" }
+      ],
+
+      reply: S.reply,
+      onReply: (e) => this.setState({ reply: e.target.value })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

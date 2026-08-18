@@ -91,6 +91,29 @@ class WirdStore(context: Context) {
         set(value) = prefs.edit { putString(KEY_THEME, value.name) }
 
     /**
+     * What to call the reader, or null if they never said.
+     *
+     * **PROFILE.md § 5c approved this on 2026-08-17 and § 5j specified it on 2026-08-18.**
+     * It exists for exactly one thing: the greeting on Home says "Good evening, Mutalib"
+     * instead of "Good evening". That is the whole feature.
+     *
+     * **Null is a first-class answer, not a missing value.** Setup offers a Skip, and the
+     * greeting falls back to the bare hour — which is what it did before this existed and
+     * which already read fine. A name is a courtesy, and an app that will not start until
+     * you identify yourself is doing something else.
+     *
+     * Sacred Rule 1: this is a string in SharedPreferences on this phone. It is not an
+     * account, it never leaves the device, and the manifest's backup exclusions cover the
+     * file it lives in.
+     */
+    var readerName: String?
+        get() = prefs.getString(KEY_NAME, null)?.takeIf { it.isNotBlank() }
+        set(value) = prefs.edit {
+            val trimmed = value?.trim()
+            if (trimmed.isNullOrEmpty()) remove(KEY_NAME) else putString(KEY_NAME, trimmed)
+        }
+
+    /**
      * Whether the reader has been shown, once, that tapping the page reveals the chrome.
      *
      * The gesture is otherwise invisible — nothing on a clean mushaf page announces that
@@ -156,6 +179,7 @@ class WirdStore(context: Context) {
         const val KEY_DEFAULT_UNITS = "default_units"
         const val KEY_THEME = "theme_mode"
         const val KEY_SEEN_CHROME = "seen_chrome"
+        const val KEY_NAME = "reader_name"
         const val KEY_NUDGE = "nudge_schedule"
         const val KEY_AUDIO = "audio_quality"
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
