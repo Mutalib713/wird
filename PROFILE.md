@@ -1409,3 +1409,55 @@ leaves this app as much as what enters it — and the app has no verified plain-
 words to quote, only glyph codes for a per-page font. Anything it "shared" as text would be
 reconstructed. So it shares `Al-Kahf 18:10 — https://quran.com/18/10` and lets a published
 source carry the words.
+
+### 5z. Translations — decided 2026-08-18, built after bookmarks
+
+His sequence: talk about translations, build bookmarks, then build translations. This records
+the decisions so the build does not re-open them.
+
+**⚠ The translation in his reference is not available, and this is the first thing to know.**
+His screenshot shows **Dr. Mustafa Khattab (The Clear Quran)**. Quran.com's API v4 offers
+**nine** English translations and Khattab is not among them — verified against the full list of
+126 resources, and requesting the id directly returns a 404. The likely reason is licensing:
+The Clear Quran is copyrighted, and quran.com has permission for their own site rather than for
+API redistribution. **The absence is verified; the reason is inference.**
+
+**What he chose, from real sample text rather than from descriptions:**
+
+| Source | id | Why |
+|---|---|---|
+| **Saheeh International** | 20 | Plain modern English, no archaisms, no footnote debris, closest in register to the Khattab text he pointed at |
+| **Gumi (Hausa)** | 32 | Sheikh Abubakar Mahmud Gumi — the standard Hausa Qur'an across northern Nigeria and Muslim northern Ghana |
+| **Transliteration** | 57 | Shown as-is |
+
+**Rejected with reasons worth keeping:** Maududi (95) carries footnote markers as literal
+characters in the text, so it renders stray digits linking to nothing; stripping them loses the
+commentary that is the only reason to pick it. Pickthall (19) and Yusuf Ali (22) are archaic
+("Thee", "Thine aid"). Hilali & Khan (203) is heavy with parentheses.
+
+**⚠ He chose the transliteration knowing how it looks.** Quran.com's scheme writes ʿayn as
+`AA` — `Iyyaka naAAbudu wa-iyyaka nastaAAeen`. It reads as an encoding bug to anyone who does
+not know the convention. **It ships unaltered.** He was offered a cleaned-up version and did
+not take it, which is the right call: rewriting a published source's text is Sacred Rule 2
+territory even when the text is transliteration rather than Qur'an.
+
+**Placement: a second reading mode.** A toggle in the page's overflow — Mushaf or Translation.
+**Not interleaved into the mushaf page, and that is a hard constraint rather than a preference:**
+the page is drawn as fixed glyph lines from a per-page QCF font, and inserting English between
+the lines destroys the thing that makes it a real mushaf. His own reference agrees — its
+translation view is a separate screen.
+
+**Bundled, not fetched.** His call, and the measurement is what made it reasonable: **3.9 KB
+per page**, averaged over five pages spread across the mushaf, so **~2.3 MB for a complete
+translation**. For scale, **one page** of Shatri at 128 kbps is 2.37 MB — the whole Qur'an's
+translation costs less than a single page of its audio. Three sources is ~7 MB, taking the APK
+from 17.5 MB to roughly 24 MB. He was told that number before choosing.
+
+**Consequence to accept rather than discover:** bundling means changing or adding a translation
+is a new app version, not a setting. That is the trade he took in exchange for it working
+offline from the moment it installs, which on Ghanaian mobile data is the more valuable half.
+
+**For later, unblocked by the same path:** § 5h's tafsir. Three English ones exist — Ibn Kathir
+(Abridged) `169`, Ma'arif al-Qur'an `168`, Tazkirul Quran `817`. Same fetch-and-attribute
+requirement, and § 5h's rule stands absolutely: **fetched and attributed on screen, never
+generated.**
