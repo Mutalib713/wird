@@ -5,7 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * Teal and manila, after Quran for Android. Pinned by Mutalib on 2026-08-18.
+ * Teal and white, after Quran for Android. Pinned by Mutalib on 2026-08-18.
  *
  * **Sacred Rule 8 reversed a second time, on his explicit word**, having been told plainly
  * that this was the second reversal in two days and that it costs Wird its own look. He
@@ -33,9 +33,19 @@ import androidx.compose.ui.graphics.Color
  *
  * 1. **The greys are Bootstrap's, not Material's** — `#212529`, `#6C757D`, `#DEE2E6` are
  *    `gray-900 / gray-600 / gray-300` exactly. That is why their app reads as a document.
- * 2. **The page is warm manila `#FFF4CB`, not white**, sitting inside near-white chrome.
- *    Wird already claimed to do this and did not: the mushaf was painted with `surface` like
- *    everything else. [WirdColors.page] makes it true.
+ * 2. **⚠ Their `page_background` token is NOT the colour of their mushaf.** It is defined as
+ *    `#FFF4CB`, a warm manila, and Wird used it for the reading page on that basis. Mutalib
+ *    looked at it against his own screenshots and said it should be white. He is right, and
+ *    the reason is that quran_android renders the mushaf as **page images** — bitmaps that
+ *    carry their own white ground — so that token never paints the page you actually see.
+ *
+ *    **The lesson is narrower than "read the source".** Reading the source gave the correct
+ *    *values*; it could not tell which value is used *where*. The screenshot was the ground
+ *    truth for that and was sitting right there.
+ *
+ *    White also measures better on every pair: ink 15.43 against 14.00, accent 5.39 against
+ *    4.89. And it separates from the chrome slightly *more* than the manila did, so the page
+ *    still reads as a lit object rather than as more chrome.
  * 3. **The accent is a different colour in each theme** — deep teal on light, pale teal on
  *    dark. They lighten it rather than reuse it, which is the same problem the old gold hit
  *    and the honest way to solve it.
@@ -43,7 +53,7 @@ import androidx.compose.ui.graphics.Color
 object Q {
     // ---- light, from quran_android unless noted ----
     val surface = Color(0xFFFAF8F7)     // their `surface`
-    val page = Color(0xFFFFF4CB)        // their `page_background` - the mushaf ground
+    val page = Color(0xFFFFFFFF)        // white. See the note on `page_background` above.
     val ink = Color(0xFF212529)         // their `title_color` / Bootstrap gray-900
     val detail = Color(0xFF656E76)      // DARKENED from their #6C757D (4.43 -> 4.90)
     val teal = Color(0xFF00767F)        // DARKENED from their #00838F (4.27 -> 5.09)
@@ -102,17 +112,17 @@ data class WirdColors(
 )
 
 /**
- * Near-white chrome, manila page, deep teal.
+ * Near-white chrome, white page, deep teal.
  *
  * Every ratio measured against both grounds, because text moves between them:
- * primary 14.57 / 14.00, secondary 4.90 / 4.71, accent 5.09 / 4.89 — chrome then page.
+ * primary 14.57 / 15.43, secondary 4.90 / 5.19, accent 5.09 / 5.39 — chrome then page.
  */
 val LightColors = WirdColors(
     surface = Q.surface,
     page = Q.page,
     textPrimary = Q.ink,                 // 14.57:1 AAA
     textSecondary = Q.detail,            // 4.90:1  AA
-    textOutsidePortion = Q.recede,       // 3.13:1  on the page, and that is the point
+    textOutsidePortion = Q.recede,       // 3.45:1  on the page, and that is the point
     accent = Q.teal,                     // 5.09:1  AA
     done = Q.quiet,
     surfaceRaised = Q.raised,            // secondary 4.67, accent 4.84 - both AA
