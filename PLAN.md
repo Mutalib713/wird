@@ -410,9 +410,13 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
 
 ## Milestone 3 — Levers and honesty
 
-- [ ] **11. Share a recording to WhatsApp**
-  One tap, Android share sheet, nobody else installs anything.
-  *Done when:* a voice note lands in a real WhatsApp chat from the phone.
+- [x] ~~**11. Share a recording to WhatsApp**~~ — **DELETED 2026-08-18, at his word**
+  Cut rather than built. § 5a reasoned it out first and he confirmed it: the task's whole
+  premise was that *sending* a recitation to someone was the accountability, and he decided he
+  will not be sending recordings to anyone. A generic share button would have been the feature
+  without the reason for it.
+  *Kept, because it is the useful half:* the share plumbing exists anyway — a FileProvider
+  scoped to the export folder, built for task 19.
 
 - [~] **12. ⚠ Deep links** — half-resolved 2026-08-18. One proven and built, one undetermined and refused
   *Risky because:* the target apps may accept no deep link at all. That risk was real and it
@@ -547,7 +551,22 @@ version tests the assumption first, and nothing expensive gets built until it ho
   Replaces the four buttons with typing, once 21 has earned it. "not today, travelling till
   Friday" → the right schedule change. This is task 13 folded in — same problem, same
   parser, one feature instead of two.
-  *Stack decision belongs to Mutalib and is not made yet.* See the open question below.
+  **Stack decided 2026-08-18: hand-written rules now, Gemini later.** His words: *"for now
+  lets use the free private offline then later we use gemini."*
+
+  ⚠ **Gemini specifically — not Claude, not an on-device model.** Recorded exactly, because a
+  later session substituting a different provider would be choosing on his behalf.
+
+  *Why rules first is the right order anyway:* § 5b says that if naming a time to the app does
+  not move the 8-of-14 procrastination days, the companion is theatre and gets cut regardless.
+  Paying for an engine before that evidence exists risks paying for something that gets deleted.
+  **The rules ship today; the model waits for task 24's verdict.**
+
+  ⚠ **What rules can never do, so it is not promised:** § 5h's tafsir, translation-explaining
+  and daily reflection are impossible on a parser. Asking the chat what a surah means gets a
+  shrug until Gemini lands. And when it does, **Sacred Rule 2 still binds absolutely** — the
+  ayah, translation and tafsir are FETCHED and attributed, never generated. A model may
+  summarise a fetched tafsir; it may not author one.
   *Done when:* five messy sentences from him produce the correct schedule, and anything it
   does not understand says so plainly rather than guessing.
 
@@ -567,10 +586,8 @@ version tests the assumption first, and nothing expensive gets built until it ho
   is a legitimate outcome** and the feature gets removed rather than kept because it was
   work.
 
-**⬜ Open, and Mutalib's to decide before task 22:** what powers the plain-words parsing.
-On-device small model (free, private, weak), a cloud LLM (capable, costs money, text leaves
-the phone, needs a network), or hand-written rules (free, private, brittle, and honestly
-enough for six phrasings). Not chosen unilaterally — § 7 is his call.
+**✅ ANSWERED 2026-08-18: rules now, Gemini later.** See task 22 above. The remaining open
+question is not *which engine* but *whether the companion earns one at all* — task 24.
 
 ## Milestone 5 — The verdict
 

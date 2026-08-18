@@ -1575,3 +1575,28 @@ delta could land nearer the full 1.30 MB. Do not quote 136 KB as the shipping nu
 **Integrity check worth repeating for any future data import:** the fetched Saheeh text has
 **exactly 6,236 verses**, which is the Qur'an's verse count. A count that matches the thing
 itself is worth more than a byte total.
+
+### 5ac. Two decisions closed. 2026-08-18
+
+**1. The companion's engine: hand-written rules now, Gemini later.**
+His words: *"for now lets use the free private offline then later we use gemini."*
+
+⚠ **Gemini specifically.** Not Claude, not an on-device model. Recorded exactly, because a
+later session substituting a provider would be choosing on his behalf, and § 7 is his call.
+
+Rules-first is also the right order on its own merits: § 5b says that if naming a time to the
+app does not move the 8-of-14 procrastination days, the companion is theatre and gets cut
+regardless — so paying for an engine before task 24's evidence risks paying for something that
+gets deleted.
+
+⚠ **What is therefore not promised until Gemini lands:** § 5h's tafsir, explaining and daily
+reflection are impossible on a parser. Asking the chat what a surah means gets a shrug. **And
+when Gemini does land, Sacred Rule 2 still binds absolutely** — the ayah, its translation and
+its tafsir are FETCHED from a named source and never generated. A model may summarise a fetched
+tafsir; it may not author one. That rule does not soften because the engine got better.
+
+**2. Task 11 is deleted, at his word.** § 5a had already reasoned it out; he confirmed. The
+task's whole premise was that *sending* a recitation to someone was the accountability, and he
+will not be sending recordings to anyone. A generic share button would have been the feature
+with its reason removed. **The share plumbing survives** — the FileProvider built for task 19
+is scoped to the export folder and does the useful half.
