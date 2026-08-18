@@ -83,6 +83,9 @@ object NudgeScheduler {
                 NudgeReceiver.TAG,
                 "next nudge $wanted (${if (exact) "exact" else "inexact"}, ${place.source})",
             )
+            // Remembered so the self-check can compare it against when the alarm actually
+            // ran. PLAN task 15.
+            WirdStore(context).lastArmedFor = wanted.toLocalDateTime()
             return Armed.At(wanted, exact, place.source)
         }
 
@@ -93,6 +96,7 @@ object NudgeScheduler {
             NudgeReceiver.TAG,
             "no prayer time available (place=$place), falling back to $fallbackAt",
         )
+        WirdStore(context).lastArmedFor = fallbackAt.toLocalDateTime()
         return Armed.AtFallback(fallbackAt, exact)
     }
 }

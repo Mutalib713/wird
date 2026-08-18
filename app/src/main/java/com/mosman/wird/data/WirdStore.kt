@@ -173,6 +173,35 @@ class WirdStore(context: Context) {
         }
 
     /**
+     * When the nudge last actually fired, and what it was last armed for.
+     *
+     * **PLAN task 15's self-check, and this pair is the whole diagnostic.** Comparing them
+     * answers the only question that matters on a Transsion phone: *did the reminder I was
+     * promised actually arrive?* If [lastArmedFor] is in the past and [lastNudgeFiredAt] is
+     * older than it, the alarm was killed — that is not a guess, it is two timestamps
+     * disagreeing.
+     *
+     * Written by [com.mosman.wird.nudge.NudgeReceiver] when it runs, and by the scheduler
+     * when it arms. Anything unparseable reads as null rather than throwing.
+     */
+    var lastNudgeFiredAt: LocalDateTime?
+        get() = prefs.getString(KEY_FIRED, null)?.let {
+            runCatching { LocalDateTime.parse(it) }.getOrNull()
+        }
+        set(value) = prefs.edit {
+            if (value == null) remove(KEY_FIRED) else putString(KEY_FIRED, value.toString())
+        }
+
+    /** The moment the current alarm is set for. See [lastNudgeFiredAt]. */
+    var lastArmedFor: LocalDateTime?
+        get() = prefs.getString(KEY_ARMED_FOR, null)?.let {
+            runCatching { LocalDateTime.parse(it) }.getOrNull()
+        }
+        set(value) = prefs.edit {
+            if (value == null) remove(KEY_ARMED_FOR) else putString(KEY_ARMED_FOR, value.toString())
+        }
+
+    /**
      * Whether the reader has been shown, once, that tapping the page reveals the chrome.
      *
      * The gesture is otherwise invisible — nothing on a clean mushaf page announces that
@@ -241,6 +270,8 @@ class WirdStore(context: Context) {
         const val KEY_NAME = "reader_name"
         const val KEY_COMMITMENT = "commitment"
         const val KEY_MODE = "reading_mode"
+        const val KEY_FIRED = "nudge_fired_at"
+        const val KEY_ARMED_FOR = "nudge_armed_for"
         const val KEY_NUDGE = "nudge_schedule"
         const val KEY_AUDIO = "audio_quality"
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"

@@ -28,6 +28,15 @@ class NudgeReceiver : BroadcastReceiver() {
         // working until the second morning.
         NudgeScheduler.arm(context)
 
+        // **PLAN task 15's self-check, and it must be stamped before every early return.**
+        // The question it answers is "did the alarm run at all?", not "was a notification
+        // shown". A receiver that woke and then deliberately stayed quiet - because the day
+        // was already read - has still proved the alarm survived the battery manager.
+        //
+        // It was first written below the already-read return, which would have reported a
+        // killed alarm on exactly the days the reader had done best.
+        WirdStore(context).lastNudgeFiredAt = java.time.LocalDateTime.now()
+
         // Sacred Rule 3. Someone who has already read today does not need reminding that
         // they read today — that is a notification whose only content is a small demand
         // for attention, which is the thing this app promised not to be.
