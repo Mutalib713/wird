@@ -149,6 +149,10 @@ class MainActivity : ComponentActivity() {
                 reArm()
             }
 
+            // Read here, in composable context. SYSTEM has no answer of its own, so both
+            // overflow toggles have to ask what is actually being painted.
+            val pageDark = isDark(theme)
+
             val today = LocalDate.now()
             var doneMethod by remember { mutableStateOf(days.methodFor(today)) }
             var hasRecording by remember { mutableStateOf(days.audioFor(today) != null) }
@@ -359,6 +363,11 @@ class MainActivity : ComponentActivity() {
                         audioFile = { days.audioFileFor(today) },
                         audioQuality = audioQuality,
                         readingMode = readingMode,
+                        dark = pageDark,
+                        onNightMode = {
+                            store.themeMode = if (pageDark) ThemeMode.LIGHT else ThemeMode.DARK
+                            theme = store.themeMode
+                        },
                         onDone = { method, file ->
                             days.markDone(
                                 date = today,

@@ -89,25 +89,24 @@ class WirdStore(context: Context) {
         }
 
     /**
-     * Paper, ink, or whatever the phone is set to.
+     * Light, dark, or whatever the phone is set to.
      *
-     * **Default flipped to [ThemeMode.DARK] on 2026-08-17**, with the palette. The old
-     * default was light and the reasoning was sound at the time — a mushaf is a paper
-     * object, so the app followed the thing it stood in for.
+     * **Default changed to [ThemeMode.SYSTEM] on 2026-08-18**, at Mutalib's word: *"for the
+     * home page it matches with the phone."*
      *
-     * The new palette makes that untenable rather than merely unfashionable: gold is
-     * **2.06:1 on cream**, which is unreadable, and **7.79:1 on midnight**, which is AAA.
-     * The accent colour only works on a dark ground, so a light-by-default app would be one
-     * that never shows its own accent. The design agrees — it is dark everywhere except the
-     * page itself.
+     * **The reason it could not before is gone.** The default was forced to DARK on
+     * 2026-08-17 because that palette's gold was **2.06:1 on cream** — unreadable — so a
+     * light-by-default app would have been one that never showed its own accent. § 6d
+     * replaced gold with teal and measured it: **5.09:1 on the light ground, AA.** The
+     * constraint was a property of the old colours, not a preference, and it left with them.
      *
-     * **The page stays cream in both modes.** That is not an inconsistency; it is the whole
-     * idea. The app is dark, and the mushaf is a lit page inside it.
+     * Anyone who has already chosen keeps their choice; this only changes what a fresh
+     * install does.
      */
     var themeMode: ThemeMode
         get() = runCatching {
-            ThemeMode.valueOf(prefs.getString(KEY_THEME, ThemeMode.DARK.name)!!)
-        }.getOrDefault(ThemeMode.DARK)
+            ThemeMode.valueOf(prefs.getString(KEY_THEME, ThemeMode.SYSTEM.name)!!)
+        }.getOrDefault(ThemeMode.SYSTEM)
         set(value) = prefs.edit { putString(KEY_THEME, value.name) }
 
     /**

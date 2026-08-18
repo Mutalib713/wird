@@ -265,11 +265,11 @@ fun SettingsScreen(
                 }
 
                 Detail.THEME -> {
-                    Explain("Ink is easier at night. The mushaf page stays as it is either way.")
+                    Explain("Dark is easier at night. The mushaf page stays readable either way.")
                     Chips3(
                         listOf(
-                            "Paper" to (theme == ThemeMode.LIGHT),
-                            "Ink" to (theme == ThemeMode.DARK),
+                            "Light" to (theme == ThemeMode.LIGHT),
+                            "Dark" to (theme == ThemeMode.DARK),
                             "Match phone" to (theme == ThemeMode.SYSTEM),
                         )
                     ) { i -> onTheme(listOf(ThemeMode.LIGHT, ThemeMode.DARK, ThemeMode.SYSTEM)[i]) }
@@ -452,8 +452,8 @@ private fun lighterLabel(days: Set<DayOfWeek>, units: Int): String {
 }
 
 private fun themeLabel(theme: ThemeMode): String = when (theme) {
-    ThemeMode.LIGHT -> "Paper"
-    ThemeMode.DARK -> "Ink"
+    ThemeMode.LIGHT -> "Light"
+    ThemeMode.DARK -> "Dark"
     ThemeMode.SYSTEM -> "Match phone"
 }
 

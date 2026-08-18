@@ -1241,3 +1241,59 @@ screen you are not looking at.
 The reference also puts **search in the toolbar** as a magnifier. Wird's sūrah search is
 still an inline box at the top of that list. Left alone deliberately: it is a change to the
 Sūrahs screen rather than to navigation, and nobody has asked for it.
+
+### 5u. Light and dark, matching the phone — 2026-08-18
+
+*"For the home page it matches with the phone, but the pages you can toggle dark mode easily
+there. And that ink and paper you did, the user won't know — just do it light and dark mode."*
+
+Three changes, and the first one had been impossible until yesterday.
+
+### 1. The default now follows the phone
+
+`ThemeMode.SYSTEM` is the default for a fresh install.
+
+**The reason it could not be before is gone, and it is worth being precise about why.** The
+default was forced to DARK on 2026-08-17 because that palette's gold measured **2.06:1 on
+cream** — unreadable — so a light-by-default app would have been one that never showed its
+own accent. § 6d replaced gold with teal and measured it at **5.09:1 on the light ground,
+AA**. The constraint was a property of the old colours, not a preference, and it left with
+them. Verified on a fresh install with the emulator set to light: the app came up light
+without being told to.
+
+Anyone who has already chosen keeps their choice. This only changes what a new install does.
+
+### 2. "Paper" and "Ink" are gone
+
+Now **Light · Dark · Match phone**. He is right and the reason is plain: those words were
+chosen to describe the *old* palette, where the app really was ink on paper. They described a
+metaphor the user was never told about, and the metaphor no longer holds anyway — the app is
+teal on near-white now, not ink on cream.
+
+⚠ Note the roles are unchanged: `ThemeMode.LIGHT` and `ThemeMode.DARK` still mean what they
+meant. **Only the words a person reads changed.**
+
+### 3. The reading page got its own night toggle
+
+Straight from the reference — Quran for Android puts `Search · Night mode ☐ · Go to page ·
+Settings` behind one `⋮` on the reading screen, and Mutalib pointed at that screenshot for
+exactly this: *"the pages, you can toggle dark mode easily there."*
+
+**The chrome bar's two bare icons became one overflow**, holding **Night mode** (a checkbox),
+**Read something else**, and **Settings**. That is a simplification the bar needed anyway: it
+is already three lines of text deep and it sits over the Qur'an.
+
+**Listen stays a direct icon, not a menu item.** Task 9 put it in the bar deliberately — it is
+the only stop control, and a stop button hidden behind a menu is one you cannot find while
+audio is playing.
+
+**Both toggles read [isDark] rather than the stored setting**, because `SYSTEM` has no answer
+of its own and a checkbox has to reflect what is actually being painted.
+
+### What this finally made visible
+
+**The mushaf now looks like a separate object.** § 6d gave the page its own colour and this
+is the first screen where you can see it: manila `#FFF4CB` inside near-white `#FAF8F7` chrome
+in light, and `#1A1A1A` inside `#212121` in dark. PROFILE has claimed the page was a lit
+object inside the app since § 6b; until yesterday the code painted it with `surface` like
+every other screen.

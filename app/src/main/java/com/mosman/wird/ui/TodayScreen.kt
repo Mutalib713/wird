@@ -20,9 +20,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -90,6 +95,10 @@ fun TodayScreen(
     /** Which Shatri recording to fetch. The reader's data, so the reader's choice. */
     audioQuality: AudioQuality = AudioQuality.LIGHT,
     readingMode: ReadingMode = ReadingMode.READING,
+    /** Whether the app is painting dark right now. Drives the overflow's checkbox. */
+    dark: Boolean = true,
+    /** Flips light/dark from the page itself, which is where it is wanted. */
+    onNightMode: () -> Unit = {},
     onDone: (com.mosman.wird.domain.Method, java.io.File?) -> Unit = { _, _ -> },
     onUndo: () -> Unit = {},
 ) {
@@ -342,6 +351,8 @@ fun TodayScreen(
                 // stop button that vanishes the moment you use it is how you end up
                 // tapping the page trying to find it again.
                 onListen = { listen() },
+                dark = dark,
+                onNightMode = onNightMode,
             )
         }
     }
@@ -382,6 +393,8 @@ private fun ChromeBar(
     onSettings: () -> Unit,
     audio: AudioState,
     onListen: () -> Unit,
+    dark: Boolean,
+    onNightMode: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     Row(
@@ -447,8 +460,46 @@ private fun ChromeBar(
             label = if (playing) "Stop the recitation" else "Listen to today's portion",
             onClick = onListen,
         )
-        BarIcon(Icons.AutoMirrored.Filled.List, "Read something else", onJump)
-        BarIcon(Icons.Filled.Settings, "Settings", onSettings)
+        // **The overflow, where the reference puts it.** Quran for Android's reading page
+        // carries Search / Night mode / Go to page / Settings behind one ⋮, and Mutalib
+        // pointed at that screenshot specifically for the night toggle: *"the pages, you can
+        // toggle dark mode easily there."*
+        //
+        // Two bare icons became one, which the bar needed anyway — it is already three lines
+        // of text deep, and this sits over the Qur'an.
+        var menuOpen by remember { mutableStateOf(false) }
+        Box {
+            BarIcon(Icons.Filled.MoreVert, "More", { menuOpen = true })
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                containerColor = colors.surfaceRaised,
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Night mode", color = colors.onSurfaceRaised) },
+                    trailingIcon = {
+                        Checkbox(
+                            checked = dark,
+                            onCheckedChange = { menuOpen = false; onNightMode() },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = colors.accent,
+                                uncheckedColor = colors.textSecondary,
+                                checkmarkColor = colors.surface,
+                            ),
+                        )
+                    },
+                    onClick = { menuOpen = false; onNightMode() },
+                )
+                DropdownMenuItem(
+                    text = { Text("Read something else", color = colors.onSurfaceRaised) },
+                    onClick = { menuOpen = false; onJump() },
+                )
+                DropdownMenuItem(
+                    text = { Text("Settings", color = colors.onSurfaceRaised) },
+                    onClick = { menuOpen = false; onSettings() },
+                )
+            }
+        }
     }
 }
 
