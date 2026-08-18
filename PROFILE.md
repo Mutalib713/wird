@@ -1297,3 +1297,54 @@ is the first screen where you can see it: manila `#FFF4CB` inside near-white `#F
 in light, and `#1A1A1A` inside `#212121` in dark. PROFILE has claimed the page was a lit
 object inside the app since § 6b; until yesterday the code painted it with `surface` like
 every other screen.
+
+### 5w. The home-screen widget — PLAN task 10, built 2026-08-18, placement unverified
+
+The last task in Milestone 2. The plan's own words for why it exists: *"the nudge that cannot
+be swiped away or killed."* Every other answer to the forgetting half of § 2 is interruptible
+— a notification is swiped, an alarm is lost to a battery optimiser, and on the Transsion
+phones the testers carry both happen routinely. A widget is not delivered to you; it is
+already on the screen you unlock.
+
+**What it shows:** today's portion, how much, its page, and whether it is done — with which
+of the two ways it was done, because Sacred Rule 6 applies on the home screen too.
+
+**What it deliberately cannot do: mark a day.** A button there is exactly where "done"
+becomes a reflex rather than a recitation. Tapping opens Wird, and that is all.
+
+**It reads the same two stores the app does**, with no cache and no service. It also repeats
+the app's rule that a finished day shows *what it covered* rather than what the position now
+says, so marking a day cannot rewrite what today was.
+
+**Correctness comes from being pushed, not from polling.** `updatePeriodMillis` is 0. The
+platform clamps that setting to thirty minutes and ignores it entirely while dozing, so
+relying on it would mean a widget that is right only sometimes and spends battery being
+wrong. `refreshWidget()` is called from the four places that change what it displays —
+marking done three ways, and undo. ⚠ **Undo needed adding separately**: it sets `doneMethod`
+directly rather than re-reading it, so it missed the refresh the other three got, and the
+widget would have gone on claiming a day was done after it was undone.
+
+**Measured, per § 10: 264 KB.** The debug APK went 17.27 MB → 17.52 MB, taken by building the
+same tree with and without Glance. Far less than "it ships its own runtime" implies, and less
+than one mushaf page of audio at 128 kbps.
+
+**Three things the library and the platform did not do the way the docs imply**, all found by
+reading the artifact rather than guessing:
+- **Glance 1.1.1 has no day/night `ColorProvider`.** Only a single-colour one. So the theme is
+  resolved in `provideGlance`, which is better anyway — the widget follows *the app's* setting,
+  so forcing Dark while the phone is light does not leave a light widget beside a dark app.
+- **`actionStartActivity<T>()` lives in `androidx.glance.action`**, not the appwidget package,
+  where only the `Intent` overload exists.
+- **`targetCellWidth` / `targetCellHeight` are API 31+** and lint fails the build on them at
+  minSdk 26. Split into `res/xml-v31/` rather than exempting the check. The picker showing
+  "3 × 2" is the proof that versioned file is the one being read.
+
+⬜ **NOT YET VERIFIED, and the task is not ticked because of it.** PLAN task 10's done-when is
+*"the widget sits on the Pixel home screen showing the correct portion, and still shows the
+right thing the next morning."* What is proven: the provider registers, the launcher lists it
+with the right label, size and description, `check.ps1` passes, and the code paths are wired.
+What is **not** proven is the thing that matters most — that it renders correctly once placed.
+Placing a widget over adb means fighting the launcher's own drag-and-drop, and several
+attempts with `input swipe`, `input draganddrop` and a motion-event sequence all failed to
+bind it. **A hand on the screen does this in five seconds**, so that is the honest next step,
+and the "next morning" half needs a night to pass regardless.

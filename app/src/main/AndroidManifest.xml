@@ -86,6 +86,27 @@
             </intent-filter>
         </receiver>
 
+
+        <!--
+            The home-screen widget (PLAN task 10).
+
+            exported="true" is required and is not a loosening: a widget is hosted by the
+            launcher, which is a different app, so the launcher must be able to bind it.
+            It receives only the two system broadcasts declared below and acts on neither
+            of them with any data from outside.
+        -->
+        <receiver
+            android:name=".widget.WirdWidgetReceiver"
+            android:exported="true"
+            android:label="Today's portion">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/wird_widget_info" />
+        </receiver>
+
     </application>
 
 </manifest>

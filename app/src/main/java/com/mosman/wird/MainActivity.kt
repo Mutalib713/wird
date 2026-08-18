@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.DayLogStore
@@ -60,6 +61,8 @@ import com.mosman.wird.ui.SetupScreen
 import com.mosman.wird.ui.TodayScreen
 import com.mosman.wird.ui.positionLabelFor
 import com.mosman.wird.ui.theme.WirdTheme
+import com.mosman.wird.widget.refreshWidget
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -154,6 +157,14 @@ class MainActivity : ComponentActivity() {
             // overflow toggles have to ask what is actually being painted.
             val pageDark = isDark(theme)
 
+            // The widget shows today's portion and whether it is done, so it has to be told
+            // whenever either moves. Fire-and-forget: nothing in the app waits on it, and it
+            // is a no-op when no widget is on a home screen.
+            val widgetScope = rememberCoroutineScope()
+            fun nudgeWidget() {
+                widgetScope.launch { refreshWidget(this@MainActivity) }
+            }
+
             // **The app had no back handling at all until 2026-08-18.** Pressing back on the
             // page, in the chat or in Settings quit Wird outright. That was survivable while
             // a bottom tab bar was always on screen; § 5t moved the bar to the top and hides
@@ -226,6 +237,7 @@ class MainActivity : ComponentActivity() {
                             units = assignment.units,
                         )
                         doneMethod = days.methodFor(today)
+                        nudgeWidget()
                         progress = progressOf(days.all(), today)
                         store.positionUnit = assignment.nextStartUnit
                         position = store.positionUnit
@@ -355,6 +367,7 @@ class MainActivity : ComponentActivity() {
                                     units = assignment.units,
                                 )
                                 doneMethod = days.methodFor(today)
+                                nudgeWidget()
                                 progress = progressOf(days.all(), today)
                                 store.positionUnit = assignment.nextStartUnit
                                 position = store.positionUnit
@@ -393,6 +406,7 @@ class MainActivity : ComponentActivity() {
                                 units = assignment.units,
                             )
                             doneMethod = days.methodFor(today)
+                            nudgeWidget()
                             hasRecording = days.audioFor(today) != null
                             progress = progressOf(days.all(), today)
 
@@ -409,6 +423,10 @@ class MainActivity : ComponentActivity() {
                         onUndo = {
                             days.clear(today)
                             doneMethod = null
+                            // Undo sets doneMethod directly rather than re-reading it, so it
+                            // misses the refresh the other three paths get. Left alone, the
+                            // widget would go on saying a day was done after you undid it.
+                            nudgeWidget()
                             hasRecording = false
                             progress = progressOf(days.all(), today)
                             // Put the position back exactly as far as marking it moved it.

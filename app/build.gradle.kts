@@ -78,6 +78,16 @@ dependencies {
     // Icons for the chrome bar. The *core* set only — `material-icons-extended` is a
     // several-megabyte library and we need three glyphs.
     implementation("androidx.compose.material:material-icons-core:1.7.8")
+    // **The home-screen widget (task 10).** Glance is Compose's dialect for app widgets:
+    // you write composables, it translates them into the RemoteViews the launcher can host.
+    // Writing RemoteViews by hand is the alternative and it is XML plus imperative setters.
+    //
+    // **Measured, per § 10, rather than assumed: 264 KB.** The debug APK went 17.27 MB ->
+    // 17.52 MB, taken by building the same tree with and without this. That is far less than
+    // "it ships its own runtime" suggests, and less than a single mushaf page's audio at
+    // 128 kbps - and it is the debug build, so R8 has not run on it yet.
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+
     // Debug only — the preview renderer is a build-time tool, not something users ship.
     debugImplementation("androidx.compose.ui:ui-tooling:1.9.0")
 

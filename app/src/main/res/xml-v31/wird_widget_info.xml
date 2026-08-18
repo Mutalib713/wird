@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android 12 and up. Same widget, but launchers from 31 onward place by grid cells
+    rather than by dp, so this is the file that gets a sensible default size there.
+    Three cells across by two down: enough for the surah name at 22sp without wrapping.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen"
+    android:description="@string/wird_widget_description"
+    android:initialLayout="@layout/glance_default_loading_layout" />
