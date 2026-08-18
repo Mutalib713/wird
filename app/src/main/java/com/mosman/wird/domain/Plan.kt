@@ -23,6 +23,22 @@ data class ReadingPlan(
 }
 
 /**
+ * An amount of reading, said the way a person says it.
+ *
+ * The app counts in half pages because that is what divides evenly; nobody says "three
+ * units". This is the translation back, and it is used wherever the companion has to repeat
+ * an instruction — PLAN task 22 — because being told *"a page and a half a day"* is how you
+ * notice it heard you wrong.
+ */
+fun unitsLabel(units: Int): String = when {
+    units <= 1 -> "half a page"
+    units == 2 -> "one page"
+    units == 3 -> "a page and a half"
+    units % 2 == 0 -> "${units / 2} pages"
+    else -> "${units / 2} and a half pages"
+}
+
+/**
  * Today's portion: where you are, plus what today asks of you.
  *
  * The position only moves when a day is marked done. Opening the app twice on the same

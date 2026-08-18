@@ -21,6 +21,7 @@ class NudgeReceiver : BroadcastReceiver() {
 
         val today = LocalDate.now()
         val days = DayLogStore(context)
+        val store = WirdStore(context)
 
         // **Tomorrow's reminder is set before anything else can go wrong.** An alarm
         // fires once; if this method returned without arming the next one the reminder
@@ -35,7 +36,18 @@ class NudgeReceiver : BroadcastReceiver() {
         //
         // It was first written below the already-read return, which would have reported a
         // killed alarm on exactly the days the reader had done best.
-        WirdStore(context).lastNudgeFiredAt = java.time.LocalDateTime.now()
+        store.lastNudgeFiredAt = java.time.LocalDateTime.now()
+
+        // **Away days are silent, and this is the second lock on that.** The scheduler
+        // already arms for the far side of the trip, so nothing should fire in here at all;
+        // this catches the alarm that was already set when the pause was made. A reminder
+        // arriving on a day someone told the app they were travelling is the exact thing
+        // Sacred Rule 3 is about. PLAN task 22.
+        val away = store.away
+        if (away != null && today in away) {
+            Log.i(TAG, "away until ${away.until}, staying quiet")
+            return
+        }
 
         // Sacred Rule 3. Someone who has already read today does not need reminding that
         // they read today — that is a notification whose only content is a small demand
@@ -47,7 +59,6 @@ class NudgeReceiver : BroadcastReceiver() {
 
         Nudge.createChannel(context)
 
-        val store = WirdStore(context)
         if (!store.isSetUp) {
             Log.i(TAG, "not set up yet, staying quiet")
             return

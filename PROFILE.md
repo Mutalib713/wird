@@ -1600,3 +1600,107 @@ task's whole premise was that *sending* a recitation to someone was the accounta
 will not be sending recordings to anyone. A generic share button would have been the feature
 with its reason removed. **The share plumbing survives** — the FileProvider built for task 19
 is scoped to the export folder and does the useful half.
+
+### 5ad. Plain words instead of buttons — PLAN task 22, built 2026-08-18. Task 13 folded in
+
+The companion could already be answered in words; what it could not do was **change anything
+about the plan**. It understood a promise about tonight and nothing about how much you read,
+which days are lighter, when the reminder comes, or being away. § 5h listed all four as things
+he chose. This is them.
+
+**Task 13 is closed by this and was never built separately.** Its done-when — *five messy
+sentences produce the correct schedule* — is word for word task 22's, and its example sentence
+is the one the tests now use. Two parsers reading the same English would have been two places
+to disagree.
+
+#### His two decisions, taken before anything was written
+
+**1. Away days stay absent from the record.** *"I'm travelling till Sunday"* stops the reminder
+and writes **nothing at all** into `days.json`. The alternative offered was logging them as
+"away" so the streak could bridge across the trip; he chose the version where a day in the
+record means one thing only, which is a day he actually read. Sacred Rule 6 is easier to hold
+when nothing else is allowed to live in that file. The streak simply restarts, and
+`totalDaysRead` — which never resets — is untouched either way.
+
+**2. ⚠ A commitment is one-off, and that fixed a real defect.** Until today, replying *"in an
+hour"* wrote that time into the **daily** reminder, so a single three o'clock answer made four
+o'clock the reminder time for every day afterwards, silently and with nothing on screen saying
+so. His own phone had it: the stored `nudge_schedule` read `PRAYER ISHA 30` purely because he
+once tapped "After Isha" from a notification. PLAN task 21 describes the mechanic as re-arming
+"for that moment", so the routine was never meant to move.
+
+The fix is where the schedule lives. It now rides **inside the commitment**, which expires with
+the day it was made, and the routine underneath is untouched. Changing the routine has to be
+asked for in words: *"move my reminder to 9 from now on"*, *"remind me at 9 every day"*,
+*"stop reminding me"*.
+
+**Why one-off is the safer default when the sentence is ambiguous:** a one-off that should have
+been permanent costs one repeat. A permanent change that should have been one-off rewrites a
+routine nobody asked to move, and nothing tells you it happened.
+
+#### What it understands now
+
+| You type | What moves |
+|---|---|
+| "one page a day", "make it half a page" | the daily amount |
+| "half on Fridays", "make Fridays lighter", "back to normal on Fridays" | one weekday |
+| "move my reminder to 9 from now on", "stop reminding me" | the routine |
+| "I'm travelling till Sunday", "away for 3 days", "back on Friday", "next week" | a pause |
+| "I'm back" | ends the pause early |
+
+**Three instructions in one sentence, all three applied.** A sentence is read clause by clause,
+so *"one page a day, half on Fridays, I'm travelling next week"* is three edits rather than one
+edit and two silences. ⚠ **A clause it cannot read is quoted back**, which is the guarantee the
+whole rule-based approach rests on: *"One page a day from now on. I didn't catch 'explain surah
+yasin to me'."*
+
+**"Till Sunday" means the reminder returns ON Sunday.** English is genuinely ambiguous there, so
+the rule is written down and the answer always names the day it landed on. A wrong reading then
+costs one sentence to correct rather than a fortnight of silence.
+
+**The reminder comes back on its own.** A pause does not switch the alarm off, it sets it for
+the far side of the trip — measured on the emulator: saying "im travelling till sunday" on
+Tuesday the 18th stored `away_period 2026-08-18..2026-08-22` and armed the alarm for
+**2026-08-23T20:00**, the Sunday. Nothing has to be running for an alarm to arrive, which is the
+only version of this that survives a Transsion battery manager.
+
+**A pause is visible and reversible without typing.** Settings grows one row while it is
+running — *Paused while you're away · Back Sunday · tap to end*. A silence with no explanation
+on screen is indistinguishable from the app being broken, which is exactly what task 15's
+self-check exists to detect.
+
+#### Two bugs the tests caught before the phone did
+
+1. **"300 pages a day" answered "one page a day".** The amount parser could not read 300, fell
+   through to the loose word matcher, found the "a" in "a day" and confidently set one page.
+   Fixed by refusing to guess whenever a digit is present: a number that was meant to be read
+   and could not be is a failure, not an invitation to use a nearby word.
+2. **"move my reminder to 9" was not understood at all.** The time parser knew "at 9" and "by
+   9" and not "to 9", which is how people actually write it.
+
+Both were found by check 45, which exists to assert that it *refuses* to guess. The check that
+tests for silence caught more than the checks that test for behaviour.
+
+#### ⚠ A defect I reported and then disproved
+
+Mid-verification I measured the keyboard's touchable region starting at y=1799 while the
+companion's Send button sat at y 1873–1950, and concluded the button was unreachable on Home
+with the keyboard open. It is not. A tap at the accessibility tree's own coordinates sends
+normally; my earlier failed taps had used coordinates from a dump taken mid-animation, and they
+landed on the keyboard's letter keys instead. Home's card is inside a `verticalScroll`, and
+Compose scrolls a focused text field clear of the keyboard by itself.
+
+**The speculative fix was reverted**, and the reason is worth keeping: `dumpsys input_method`'s
+touchable region is larger than the visible keys, so it is not evidence about what a tap will
+hit. The thing that settled it was tapping and seeing the message land.
+
+#### Deliberately not done, so nobody assumes it works
+
+- **"A juz a day."** Real phrasing, especially in Ramadan, but juz boundaries are not every 20
+  pages, so honouring it as a fixed page count would be an approximation dressed as precision.
+  It says it did not understand instead.
+- **"Make weekends lighter"** as one phrase. One weekday per clause; two clauses do it.
+- **A different reminder time per weekday.** "At 9 on Fridays" sets a one-off for tonight and
+  ignores the Friday, because per-day reminder times do not exist in the app to be set.
+- **Anything about the Qur'an's meaning.** Unchanged and still § 5ac's answer: fetched and
+  attributed, or not at all. Sacred Rule 2.

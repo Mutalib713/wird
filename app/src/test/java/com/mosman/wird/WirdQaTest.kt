@@ -6,6 +6,8 @@ import com.mosman.wird.data.ConversationStore
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.data.encodeSchedule
+import com.mosman.wird.domain.AwayPeriod
+import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.CompanionAction
 import com.mosman.wird.nudge.CommitReceiver
 import com.mosman.wird.ui.OpenElsewhere
@@ -27,11 +29,14 @@ import com.mosman.wird.domain.label
 import com.mosman.wird.domain.linesOn
 import com.mosman.wird.domain.listLabel
 import com.mosman.wird.domain.nextAfter
+import com.mosman.wird.domain.nextAwake
 import com.mosman.wird.domain.pages
 import com.mosman.wird.domain.progressOf
 import com.mosman.wird.domain.replyFor
+import com.mosman.wird.domain.replyForAll
 import com.mosman.wird.domain.surahs
 import com.mosman.wird.domain.todaysAssignment
+import com.mosman.wird.domain.unitsLabel
 import com.mosman.wird.mushaf.Glyph
 import com.mosman.wird.mushaf.MushafPage
 import com.mosman.wird.ui.reciteLabel
@@ -1127,5 +1132,253 @@ class DeepLinkTest {
             .split("/")
             .mapNotNull { it.toIntOrNull() }
         assertEquals(listOf(2, 255), numbers.take(2))
+    }
+}
+
+/**
+ * Checks 40–46 — plain words instead of buttons. **PLAN task 22, task 13 folded in.**
+ *
+ * The done-when for both tasks was the same sentence: *five messy sentences produce the
+ * correct schedule, and anything it does not understand says so plainly rather than
+ * guessing.* Check 40 is that literal test, written as five different sentences rather than
+ * five phrasings of one, so passing it means the feature is done rather than merely built.
+ *
+ * Dates are anchored to a fixed Tuesday and asserted by weekday rather than by literal date,
+ * so the suite says what it means ("the reminder returns on Sunday") and does not quietly
+ * start failing on a different day of the week.
+ */
+class PlainWordsTest {
+
+    private val tuesday: LocalDate = LocalDate.of(2026, 8, 18)
+    private val evening: LocalTime = LocalTime.of(19, 0)
+
+    private fun u(s: String, plan: ReadingPlan = ReadingPlan()) =
+        CompanionBrain.understand(s, evening, plan, tuesday)
+
+    private fun all(s: String, plan: ReadingPlan = ReadingPlan()) =
+        CompanionBrain.understandAll(s, evening, plan, tuesday)
+
+    /** Check 40 — the five sentences the task is graded on. */
+    @Test
+    fun `five messy sentences produce the right schedule`() {
+        // 1. How much, every day.
+        assertEquals(
+            "one page a day is two half-page units",
+            CompanionAction.ChangePlan(2),
+            u("one page a day"),
+        )
+
+        // 2. A lighter Friday, with the word "page" left out entirely.
+        assertEquals(
+            CompanionAction.ChangeDayPlan(DayOfWeek.FRIDAY, 1),
+            u("half on fridays"),
+        )
+
+        // 3. Away, with an end date. The reminder comes back the day he named.
+        val away = (u("im travelling till sunday") as CompanionAction.PauseUntil).away
+        assertEquals("quiet starts today", tuesday, away.from)
+        assertEquals(
+            "till Sunday means the reminder returns ON Sunday",
+            DayOfWeek.SUNDAY,
+            away.returnsOn.dayOfWeek,
+        )
+        assertTrue("and that Sunday is this week", away.returnsOn <= tuesday.plusDays(6))
+
+        // 4. The routine itself, which has to be asked for in words.
+        assertEquals(
+            CompanionAction.MoveReminder(NudgeSchedule.AtClockTime(LocalTime.of(21, 0))),
+            u("move my reminder to 9 from now on"),
+        )
+
+        // 5. Back early, before the trip he named is over.
+        assertEquals(CompanionAction.Resume, u("im back"))
+    }
+
+    /**
+     * Check 41 — three instructions in one breath, all three applied.
+     *
+     * This is PLAN task 13's own example sentence. Reading only the first would leave two
+     * edits silently unmade, which is the failure mode that matters: a schedule that is
+     * quietly a third of what was asked for looks like it worked.
+     */
+    @Test
+    fun `one sentence can carry three separate instructions`() {
+        val actions = all("one page a day, half on fridays, im travelling next week")
+
+        assertEquals("all three must land", 3, actions.size)
+        assertTrue(actions.contains(CompanionAction.ChangePlan(2)))
+        assertTrue(actions.contains(CompanionAction.ChangeDayPlan(DayOfWeek.FRIDAY, 1)))
+
+        val away = actions.filterIsInstance<CompanionAction.PauseUntil>().single().away
+        assertEquals("next week starts on a Monday", DayOfWeek.MONDAY, away.from.dayOfWeek)
+        assertTrue("and it is next week, not this one", away.from > tuesday)
+        assertEquals("seven days of it", 6, away.until.toEpochDay() - away.from.toEpochDay())
+
+        // The clause splitter must leave an amount alone. Splitting on "and" would turn one
+        // instruction into two fragments that each mean nothing.
+        assertEquals(
+            listOf(CompanionAction.ChangePlan(3)),
+            all("make it a page and a half a day"),
+        )
+    }
+
+    /**
+     * Check 42 — a clause it cannot read is named, in the reader's own words.
+     *
+     * **The whole rule-based approach rests on this.** A parser that quietly drops a third of
+     * a sentence is worse than one that admits it, because nothing on screen says which third
+     * went missing. PROFILE.md § 5m records the gap; this is the guarantee that goes with it.
+     */
+    @Test
+    fun `what it cannot read is said out loud, and the rest still lands`() {
+        val actions = all("one page a day, and explain surah yasin to me")
+
+        assertTrue(actions.contains(CompanionAction.ChangePlan(2)))
+        val missed = actions.filterIsInstance<CompanionAction.NotUnderstood>().single()
+        assertTrue("it must quote the clause: " + missed.said, missed.said.contains("yasin"))
+
+        val reply = replyForAll(actions, null, "", tuesday)
+        assertTrue("the change is confirmed: " + reply, reply.contains("One page a day"))
+        assertTrue("and the miss is named: " + reply, reply.contains("catch"))
+
+        // Politeness is not an instruction, and answering it with a complaint would be
+        // annoying rather than honest.
+        assertEquals(
+            listOf(CompanionAction.ChangePlan(2)),
+            all("one page a day, thanks"),
+        )
+    }
+
+    /**
+     * Check 43 — a promise is about tonight, and the routine underneath does not move.
+     *
+     * ⚠ **A real defect, caught on 2026-08-18 and fixed at his word.** "In an hour" used to
+     * be written straight into the daily reminder, so one three o'clock reply made four
+     * o'clock the reminder time for every day afterwards, silently. The commitment now
+     * carries its own schedule and expires with the day it was made.
+     */
+    @Test
+    fun `a commitment moves tonight only, and a routine change says so`() {
+        val tonight = u("in an hour") as CompanionAction.CommitTo
+        assertEquals(NudgeSchedule.AtClockTime(LocalTime.of(20, 0)), tonight.schedule)
+
+        val held = Commitment(tonight.spoken, tuesday.atTime(evening), tonight.schedule)
+        assertTrue("it governs the day it was made", held.appliesOn(tuesday))
+        assertFalse("and nothing after it", held.appliesOn(tuesday.plusDays(1)))
+
+        // The permanent version has to be asked for. Same time, different meaning.
+        assertTrue(u("at 9") is CompanionAction.CommitTo)
+        assertTrue(u("remind me at 9 every day") is CompanionAction.MoveReminder)
+        assertEquals(
+            NudgeSchedule.Off,
+            (u("stop reminding me") as CompanionAction.MoveReminder).schedule,
+        )
+    }
+
+    /**
+     * Check 44 — away days are stepped over, and the reminder returns without being asked.
+     *
+     * **Not switched off.** Someone who says "travelling till Sunday" and then does not open
+     * the app for four days must still be asked on Sunday evening, so the alarm is set for
+     * the far side of the trip rather than cancelled. Nothing has to be running for an alarm
+     * to arrive, which is what makes this safe on the phones that kill background work.
+     */
+    @Test
+    fun `the reminder skips the away days and comes back on its own`() {
+        val accra = Coordinates(5.6037, -0.1870)
+        val zone = ZoneId.of("Africa/Accra")
+        val now = tuesday.atTime(9, 0).atZone(zone)
+        val schedule = NudgeSchedule.AfterPrayer(Prayer.MAGHRIB, 30)
+
+        val away = AwayPeriod(tuesday, tuesday.plusDays(3))
+        val next = schedule.nextAwake(now, accra, away)!!
+        assertEquals(
+            "the next reminder is the evening of the return day",
+            away.returnsOn,
+            next.toLocalDate(),
+        )
+
+        // A trip that has not started yet must leave this week's reminders exactly alone.
+        val later = AwayPeriod(tuesday.plusDays(6), tuesday.plusDays(9))
+        assertEquals(tuesday, schedule.nextAwake(now, accra, later)!!.toLocalDate())
+
+        // And with no trip at all, nothing changes about the ordinary answer.
+        assertEquals(
+            schedule.nextAfter(now, accra),
+            schedule.nextAwake(now, accra, null),
+        )
+
+        assertTrue("the away days are the away days", tuesday.plusDays(2) in away)
+        assertFalse("and the return day is not one of them", away.returnsOn in away)
+    }
+
+    /**
+     * Check 45 — the guards against guessing, which matter more than the parsing.
+     *
+     * Every case here is a sentence something eager could read as a schedule change. The
+     * thing this edits is a record of someone's worship, so an admission beats a confident
+     * wrong answer every time.
+     */
+    @Test
+    fun `it refuses to guess at an instruction that was never given`() {
+        // An amount with nothing saying it is about every day could be a report of what was
+        // just read. Not enough to act on.
+        assertTrue(u("two pages") is CompanionAction.NotUnderstood)
+
+        // ⚠ A number in a sentence about time is a time, never a page count.
+        assertTrue(
+            "at 9 on fridays is not nine pages",
+            u("at 9 on fridays") !is CompanionAction.ChangeDayPlan,
+        )
+
+        // A travel word with no end date is today, not a week. The smaller claim wins.
+        assertTrue(u("im travelling") is CompanionAction.NotToday)
+
+        // Absurd amounts are typos, not plans.
+        assertTrue(u("300 pages a day") is CompanionAction.NotUnderstood)
+
+        // Still no opinion about the Qur'an itself. Sacred Rule 2, and § 5h's fetch-and-
+        // attribute path does not exist yet.
+        assertTrue(u("what does al-kahf mean") is CompanionAction.NotUnderstood)
+    }
+
+    /**
+     * Check 46 — Sacred Rule 3 holds across every new reply, and each one repeats the change.
+     *
+     * A confirmation that does not contain the change is not a confirmation. "Till Sunday" is
+     * genuinely ambiguous English, so the day it landed on has to appear in the answer, or a
+     * wrong reading costs a fortnight instead of a sentence.
+     */
+    @Test
+    fun `every new reply repeats the change and keeps the tone`() {
+        val said = listOf(
+            u("one page a day"),
+            u("half on fridays"),
+            u("im travelling till sunday"),
+            u("move my reminder to 9 from now on"),
+            u("stop reminding me"),
+            u("im back"),
+        ).map { replyFor(it, null, "", tuesday) }
+
+        said.forEach { reply ->
+            listOf("streak", "failed", "sure?", "missed", "should", "forget").forEach { banned ->
+                assertFalse(
+                    "Sacred Rule 3 violated by " + banned + " in: " + reply,
+                    reply.lowercase().contains(banned),
+                )
+            }
+            assertTrue("a reply must say something: " + reply, reply.length > 8)
+        }
+
+        assertTrue("the amount comes back in words: " + said[0], said[0].contains("One page a day"))
+        assertTrue("the day is named: " + said[1], said[1].contains("Fridays"))
+        assertTrue("the return day is named: " + said[2], said[2].contains("Sunday"))
+        assertTrue("the new routine is named: " + said[3], said[3].contains("9:00 pm"))
+
+        // Half pages are said the way a person says them, never as "1 unit".
+        assertEquals("half a page", unitsLabel(1))
+        assertEquals("one page", unitsLabel(2))
+        assertEquals("a page and a half", unitsLabel(3))
+        assertEquals("2 pages", unitsLabel(4))
     }
 }

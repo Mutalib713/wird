@@ -6,7 +6,7 @@ import com.mosman.wird.data.PlaceSource
 import com.mosman.wird.data.Where
 import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.NudgeSchedule
-import com.mosman.wird.domain.nextAfter
+import com.mosman.wird.domain.nextAwake
 import java.time.LocalTime
 import java.time.ZonedDateTime
 
@@ -66,7 +66,16 @@ object NudgeScheduler {
     val FALLBACK_TIME: LocalTime = LocalTime.of(20, 0)
 
     fun arm(context: Context, now: ZonedDateTime = ZonedDateTime.now()): Armed {
-        val schedule = WirdStore(context).nudgeSchedule
+        val store = WirdStore(context)
+
+        // **A promise made today outranks the routine, for today only.** PLAN task 22: this
+        // is where "in an hour" stopped being a permanent move of the reminder. The routine
+        // is untouched underneath and comes back by itself tomorrow.
+        val schedule = store.scheduleFor(now.toLocalDate())
+
+        // Away days are stepped over rather than switched off, so the reminder returns on
+        // its own without the app being opened. See [nextAwake].
+        val away = store.away?.takeIf { !it.isPast(now.toLocalDate()) }
 
         if (schedule is NudgeSchedule.Off) {
             Nudge.cancel(context)
@@ -75,7 +84,7 @@ object NudgeScheduler {
         }
 
         val place = Where.best(context)
-        val wanted = schedule.nextAfter(now, place?.coordinates)
+        val wanted = schedule.nextAwake(now, place?.coordinates, away)
 
         if (wanted != null && place != null) {
             val exact = Nudge.schedule(context, wanted.toInstant().toEpochMilli())
@@ -85,18 +94,18 @@ object NudgeScheduler {
             )
             // Remembered so the self-check can compare it against when the alarm actually
             // ran. PLAN task 15.
-            WirdStore(context).lastArmedFor = wanted.toLocalDateTime()
+            store.lastArmedFor = wanted.toLocalDateTime()
             return Armed.At(wanted, exact, place.source)
         }
 
         // Either no coordinates, or a prayer with no time this week. Say which.
-        val fallbackAt = NudgeSchedule.AtClockTime(FALLBACK_TIME).nextAfter(now, null)!!
+        val fallbackAt = NudgeSchedule.AtClockTime(FALLBACK_TIME).nextAwake(now, null, away)!!
         val exact = Nudge.schedule(context, fallbackAt.toInstant().toEpochMilli())
         Log.w(
             NudgeReceiver.TAG,
             "no prayer time available (place=$place), falling back to $fallbackAt",
         )
-        WirdStore(context).lastArmedFor = fallbackAt.toLocalDateTime()
+        store.lastArmedFor = fallbackAt.toLocalDateTime()
         return Armed.AtFallback(fallbackAt, exact)
     }
 }

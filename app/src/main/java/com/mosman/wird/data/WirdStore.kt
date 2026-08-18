@@ -3,12 +3,14 @@ package com.mosman.wird.data
 import android.content.Context
 import androidx.core.content.edit
 import com.mosman.wird.audio.AudioQuality
+import com.mosman.wird.domain.AwayPeriod
 import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingPlan
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
@@ -153,24 +155,79 @@ class WirdStore(context: Context) {
      * the check-back has to survive being backgrounded, force-stopped and rebooted, exactly
      * like the alarm it sits beside.
      *
-     * One readable string, `"<iso timestamp> <what you said>"`, so a half-written change can
-     * never pair the wrong time with the wrong words. Anything unparseable reads as no
-     * commitment rather than throwing — a corrupt preference must not stop the app opening.
+     * One readable string, `"<iso timestamp> | <schedule> | <what you said>"`, so a
+     * half-written change can never pair the wrong time with the wrong words. Anything
+     * unparseable reads as no commitment rather than throwing — a corrupt preference must
+     * not stop the app opening.
      */
     var commitment: Commitment?
         get() {
             val raw = prefs.getString(KEY_COMMITMENT, null) ?: return null
             return runCatching {
-                val at = raw.substringBefore(' ')
-                val spoken = raw.substringAfter(' ')
+                // The older two-field form had no schedule. Read it rather than drop it:
+                // losing a promise on upgrade would lose a day of PLAN task 21's evidence.
+                if (!raw.contains(FIELD)) {
+                    val spoken = raw.substringAfter(' ')
+                    if (spoken.isBlank()) return@runCatching null
+                    return@runCatching Commitment(spoken, LocalDateTime.parse(raw.substringBefore(' ')))
+                }
+                val parts = raw.split(FIELD)
+                val spoken = parts[2]
                 if (spoken.isBlank()) null
-                else Commitment(spoken = spoken, madeAt = LocalDateTime.parse(at))
+                else Commitment(
+                    spoken = spoken,
+                    madeAt = LocalDateTime.parse(parts[0]),
+                    schedule = parts[1].takeIf { it.isNotBlank() }?.let(::decodeSchedule),
+                )
             }.getOrNull()
         }
         set(value) = prefs.edit {
-            if (value == null) remove(KEY_COMMITMENT)
-            else putString(KEY_COMMITMENT, "${value.madeAt} ${value.spoken}")
+            if (value == null) {
+                remove(KEY_COMMITMENT)
+            } else {
+                // Spoken text goes last because it is the only field that can contain
+                // anything; a separator that cannot appear in the middle of a date or a
+                // schedule cannot be spoofed by what someone types.
+                putString(
+                    KEY_COMMITMENT,
+                    listOf(
+                        value.madeAt.toString(),
+                        value.schedule?.let(::encodeSchedule).orEmpty(),
+                        value.spoken,
+                    ).joinToString(FIELD),
+                )
+            }
         }
+
+    /**
+     * The stretch of days with no reminders, or null. **PLAN task 22.**
+     *
+     * Two dates in one string, same reasoning as [nudgeSchedule]: a half-written change
+     * cannot leave a start without its end. Anything unparseable reads as "not away", which
+     * is the failure that costs least — an unwanted reminder, rather than silence nobody
+     * asked for and nobody can explain.
+     */
+    var away: AwayPeriod?
+        get() = prefs.getString(KEY_AWAY, null)?.let { raw ->
+            runCatching {
+                val (from, until) = raw.split(AWAY_SEP)
+                AwayPeriod(LocalDate.parse(from), LocalDate.parse(until))
+            }.getOrNull()
+        }
+        set(value) = prefs.edit {
+            if (value == null) remove(KEY_AWAY)
+            else putString(KEY_AWAY, "${value.from}$AWAY_SEP${value.until}")
+        }
+
+    /**
+     * What tonight's alarm should follow.
+     *
+     * A promise made today wins over the routine, and only for today. That single rule is
+     * what makes *"in an hour"* a promise about tonight instead of a permanent move of the
+     * reminder, which is what it used to be. See [Commitment.schedule].
+     */
+    fun scheduleFor(today: LocalDate): NudgeSchedule =
+        commitment?.takeIf { it.appliesOn(today) }?.schedule ?: nudgeSchedule
 
     /**
      * When the nudge last actually fired, and what it was last armed for.
@@ -274,6 +331,9 @@ class WirdStore(context: Context) {
         const val KEY_ARMED_FOR = "nudge_armed_for"
         const val KEY_NUDGE = "nudge_schedule"
         const val KEY_AUDIO = "audio_quality"
+        const val KEY_AWAY = "away_period"
+        const val FIELD = " | "
+        const val AWAY_SEP = ".."
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
     }
 }

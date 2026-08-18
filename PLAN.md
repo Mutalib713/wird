@@ -443,11 +443,15 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   appear and open an ayah**, because that app cannot be installed here. First real phone that
   has it settles it.
 
-- [ ] **13. ⚠ Plain-words setup**
-  "One page a day, half on Fridays, I'm travelling next week" → a real schedule.
-  *Risky because:* it needs a model, and a dropdown does most of this. If it costs more
-  than it earns, cut it and say so.
-  *Done when:* five messy sentences from Mutalib produce the correct schedule.
+- [x] ~~**13. ⚠ Plain-words setup**~~ — **FOLDED INTO TASK 22, done 2026-08-18**
+  Not cut and not skipped: built once, in the place it belongs. This task and task 22 had the
+  same done-when — *five messy sentences produce the correct schedule* — and this task's own
+  example sentence is the one check 41 now runs. Two parsers reading the same English would
+  have been two places to disagree about someone's plan.
+  *The risk it flagged was real and the answer is written down:* a dropdown does do most of
+  this, so **the setup screen keeps its pickers**. What typing adds is the part a picker cannot
+  do at all, which is changing three things at once, six weeks later, without hunting for the
+  screen they live on. See PROFILE.md § 5ad.
 
 - [ ] **14. ⚠ On-device recitation checker**
   whisper.cpp Android AAR + `tarteel-ai/whisper-base-ar-quran` (Apache-2.0). **Batch,
@@ -547,28 +551,40 @@ version tests the assumption first, and nothing expensive gets built until it ho
   notification and the chat can never mean different things, and a reply from the lock screen
   lands in the same conversation.
 
-- [ ] **22. Plain words instead of buttons**
-  Replaces the four buttons with typing, once 21 has earned it. "not today, travelling till
-  Friday" → the right schedule change. This is task 13 folded in — same problem, same
-  parser, one feature instead of two.
-  **Stack decided 2026-08-18: hand-written rules now, Gemini later.** His words: *"for now
-  lets use the free private offline then later we use gemini."*
+- [x] **22. Plain words instead of buttons** — done 2026-08-18, verified on the emulator
+  Typing replaces the four buttons for everything that is not tonight's promise: how much you
+  read, which days are lighter, when the reminder comes, and being away. **Task 13 is folded in
+  and closed by this** — same done-when, same parser, one feature instead of two.
+  **Stack, his words 2026-08-18:** *"for now lets use the free private offline then later we use
+  gemini."* Hand-written rules ship; the model waits for task 24's verdict. ⚠ Gemini
+  specifically, not Claude and not an on-device model.
 
-  ⚠ **Gemini specifically — not Claude, not an on-device model.** Recorded exactly, because a
-  later session substituting a different provider would be choosing on his behalf.
+  *Done when — met.* Check 40 is the five sentences, written as five different sentences rather
+  than five phrasings of one: `one page a day` → two half-page units · `half on fridays` → that
+  weekday only · `im travelling till sunday` → quiet, returning **on** Sunday · `move my
+  reminder to 9 from now on` → the routine, not tonight · `im back` → ends it early. Checks
+  41–46 cover the rest: three instructions in one sentence, the unread clause being quoted back,
+  the one-off rule, the away arithmetic, the refusals to guess, and Sacred Rule 3 across every
+  new reply. **46 checks, `check: PASS`.**
 
-  *Why rules first is the right order anyway:* § 5b says that if naming a time to the app does
-  not move the 8-of-14 procrastination days, the companion is theatre and gets cut regardless.
-  Paying for an engine before that evidence exists risks paying for something that gets deleted.
-  **The rules ship today; the model waits for task 24's verdict.**
+  *Evidence on a real Android runtime, not just the JVM.* Typed into the companion on the
+  emulator: `a page and a half a day, half on fridays` moved `default_units` 2→3 and wrote
+  `units_FRIDAY 1` in one message; `im travelling till sunday` stored
+  `away_period 2026-08-18..2026-08-22` and armed the alarm for **2026-08-23T20:00**, the Sunday
+  he named; `im back` cleared it and pulled the alarm back to the 19th. Read out of
+  `shared_prefs` and `chat.json` with `run-as`, not asserted.
 
-  ⚠ **What rules can never do, so it is not promised:** § 5h's tafsir, translation-explaining
-  and daily reflection are impossible on a parser. Asking the chat what a surah means gets a
-  shrug until Gemini lands. And when it does, **Sacred Rule 2 still binds absolutely** — the
-  ayah, translation and tafsir are FETCHED and attributed, never generated. A model may
-  summarise a fetched tafsir; it may not author one.
-  *Done when:* five messy sentences from him produce the correct schedule, and anything it
-  does not understand says so plainly rather than guessing.
+  ⚠ **It fixed a defect while it was in there.** A commitment used to overwrite the *daily*
+  reminder, so one "in an hour" made that time permanent, silently. His own install had
+  `nudge_schedule PRAYER ISHA 30` for exactly that reason. The schedule now rides inside the
+  commitment and expires with the day. PROFILE.md § 5ad.
+
+  ⚠ **What rules still cannot do, so it is not promised:** § 5h's tafsir, translation-explaining
+  and daily reflection. Asking the chat what a surah means gets a shrug until Gemini lands, and
+  **Sacred Rule 2 binds when it does** — the ayah, translation and tafsir are FETCHED and
+  attributed, never generated. Also not done, deliberately: "a juz a day" (juz boundaries are
+  not every 20 pages, so honouring it would be an approximation dressed as precision),
+  "weekends" as one word, and per-weekday reminder times.
 
 - [ ] **23. ⚠ WhatsApp, for Mutalib only**
   Meta Cloud API, free test number, his number as a verified recipient. **Never in the

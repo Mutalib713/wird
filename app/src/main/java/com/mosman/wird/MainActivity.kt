@@ -22,7 +22,7 @@ import com.mosman.wird.data.Where
 import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.CompanionAction
 import com.mosman.wird.domain.CompanionBrain
-import com.mosman.wird.domain.replyFor
+import com.mosman.wird.domain.replyForAll
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.ReadingPlan
@@ -100,6 +100,7 @@ class MainActivity : ComponentActivity() {
             var onDevice by remember { mutableStateOf<DataOnDevice?>(null) }
             var exportNote by remember { mutableStateOf<String?>(null) }
             var commitment by remember { mutableStateOf(store.commitment) }
+            var away by remember { mutableStateOf(store.away) }
             /** The chat, opened from Home's companion card. */
             var onChat by remember { mutableStateOf(false) }
             /** Home's overflow. Settings used to be a quarter of the tab bar; now it lives here. */
@@ -226,56 +227,119 @@ class MainActivity : ComponentActivity() {
                 if (t.isEmpty()) return
                 turns = chat.say(Speaker.YOU, t)
 
-                val action = CompanionBrain.understand(t)
-                when (action) {
-                    // A commitment becomes a real alarm. This is the whole point: task 8's
-                    // scheduler already turns "after Isha" into a time that moves with the
-                    // sun, so the sentence lands on machinery rather than on a promise.
-                    is CompanionAction.CommitTo -> {
-                        store.nudgeSchedule = action.schedule
-                        schedule = action.schedule
-                        commitment = Commitment(spoken = action.spoken, madeAt = LocalDateTime.now())
-                        store.commitment = commitment
-                        reArm()
+                // **One sentence can hold three instructions.** PLAN task 22 - "one page a
+                // day, half on Fridays, I'm travelling next week" is a schedule, a weekday
+                // exception and a pause, and applying only the first would leave the other
+                // two silently unheard. The plan goes in because "make Fridays lighter" is
+                // relative to what Fridays currently are.
+                val actions = CompanionBrain.understandAll(t, plan = plan)
+
+                actions.forEach { action ->
+                    when (action) {
+                        // A commitment becomes a real alarm. This is the whole point: task
+                        // 8's scheduler already turns "after Isha" into a time that moves
+                        // with the sun, so the sentence lands on machinery rather than on a
+                        // promise.
+                        //
+                        // ⚠ It rides inside the commitment rather than being written into
+                        // the daily reminder, so it expires with the day. PLAN task 22.
+                        is CompanionAction.CommitTo -> {
+                            commitment = Commitment(
+                                spoken = action.spoken,
+                                madeAt = LocalDateTime.now(),
+                                schedule = action.schedule,
+                            )
+                            store.commitment = commitment
+                            reArm()
+                        }
+                        is CompanionAction.MarkDone -> {
+                            days.markDone(
+                                date = today,
+                                method = Method.TAPPED,
+                                audio = null,
+                                startUnit = assignment.startUnit,
+                                units = assignment.units,
+                            )
+                            doneMethod = days.methodFor(today)
+                            nudgeWidget()
+                            progress = progressOf(days.all(), today)
+                            store.positionUnit = assignment.nextStartUnit
+                            position = store.positionUnit
+                            store.startVerse = null
+                            startVerse = null
+                            // The promise is spent. Leaving it pinned would have the app
+                            // still holding you to something you have already done.
+                            commitment = null
+                            store.commitment = null
+                        }
+                        is CompanionAction.OpenSurah -> {
+                            openPage = action.surah.firstPage
+                            onPage = true
+                            onChat = false
+                        }
+                        is CompanionAction.Listen -> {
+                            onPage = true
+                            onChat = false
+                        }
+
+                        // The plan changes take effect today, not tomorrow. Today's portion
+                        // is computed from the plan every time it is drawn, so the widget
+                        // has to be told or it keeps showing yesterday's arithmetic.
+                        is CompanionAction.ChangePlan -> {
+                            plan = plan.copy(defaultUnits = action.units)
+                            store.plan = plan
+                            nudgeWidget()
+                        }
+                        is CompanionAction.ChangeDayPlan -> {
+                            val byDay = plan.weekdayUnits.toMutableMap()
+                            if (action.units == null) {
+                                byDay.remove(action.day)
+                            } else {
+                                byDay[action.day] = action.units
+                            }
+                            plan = plan.copy(weekdayUnits = byDay)
+                            store.plan = plan
+                            nudgeWidget()
+                        }
+
+                        // **A routine change clears tonight's promise.** Otherwise "move my
+                        // reminder to 9 from now on" would be answered by an alarm still
+                        // following whatever was promised an hour earlier, and the change
+                        // would look broken on the one evening it was asked for.
+                        is CompanionAction.MoveReminder -> {
+                            store.nudgeSchedule = action.schedule
+                            schedule = action.schedule
+                            commitment = null
+                            store.commitment = null
+                            reArm()
+                        }
+                        is CompanionAction.PauseUntil -> {
+                            away = action.away
+                            store.away = action.away
+                            commitment = null
+                            store.commitment = null
+                            reArm()
+                        }
+                        is CompanionAction.Resume -> {
+                            away = null
+                            store.away = null
+                            reArm()
+                        }
+
+                        // Saying "not today" changes nothing on purpose. There is no row for
+                        // a missed day and no penalty to apply - the reply already said it is
+                        // fine. Sacred Rule 3.
+                        else -> Unit
                     }
-                    is CompanionAction.MarkDone -> {
-                        days.markDone(
-                            date = today,
-                            method = Method.TAPPED,
-                            audio = null,
-                            startUnit = assignment.startUnit,
-                            units = assignment.units,
-                        )
-                        doneMethod = days.methodFor(today)
-                        nudgeWidget()
-                        progress = progressOf(days.all(), today)
-                        store.positionUnit = assignment.nextStartUnit
-                        position = store.positionUnit
-                        store.startVerse = null
-                        startVerse = null
-                        // The promise is spent. Leaving it pinned would have the app still
-                        // holding you to something you have already done.
-                        commitment = null
-                        store.commitment = null
-                    }
-                    is CompanionAction.OpenSurah -> {
-                        openPage = action.surah.firstPage
-                        onPage = true
-                        onChat = false
-                    }
-                    is CompanionAction.Listen -> {
-                        onPage = true
-                        onChat = false
-                    }
-                    // Saying "not today" changes nothing on purpose. There is no row for a
-                    // missed day and no penalty to apply - the reply already said it is
-                    // fine. Sacred Rule 3.
-                    else -> Unit
                 }
 
                 turns = chat.say(
                     Speaker.WIRD,
-                    replyFor(action, progress, positionLabelFor(startVerse, Mushaf.pageOf(position))),
+                    replyForAll(
+                        actions,
+                        progress,
+                        positionLabelFor(startVerse, Mushaf.pageOf(position)),
+                    ),
                 )
             }
 
@@ -495,6 +559,14 @@ class MainActivity : ComponentActivity() {
                         ),
                         schedule = schedule,
                         armed = armed,
+                        // A pause that has already run its course is history, not a state
+                        // the screen should still be reporting.
+                        away = away?.takeIf { !it.isPast(today) },
+                        onResume = {
+                            away = null
+                            store.away = null
+                            reArm()
+                        },
                         audioQuality = audioQuality,
                         readingMode = readingMode,
                         onDevice = onDevice,

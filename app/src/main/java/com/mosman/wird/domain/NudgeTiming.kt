@@ -104,6 +104,29 @@ fun NudgeSchedule.nextAfter(
 }
 
 /**
+ * The next reminder, with a stretch of away days stepped over. **PLAN task 22.**
+ *
+ * **The reminder has to come back on its own.** Someone who says "I'm travelling till Sunday"
+ * and then does not open the app for four days must still be asked on Sunday evening — so
+ * this does not switch the alarm off, it sets it for the far side of the trip. An alarm is an
+ * absolute moment on the phone's clock; nothing has to be running for it to arrive.
+ *
+ * The first candidate is computed normally, and only if it lands inside the away days is a
+ * second one computed from the morning of the return. That order matters: "travelling next
+ * week" must leave *this* week's reminders exactly where they are.
+ */
+fun NudgeSchedule.nextAwake(
+    now: ZonedDateTime,
+    at: Coordinates?,
+    away: AwayPeriod?,
+    method: PrayerMethod = PrayerMethod.MUSLIM_WORLD_LEAGUE,
+): ZonedDateTime? {
+    val first = nextAfter(now, at, method) ?: return null
+    if (away == null || first.toLocalDate() !in away) return first
+    return nextAfter(away.returnsOn.atStartOfDay(now.zone), at, method)
+}
+
+/**
  * The schedule in words, for the settings screen.
  *
  * Deliberately never shows a prayer time. PROFILE.md § 5 keeps prayer times out of v1 as

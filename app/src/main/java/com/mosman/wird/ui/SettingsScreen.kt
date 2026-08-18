@@ -41,17 +41,20 @@ import com.mosman.wird.data.PlaceSource
 import com.mosman.wird.data.DataOnDevice
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.ThemeMode
+import com.mosman.wird.domain.AwayPeriod
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.SurahIndex
+import com.mosman.wird.domain.dayLabel
 import com.mosman.wird.domain.label
 import com.mosman.wird.nudge.Armed
 import com.mosman.wird.nudge.NudgeScheduler
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalTime
 
 /** Which setting is open. Null means the list. */
@@ -88,6 +91,8 @@ fun SettingsScreen(
     positionLabel: String,
     schedule: NudgeSchedule,
     armed: Armed?,
+    /** A stretch of days with no reminders, or null. PLAN task 22. */
+    away: AwayPeriod?,
     audioQuality: AudioQuality,
     readingMode: ReadingMode,
     /** What is on the phone right now, for the sentence before you decide. */
@@ -99,6 +104,7 @@ fun SettingsScreen(
     onTheme: (ThemeMode) -> Unit,
     onPlan: (ReadingPlan) -> Unit,
     onSchedule: (NudgeSchedule) -> Unit,
+    onResume: () -> Unit,
     onAudioQuality: (AudioQuality) -> Unit,
     onReadingMode: (ReadingMode) -> Unit,
     onUseLocation: () -> Unit,
@@ -128,6 +134,8 @@ fun SettingsScreen(
             overrideUnits = overrideUnits,
             positionLabel = positionLabel,
             schedule = schedule,
+            away = away,
+            onResume = onResume,
             audioQuality = audioQuality,
             theme = theme,
             onDevice = onDevice,
@@ -325,6 +333,8 @@ private fun SettingsList(
     overrideUnits: Int,
     positionLabel: String,
     schedule: NudgeSchedule,
+    away: AwayPeriod?,
+    onResume: () -> Unit,
     audioQuality: AudioQuality,
     theme: ThemeMode,
     onDevice: DataOnDevice?,
@@ -358,6 +368,20 @@ private fun SettingsList(
 
         Group("The reminder") {
             ValueRow("When it arrives", schedule.label()) { onOpen(Detail.REMINDER) }
+
+            // **A pause has to be visible somewhere you did not have to type.** PLAN task
+            // 22: "I'm travelling till Sunday" stops the reminder for days, and a silence
+            // with no explanation on screen is indistinguishable from the app being broken
+            // - which is exactly what task 15's self-check is built to detect. It ends here
+            // too, because a pause you can only undo with the right sentence is a trap.
+            if (away != null) {
+                Divider()
+                ValueRow(
+                    "Paused while you're away",
+                    "Back ${dayLabel(away.returnsOn, LocalDate.now())} · tap to end",
+                    onClick = onResume,
+                )
+            }
         }
 
         Group("Listening") {

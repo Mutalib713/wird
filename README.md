@@ -616,20 +616,66 @@ dot. Your own sentence at display size is something you can fail to keep; "remin
 8:00 pm" is a setting.
 
 What it understands: a time, a refusal, "already did it", how you are doing, where you are,
-open a surah, play today's portion.
+open a surah, play today's portion — and, since PLAN task 22, **the plan itself**.
+
+### Talking to it instead of hunting for the setting
+
+Four things used to live only in Settings and now also answer to a sentence:
+
+| You type | What moves |
+|---|---|
+| "one page a day", "make it half a page" | how much you read every day |
+| "half on Fridays", "make Fridays lighter" | one weekday, leaving the rest alone |
+| "move my reminder to 9 from now on" | the routine |
+| "I'm travelling till Sunday", "I'm back" | quiet for a few days, then back on its own |
+
+**You can say three of them in one breath.** "One page a day, half on Fridays, I'm travelling
+next week" is read clause by clause and all three land. If one clause is not understood it gets
+quoted back rather than dropped: *"One page a day from now on. I didn't catch 'explain surah
+yasin to me'."* A parser that silently ignores a third of your sentence is worse than one that
+admits it, because nothing tells you which third went missing.
+
+**Being away does not write anything into your record.** No reminders until the day you named,
+and nothing at all in `days.json` for the days you were gone. They are days you did not read,
+the same as any other. Your streak restarts and your total days read never moves — that was
+Mutalib's call, and the reason is that a day in that file should mean exactly one thing.
+
+**The reminder comes back by itself.** A pause does not switch the alarm off, it sets it for
+the far side of the trip. Saying "travelling till Sunday" on a Tuesday arms the alarm for
+Sunday evening, so it arrives even if the app is never opened in between. Settings shows a
+*Paused while you're away · back Sunday* row while it is running, and tapping it ends the pause.
+
+### A promise about tonight is not a change of routine
+
+⚠ **This was a real bug, and it had been live.** Replying "in an hour" wrote that time into the
+**daily** reminder, so one three o'clock answer quietly made four o'clock the reminder time
+every day afterwards. Nothing on screen said so.
+
+The commitment now carries its own alarm and expires with the day it was made; the routine
+underneath is untouched and returns tomorrow. Changing the routine has to be said in words —
+"from now on", "every day", "move my reminder". When a sentence could mean either, it is read
+as tonight only: a one-off that should have been permanent costs you one repeat, while a
+permanent change that should have been one-off rewrites something you never asked to move.
 
 **What it cannot do, stated plainly because the interface promises otherwise.** Underneath
 is a set of hand-written rules understanding a handful of phrasings, not a language model. A
 chat box invites anyone to type anything, so this interface promises more than the parser can
 keep. Ask it what a surah means and it shrugs. The reply names what it *does* know rather
 than apologising, and the shortcut buttons stay on screen, but that is mitigation and not a
-fix. **What powers it is still undecided.** PLAN task 22, and the choice is between rules,
-an on-device model, and a cloud one.
+fix.
+
+**What powers it is decided: rules now, Gemini later** — his words, *"for now lets use the free
+private offline then later we use gemini."* The rules cost nothing, run offline, need no key,
+and cannot invent anything, which matters when the thing being edited is a record of someone's
+worship. The model waits for PLAN task 24's verdict on whether the companion helps at all,
+because paying for an engine before that evidence exists risks paying for something that gets
+deleted. And when it lands, Sacred Rule 2 does not soften: the ayah, its translation and its
+tafsir are fetched from a named source, never generated.
 
 **Sacred Rule 3 governs every line it says.** No guilt, no disappointment, no "you broke your
 streak". Saying "not today" gets "That's fine. It'll be here tomorrow" and changes nothing.
 There is a test that fails if a refusal reply ever contains the words *streak*, *failed*,
-*sure?* or *missed*.
+*sure?* or *missed*, and it now runs over every reply the plan-editing sentences produce too.
 
 ## 11. The whole Qur'an
 

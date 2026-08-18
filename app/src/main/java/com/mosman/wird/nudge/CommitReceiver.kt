@@ -50,14 +50,18 @@ class CommitReceiver : BroadcastReceiver() {
         val chat = ConversationStore(context.filesDir)
         chat.say(Speaker.YOU, said)
 
-        when (val action = CompanionBrain.understand(said)) {
+        val action = CompanionBrain.understand(said)
+        when (action) {
             is CompanionAction.CommitTo -> {
-                store.nudgeSchedule = action.schedule
                 // PLAN task 21: *every commitment is logged - what was promised, whether it
                 // was kept* - because task 24 cannot measure what was never recorded.
-                store.commitment = Commitment(action.spoken, LocalDateTime.now())
+                //
+                // ⚠ The schedule rides along inside the commitment rather than being written
+                // into the daily reminder. PLAN task 22: tapping "In an hour" at three in the
+                // afternoon used to make four o'clock the reminder time for good.
+                store.commitment = Commitment(action.spoken, LocalDateTime.now(), action.schedule)
                 NudgeScheduler.arm(context)
-                Log.i(TAG, "committed to ${action.spoken}, re-armed")
+                Log.i(TAG, "committed to ${action.spoken} for today, re-armed")
             }
 
             // Sacred Rule 3, and the hardest place to hold it. "Not today" changes nothing:
@@ -72,7 +76,7 @@ class CommitReceiver : BroadcastReceiver() {
             else -> Log.i(TAG, "reply not actionable from a notification: $said")
         }
 
-        chat.say(Speaker.WIRD, replyFor(CompanionBrain.understand(said), null, ""))
+        chat.say(Speaker.WIRD, replyFor(action, null, ""))
     }
 
     companion object {
