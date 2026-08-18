@@ -713,3 +713,33 @@ That rule is not about tone, it is about truth:
 
 **Sequencing:** 1, 2 and 4 first, because they are unblocked and they are what the feature
 was approved for. 3 and 5 after, and not until the fetch-and-attribute path is built.
+
+### 5i. Our fonts, their layout — decided 2026-08-18
+
+*"Nah, use our font like that, just the design I want."*
+
+**The five display faces in the Claude Design source — Cinzel, Playfair Display, EB Garamond,
+Oswald, Amiri — are NOT being bundled.** Wird keeps the system faces it already uses.
+
+Why this is the better call, and not just the cheaper one:
+
+- **Five bundled families is real weight** on an app that already ships a 154 KB glyph font
+  *per mushaf page*, for readers on Ghanaian mobile data. § 10 says size is measured, not
+  assumed, and this is size we would be adding for chrome rather than for the Qur'an.
+- The app's one piece of genuinely distinctive typography is the mushaf itself, and that is
+  a real KFGQPC face already. Dressing the chrome in a theatre-poster serif does not make
+  the Qur'an look better; it competes with it.
+
+**What IS taken from the design:** layout, structure, hierarchy, spacing, the colour
+direction, and the patterns — grouped settings rows, the value-plus-chevron pattern, the
+dashboard's order, the icon-over-label tab bar.
+
+**How the remaining porting works, at his direction:** he points at a screen in the design
+and says what to take and what to leave. *"I will take you to what to take out and what to
+add from that design."* So a session should **ask rather than infer** which parts of a screen
+he wants — inferring is what produced the boxy band, the wrong element order, and a
+dashboard that had to be reverted.
+
+**Not an option:** running the design's HTML in a WebView. It would cost the mushaf renderer,
+which is native, uses `Typeface.createFromFile` per page, and is the one thing he has said
+explicitly must not change (§ 5d).
