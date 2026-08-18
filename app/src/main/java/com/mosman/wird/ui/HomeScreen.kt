@@ -108,36 +108,21 @@ fun HomeScreen(
             .background(colors.surface)
             .verticalScroll(rememberScrollState()),
     ) {
-        // ---- the toolbar, on its own ground ----
+        // ---- who you are ----
         //
-        // Full-bleed and raised, so the app's name and where you are read as chrome rather
-        // than as the first paragraph of the page. This is the single biggest thing the
-        // first port missed.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(colors.surfaceRaised)
-                .safeDrawingPadding()
-                .padding(horizontal = Scale.space4, vertical = Scale.space3),
-        ) {
-            Text(
-                text = "WIRD",
-                color = colors.accent,
-                style = TextStyle(fontSize = 13.sp, letterSpacing = 3.sp, fontWeight = FontWeight.SemiBold),
-            )
+        // The app's name and the overflow moved up into the shared bar on 2026-08-18 when
+        // the tabs went to the top - § 5t. What is left here is where you are, which is
+        // Home's own content rather than chrome: it describes today, not the app.
+        Column(modifier = Modifier.padding(horizontal = Scale.space4)) {
+            Spacer(Modifier.height(Scale.space4))
             if (positionLabel.isNotEmpty()) {
-                Spacer(Modifier.height(3.dp))
                 Text(
                     text = positionLabel.uppercase(),
                     color = colors.textOutsidePortion,
                     style = TextStyle(fontSize = 10.sp, letterSpacing = 1.2.sp),
                 )
+                Spacer(Modifier.height(Scale.space3))
             }
-        }
-
-        // ---- who you are ----
-        Column(modifier = Modifier.padding(horizontal = Scale.space4)) {
-            Spacer(Modifier.height(Scale.space6))
             Text(
                 text = todayLine(),
                 color = colors.textSecondary,

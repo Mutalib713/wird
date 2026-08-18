@@ -30,9 +30,20 @@ import com.mosman.wird.domain.todaysAssignment
 import com.mosman.wird.nudge.Armed
 import com.mosman.wird.nudge.Nudge
 import com.mosman.wird.nudge.NudgeScheduler
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import com.mosman.wird.data.ThemeMode
+import com.mosman.wird.ui.WirdTopBar
+import com.mosman.wird.ui.theme.LocalWirdColors
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.ui.Modifier
 import com.mosman.wird.audio.Recitation
 import com.mosman.wird.data.ConversationStore
@@ -44,7 +55,6 @@ import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
 import com.mosman.wird.ui.SurahsTab
 import com.mosman.wird.ui.WirdTab
-import com.mosman.wird.ui.WirdTabBar
 import com.mosman.wird.ui.SetupScreen
 import com.mosman.wird.ui.TodayScreen
 import com.mosman.wird.ui.positionLabelFor
@@ -80,6 +90,8 @@ class MainActivity : ComponentActivity() {
             var commitment by remember { mutableStateOf(store.commitment) }
             /** The chat, opened from Home's companion card. */
             var onChat by remember { mutableStateOf(false) }
+            /** Home's overflow. Settings used to be a quarter of the tab bar; now it lives here. */
+            var menuOpen by remember { mutableStateOf(false) }
             var armed by remember { mutableStateOf<Armed?>(null) }
             var tab by remember { mutableStateOf(WirdTab.HOME) }
             /** Set when a surah is picked from the Sūrahs tab; consumed by TodayScreen. */
@@ -264,7 +276,41 @@ class MainActivity : ComponentActivity() {
                     )
 
                 } else {
-                  Column(modifier = Modifier.fillMaxSize()) {
+                  Column(
+                      modifier = Modifier
+                          .fillMaxSize()
+                          .navigationBarsPadding(),
+                  ) {
+                    // The bar is hidden while the mushaf is open: the page is the one screen
+                    // that should have nothing parked above it. Sacred Rule 5's other half.
+                    if (!onPage) {
+                        WirdTopBar(
+                            current = tab,
+                            onPick = { tab = it },
+                            // Only Home has an overflow. On the other two it would open a
+                            // menu about a screen you are not looking at.
+                            onMenu = if (tab == WirdTab.HOME) ({ menuOpen = true }) else null,
+                            menu = {
+                                if (menuOpen) {
+                                    // Read in composable context: the toggle needs what is
+                                    // actually on screen, which SYSTEM only answers at draw
+                                    // time.
+                                    val darkNow = isDark(theme)
+                                    HomeMenu(
+                                        dark = darkNow,
+                                        onNightMode = {
+                                            store.themeMode =
+                                                if (darkNow) ThemeMode.LIGHT else ThemeMode.DARK
+                                            theme = store.themeMode
+                                            menuOpen = false
+                                        },
+                                        onSettings = { menuOpen = false; screen = Screen.SETTINGS },
+                                        onDismiss = { menuOpen = false },
+                                    )
+                                }
+                            },
+                        )
+                    }
                     Box(modifier = Modifier.weight(1f)) {
                       when (tab) {
                         WirdTab.HOME -> if (!onPage) HomeScreen(
@@ -302,7 +348,7 @@ class MainActivity : ComponentActivity() {
                         ) else TodayScreen(
                         assignment = assignment,
                         startVerse = startVerse,
-                        onSettings = { tab = WirdTab.MORE },
+                        onSettings = { screen = Screen.SETTINGS },
                             openPage = openPage,
                             onOpenPageHandled = { openPage = null },
                         hasSeenChrome = seenChrome,
@@ -364,8 +410,15 @@ class MainActivity : ComponentActivity() {
                             audioFor = { d -> days.audioFor(d) },
                             onPlay = { f -> playback.play(f) },
                         )
+                      }
 
-                        WirdTab.MORE -> SettingsScreen(
+                    }
+                  }
+                }
+
+                // Settings, reached from Home's overflow rather than from a tab of its own.
+                if (screen == Screen.SETTINGS) {
+                    SettingsScreen(
                         theme = theme,
                         plan = plan,
                         positionLabel = positionLabelFor(
@@ -389,12 +442,8 @@ class MainActivity : ComponentActivity() {
                         onAudioQuality = { store.audioQuality = it; audioQuality = it },
                         onUseLocation = { askLocation.launch(Where.PERMISSION) },
                         onChangePosition = { screen = Screen.SETUP },
-                            onBack = { tab = WirdTab.HOME },
-                        )
-                      }
-                    }
-                    WirdTabBar(current = tab, onPick = { tab = it })
-                  }
+                        onBack = { screen = Screen.TODAY },
+                    )
                 }
             }
         }
@@ -409,3 +458,62 @@ class MainActivity : ComponentActivity() {
  */
 private fun clockLabel(at: java.time.ZonedDateTime): String =
     at.format(java.time.format.DateTimeFormatter.ofPattern("h:mm a")).lowercase()
+
+/**
+ * Whether the app is currently painting dark, whatever the setting says.
+ *
+ * [ThemeMode.SYSTEM] has no answer of its own — it defers to the phone — so a night-mode
+ * toggle has to ask what is actually on screen rather than what was chosen.
+ */
+@Composable
+private fun isDark(mode: ThemeMode): Boolean = when (mode) {
+    ThemeMode.LIGHT -> false
+    ThemeMode.DARK -> true
+    ThemeMode.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
+}
+
+/**
+ * Home's overflow menu.
+ *
+ * **This is where the More tab went.** PROFILE.md § 5t — Settings was never a destination
+ * you visit alongside your wird; it is a drawer you open, change one thing in, and leave.
+ * It was spending a quarter of the navigation bar.
+ *
+ * Two items, both real and both wired to state that already existed. Modelled on the
+ * reference Mutalib sent: Quran for Android's overflow carries a night-mode *checkbox*,
+ * toggled where you are rather than buried three taps into settings.
+ */
+@Composable
+private fun HomeMenu(
+    dark: Boolean,
+    onNightMode: () -> Unit,
+    onSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    DropdownMenu(
+        expanded = true,
+        onDismissRequest = onDismiss,
+        containerColor = colors.surfaceRaised,
+    ) {
+        DropdownMenuItem(
+            text = { Text("Night mode", color = colors.onSurfaceRaised) },
+            trailingIcon = {
+                Checkbox(
+                    checked = dark,
+                    onCheckedChange = { onNightMode() },
+                    colors = CheckboxDefaults.colors(
+                        checkedColor = colors.accent,
+                        uncheckedColor = colors.textSecondary,
+                        checkmarkColor = colors.surface,
+                    ),
+                )
+            },
+            onClick = onNightMode,
+        )
+        DropdownMenuItem(
+            text = { Text("Settings", color = colors.onSurfaceRaised) },
+            onClick = onSettings,
+        )
+    }
+}

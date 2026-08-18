@@ -1183,3 +1183,61 @@ harder to read than four results.
 **The search field is still an inline box** rather than the magnifier in a toolbar that the
 reference has. That belongs to the navigation work — asks 1 and 2 — and is queued behind
 this, not forgotten.
+
+### 5t. Tabs to the top, three of them, and More becomes a menu — 2026-08-18
+
+*"As for the tab, I think it should come top rather, like the after one in Claude Design, but
+in time it will be home, surahs and history. For the home there will be that three vertical
+dot menu or hamburger button with the settings and other things there."*
+
+**Three changes, one shape.**
+
+1. **The bar moved to the top**, modelled on Quran for Android: a title row carrying the
+   app's name and an overflow, and a row of tabs under it marked by an underline.
+2. **Four tabs became three** — Home · Sūrahs · History.
+3. **More stopped being a place and became a menu.**
+
+### Why "More" was the right one to lose
+
+Settings was never a destination you visit *alongside* your wird. It is a drawer: you open
+it, change one thing, and leave. It was spending **a quarter of the navigation bar** on that.
+The overflow is where it belongs, and losing it is what makes three tabs possible without
+hiding anything.
+
+### Why an underline and not the old icon-over-label bar
+
+**Because the same control means a different thing at the top of a screen.** At the bottom,
+tabs are thumb targets and want mass — which is why § 5b's version had icons above labels
+and Mutalib was right to ask for them. At the top they are a *heading*: you read them once
+and then read past them, so weight there competes with the screen's own title. The underline
+says which one without adding a second bold thing to the page.
+
+**Colour is still not the only signal** — the active tab is accented *and* full-weight *and*
+underlined, same rule as the old bar.
+
+### What is in the overflow, and why only two things
+
+**Night mode**, as a checkbox, and **Settings**. Both are real and both are wired to state
+that already existed; nothing was invented to pad the menu out.
+
+The night-mode checkbox is taken straight from the reference — Quran for Android puts it in
+the overflow so it is toggled *where you are* rather than three taps into settings. ⚠ It reads
+[isDark] rather than the stored setting, because `SYSTEM` has no answer of its own and a
+toggle has to know what is actually on screen. **The reading page's own toggle is a separate
+ask (7) and is not this.**
+
+**The overflow only appears on Home.** On Sūrahs or History it would open a menu about a
+screen you are not looking at.
+
+### Two consequences that had to be handled
+
+- **The bar hides while the mushaf is open.** The page is the one screen that should have
+  nothing parked above it — Sacred Rule 5's surviving half.
+- **The old bottom bar was carrying `navigationBarsPadding()`.** With it gone the shell owes
+  the gesture bar its space, or the last row of every screen sits underneath it.
+
+### Not done here
+
+The reference also puts **search in the toolbar** as a magnifier. Wird's sūrah search is
+still an inline box at the top of that list. Left alone deliberately: it is a change to the
+Sūrahs screen rather than to navigation, and nobody has asked for it.
