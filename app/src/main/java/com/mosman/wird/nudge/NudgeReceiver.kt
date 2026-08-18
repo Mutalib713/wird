@@ -64,16 +64,41 @@ class NudgeReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        // Sacred Rule 3: no guilt. It says what today's portion is and gets out of the
-        // way. No streak count, no "don't break it", no question you have to answer.
-        val notification = NotificationCompat.Builder(context, Nudge.CHANNEL_ID)
+        // **The nudge became a question on 2026-08-18 - PLAN task 21.**
+        //
+        // It used to be a statement: here is today's portion, goodbye. That addresses
+        // forgetting, which section 2 found is the SMALLER half of the problem - about 6 of
+        // 14 missed days against 8 lost to procrastination. A statement gives someone who
+        // has already seen it nothing new to do.
+        //
+        // Asking, and letting the answer be one tap, is the experiment: does naming a time
+        // to something that checks back change anything? Section 5b says that if it does
+        // not, the companion is theatre and gets cut.
+        //
+        // Sacred Rule 3 still governs every word. It asks; it does not push. No streak, no
+        // "don't break it", and "Not today" is a real answer that costs nothing.
+        val builder = NotificationCompat.Builder(context, Nudge.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
-            .setContentTitle("Today's wird")
+            .setContentTitle("Reading today?")
             .setContentText(portion)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(open)
-            .build()
+
+        CommitReceiver.REPLIES.forEachIndexed { i, phrase ->
+            val reply = PendingIntent.getBroadcast(
+                context,
+                // A distinct request code per action, or every button would overwrite the
+                // one before it and all three would send the same phrase.
+                100 + i,
+                Intent(context, CommitReceiver::class.java)
+                    .putExtra(CommitReceiver.EXTRA_SAID, phrase),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+            builder.addAction(0, phrase, reply)
+        }
+
+        val notification = builder.build()
 
         context.getSystemService(NotificationManager::class.java)
             .notify(Nudge.NOTIFICATION_ID, notification)

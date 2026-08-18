@@ -7,6 +7,7 @@ import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.data.encodeSchedule
 import com.mosman.wird.domain.CompanionAction
+import com.mosman.wird.nudge.CommitReceiver
 import com.mosman.wird.domain.CompanionBrain
 import com.mosman.wird.domain.Coordinates
 import com.mosman.wird.domain.DayLog
@@ -1037,5 +1038,57 @@ class BookmarkTest {
         } finally {
             dir.deleteRecursively()
         }
+    }
+}
+
+/**
+ * Checks 35–36 — the notification's reply buttons. **PLAN task 21.**
+ *
+ * These exist because of a bug caught while wiring them: PLAN lists four buttons and
+ * `CompanionBrain` understands only three. Bare "Tonight" parses to `NotUnderstood`, so that
+ * button would have done nothing at all and said nothing about it. A button whose phrase the
+ * parser cannot read is the worst kind of dead control — it looks like it worked.
+ */
+class NotificationRepliesTest {
+
+    /** Check 35 — every offered reply must actually do something. */
+    @Test
+    fun `every notification reply is understood by the parser`() {
+        assertTrue("there must be replies to offer", CommitReceiver.REPLIES.isNotEmpty())
+        assertTrue(
+            "Android shows three actions; more would be hidden",
+            CommitReceiver.REPLIES.size <= 3,
+        )
+        CommitReceiver.REPLIES.forEach { phrase ->
+            val action = CompanionBrain.understand(phrase)
+            assertFalse(
+                "\"$phrase\" is offered as a button but parses to NotUnderstood",
+                action is CompanionAction.NotUnderstood,
+            )
+        }
+    }
+
+    /**
+     * Check 36 — the three replies mean the three different things they should.
+     *
+     * Two commitments that resolved to the same schedule would be two buttons doing one job,
+     * which is how "Tonight" and "After Isha" collapsed in the first place.
+     */
+    @Test
+    fun `the replies are three genuinely different answers`() {
+        val evening = java.time.LocalTime.of(19, 0)
+        val actions = CommitReceiver.REPLIES.map { CompanionBrain.understand(it, evening) }
+
+        val commitments = actions.filterIsInstance<CompanionAction.CommitTo>()
+        assertEquals("two of the three should be commitments", 2, commitments.size)
+        assertEquals(
+            "and they must not resolve to the same schedule",
+            2,
+            commitments.map { it.schedule }.distinct().size,
+        )
+        assertTrue(
+            "one of the three must be the refusal",
+            actions.any { it is CompanionAction.NotToday },
+        )
     }
 }

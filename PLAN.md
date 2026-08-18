@@ -492,7 +492,7 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
 Approved 2026-08-16 (PROFILE.md § 5b). **The order here is the whole point:** the cheapest
 version tests the assumption first, and nothing expensive gets built until it holds.
 
-- [ ] **21. ⚠ The commitment loop — no model at all**
+- [~] **21. ⚠ The commitment loop** — mechanism built and verified 2026-08-18; the evidence it exists for does not exist yet
   The nudge stops being a statement and becomes a question. Reply from the notification:
   *After Isha · In an hour · Tonight · Not today.* Each is a button, not typing. Picking one
   re-arms the reminder for that moment — **task 8's scheduler already turns "after Isha"
@@ -504,6 +504,24 @@ version tests the assumption first, and nothing expensive gets built until it ho
   cannot measure what was not recorded.
   *Done when:* a week of real use exists, with the kept-vs-broken numbers written down.
   **Not "when it works" — when there is evidence about whether it helps.**
+
+  **⚠ Which is why this is not ticked.** The machinery works; the task is not about machinery.
+  It stays open until there are numbers.
+
+  *Built and verified on the emulator 2026-08-18:* the nudge posts with `actions=3` under the
+  title **"Reading today?"**; tapping **After Isha** logged `committed to after Isha, re-armed`,
+  moved `nudge_schedule` to `PRAYER ISHA 30`, stored the commitment, wrote both turns to
+  `chat.json`, and cleared the notification.
+
+  *Three replies, not four.* PLAN listed "Tonight" and it is deliberately absent: `CompanionBrain`
+  does not understand the bare word, so the button would have silently done nothing; it is
+  redundant with "After Isha" given Wird's after-Maghrib default; and Android shows three
+  actions. **Check 35 now asserts every offered reply parses to something**, which is the guard
+  against that whole class of dead button.
+
+  *The buttons send phrases, not codes* — the same words a person would type — so the
+  notification and the chat can never mean different things, and a reply from the lock screen
+  lands in the same conversation.
 
 - [ ] **22. Plain words instead of buttons**
   Replaces the four buttons with typing, once 21 has earned it. "not today, travelling till

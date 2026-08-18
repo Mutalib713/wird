@@ -125,6 +125,17 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+
+        <!--
+            Answering the nudge from the notification itself. PLAN task 21.
+
+            exported="false": only this app's own notification ever sends it, and nothing
+            outside should be able to book a commitment on the reader's behalf.
+        -->
+        <receiver
+            android:name=".nudge.CommitReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>
