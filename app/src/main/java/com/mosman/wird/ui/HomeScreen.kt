@@ -102,7 +102,14 @@ fun HomeScreen(
 
         Spacer(Modifier.height(Scale.space6))
 
+        // ---- what you are reading ----
+        PortionCard(assignment, doneMethod, onOpenPage)
+
         // ---- what is being asked ----
+        //
+        // UNDER the portion, not above it. Mutalib said "the daily portion must come
+        // first" twice; the design leads with the greeting and the companion, and taking
+        // that order put the thing the app exists for in second place.
         if (doneMethod == null) {
             Companion(
                 question = companionQuestion(),
@@ -115,9 +122,6 @@ fun HomeScreen(
             )
             Spacer(Modifier.height(Scale.space4))
         }
-
-        // ---- what you are reading ----
-        PortionCard(assignment, doneMethod, onOpenPage)
 
         // ---- how it has gone ----
         progress?.takeIf { it.totalDaysRead > 0 }?.let { p ->
@@ -199,14 +203,6 @@ private fun PortionCard(assignment: Assignment, doneMethod: Method?, onOpenPage:
                     style = TextStyle(fontSize = Scale.caption),
                 )
             }
-            // The design showed the surah name in Arabic here. SurahIndex carries only
-            // the transliteration, and Qur'anic text is never generated (Sacred Rule 2),
-            // so the page number stands in until a verified Arabic name list is bundled.
-            Text(
-                text = "${assignment.startPage}",
-                color = colors.ornament,
-                style = TextStyle(fontSize = 22.sp),
-            )
         }
 
         Spacer(Modifier.height(Scale.space4))
