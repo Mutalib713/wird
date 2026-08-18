@@ -938,3 +938,62 @@ means it was buried:
 the audio"*. It selects what the check compares against — **reciting from memory, with no
 page, versus reading from the mushaf.** That is a real, buildable distinction and it removes
 the § 5l blocker. It lands with task 14, not before it.
+
+### 5q. The companion is a chat now — built 2026-08-18
+
+§ 5m approved it; this is what shipped. `ChatScreen.kt`, `Companion.kt`, plus
+`domain/Conversation.kt`, `data/ConversationStore.kt` and `domain/CompanionReply.kt`.
+
+**What makes it read as a chat rather than a card with an input:**
+- **Turns persist.** `chat.json`, plain JSON beside `days.json`, capped at 120 turns. A
+  conversation that forgets itself between launches is a form, not a chat.
+- **Sides and tails.** Its lines left on a raised ground, yours right and outlined, with the
+  corner *opposite* the speaker squared to 2dp against 6dp. That squared corner is what makes
+  two boxes read as two people talking.
+- **Bubbles wrap to their words**, capped at 84% width via `BoxWithConstraints`. A fixed
+  `fillMaxWidth(0.84f)` would stretch "at 9" across most of the screen.
+- **The input is pinned to the bottom of the screen**, where every messaging app has taught
+  people to look.
+- **The promise is held in view** — `YOU SAID "after Isha"`, the real armed time, and a
+  breathing dot reading *"Holding since 3:33 am · reminder moved to match"*. Your own words
+  at display size, not "reminder set for 8:00 pm": that is what makes it a promise rather
+  than a setting, and it is the whole of what § 5b is testing.
+
+**Where it lives, and why both.** The chat is a full screen reached from Home's card. Home
+keeps the input, so a commitment is still zero taps away — § 2's procrastination finding
+means anything added between him and answering costs something. The card shows the last two
+turns as bubbles so the two surfaces are visibly the same object.
+
+**One owner for the loop.** `MainActivity.said()` logs your line, understands it, acts, then
+logs the reply. Both surfaces only forward raw text. Your line is written **before** the
+action runs, so a crash mid-action still leaves what you said on disk — PLAN task 21 cannot
+measure commitments made against commitments kept if the making was never recorded.
+`replyFor` moved out of `HomeScreen` into the domain for the same reason: one sentence, two
+screens, one log.
+
+**⚠ The gap is unchanged and is the honest risk.** `CompanionBrain` is still hand-written
+rules. A chat box invites anything; the parser understands a handful of phrasings. Mitigated,
+not solved: the not-understood reply points at the shortcut chips rather than apologising,
+and the chips stay on screen as a standing hint. **Typing *"what does this surah mean"* gets
+a shrug** — which is § 5h's approved feature and is flatly impossible on rules. **PLAN task
+22's engine question is still open and still his.**
+
+**Three things found by running it, not by reading it:**
+1. **The send button was unreachable with the keyboard open.** `safeDrawingPadding()` already
+   includes the IME inset; adding `imePadding()` counted the keyboard twice. Fixed.
+2. **`org.json` is a throwing stub on the JVM unit-test classpath**, which silently made
+   `DayLogStore` and `ConversationStore` — the two classes holding this app's actual records —
+   untestable without an emulator. Fixed with a `testImplementation("org.json:json")`; nothing
+   reaches the APK. Android's suggested alternative, `isReturnDefaultValues = true`, makes the
+   stubs return null instead of throwing, which turns "this never ran" into a passing test.
+3. **The humanizer gate failed on the first draft** — four em dashes, then fourteen curly
+   quotes once those were fixed. The real fix was not punctuation: the strings were listing
+   options in prose while the shortcut chips sat directly underneath showing those same
+   options. They now point at the chips. Shorter, and it stopped saying everything twice.
+   ⚠ One of the em dashes (*"Alright — I'll ask again"*) predated this session and had never
+   been gated, because until now the companion's strings had never been run through it.
+
+**QA checks 21–24 added** (24 tests total): the promise is repeated back rather than
+acknowledged, the not-understood reply carries an example and a pointer, Sacred Rule 3 is
+asserted by *banned words* on a refusal (`streak`, `failed`, `sure?`, `missed`), and the log
+round-trips, rejects whitespace and stays capped.

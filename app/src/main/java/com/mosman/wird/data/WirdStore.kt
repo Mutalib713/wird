@@ -3,11 +3,13 @@ package com.mosman.wird.data
 import android.content.Context
 import androidx.core.content.edit
 import com.mosman.wird.audio.AudioQuality
+import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingPlan
 import java.time.DayOfWeek
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 /** Paper, ink, or the phone's own setting. */
@@ -114,6 +116,33 @@ class WirdStore(context: Context) {
         }
 
     /**
+     * The promise currently being held, if any.
+     *
+     * **Stored, because a promise that evaporates when you close the app is not a promise.**
+     * PROFILE.md § 5b — naming a time to something that checks back is the experiment, and
+     * the check-back has to survive being backgrounded, force-stopped and rebooted, exactly
+     * like the alarm it sits beside.
+     *
+     * One readable string, `"<iso timestamp> <what you said>"`, so a half-written change can
+     * never pair the wrong time with the wrong words. Anything unparseable reads as no
+     * commitment rather than throwing — a corrupt preference must not stop the app opening.
+     */
+    var commitment: Commitment?
+        get() {
+            val raw = prefs.getString(KEY_COMMITMENT, null) ?: return null
+            return runCatching {
+                val at = raw.substringBefore(' ')
+                val spoken = raw.substringAfter(' ')
+                if (spoken.isBlank()) null
+                else Commitment(spoken = spoken, madeAt = LocalDateTime.parse(at))
+            }.getOrNull()
+        }
+        set(value) = prefs.edit {
+            if (value == null) remove(KEY_COMMITMENT)
+            else putString(KEY_COMMITMENT, "${value.madeAt} ${value.spoken}")
+        }
+
+    /**
      * Whether the reader has been shown, once, that tapping the page reveals the chrome.
      *
      * The gesture is otherwise invisible — nothing on a clean mushaf page announces that
@@ -180,6 +209,7 @@ class WirdStore(context: Context) {
         const val KEY_THEME = "theme_mode"
         const val KEY_SEEN_CHROME = "seen_chrome"
         const val KEY_NAME = "reader_name"
+        const val KEY_COMMITMENT = "commitment"
         const val KEY_NUDGE = "nudge_schedule"
         const val KEY_AUDIO = "audio_quality"
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"

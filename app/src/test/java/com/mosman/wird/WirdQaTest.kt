@@ -1,6 +1,7 @@
 package com.mosman.wird
 
 import com.mosman.wird.audio.AudioQuality
+import com.mosman.wird.data.ConversationStore
 import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.data.encodeSchedule
 import com.mosman.wird.domain.CompanionAction
@@ -14,6 +15,7 @@ import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.PrayerMethod
 import com.mosman.wird.domain.PrayerTimes
 import com.mosman.wird.domain.ReadingPlan
+import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.assignPortion
 import com.mosman.wird.domain.label
@@ -21,6 +23,7 @@ import com.mosman.wird.domain.linesOn
 import com.mosman.wird.domain.nextAfter
 import com.mosman.wird.domain.pages
 import com.mosman.wird.domain.progressOf
+import com.mosman.wird.domain.replyFor
 import com.mosman.wird.domain.surahs
 import com.mosman.wird.domain.todaysAssignment
 import com.mosman.wird.mushaf.Glyph
@@ -737,4 +740,85 @@ class WirdQaTest {
 
     private fun glyph(verseKey: String, line: Int) =
         Glyph(code = "x", line = line, verseKey = verseKey, isEndMarker = false)
+}
+
+/**
+ * Checks 21–24 — the conversation.
+ *
+ * Added 2026-08-18 with [com.mosman.wird.ui.ChatScreen]. These cover the parts that are
+ * pure logic and therefore actually testable on the JVM: what gets said back, and what the
+ * store keeps. The screen itself was verified by driving it on the emulator, because bubble
+ * geometry and keyboard insets are not things a unit test can see — the double-inset bug
+ * that clipped the send button was found there and could not have been found here.
+ */
+class ConversationTest {
+
+    /** Check 21 — a commitment is answered with the commitment, not with "OK". */
+    @Test
+    fun `it repeats the promise back in your own words`() {
+        val action = CompanionBrain.understand("after Isha")
+        assertTrue("'after Isha' should be a commitment", action is CompanionAction.CommitTo)
+        val reply = replyFor(action, null, "")
+        assertTrue(
+            "the reply must contain what was promised, not just acknowledge it: $reply",
+            reply.contains("after Isha"),
+        )
+    }
+
+    /**
+     * Check 22 — the not-understood reply names what it *does* know.
+     *
+     * PROFILE.md § 5m: a chat box invites anything and the parser is rules. This is the one
+     * mitigation, so it is the one worth asserting. A bare apology is a dead end.
+     */
+    @Test
+    fun `a sentence it cannot parse gets examples, not just an apology`() {
+        val action = CompanionBrain.understand("what does this surah mean")
+        assertTrue(action is CompanionAction.NotUnderstood)
+        val reply = replyFor(action, null, "")
+        assertTrue("should offer a concrete example: $reply", reply.contains("after Isha"))
+        assertTrue("should point at the shortcuts: $reply", reply.contains("buttons below"))
+        assertFalse("should not merely apologise: $reply", reply.trim().endsWith("catch that."))
+    }
+
+    /** Check 23 — Sacred Rule 3: a refusal is met with no guilt and no argument. */
+    @Test
+    fun `saying not today is answered kindly and changes nothing`() {
+        val action = CompanionBrain.understand("not today")
+        val reply = replyFor(action, null, "").lowercase()
+        listOf("streak", "failed", "sure?", "but ", "missed").forEach { banned ->
+            assertFalse("Sacred Rule 3 violated by '$banned' in: $reply", reply.contains(banned))
+        }
+    }
+
+    /** Check 24 — the log keeps order, survives a round trip, and is capped. */
+    @Test
+    fun `the conversation round-trips and stays bounded`() {
+        val dir = java.nio.file.Files.createTempDirectory("wird-chat").toFile()
+        try {
+            val store = ConversationStore(dir)
+            assertTrue("a fresh store is empty", store.all().isEmpty())
+
+            store.say(Speaker.YOU, "after Isha")
+            store.say(Speaker.WIRD, "Alright — I'll ask again after Isha.")
+
+            val reread = ConversationStore(dir).all()
+            assertEquals("both turns survive a reload", 2, reread.size)
+            assertEquals(Speaker.YOU, reread[0].who)
+            assertEquals("after Isha", reread[0].text)
+            assertEquals("order is kept", Speaker.WIRD, reread[1].who)
+
+            // Blank input is not a turn — the send button is disabled for it, but the store
+            // must not depend on a screen to enforce that.
+            store.say(Speaker.YOU, "   ")
+            assertEquals("whitespace is not a turn", 2, ConversationStore(dir).all().size)
+
+            repeat(200) { store.say(Speaker.YOU, "line $it") }
+            val capped = ConversationStore(dir).all()
+            assertTrue("the log is capped, was ${capped.size}", capped.size <= 120)
+            assertEquals("the newest turn is kept", "line 199", capped.last().text)
+        } finally {
+            dir.deleteRecursively()
+        }
+    }
 }

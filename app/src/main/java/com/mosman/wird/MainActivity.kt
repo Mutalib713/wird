@@ -18,6 +18,8 @@ import com.mosman.wird.data.DayLogStore
 import com.mosman.wird.data.Where
 import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.CompanionAction
+import com.mosman.wird.domain.CompanionBrain
+import com.mosman.wird.domain.replyFor
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.ReadingPlan
@@ -32,6 +34,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import com.mosman.wird.audio.Recitation
+import com.mosman.wird.data.ConversationStore
+import com.mosman.wird.domain.Commitment
+import com.mosman.wird.domain.Speaker
+import com.mosman.wird.ui.ChatScreen
 import com.mosman.wird.ui.HomeScreen
 import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
@@ -43,6 +49,7 @@ import com.mosman.wird.ui.TodayScreen
 import com.mosman.wird.ui.positionLabelFor
 import com.mosman.wird.ui.theme.WirdTheme
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 /** Where the app can be. There is no home screen; today's portion is the front door. */
 private enum class Screen { SETUP, TODAY, SETTINGS }
@@ -53,6 +60,7 @@ class MainActivity : ComponentActivity() {
         Nudge.createChannel(this)
         val store = WirdStore(this)
         val days = DayLogStore(this)
+        val chat = ConversationStore(filesDir)
 
         setContent {
             var screen by remember {
@@ -66,6 +74,10 @@ class MainActivity : ComponentActivity() {
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var readerName by remember { mutableStateOf(store.readerName) }
+            var turns by remember { mutableStateOf(chat.all()) }
+            var commitment by remember { mutableStateOf(store.commitment) }
+            /** The chat, opened from Home's companion card. */
+            var onChat by remember { mutableStateOf(false) }
             var armed by remember { mutableStateOf<Armed?>(null) }
             var tab by remember { mutableStateOf(WirdTab.HOME) }
             /** Set when a surah is picked from the Sūrahs tab; consumed by TodayScreen. */
@@ -141,11 +153,95 @@ class MainActivity : ComponentActivity() {
                 todaysAssignment(startUnit = position, plan = plan, date = today)
             }
 
+            /**
+             * One sentence in, everything that follows out.
+             *
+             * **The whole companion loop lives here and nowhere else.** Both surfaces — the
+             * card on Home and [ChatScreen] — only forward raw text; they do not understand
+             * it, act on it, or word the reply. That matters because the conversation is now
+             * persisted: if a screen kept its own copy of what was said, two screens would
+             * disagree about it the moment you moved between them.
+             *
+             * The order is deliberate. Your line is logged **before** the action runs, so a
+             * crash mid-action still leaves what you said on disk. PLAN task 21 needs that:
+             * it cannot measure commitments made against commitments kept if the making was
+             * never recorded.
+             */
+            fun said(text: String) {
+                val t = text.trim()
+                if (t.isEmpty()) return
+                turns = chat.say(Speaker.YOU, t)
+
+                val action = CompanionBrain.understand(t)
+                when (action) {
+                    // A commitment becomes a real alarm. This is the whole point: task 8's
+                    // scheduler already turns "after Isha" into a time that moves with the
+                    // sun, so the sentence lands on machinery rather than on a promise.
+                    is CompanionAction.CommitTo -> {
+                        store.nudgeSchedule = action.schedule
+                        schedule = action.schedule
+                        commitment = Commitment(spoken = action.spoken, madeAt = LocalDateTime.now())
+                        store.commitment = commitment
+                        reArm()
+                    }
+                    is CompanionAction.MarkDone -> {
+                        days.markDone(
+                            date = today,
+                            method = Method.TAPPED,
+                            audio = null,
+                            startUnit = assignment.startUnit,
+                            units = assignment.units,
+                        )
+                        doneMethod = days.methodFor(today)
+                        progress = progressOf(days.all(), today)
+                        store.positionUnit = assignment.nextStartUnit
+                        position = store.positionUnit
+                        store.startVerse = null
+                        startVerse = null
+                        // The promise is spent. Leaving it pinned would have the app still
+                        // holding you to something you have already done.
+                        commitment = null
+                        store.commitment = null
+                    }
+                    is CompanionAction.OpenSurah -> {
+                        openPage = action.surah.firstPage
+                        onPage = true
+                        onChat = false
+                    }
+                    is CompanionAction.Listen -> {
+                        onPage = true
+                        onChat = false
+                    }
+                    // Saying "not today" changes nothing on purpose. There is no row for a
+                    // missed day and no penalty to apply - the reply already said it is
+                    // fine. Sacred Rule 3.
+                    else -> Unit
+                }
+
+                turns = chat.say(
+                    Speaker.WIRD,
+                    replyFor(action, progress, positionLabelFor(startVerse, Mushaf.pageOf(position))),
+                )
+            }
+
             WirdTheme(mode = theme) {
                 // Setup sits outside the tabs on purpose: there is nowhere else to be
                 // until it is finished, and a tab bar during setup is four ways to
                 // abandon the one thing being asked.
-                if (screen == Screen.SETUP) {
+                if (onChat) {
+                    // A full screen rather than a sheet: PROFILE.md § 5m. The whole point
+                    // is that it reads unmistakably as a chat, and a half-height sheet with
+                    // a tab bar under it does not.
+                    ChatScreen(
+                        turns = turns,
+                        commitment = if (doneMethod == null) commitment else null,
+                        checkingBackAt = (armed as? Armed.At)?.time?.let(::clockLabel)
+                            ?: (armed as? Armed.AtFallback)?.time?.let(::clockLabel),
+                        shortcuts = listOf("After Isha", "In an hour", "Not today", "Already did it"),
+                        onSend = { said(it) },
+                        onBack = { onChat = false },
+                    )
+                } else if (screen == Screen.SETUP) {
                     SetupScreen(
                         onDone = { page, unitsPerDay, verse, name ->
                             store.positionPage = page
@@ -195,43 +291,9 @@ class MainActivity : ComponentActivity() {
                                 store.startVerse = null
                                 startVerse = null
                             },
-                            onCompanionAction = { action ->
-                                when (action) {
-                                    // A commitment becomes a real alarm. This is the whole
-                                    // point: task 8's scheduler already turns "after Isha"
-                                    // into a time that moves with the sun, so the sentence
-                                    // lands on machinery rather than on a promise.
-                                    is CompanionAction.CommitTo -> {
-                                        store.nudgeSchedule = action.schedule
-                                        schedule = action.schedule
-                                        reArm()
-                                    }
-                                    is CompanionAction.MarkDone -> {
-                                        days.markDone(
-                                            date = today,
-                                            method = Method.TAPPED,
-                                            audio = null,
-                                            startUnit = assignment.startUnit,
-                                            units = assignment.units,
-                                        )
-                                        doneMethod = days.methodFor(today)
-                                        progress = progressOf(days.all(), today)
-                                        store.positionUnit = assignment.nextStartUnit
-                                        position = store.positionUnit
-                                        store.startVerse = null
-                                        startVerse = null
-                                    }
-                                    is CompanionAction.OpenSurah -> {
-                                        openPage = action.surah.firstPage
-                                        onPage = true
-                                    }
-                                    is CompanionAction.Listen -> onPage = true
-                                    // Saying "not today" changes nothing on purpose. There
-                                    // is no row for a missed day and no penalty to apply -
-                                    // the reply already said it is fine. Sacred Rule 3.
-                                    else -> Unit
-                                }
-                            },
+                            turns = turns,
+                            onSaid = { said(it) },
+                            onOpenChat = { onChat = true },
                         ) else TodayScreen(
                         assignment = assignment,
                         startVerse = startVerse,
@@ -330,3 +392,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+/**
+ * "8:10 pm" from an armed alarm time.
+ *
+ * The chat shows the real scheduled moment rather than re-deriving one, so what it promises
+ * and what `dumpsys alarm` will show can never drift apart.
+ */
+private fun clockLabel(at: java.time.ZonedDateTime): String =
+    at.format(java.time.format.DateTimeFormatter.ofPattern("h:mm a")).lowercase()

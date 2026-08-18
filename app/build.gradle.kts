@@ -84,4 +84,19 @@ dependencies {
     // The whole domain layer is pure Kotlin with no Android dependency, so junit
     // alone tests all of it.
     testImplementation("junit:junit:4.13.2")
+
+    // **Test-only, and it buys a real capability rather than convenience.**
+    //
+    // `org.json` ships with Android as an API but as a *stub* on the JVM unit-test
+    // classpath — every method throws `Method ... not mocked`. That silently makes the two
+    // classes holding this app's actual records, `DayLogStore` and `ConversationStore`,
+    // untestable without an emulator. This is the real implementation, so they can be.
+    //
+    // The alternative Android suggests, `unitTests.isReturnDefaultValues = true`, makes the
+    // stubs return null instead of throwing — which turns "this code never ran" into a
+    // passing test. That is worse than no test.
+    //
+    // Nothing here reaches the APK: `testImplementation` is compile-and-run for unit tests
+    // only, so app size is untouched. § 10.
+    testImplementation("org.json:json:20250107")
 }
