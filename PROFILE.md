@@ -1461,3 +1461,43 @@ offline from the moment it installs, which on Ghanaian mobile data is the more v
 (Abridged) `169`, Ma'arif al-Qur'an `168`, Tazkirul Quran `817`. Same fetch-and-attribute
 requirement, and § 5h's rule stands absolutely: **fetched and attributed on screen, never
 generated.**
+
+### 5aa. Bookmarks — built 2026-08-18
+
+His sequence was translations-discussion, then bookmarks, then translations. This is the middle
+one.
+
+**Long-press an ayah → the toolbar → save it.** The store is a JSON file beside `days.json` and
+`chat.json`, holding only the verse key and when it was saved.
+
+**Only the key is stored, never the words.** "18:10" is nine bytes and it cannot drift from the
+source; a copy of the Arabic sitting in a second file could. Sacred Rule 2 applies to what the
+app *keeps* as much as to what it displays. There is a test asserting every stored bookmark
+matches `\d+:\d+` and nothing else.
+
+**Newest first, and no folders, tags or notes.** The reference's toolbar has a tag button;
+Wird's does not, deliberately. An ayah you saved is either still worth returning to or it is
+not, and every organising feature is a thing to maintain instead of a thing to read.
+
+**Where they live: the top of the Sūrahs tab, not a fourth tab.** The reference makes BOOKMARKS
+a tab beside SŪRAHS and JUZʾ, but § 5t fixed the count at three on his instruction and a fourth
+was not asked for. That tab is already "read anywhere you like", so a saved ayah belongs at the
+top of it. **The section disappears when empty** rather than showing an empty state — a heading
+over nothing teaches you the feature exists at the cost of a permanent hole.
+
+**⚠ A star, not the reference's ribbon.** There is no bookmark glyph in `material-icons-core` —
+147 icons, checked in the artifact — and `app/build.gradle.kts` rules out
+`material-icons-extended` because it is several megabytes for a handful of shapes. Filled versus
+hollow star is the same idea in an icon already present.
+
+**⬜ Known limitation, written down rather than hidden:** the saved row shows the *surah's*
+opening page, not the ayah's real page. An ayah deep in Al-Baqarah displays 2. Resolving it
+properly needs that ayah's page layout, which is a fetch or a cache read per row, and this is a
+list meant to be glanced at. **Tapping still lands on the right ayah**, because that lookup
+happens once, on open.
+
+**⚠ A bookkeeping mistake worth recording, since this repo's commit messages carry the
+reasoning:** the bookmark work was verified on the emulator but never committed on its own, and
+`git add -A` swept it into **8f3f77a**, whose message describes only the Juzʾ band fix. Pushed
+history was left alone rather than rewritten — CLAUDE.md prefers a new commit to an amend — so
+this paragraph is the correction. **Verify, then commit, before starting the next thing.**
