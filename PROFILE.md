@@ -871,3 +871,70 @@ rise with it. § 5h's approved tafsir and daily verse are flatly impossible on r
 
 *"the tabs there will be four right — home, surah, history and more."* Confirmed. That is
 exactly what `TabBar.kt` already ships. No change; recorded so it stops being re-asked.
+
+### 5o. ⚠ The first Home port failed, and why. 2026-08-18
+
+Shown the built screen, Mutalib rejected it: *"you didn't implement the same things, yours
+looks terrible and not arranged well, it's not even divided, check the page and do it well."*
+
+**The diagnosis, because the mistake is repeatable and worth naming.** The port was built by
+reading the design's **text order** off the rendered page — the list of strings, top to
+bottom — and reproducing that order with `Text` and `Spacer`. The order was right. Everything
+that held it *apart* was missing, because none of it is text and none of it showed up in a
+text dump.
+
+**What a text reading cannot see, and what was therefore absent:**
+
+| The design has | The first port had |
+|---|---|
+| Toolbar on its own raised ground, full-bleed | Two lines of text floating on the page |
+| Portion as a section closed by a full-width hairline | A rounded translucent card |
+| A progress bar through the mushaf | Nothing |
+| The sūrah numeral badge (`١٨ · SŪRAH`) | Nothing |
+| The three done controls, in the section | Nothing |
+| Companion card at radius 14, chips as **full pills** | Radius 6, chips as rounded rectangles |
+| A gold dot separating the two figures | A gap |
+| `THIS WEEK` in a tinted band over ruled rows | Plain text and loose rows |
+| A left marker per row: **filled = recited, hollow = tapped** | Only the words said which |
+
+**The rule this produces, and it should outlive this screen: read a design's STRUCTURE, not
+its STRINGS.** `get_page_text` gives the order and nothing else. The structure lives in
+computed borders, backgrounds, radii and padding, and it has to be read out of the DOM
+deliberately — which is what fixed it: walking the after phone's element tree and dumping
+`borderTopWidth`, `backgroundColor`, `borderRadius` and `padding` per node.
+
+**Sections are separated by edges, not by empty space.** That is the whole difference between
+a screen that reads as divided and one that reads as a long column of text.
+
+**What was ported, and what was refused:**
+- ✅ The structure above, in full.
+- ❌ **The crimson.** The design fills its recite control with `rgb(86,12,21)` — the
+  Nutcracker `--crimson` § 6/8 already ruled on: *strip what is unused rather than porting
+  the whole token set.* Our accent carries it instead.
+- ⚠ **The juzʾ number** is in the design's toolbar and is not here. Home does not have it
+  without loading the page, and § 10 says a number is measured, not guessed.
+- ⚠ **Only "I read it" completes the day from Home.** Recite and Listen open the page,
+  because the recorder and player both live in `TodayScreen` — see § 5j. Honest, not ideal.
+
+**Verified on the emulator in both themes**, which was an accident worth keeping: a stray tap
+during testing left the app in Paper, and the layout held — with `accent` correctly resolving
+to ink-soft rather than gold, exactly as § 6b requires, since gold on cream is 2.06:1.
+
+### 5p. Tajweed and mistake-marking — his question, answered 2026-08-18
+
+He asked whether the tajweed / mistake-correction idea was recorded. **It is** — § 5a, in his
+own words, and the verdict there still stands. Repeated here because he had to ask, which
+means it was buried:
+
+- **Post-hoc analysis is fine.** The old objection *"live word-by-word following is ~5×
+  slower than real time"* does **not** apply — he wants record → finish → review, which is
+  what task 14 already is.
+- **Naming the error type is not.** `whisper-base-ar-quran` transcribes; it does not judge
+  tajweed. It can say *where you stopped matching the expected words*. It cannot say whether
+  a madd was held long enough. Promising tajweed feedback it cannot deliver would be the
+  worst failure this app could have.
+
+**And the memorising/reading question (§ 5l) now has its answer:** he said it *"has to do with
+the audio"*. It selects what the check compares against — **reciting from memory, with no
+page, versus reading from the mushaf.** That is a real, buildable distinction and it removes
+the § 5l blocker. It lands with task 14, not before it.

@@ -178,6 +178,23 @@ class MainActivity : ComponentActivity() {
                             // The week's page column. Days marked before task 6 began
                             // storing what they covered have no page, and show none.
                             pageFor = { date -> days.coveredOn(date)?.first?.let(Mushaf::pageOf) },
+                            // The tap route, from Home. Same path the companion's "already
+                            // did it" takes, and logged as a tap exactly the same way.
+                            onMarkRead = {
+                                days.markDone(
+                                    date = today,
+                                    method = Method.TAPPED,
+                                    audio = null,
+                                    startUnit = assignment.startUnit,
+                                    units = assignment.units,
+                                )
+                                doneMethod = days.methodFor(today)
+                                progress = progressOf(days.all(), today)
+                                store.positionUnit = assignment.nextStartUnit
+                                position = store.positionUnit
+                                store.startVerse = null
+                                startVerse = null
+                            },
                             onCompanionAction = { action ->
                                 when (action) {
                                     // A commitment becomes a real alarm. This is the whole
