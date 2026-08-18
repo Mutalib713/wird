@@ -1339,6 +1339,20 @@ reading the artifact rather than guessing:
   minSdk 26. Split into `res/xml-v31/` rather than exempting the check. The picker showing
   "3 × 2" is the proof that versioned file is the one being read.
 
+✅ **VERIFIED 2026-08-18, placed by hand on the emulator.** It renders `TODAY'S PORTION` /
+`Al-Fatihah` / `One page · page 1` / `Not yet marked`, and `dumpsys appwidget` reports a bound
+instance carrying real `RemoteViews` rather than the loading layout. ⬜ The other half of the
+done-when — *"still shows the right thing the next morning"* — needs a night to pass, **and
+needs a Transsion phone rather than the emulator**, since surviving the OEMs that kill
+background work is the entire point of this task.
+
+**Kept as a note on tooling, because it cost several attempts:** placing a widget over adb
+does not work. `input swipe`, `input draganddrop` and a hand-built motion-event sequence all
+failed to bind it — the launcher wants a real long-press-and-drag. A hand does it in five
+seconds. Do not spend turns on this again.
+
+*(The paragraph below was written before it was placed, and is kept for the record.)*
+
 ⬜ **NOT YET VERIFIED, and the task is not ticked because of it.** PLAN task 10's done-when is
 *"the widget sits on the Pixel home screen showing the correct portion, and still shows the
 right thing the next morning."* What is proven: the provider registers, the launcher lists it

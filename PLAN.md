@@ -385,11 +385,28 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
 
   *⬜ Still unproven:* the 50 MB LRU prune, which needs ~20 pages of history to trigger.
 
-- [ ] **10. Home screen widget**
-  Jetpack Glance. Today's portion and done/not-done. Updates daily. The nudge that
-  cannot be swiped away or killed.
-  *Done when:* the widget sits on the Pixel home screen showing the correct portion, and
-  still shows the right thing the next morning.
+- [x] **10. Home screen widget** — built 2026-08-18, rendering verified, overnight pending
+  Jetpack Glance. Today's portion and done/not-done. The nudge that cannot be swiped away
+  or killed.
+
+  *Verified on the emulator, placed by hand:* the widget shows `TODAY'S PORTION` /
+  `Al-Fatihah` / `One page · page 1` / `Not yet marked`, and `dumpsys appwidget` reports a
+  bound instance with real `RemoteViews` rather than the loading layout.
+
+  *Decisions worth keeping:*
+  - **It cannot mark a day.** A button on a home screen is where "done" becomes a reflex
+    rather than a recitation. Tapping opens the app. Sacred Rule 6.
+  - **It is pushed, never polled.** `updatePeriodMillis` is 0 — the platform clamps it to
+    thirty minutes and ignores it while dozing, so it would be right only sometimes and
+    spend battery being wrong. `refreshWidget()` fires from the four paths that change
+    what it shows. ⚠ Undo needed wiring separately and would have left the widget claiming
+    a day was done after it was undone.
+  - **264 KB**, measured by building the same tree with and without Glance (17.27 → 17.52
+    MB debug). Less than one page of recitation audio.
+
+  ⬜ **Still open:** *"still shows the right thing the next morning."* That needs a night to
+  pass, and it needs checking on a real Transsion phone rather than the emulator — the
+  whole point of this task is surviving the OEMs that kill background work.
 
 ## Milestone 3 — Levers and honesty
 
