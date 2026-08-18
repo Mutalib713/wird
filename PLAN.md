@@ -414,10 +414,30 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   One tap, Android share sheet, nobody else installs anything.
   *Done when:* a voice note lands in a real WhatsApp chat from the phone.
 
-- [ ] **12. ⚠ Deep links out to Quran for Android and Tarteel**
-  *Risky because:* the target apps may accept no deep link at all.
-  *Done when:* the buttons open the right ayah in the right app — **or** we have proof
-  they cannot, the buttons are deleted, and PROFILE.md § 11 records why.
+- [~] **12. ⚠ Deep links** — half-resolved 2026-08-18. One proven and built, one undetermined and refused
+  *Risky because:* the target apps may accept no deep link at all. That risk was real and it
+  split the task in two.
+
+  **Quran for Android — PROVEN, built.** Its manifest exports `QuranForwarderActivity` with
+  `<data android:scheme="quran"/>`, and that activity splits the URI on `/` and takes the first
+  numeric segment as sura, the second as ayah. So `quran://18/10` opens Al-Kahf 10. Read from
+  their GPL source rather than guessed, and check 37 asserts the shape Wird builds.
+
+  **Tarteel — UNDETERMINED, deliberately not built.** Closed source, no published scheme,
+  nothing in its listing or docs. **That is not proof it has none**, so this is not the "proof
+  they cannot" the task allows for — it is honestly unknown. A button that merely launched
+  Tarteel's home screen would look like a deep link without being one, which is worse than no
+  button. Settling it needs the APK and `aapt dump xmltree`.
+
+  **The action only exists when the app does.** Wird asks the package manager, and shows no
+  button when the target is missing — rather than one that opens the Play Store, which is an
+  advert wearing a feature's clothes. On API 30+ that needs a `<queries>` entry, scoped to the
+  one scheme rather than `QUERY_ALL_PACKAGES`.
+
+  ⬜ **Verified only in the negative.** On the emulator, with nothing handling `quran://`, the
+  toolbar correctly shows Bookmark, Play, Share, Close and no more. **Nobody has seen the button
+  appear and open an ayah**, because that app cannot be installed here. First real phone that
+  has it settles it.
 
 - [ ] **13. ⚠ Plain-words setup**
   "One page a day, half on Fridays, I'm travelling next week" → a real schedule.

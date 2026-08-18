@@ -8,6 +8,7 @@ import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.data.encodeSchedule
 import com.mosman.wird.domain.CompanionAction
 import com.mosman.wird.nudge.CommitReceiver
+import com.mosman.wird.ui.OpenElsewhere
 import com.mosman.wird.domain.CompanionBrain
 import com.mosman.wird.domain.Coordinates
 import com.mosman.wird.domain.DayLog
@@ -1090,5 +1091,41 @@ class NotificationRepliesTest {
             "one of the three must be the refusal",
             actions.any { it is CompanionAction.NotToday },
         )
+    }
+}
+
+/**
+ * Check 37 — the Quran for Android deep link is built the way that app parses it.
+ *
+ * **PLAN task 12.** Its `QuranForwarderActivity` splits the whole URI string on `/` and takes
+ * the first numeric segment as the sura and the second as the ayah. So the shape matters more
+ * than the host, and this asserts the shape rather than trusting it stayed right through an
+ * edit. Read from that project's own GPL source, not guessed.
+ */
+class DeepLinkTest {
+
+    @Test
+    fun `a verse key becomes the uri Quran for Android expects`() {
+        assertEquals("quran://18/10", OpenElsewhere.quranUriFor("18:10"))
+        assertEquals("quran://1/1", OpenElsewhere.quranUriFor("1:1"))
+        assertEquals("quran://114/6", OpenElsewhere.quranUriFor("114:6"))
+    }
+
+    /** A key with no ayah still has to open the sura rather than produce a broken URI. */
+    @Test
+    fun `a bare surah defaults to its first ayah`() {
+        assertEquals("quran://36/1", OpenElsewhere.quranUriFor("36"))
+    }
+
+    /**
+     * The two numbers the forwarder reads must be the ones we meant. Splitting the built URI
+     * the way that activity does is the closest this can get to testing their parser.
+     */
+    @Test
+    fun `their parser would read the surah and ayah we intended`() {
+        val numbers = OpenElsewhere.quranUriFor("2:255")
+            .split("/")
+            .mapNotNull { it.toIntOrNull() }
+        assertEquals(listOf(2, 255), numbers.take(2))
     }
 }

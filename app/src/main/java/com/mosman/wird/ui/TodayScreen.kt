@@ -425,6 +425,12 @@ fun TodayScreen(
                     bookmarkTick++
                 },
                 onPlay = { listen() },
+                onOpenElsewhere = OpenElsewhere.intentFor(context, key)?.let { i ->
+                    {
+                        context.startActivity(i)
+                        selectedVerse = null
+                    }
+                },
                 onShare = {
                     val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                         type = "text/plain"

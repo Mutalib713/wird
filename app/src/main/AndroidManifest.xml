@@ -5,6 +5,22 @@
       Fetching mushaf pages and their glyph fonts, once each, then cached on disk
       forever. Nothing is ever uploaded — see Sacred Rule 1.
     -->
+
+    <!--
+      PLAN task 12. On API 30 and up an app cannot see another package unless it says so
+      here; without this, "is Quran for Android installed?" answers no on every phone.
+
+      Scoped to the one scheme rather than QUERY_ALL_PACKAGES, which is a Play-policy
+      flashpoint and would let Wird enumerate everything installed. It has no business
+      knowing that.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="quran" />
+        </intent>
+    </queries>
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 

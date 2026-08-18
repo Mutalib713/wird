@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -49,6 +50,8 @@ fun VerseActions(
     onBookmark: () -> Unit,
     onPlay: () -> Unit,
     onShare: () -> Unit,
+    /** Null when Quran for Android is not installed, and then no button appears. */
+    onOpenElsewhere: (() -> Unit)?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -76,6 +79,11 @@ fun VerseActions(
         )
         ActionIcon(Icons.Filled.PlayArrow, "Play this ayah", onPlay)
         ActionIcon(Icons.Filled.Share, "Share this ayah", onShare)
+        // **PLAN task 12, and it only exists when the other app does.** A button that opened
+        // the Play Store instead would be an advert wearing a feature's clothes.
+        onOpenElsewhere?.let {
+            ActionIcon(Icons.AutoMirrored.Filled.ExitToApp, "Open in Quran for Android", it)
+        }
         ActionIcon(Icons.Filled.Close, "Close", onDismiss)
     }
 }
