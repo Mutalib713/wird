@@ -1053,3 +1053,73 @@ describe each other — the test fails if the tap label ever contains the word "
 memory" and "I revised it", and More shows `How you read · FROM MEMORY`. The name was skipped
 on that run, which also confirmed the fallback — the greeting reads a bare "Good morning" with
 no invented name.
+
+## 6d. PALETTE — teal and manila, after Quran for Android. Pinned 2026-08-18
+
+**Sacred Rule 8 reversed a second time, in two days, on Mutalib's explicit word.** He was
+told plainly in the asking that this was the second reversal and that it costs Wird its own
+look in exchange for someone else's. He chose it anyway. It is his call, it is canon, and
+§ 6c stays as the record of the gold direction rather than as something to drift back to.
+
+**Read from source, not from screenshots** —
+[`values/colors.xml`](https://github.com/quran/quran_android/blob/main/app/src/main/res/values/colors.xml)
+and `values-night/colors.xml` in quran/quran_android (GPL-3.0). Colour *values* are data, not
+code, so nothing here is a derivative of their source; the debt is named rather than hidden.
+
+### Light
+
+| Role | Hex | Measured |
+|---|---|---|
+| surface (chrome) | `#FAF8F7` | theirs |
+| **page (mushaf)** | `#FFF4CB` | theirs — warm manila, not white |
+| textPrimary | `#212529` | 14.57:1 AAA |
+| textSecondary | `#656E76` | 4.90:1 AA — **darkened from theirs** |
+| accent | `#00767F` | 5.09:1 AA — **darkened from theirs** |
+| textOutsidePortion | `#848B93` | 3.13:1 on the page, deliberately |
+| surfaceRaised | `#F1F3F5` | secondary 4.67, accent 4.84 |
+| band (Juz′ rows) | `#DEE2E6` | theirs |
+
+### Dark — adopted whole, no correction needed
+
+| Role | Hex | Measured |
+|---|---|---|
+| surface | `#212121` | theirs |
+| page | `#1A1A1A` | ours, just off the chrome |
+| textPrimary | `#FFFFFF` | 16.10:1 AAA |
+| textSecondary | `#B5B5B5` | 7.85:1 AAA |
+| accent | `#B2DFDB` | 11.10:1 AAA |
+| surfaceRaised | `#303030` | theirs |
+| band | `#424242` | theirs |
+
+### ⚠ The measurement that changed two of their colours
+
+**Their light palette does not meet AA for body text on two roles**, computed rather than
+assumed:
+
+- their detail grey `#6C757D` on their surface `#FAF8F7` → **4.43:1**, under the 4.5 floor
+- their teal `#00838F` on the same surface → **4.27:1**, also under it
+
+This is not a criticism of their app — those roles carry short labels there, and both clear
+the 3.0 large-text floor. **Wird puts whole sentences in them.** So exactly two values are
+darkened and nothing else is touched. Their *dark* palette needed no adjustment at all.
+
+### ⚠ One rule this palette carries
+
+On the light band `#DEE2E6`, `textSecondary` is **3.99:1 and fails**. A section label sitting
+on a band must use `textPrimary`. On the dark band it is 4.90:1 and either works.
+
+### Two things this fixed on the way past
+
+- **The mushaf finally has its own ground.** PROFILE has claimed since § 6b that "the page
+  stays cream in both modes"; the code painted it with `surface` like every other screen, so
+  it never did. `WirdColors.page` makes the claim true.
+- **The accent is now a different colour per theme**, deep teal on light and pale teal on
+  dark, which is what the old gold needed and never got. It is why the old palette had a rule
+  saying gold may never be a word on the light ground.
+
+### What the highlights are for, taken verbatim
+
+`highlightReciting` = `#4046A646` (their `audio_highlight`) and `highlightSelected` =
+`#404694A6` (their `selection_highlight`). Both 25% alpha over a solid. Not yet used — they
+belong to the reciting-highlight and select-a-verse behaviours Mutalib pointed at in his
+reference screenshots, which are still to build.

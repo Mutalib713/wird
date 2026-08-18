@@ -92,7 +92,7 @@ fun MushafPageView(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.surface)
+            .background(colors.page)
             .then(
                 if (onBackgroundTap == null) {
                     Modifier

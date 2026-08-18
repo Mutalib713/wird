@@ -388,7 +388,7 @@ private fun ThisWeek(recent: List<DayLog>, pageFor: (LocalDate) -> Int?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.ornament.copy(alpha = 0.08f))
+            .background(colors.band)
             .padding(horizontal = Scale.space4, vertical = Scale.space3),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
