@@ -104,6 +104,36 @@ to be changed to anytime the user wants."
 
 ### Recorded for later, deliberately not killed
 
+**His ideas of 2026-08-19, placed rather than built.** All four came in one message; two are
+blocked on the recitation checker, and the two that are not are recorded here with the order he
+gave them: *"4 is a later thing and 3 is later but sooner."*
+
+**⏳ 3. Ramadan asks about your plan — later, but sooner.**
+Around Ramadan the companion asks what you intend for the month, and holds you to it the way it
+holds you to a time. It fits the machinery that already exists — a plan, a schedule, commitments
+— and it is the one month of the year when almost every Muslim reader already has a target in
+their head. ⚠ **It is also dated work**: it is worth nothing outside a six-week window, so it has
+to be finished before Ramadan or wait a year. That is what makes it "sooner" despite being later.
+
+**⏳ 4. A separate revision track — later, and the largest change in the app.**
+*"You can start something that is separate from your daily portion and it won't affect it, or
+even you can pause it."* Revise from here to there, running alongside the daily wird, with its
+own position and its own pause.
+
+⚠ **This is the biggest structural change Wird has had since it was built, and the reason is one
+sentence: the app currently has exactly one position.** `positionUnit`, one plan, one streak, one
+widget, one export. Two readings at once means two of each, and every screen that says "today's
+portion" has to say *which*. That is a data-model change, not a feature — which is precisely why
+it is recorded here rather than started.
+
+**⛔ 1 and 2 are blocked on task 14, not scheduled.**
+*Finishing a sūrah congratulates you and offers to hear the whole thing back*, and *a weekly
+check-in to recite the week's learning*. Both hinge on the words "so it checks for mistakes",
+which is the half of task 14 that needs whisper — 45-57 MB, unproven on his voice. **They cannot
+be honestly promised before that measurement exists**, and building the congratulation without
+the checking would be the feature with its reason removed, which is how task 11 died.
+
+
 **A full mushaf reader with Tarteel-style live correction inside Wird.** Mutalib wants
 this and said so plainly. It is parked, not deleted. Blocked on: (a) mushaf image and
 font licensing, (b) v1 first proving he actually uses this for 30 days. Reopening it is
@@ -2216,3 +2246,30 @@ notice a change made *outside* the app.
 against `lastNudgeFiredAt` to catch a battery manager killing the alarm. This is the *other*
 failure and the more common one: the alarm runs perfectly and the notification is silently
 discarded. Both belong in the same place, and only one is built.
+
+### 5au. Two corrections to what the numbers claim. 2026-08-19
+
+**1. The percentage is the sūrah now, not the mushaf.** His word: *"make it the percentage to
+finish the chapter rather."*
+
+⚠ **The old figure was a bookmark wearing an achievement's clothes.** Position over 1,208
+half-pages read **73%** on his phone on day one, because he set his position to page 442 during
+setup — before a single page had been read *in Wird*. A number that large, that early, beside a
+progress bar, invites exactly the belief Sacred Rule 6 exists to prevent. A sūrah is also the
+unit a reader feels: "two pages left of Al-Kahf" is a thing you can finish tonight, and finishing
+is what his idea 1 wants to congratulate.
+
+**2. ⬜ Reading direction is an open question, and a real one.** His instruction:
+*"for whether it's mushaf or from memory, ask the user if it's from that sūrah upwards or
+downwards."*
+
+**He is describing how ḥifẓ is actually done and the app does not know about it.** Memorisers
+commonly start at the back — Juzʾ 30, the short sūrahs — and work **towards** Al-Baqarah, so
+their position moves *down* the mushaf while a reader's moves up. Wird's position only ever
+advances forwards, wrapping 604 → 1, which means it is silently wrong for a whole way of using
+the Qur'an, and § 5r's memorising mode currently changes nothing but labels.
+
+**Not built, deliberately:** it changes `assignPortion`, the wrap at both ends, the widget, the
+week's page column and the setup question, and it deserves its own task rather than being
+squeezed into an evening. ⚠ It should be asked **at setup, next to the memorise-or-read question**,
+because those two answers belong together — that is his point.

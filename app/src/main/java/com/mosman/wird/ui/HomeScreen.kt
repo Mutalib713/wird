@@ -591,43 +591,72 @@ private fun BookGlyph(tint: Color) {
 }
 
 /**
- * How far through the mushaf you are, as a bar and a figure.
+ * How far through **this sūrah** you are, as a bar and a figure.
  *
- * Real arithmetic, not decoration: position over 1,208 half-pages. His comps put the percent
- * at the end of the bar rather than under it, which is the better place for it — the bar is
- * the approximate answer and the figure is the exact one, and they should be read together.
+ * ⚠ **Changed 2026-08-19 at his word — it used to measure the whole mushaf, and that was the
+ * wrong number in a way worth recording.** Position over 1,208 half-pages is a *bookmark*, not
+ * an achievement: he set his position to page 442 during setup, so the app read **73%** on day
+ * one, before a single page had been read in Wird. A figure that large, that early, next to a
+ * progress bar, invites exactly the belief Sacred Rule 6 exists to prevent.
+ *
+ * A sūrah is also the unit a reader actually feels. "Seventy-three per cent of the Qur'an" is
+ * an abstraction; "two pages left of Al-Kahf" is a thing you can finish tonight — and finishing
+ * is what his idea 1 wants to congratulate.
+ *
+ * **It is still a position rather than a tally.** Where you are in this sūrah is honest about
+ * being a place; the old number implied a distance travelled. When a real "how much have I read"
+ * figure is wanted, `Progress.totalDaysRead` is the one that never resets and never lies.
  */
 @Composable
 private fun ThroughTheMushaf(assignment: Assignment) {
     val colors = LocalWirdColors.current
-    val fraction = (assignment.startUnit.toFloat() / Mushaf.TOTAL_UNITS).coerceIn(0f, 1f)
-    val percent = (fraction * 100).toInt()
+    val surah = remember(assignment) { assignment.surahs.firstOrNull() }
+    val page = Mushaf.pageOf(assignment.startUnit)
 
-    Label("Progress in the mushaf")
+    // A sūrah spanning one page still has to divide by something.
+    val span = surah?.let { (it.lastPage - it.firstPage + 1).coerceAtLeast(1) } ?: 1
+    val into = surah?.let { (page - it.firstPage).coerceAtLeast(0) } ?: 0
+    val fraction = (into.toFloat() / span).coerceIn(0f, 1f)
+    val percent = (fraction * 100).toInt()
+    val left = (span - into - 1).coerceAtLeast(0)
+
+    Label(surah?.let { "Through ${it.name}" } ?: "Through this surah")
     Spacer(Modifier.height(Scale.space2))
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
                 .weight(1f)
                 .height(6.dp)
-                .clip(CircleShape)
-                .background(colors.accent.copy(alpha = 0.16f))
+                .clip(RoundedCornerShape(3.dp))
+                .background(colors.cardEdge),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(fraction)
                     .height(6.dp)
-                    .clip(CircleShape)
-                    .background(colors.accent)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(colors.accent),
             )
         }
-        Spacer(Modifier.width(Scale.space2))
+        Spacer(Modifier.width(Scale.space3))
         Text(
             text = "$percent%",
             color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.caption, fontWeight = FontWeight.Medium),
+            style = TextStyle(fontSize = Scale.caption),
         )
     }
+    Spacer(Modifier.height(Scale.space2))
+    Text(
+        // The figure people can act on: not how far in, but how much is left.
+        text = when {
+            surah == null -> "Page $page"
+            left == 0 -> "Last page of ${surah.name}"
+            left == 1 -> "1 page left of ${surah.name}"
+            else -> "$left pages left of ${surah.name}"
+        },
+        color = colors.textSecondary,
+        style = TextStyle(fontSize = 11.sp),
+    )
 }
 
 /**
