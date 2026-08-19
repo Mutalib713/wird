@@ -24,6 +24,7 @@ import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.PrayerMethod
 import com.mosman.wird.domain.PrayerTimes
+import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.SurahIndex
@@ -1557,5 +1558,85 @@ class HeardRecitationTest {
                 }
             assertTrue("every verdict says the recording was kept: $said", said.contains("record") || said.contains("saved"))
         }
+    }
+}
+
+/**
+ * Checks 53–54 — which way through the mushaf. **His instruction, 2026-08-19.**
+ *
+ * *"For me I memorise upwards, but some start from Baqarah downwards, and reading too is the
+ * same, so the app must know."* And his own worked example, which is what these assert:
+ * **at Ya-Sin, going up you reach Fatir; going down you reach As-Saffat.**
+ */
+class ReadingDirectionTest {
+
+    /** Ya-Sin begins on page 440, so its first half-page unit is (440-1) * 2. */
+    private val yaSin = (440 - 1) * Mushaf.UNITS_PER_PAGE
+
+    /** Check 53 — his example, both ways, named by the sūrah you actually land in. */
+    @Test
+    fun `at Ya-Sin, up reaches Fatir and down reaches As-Saffat`() {
+        val up = assignPortion(yaSin, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_FATIHAH)
+        val down = assignPortion(yaSin, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_NAS)
+
+        assertEquals("both read the same page today", up.startPage, down.startPage)
+
+        val upNext = Mushaf.pageOf(up.nextStartUnit)
+        val downNext = Mushaf.pageOf(down.nextStartUnit)
+        assertEquals("going up, tomorrow is the page before", 439, upNext)
+        assertEquals("going down, tomorrow is the page after", 441, downNext)
+
+        // Said in sūrah names, because that is how he said it.
+        assertEquals("Fatir", SurahIndex.across(listOf(upNext)).first().name)
+
+        // ⚠ **A page step is not a sūrah step, and this test learned it the hard way.** The
+        // first assertion here expected As-Saffat one page below Ya-Sin's opening and got
+        // Ya-Sin, because Ya-Sin runs about six pages. His example — *"it goes to Sad"* — is
+        // told in sūrahs, while the app advances in pages, and both are right about different
+        // things. Going up landed in Fatir immediately only because Ya-Sin *begins* on 440, so
+        // the page before it belongs to the previous sūrah.
+        assertEquals("one page down is still Ya-Sin", "Ya-Sin", SurahIndex.across(listOf(downNext)).first().name)
+
+        // The sūrah-level version of his example: from Ya-Sin's LAST page, down reaches the
+        // next sūrah.
+        val yaSinEnd = SurahIndex.byNumber(36)!!.lastPage
+        val leaving = assignPortion(
+            (yaSinEnd - 1) * Mushaf.UNITS_PER_PAGE,
+            Mushaf.UNITS_PER_PAGE,
+            ReadingDirection.TOWARDS_NAS,
+        )
+        assertEquals(
+            "finishing Ya-Sin downwards reaches As-Saffat",
+            "As-Saffat",
+            SurahIndex.across(listOf(Mushaf.pageOf(leaving.nextStartUnit))).first().name,
+        )
+    }
+
+    /**
+     * Check 54 — ⚠ **it wraps at both ends, and the default never moves anybody.**
+     *
+     * Front-to-back has always wrapped 604 to 1. Back-to-front has to wrap the other way, or a
+     * memoriser who reaches Al-Fatihah falls off the start of the book. And the default has to
+     * stay forwards: silently reversing an existing reader's position would be the worst
+     * possible way to introduce this.
+     */
+    @Test
+    fun `it wraps at both ends and defaults to the way it always went`() {
+        val firstPage = assignPortion(0, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_FATIHAH)
+        assertEquals(
+            "going up from page 1 wraps to the end",
+            Mushaf.PAGES,
+            Mushaf.pageOf(firstPage.nextStartUnit),
+        )
+
+        val lastUnit = Mushaf.TOTAL_UNITS - Mushaf.UNITS_PER_PAGE
+        val lastPage = assignPortion(lastUnit, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_NAS)
+        assertEquals("and going down from 604 wraps to 1", 1, Mushaf.pageOf(lastPage.nextStartUnit))
+
+        // The default is the old behaviour, so nobody's position moves on upgrade.
+        assertEquals(
+            assignPortion(yaSin, 2, ReadingDirection.TOWARDS_NAS).nextStartUnit,
+            assignPortion(yaSin, 2).nextStartUnit,
+        )
     }
 }

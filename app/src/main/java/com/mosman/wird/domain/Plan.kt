@@ -45,8 +45,12 @@ fun unitsLabel(units: Int): String = when {
  * day must show the same portion both times — a target that crept forward on every
  * launch would be unusable.
  */
-fun todaysAssignment(startUnit: Int, plan: ReadingPlan, date: LocalDate): Assignment =
-    assignPortion(startUnit, plan.unitsOn(date.dayOfWeek))
+fun todaysAssignment(
+    startUnit: Int,
+    plan: ReadingPlan,
+    date: LocalDate,
+    direction: ReadingDirection = ReadingDirection.TOWARDS_NAS,
+): Assignment = assignPortion(startUnit, plan.unitsOn(date.dayOfWeek), direction)
 
 /** Pages this portion touches, in reading order, wrap included. */
 val Assignment.pages: List<Int>

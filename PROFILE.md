@@ -2273,3 +2273,46 @@ the Qur'an, and § 5r's memorising mode currently changes nothing but labels.
 week's page column and the setup question, and it deserves its own task rather than being
 squeezed into an evening. ⚠ It should be asked **at setup, next to the memorise-or-read question**,
 because those two answers belong together — that is his point.
+
+### 5av. Which way through the mushaf — built 2026-08-19
+
+His instruction, and the reason it matters: *"For me I memorise upwards, but some start from
+Baqarah downwards, and reading too is the same, so the app must know."* With his own worked
+example: **at Ya-Sin, going up you reach Fatir; going down you reach As-Saffat.**
+
+**This was a real gap, not a missing preference.** Wird's position only ever advanced forwards,
+wrapping 604 → 1. Memorisers commonly begin at the back — Juzʾ 30, the short sūrahs — and work
+*towards* Al-Baqarah, so their position moves **down** the page numbers. The app was silently
+wrong for a whole way of using the Qur'an, and § 5r's memorising mode changed nothing but labels.
+
+**The whole feature is one line**, which is what a good data model buys: `nextStartUnit` adds a
+portion going one way and subtracts one going the other, and `floorMod` wraps at whichever end
+you reach.
+
+⚠ **Named by destination, not by "up" and "down".** Those words mean opposite things to different
+people — he says *upwards* for travelling towards Al-Baqarah, which is *decreasing* page numbers,
+while "going up" just as naturally means rising sūrah numbers. So the code says `TOWARDS_FATIHAH`
+and `TOWARDS_NAS`, and the screens say it in his words. A name that needs explaining is one that
+gets read the wrong way round eventually.
+
+**Where the question lives: beside the memorise-or-read one, at his instruction.** He is right
+that they are a single decision asked from two angles.
+
+**Default is forwards**, so no existing position moves on upgrade. Check 54 asserts that
+specifically, because silently reversing somebody's place in the Qur'an would be the worst
+possible way to introduce this.
+
+#### ⚠ A page step is not a sūrah step, and the test learned it the hard way
+
+Check 53 first asserted that one page below Ya-Sin's opening is As-Saffat, and it got **Ya-Sin** —
+because Ya-Sin runs about six pages. **His example is told in sūrahs; the app advances in pages,**
+and both are right about different things. Going *up* landed in Fatir immediately only because
+Ya-Sin *begins* on page 440, so the page before belongs to the previous sūrah.
+
+The check now asserts both truths: one page down is still Ya-Sin, and from Ya-Sin's **last** page
+down you reach As-Saffat. **The failing test was wrong and the code was right**, which is worth
+recording — the temptation in that moment is to "fix" working code to match a mistaken assertion.
+
+⬜ **Not done: the setup screen still does not ask.** The question exists in Settings, so anybody
+can change it, but a memoriser's very first day still starts them going the wrong way. Setup is
+where it belongs and that is a separate change.

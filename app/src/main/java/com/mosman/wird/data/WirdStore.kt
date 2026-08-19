@@ -8,6 +8,7 @@ import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
+import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingPlan
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -200,6 +201,19 @@ class WirdStore(context: Context) {
         }
 
     /**
+     * Which way through the mushaf this reader travels. **His instruction, 2026-08-19.**
+     *
+     * Defaults to [ReadingDirection.TOWARDS_NAS] — front to back — because that is what every
+     * existing install has been doing, and a default that silently reverses somebody's position
+     * would be the worst possible way to introduce this.
+     */
+    var readingDirection: ReadingDirection
+        get() = runCatching {
+            ReadingDirection.valueOf(prefs.getString(KEY_DIRECTION, ReadingDirection.TOWARDS_NAS.name)!!)
+        }.getOrDefault(ReadingDirection.TOWARDS_NAS)
+        set(value) = prefs.edit { putString(KEY_DIRECTION, value.name) }
+
+    /**
      * Whether the **mushaf page** paints dark, kept apart from the app's theme.
      *
      * **His instruction, 2026-08-19**, describing the app he actually reads in: *"home and
@@ -351,6 +365,7 @@ class WirdStore(context: Context) {
         const val KEY_AUDIO = "audio_quality"
         const val KEY_AWAY = "away_period"
         const val KEY_PAGE_NIGHT = "page_night"
+        const val KEY_DIRECTION = "reading_direction"
         const val FIELD = " | "
         const val AWAY_SEP = ".."
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"

@@ -45,6 +45,7 @@ import com.mosman.wird.domain.AwayPeriod
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
+import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.dayLabel
@@ -58,7 +59,7 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 /** Which setting is open. Null means the list. */
-private enum class Detail { AMOUNT, LIGHTER, MODE, REMINDER, AUDIO, THEME, DATA }
+private enum class Detail { DIRECTION, AMOUNT, LIGHTER, MODE, REMINDER, AUDIO, THEME, DATA }
 
 /**
  * Settings.
@@ -103,6 +104,8 @@ fun SettingsScreen(
     onDownloadAll: () -> Unit = {},
     audioQuality: AudioQuality,
     readingMode: ReadingMode,
+    direction: ReadingDirection = ReadingDirection.TOWARDS_NAS,
+    onDirection: (ReadingDirection) -> Unit = {},
     /** What is on the phone right now, for the sentence before you decide. */
     onDevice: DataOnDevice?,
     onExport: () -> Unit,
@@ -138,6 +141,7 @@ fun SettingsScreen(
         null -> SettingsList(
             plan = plan,
             readingMode = readingMode,
+            direction = direction,
             overrideDays = overrideDays,
             overrideUnits = overrideUnits,
             positionLabel = positionLabel,
@@ -228,6 +232,24 @@ fun SettingsScreen(
                     ) { i ->
                         onReadingMode(
                             if (i == 0) ReadingMode.READING else ReadingMode.MEMORISING
+                        )
+                    }
+                }
+
+                Detail.DIRECTION -> {
+                    Explain(
+                        "Most people reading front to back go towards An-Nas. Most people " +
+                            "memorising work backwards, towards Al-Baqarah. This decides where " +
+                            "tomorrow's portion comes from."
+                    )
+                    Chips3(
+                        listOf(
+                            "Upwards, towards Al-Fatihah" to (direction == ReadingDirection.TOWARDS_FATIHAH),
+                            "Downwards, towards An-Nas" to (direction == ReadingDirection.TOWARDS_NAS),
+                        )
+                    ) { i ->
+                        onDirection(
+                            if (i == 0) ReadingDirection.TOWARDS_FATIHAH else ReadingDirection.TOWARDS_NAS
                         )
                     }
                 }
@@ -327,6 +349,7 @@ fun SettingsScreen(
 }
 
 private fun Detail.title(): String = when (this) {
+    Detail.DIRECTION -> "Which way you go"
     Detail.AMOUNT -> "How much a day"
     Detail.LIGHTER -> "Lighter days"
     Detail.MODE -> "How you read"
@@ -342,6 +365,7 @@ private fun Detail.title(): String = when (this) {
 private fun SettingsList(
     plan: ReadingPlan,
     readingMode: ReadingMode,
+    direction: ReadingDirection,
     overrideDays: Set<DayOfWeek>,
     overrideUnits: Int,
     positionLabel: String,
@@ -376,6 +400,12 @@ private fun SettingsList(
             ValueRow("How much a day", amountLabel(plan.defaultUnits)) { onOpen(Detail.AMOUNT) }
             Divider()
             ValueRow("How you read", modeLabel(readingMode)) { onOpen(Detail.MODE) }
+            Divider()
+            // **His instruction, 2026-08-19: this belongs beside the memorise question**, and
+            // he is right that they are one decision. Memorisers overwhelmingly work from the
+            // back towards Al-Baqarah; readers overwhelmingly go front to back. Asking them
+            // together is asking one thing twice from two angles.
+            ValueRow("Which way you go", directionLabel(direction)) { onOpen(Detail.DIRECTION) }
             Divider()
             ValueRow("Lighter days", lighterLabel(overrideDays, overrideUnits)) {
                 onOpen(Detail.LIGHTER)
@@ -685,6 +715,12 @@ private fun Choice(label: String, on: Boolean, onPick: () -> Unit) {
 private fun megabytes(bytes: Long): String =
     if (bytes < 1024L * 1024L) "${bytes / 1024} KB"
     else String.format(java.util.Locale.getDefault(), "%.1f MB", bytes / 1024.0 / 1024.0)
+
+/** His words on screen; the code's names say where you end up. See [ReadingDirection]. */
+private fun directionLabel(direction: ReadingDirection): String = when (direction) {
+    ReadingDirection.TOWARDS_FATIHAH -> "Upwards, towards Al-Fatihah"
+    ReadingDirection.TOWARDS_NAS -> "Downwards, towards An-Nas"
+}
 
 private fun wantsLocation(armed: Armed?): Boolean = when (armed) {
     is Armed.AtFallback -> true

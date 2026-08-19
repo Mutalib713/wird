@@ -58,6 +58,7 @@ import com.mosman.wird.data.ConversationStore
 import com.mosman.wird.data.DataOnDevice
 import com.mosman.wird.data.Export
 import com.mosman.wird.domain.Commitment
+import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.ui.ChatScreen
@@ -103,6 +104,7 @@ class MainActivity : ComponentActivity() {
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var readerName by remember { mutableStateOf(store.readerName) }
             var readingMode by remember { mutableStateOf(store.readingMode) }
+            var direction by remember { mutableStateOf(store.readingDirection) }
             var turns by remember { mutableStateOf(chat.all()) }
             var saved by remember { mutableStateOf(bookmarks.all()) }
             /** What is on the phone, for the "Your data" row. Refreshed after either action. */
@@ -236,9 +238,14 @@ class MainActivity : ComponentActivity() {
             // remembers what it covered, and the screen shows that until tomorrow.
             val doneCover = days.coveredOn(today)
             val assignment = if (doneCover != null) {
-                assignPortion(startUnit = doneCover.first, units = doneCover.second)
+                assignPortion(doneCover.first, doneCover.second, direction)
             } else {
-                todaysAssignment(startUnit = position, plan = plan, date = today)
+                todaysAssignment(
+                    startUnit = position,
+                    plan = plan,
+                    date = today,
+                    direction = direction,
+                )
             }
 
             /**
@@ -652,6 +659,11 @@ class MainActivity : ComponentActivity() {
                         },
                         audioQuality = audioQuality,
                         readingMode = readingMode,
+                        direction = direction,
+                        onDirection = {
+                            store.readingDirection = it
+                            direction = it
+                        },
                         onDevice = onDevice,
                         exportNote = exportNote,
                         onExport = {
