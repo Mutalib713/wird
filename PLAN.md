@@ -438,10 +438,12 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   advert wearing a feature's clothes. On API 30+ that needs a `<queries>` entry, scoped to the
   one scheme rather than `QUERY_ALL_PACKAGES`.
 
-  ⬜ **Verified only in the negative.** On the emulator, with nothing handling `quran://`, the
-  toolbar correctly shows Bookmark, Play, Share, Close and no more. **Nobody has seen the button
-  appear and open an ayah**, because that app cannot be installed here. First real phone that
-  has it settles it.
+  ⬜ **Verified only in the negative, now twice.** On the emulator, with nothing handling
+  `quran://`, the toolbar correctly shows Bookmark, Play, Share, Close and no more. **2026-08-19:
+  Mutalib asked for the same action on Home's portion card and it was built** — three facts
+  agreeing that its absence is correct (package not installed, `resolve-activity` finds no
+  activity, button absent from the view tree). **Nobody has still seen the button appear and open
+  an ayah**, because that app cannot be installed here. First real phone that has it settles it.
 
 - [x] ~~**13. ⚠ Plain-words setup**~~ — **FOLDED INTO TASK 22, done 2026-08-18**
   Not cut and not skipped: built once, in the place it belongs. This task and task 22 had the
@@ -463,6 +465,22 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *Done when:* it reliably separates a real recitation from silence and from unrelated
   speech, on Mutalib's own recordings, with the measured numbers written down. If it
   cannot, that is a real result — record it and drop the feature.
+
+- [x] **25. Home, rebuilt from his own comps** — done 2026-08-19, verified on the emulator
+  He supplied four mockups and named what to take from each: image 1 the base, image 2 the
+  greeting and the check-in, image 3 the streak block, the rest from image 1. The comps' bottom
+  tab bar and top-right gear were refused by him, matching § 5t.
+  *Also his, in the same pass:* WhatsApp-style chat bubbles, the mushaf-on-a-rihāl illustration,
+  and an **Open in Quran for Android** button on the portion card (task 12's deep link).
+  *Colour, asked before building and then reversed by him:* the comps are green, the palette is
+  pinned teal. He chose *"teal stays, warm cream ground, tinted tiles"*, saw it, and preferred
+  the white ground. Ground reverted; **the tiles and bubbles stayed** and were re-measured
+  against the white card. PROFILE.md § 6e and § 5ae.
+  *Evidence:* `check: PASS`, design-studio gate 0 block, humanizer 100.0/85 on the strings,
+  every new colour pair measured before it was used. Three defects found by running it: a
+  medallion that read as a clock face, a dangling comma over an empty line when no name is set,
+  and a screenshot that disagreed with the accessibility tree.
+  ⬜ **Not yet seen by him on his own phone**, and the Quran button cannot appear here at all.
 
 ## Milestone 4 — Testers
 

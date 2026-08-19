@@ -79,7 +79,70 @@ object Q {
 
     /** Their `selection_highlight` - the ayah you long-pressed. */
     val selected = Color(0x404694A6)
+
+    // ---- ⚠ the warm ground was built and then reversed. § 6e ----
+    //
+    // Offered three ways on 2026-08-19 he chose "teal stays, take the warm cream ground and
+    // the tinted tiles", so it was built and measured: ground #F9F6EE, cards #F3F0E7, every
+    // pair AA. **He saw it on the phone and said he prefers the white.** So the ground is back
+    // to their `surface` and the warm values are gone rather than left commented out.
+    //
+    // Kept, because it is the useful half and he did not object to it: **the four tinted
+    // tiles below.** Their contrast was re-measured against the white card - ink is 12.84 to
+    // 13.34 on all four, unchanged, because ink-on-tint never depended on what sits behind
+    // the tint.
+    //
+    // The lesson is the same one § 6d already carries: a palette is looked at on the device,
+    // not reasoned about in a table. Two rounds of measurement cost less than one round of
+    // shipping the wrong ground.
+    val rule = Color(0xFFDEE2E6)  // card hairline. 1.23:1 on the ground - an edge, not text
+
+    // ---- the chat bubbles, after WhatsApp. His instruction, 2026-08-19 ----
+    //
+    // Yours tinted and theirs white, which is the arrangement every phone in Ghana already
+    // has muscle memory for. The tinted one is the reason these are tokens rather than an
+    // alpha on the accent: **the ordinary secondary grey FAILS on it** - #656E76 measures
+    // 4.01:1 there - so the timestamp inside your own bubble needs its own darker tone. A
+    // detail small enough to have shipped unnoticed, on the one element that repeats forever.
+    val mine = Color(0xFFCFE7E7)        // ink 11.93:1
+    val mineDetail = Color(0xFF5B646C)  // 4.66:1 - DARKENED from #656E76, which is 4.01 here
+    val theirs = Color(0xFFFFFFFF)      // ink 15.43:1, secondary 5.19:1
+
+    val nightRule = Color(0xFF3A3A3A)
+    val nightMine = Color(0xFF2A3A3C)
+    val nightTheirs = Color(0xFF303030)
+
+    // ---- the four action tiles ----
+    //
+    // ⚠ **The tint alone is invisible and cannot be the whole idea.** Measured: every one of
+    // these fills is 1.01-1.05:1 against the card behind it, which is nothing. That is § 5o's
+    // lesson in a new costume - a fill is not an edge. So each tile carries a tint, a hairline
+    // of its own hue, AND a coloured icon, and the icon is what actually says which is which.
+    //
+    // Every icon tone is measured on its own tint. The amber was darkened from #8A6A2B, which
+    // came back at 4.4 - the same correction § 6d had to make twice on their palette.
+    val teaTint = Color(0xFFE4EFEF); val teaEdge = Color(0xFFC6DCDC); val teaInk = Color(0xFF00767F) // 4.59
+    val skyTint = Color(0xFFE7EAF4); val skyEdge = Color(0xFFC8D1E8); val skyInk = Color(0xFF33518F) // 6.44
+    val sunTint = Color(0xFFF6EEDA); val sunEdge = Color(0xFFE4D4AC); val sunInk = Color(0xFF866727) // 4.56
+    val clayTint = Color(0xFFF3E9DF); val clayEdge = Color(0xFFDFC9B4); val clayInk = Color(0xFF9C4B2E) // 5.07
+
+    // Dark is designed, not inverted: the hue survives, the lightness flips, and the icon
+    // becomes the light member of the pair. White clears AAA on all four grounds.
+    val nightTea = Color(0xFF2A3A3C); val nightTeaInk = Color(0xFFB2DFDB)  // 8.18
+    val nightSky = Color(0xFF2C3140); val nightSkyInk = Color(0xFFA9C0F0)  // 7.09
+    val nightSun = Color(0xFF3A3327); val nightSunInk = Color(0xFFE3C88A)  // 7.66
+    val nightClay = Color(0xFF3A2F2A); val nightClayInk = Color(0xFFE0A98C) // 6.31
 }
+
+/**
+ * One action tile's three colours. **§ 6e.**
+ *
+ * Grouped rather than left as twelve loose tokens, because the three only ever mean anything
+ * together: a fill this pale is decoration, and [ink] is the part carrying the contrast that
+ * was measured.
+ */
+@Immutable
+data class TileColors(val fill: Color, val edge: Color, val ink: Color)
 
 /**
  * Roles, not colours. Components read these and never [Q] directly.
@@ -105,6 +168,23 @@ data class WirdColors(
     val band: Color,
     /** Rules and borders. Same value as [accent] in both themes now. */
     val ornament: Color,
+    /**
+     * The hairline that closes a card. **§ 6e.**
+     *
+     * Separate from [ornament], which is the accent and therefore shouts. § 5o found that a
+     * screen reads as divided because of edges, and an edge drawn in the accent colour turns
+     * every card into a highlighted one.
+     */
+    val cardEdge: Color,
+    /** Your own chat bubble, its timestamp, and the companion's. **§ 6e.** */
+    val bubbleMine: Color,
+    val bubbleMineDetail: Color,
+    val bubbleTheirs: Color,
+    /** The four action tiles, in the order they appear. **§ 6e.** */
+    val recite: TileColors,
+    val read: TileColors,
+    val listen: TileColors,
+    val openPage: TileColors,
     /** The ayah being recited right now. */
     val highlightReciting: Color,
     /** The ayah you selected. */
@@ -118,8 +198,8 @@ data class WirdColors(
  * primary 14.57 / 15.43, secondary 4.90 / 5.19, accent 5.09 / 5.39 — chrome then page.
  */
 val LightColors = WirdColors(
-    surface = Q.surface,
-    page = Q.page,
+    surface = Q.surface,                 // § 6e - the warm ground was reversed, at his word
+    page = Q.page,                       // white. The mushaf is a lit object, not chrome.
     textPrimary = Q.ink,                 // 14.57:1 AAA
     textSecondary = Q.detail,            // 4.90:1  AA
     textOutsidePortion = Q.recede,       // 3.45:1  on the page, and that is the point
@@ -129,6 +209,14 @@ val LightColors = WirdColors(
     onSurfaceRaised = Q.ink,             // 13.87:1 AAA
     band = Q.band,                       // ⚠ textPrimary only: secondary is 3.99 here
     ornament = Q.teal,
+    cardEdge = Q.rule,
+    bubbleMine = Q.mine,
+    bubbleMineDetail = Q.mineDetail,
+    bubbleTheirs = Q.theirs,
+    recite = TileColors(Q.teaTint, Q.teaEdge, Q.teaInk),
+    read = TileColors(Q.skyTint, Q.skyEdge, Q.skyInk),
+    listen = TileColors(Q.sunTint, Q.sunEdge, Q.sunInk),
+    openPage = TileColors(Q.clayTint, Q.clayEdge, Q.clayInk),
     highlightReciting = Q.reciting,
     highlightSelected = Q.selected,
 )
@@ -150,6 +238,14 @@ val DarkColors = WirdColors(
     onSurfaceRaised = Q.snow,            // 13.20:1 AAA
     band = Q.nightBand,                  // secondary 4.90 - AA, so either works here
     ornament = Q.paleTeal,
+    cardEdge = Q.nightRule,
+    bubbleMine = Q.nightMine,
+    bubbleMineDetail = Q.nightDetail,
+    bubbleTheirs = Q.nightTheirs,
+    recite = TileColors(Q.nightTea, Q.nightTea, Q.nightTeaInk),
+    read = TileColors(Q.nightSky, Q.nightSky, Q.nightSkyInk),
+    listen = TileColors(Q.nightSun, Q.nightSun, Q.nightSunInk),
+    openPage = TileColors(Q.nightClay, Q.nightClay, Q.nightClayInk),
     highlightReciting = Q.reciting,
     highlightSelected = Q.selected,
 )

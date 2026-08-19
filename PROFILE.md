@@ -1704,3 +1704,106 @@ hit. The thing that settled it was tapping and seeing the message land.
   ignores the Friday, because per-day reminder times do not exist in the app to be set.
 - **Anything about the Qur'an's meaning.** Unchanged and still § 5ac's answer: fetched and
   attributed, or not at all. Sacred Rule 2.
+
+## 6e. PALETTE — what his comps added, and the ground that was reversed. 2026-08-19
+
+He brought four mockups of Home and pointed at them screen by screen. The colour question came
+first, because the comps are **green** and § 6d's pinned palette is **teal**.
+
+**Asked before a line was written, and he chose the middle option:** *teal stays, take the warm
+cream ground and the tinted tiles.* Built, measured, shipped — and then, seeing it on the phone:
+*"i think i like the white palatte better than this one."* So the ground went back.
+
+### ⚠ The reversal, recorded because the cost was real
+
+| | Built | Now |
+|---|---|---|
+| ground | `#F9F6EE` warm | `#FAF8F7`, theirs, as before |
+| cards | `#F3F0E7` warm | `#F1F3F5`, Bootstrap gray-100, as before |
+| tiles | four tints | **kept** |
+
+**The half that survived is the half he never objected to.** Ink on all four tile tints was
+re-measured against the white card: 12.84 to 13.34, unchanged — because ink-on-tint never
+depended on what sits *behind* the tint. Nothing had to move.
+
+**The lesson is § 6d's, again:** a palette is looked at on a device, not reasoned about in a
+table. Two rounds of measurement cost less than one round of shipping the wrong ground. Asking
+first is what kept this to a token swap instead of a rebuild.
+
+### The four action tiles
+
+⚠ **A tint alone is invisible and cannot be the whole idea.** Measured: every fill is
+**1.01–1.08:1** against the card behind it, which is nothing. That is § 5o's rule in a new
+costume — *a fill is not an edge*. So each tile carries a tint, a hairline of its own hue, and
+a coloured icon, and **the icon is what actually distinguishes them.** Colour is never the only
+signal: the label says what the tile does in words.
+
+| Tile | Fill | Icon | Measured |
+|---|---|---|---|
+| Recite | `#E4EFEF` | `#00767F` | 4.59 |
+| I read it | `#E7EAF4` | `#33518F` | 6.44 |
+| Listen | `#F6EEDA` | `#866727` | 4.56 — **darkened** from `#8A6A2B`, which came back at 4.4 |
+| Open the page | `#F3E9DF` | `#9C4B2E` | 5.07 |
+
+Dark is designed rather than inverted: the hue survives, the lightness flips, and the icon
+becomes the light member of the pair. White clears AAA on all four dark grounds.
+
+### The chat bubbles, after WhatsApp
+
+His instruction: *"the chat side, why won't you do it like how WhatsApp does it."*
+
+⚠ **One measurement made these tokens instead of an alpha on the accent.** The ordinary
+secondary grey `#656E76` is **4.01:1 on the tinted bubble and fails**, so the timestamp inside
+your own bubble needs its own darker tone — `#5B646C` at 4.66. A detail small enough to have
+shipped unnoticed, on the element that repeats most.
+
+| Role | Light | Measured |
+|---|---|---|
+| your bubble | `#CFE7E7` | ink 11.93 |
+| its timestamp | `#5B646C` | 4.66 — darkened, see above |
+| the companion's bubble | `#FFFFFF` | ink 15.43, secondary 5.19 |
+
+**⚠ The mushaf page is untouched by all of this and stays white.** He corrected exactly that
+once already (§ 6d), and a warm or tinted ground under the Qur'an is the opposite decision from
+one under the chrome.
+
+### 5ae. Home, rebuilt from his four comps. 2026-08-19
+
+He supplied four images and said which part of each to take: **image 1 is the base**, image 2
+gives **the greeting and the check-in**, image 3 gives **the streak block**, and anything he did
+not name comes from image 1. Two things in image 1 were explicitly refused by him — **the bottom
+tab bar and the top-right gear** — which matches where those already live after § 5t.
+
+**§ 5o's rule survived the restyle in a different costume.** That port failed for reading the
+design's *strings* and losing everything that held them apart, and the rule it produced —
+*sections are separated by edges, not by empty space* — still governs. What changed is which
+edge: the old screen closed a section with a full-bleed hairline; his comps close each one
+inside its own bordered plate. Both are edges. Neither is a gap.
+
+**Drawn, not shipped:** the sun beside the greeting, the mushaf on its rihāl, the medallion
+around the sūrah numeral, the microphone, the book, the speech bubble, the paper plane, the
+crescent and the clock on the chips. The build file refuses `material-icons-extended` — *"a
+several-megabyte library and we need three glyphs"* — and § 10 measures every byte, so the
+illustrations are Canvas paths costing nothing to download.
+
+**⚠ The comp's smiling avatar is deliberately not built.** § 5b: the companion is *"deliberately
+not given a name, a face, or a personality claiming to be a person"*, because a bot that emotes
+about someone's deen is worse than one that says nothing. **The substitute came from his own
+image 1**, which uses a speech bubble in that same card.
+
+**The Quran for Android button, his ask, lands on PLAN task 12's machinery** — the proven
+`quran://sura/ayah` forwarder, read from their GPL source. It appears only when the package
+resolves. ⚠ **Still unseen working**, and verified in the negative a second time: the package is
+absent from this emulator, nothing resolves `quran://`, and the button is absent from the view
+tree. Three facts agreeing is not the same as one phone showing the button.
+
+**Three things found by running it rather than reading it:**
+1. **The medallion read as a clock face.** Twelve strokes pointing inward from a ring is a
+   clock, on a screen that is otherwise about time. Beads *on* the ring instead of ticks
+   *across* it fixed it.
+2. **The greeting rendered a dangling comma over an empty 36sp line** when no name is set —
+   which is a real state, since § 5k makes the name optional with a Skip. The comma belongs to
+   the name now.
+3. **A screenshot disagreed with the accessibility tree**, and the tree was right. Same lesson
+   as § 5ad's false keyboard alarm: measure the tree, and treat a screenshot as an illustration
+   rather than as evidence.

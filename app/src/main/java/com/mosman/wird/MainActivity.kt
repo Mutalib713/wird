@@ -23,6 +23,7 @@ import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.CompanionAction
 import com.mosman.wird.domain.CompanionBrain
 import com.mosman.wird.domain.replyForAll
+import com.mosman.wird.domain.surahs
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.ReadingPlan
@@ -56,6 +57,7 @@ import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.Speaker
 import com.mosman.wird.ui.ChatScreen
 import com.mosman.wird.ui.HomeScreen
+import com.mosman.wird.ui.OpenElsewhere
 import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
 import com.mosman.wird.ui.SurahsTab
@@ -427,6 +429,21 @@ class MainActivity : ComponentActivity() {
                             positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
                             readerName = readerName,
                             mode = readingMode,
+                            // **The action only exists when the app does.** PLAN task 12:
+                            // asked of the package manager every time rather than cached,
+                            // because an app can be installed while Wird is in the
+                            // background. The ayah is the one the reader named if they named
+                            // one, and the first of the portion's sūrah otherwise — Home
+                            // cannot know a page's opening ayah without loading the page,
+                            // and § 10 says a number is measured rather than guessed.
+                            onOpenInQuran = run {
+                                val key = startVerse?.let { "${it.first}:${it.second}" }
+                                    ?: assignment.surahs.firstOrNull()?.let { "${it.number}:1" }
+                                val intent = key?.let {
+                                    OpenElsewhere.intentFor(this@MainActivity, it)
+                                }
+                                intent?.let { { startActivity(it) } }
+                            },
                             // The week's page column. Days marked before task 6 began
                             // storing what they covered have no page, and show none.
                             pageFor = { date -> days.coveredOn(date)?.first?.let(Mushaf::pageOf) },

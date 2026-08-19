@@ -30,4 +30,14 @@ object Scale {
     val minTarget = 48.dp
 
     val radius = 6.dp
+
+    /**
+     * The radius a card is closed with. **§ 6e.**
+     *
+     * Bigger than [radius] because these are objects rather than controls: his comps hold
+     * the portion, the check-in, the numbers and the week each inside its own rounded plate,
+     * and a 6dp corner on a full-width plate reads as a mistake rather than as a choice.
+     * Controls keep [radius]; only the plates get this.
+     */
+    val card = 16.dp
 }
