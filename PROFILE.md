@@ -1848,7 +1848,28 @@ The redraw is built from the things that actually signal a bound mushaf: curved 
 gutter rather than a point, a visible cover standing proud of the paper, three lines of text
 per leaf **following the sag rather than sitting level**, and a rihāl with thickness.
 
-**Still drawn rather than shipped as an image.** § 10 measures every byte for readers on
+⚠ **REPLACED THE SAME DAY, after a second "it looks terrible".** His follow-up settled it:
+*"why not use an actual image like they did for the reference image."* Offered four routes —
+generate one, take an open-licensed icon, send me his own file, or drop it — **he chose the
+open-licensed icon.**
+
+It is now **Font Awesome Free 6's `book-quran`**, CC BY 4.0, about 2KB as an Android vector,
+attributed in README.md's credits. ⬜ Its cover carries a **star and crescent**, which is the
+icon set's choice and not a universally loved symbol of Islam; flagged for him rather than
+shipped quietly, and `book-open` from the same set is one line away.
+
+**⚠ The generated-image route was flagged before it was offered, and the reason generalises:**
+an image model asked for a mushaf will put plausible Arabic-looking squiggles on the pages.
+That is garbled nonsense rendered as scripture-adjacent, and it is Sacred Rule 2's failure in
+a different coat. Any future illustration of a Qur'an in this app must carry **no lettering**.
+
+**The lesson worth more than the icon: a Canvas path is the right tool for a MARK and the
+wrong tool for an ILLUSTRATION.** The crescent on a chip, the flame, the tail on a bubble, the
+medallion — those are marks, a few strokes where meaning survives being crude. A book on a
+stand has perspective, weight and a dozen curves that all have to agree, and hand-writing
+bezier control points is not how anyone draws one. Three attempts proved it.
+
+**The original reasoning, kept because it still applies to the marks:** § 10 measures every byte for readers on
 Ghanaian mobile data, and a picture is the easiest place to spend a hundred kilobytes without
 noticing. It takes its colours from tokens already measured in § 6e, so it adds a picture
 without adding a colour.

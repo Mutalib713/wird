@@ -739,5 +739,10 @@ Machine-specific gotchas (JAVA_HOME, `local.properties`, the device rules) are i
 - Recitation: Abu Bakr al-Shatri
 - Recitation checking: [`tarteel-ai/whisper-base-ar-quran`](https://huggingface.co/tarteel-ai/whisper-base-ar-quran),
   Apache-2.0, published by Tarteel
+- The mushaf icon on Home: [Font Awesome Free 6](https://fontawesome.com/icons/book-quran)
+  `book-quran`, icons licensed **CC BY 4.0**. Unmodified path data, rewrapped as an Android
+  vector. Every other mark in the app is drawn in code; this one is not, and the reason is
+  in PROFILE.md § 5ag — a Canvas path is the right tool for a mark and the wrong tool for an
+  illustration.
 
 Private repo. Not for distribution.

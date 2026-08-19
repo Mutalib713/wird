@@ -36,12 +36,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Canvas
+import com.mosman.wird.R
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Assignment
 import com.mosman.wird.domain.DayLog
@@ -461,92 +463,41 @@ private fun Medallion(number: Int) {
 }
 
 /**
- * A mushaf open on a rihāl.
+ * The mushaf mark on the portion card. **A real icon, not a drawing.**
  *
- * ⚠ **Redrawn 2026-08-19 — his verdict on the first one was "it looks terrible".** He was
- * right, and the reason is worth keeping because it applies to every drawn illustration:
- * **the first version was made of straight lines, and a book has no straight lines.** Two flat
- * quadrilaterals meeting at a point over a bare X read as a paper aeroplane on sticks. What
- * makes a shape say *book* is the curve — leaves sag away from the spine under their own
- * weight, and the outer edge is where you see it.
+ * ⚠ **Three hand-built attempts at this shape were rejected**, the last one twice — *"the
+ * quran image there, it looks terrible"* and then *"still on the quran image it looks
+ * terrible, why not use an actual image like they did for the reference image."* He was right
+ * both times, and the lesson is worth more than the icon:
  *
- * So this is built from the things that actually signal a bound mushaf:
+ * **A Canvas path is the right tool for a mark and the wrong tool for an illustration.** The
+ * crescent on a chip, the flame, the tail on a bubble, the medallion — those are marks: a few
+ * strokes where the meaning survives being crude. A book on a stand is an illustration, with
+ * perspective, weight and a dozen curves that all have to agree, and hand-writing bezier
+ * control points is not how anyone draws one.
  *
- *  1. **Curved leaves.** Each page is a quadratic bezier falling from the gutter to its outer
- *     edge, which is the single change that stopped it looking like folded paper.
- *  2. **A gutter, not a point.** The two leaves meet in a narrow V, the way an open book does.
- *  3. **A visible cover** under the leaves — a darker band standing slightly proud of the
- *     paper on both sides. Without it the pages float and nothing says the thing is bound.
- *  4. **Lines of text**, three per leaf, following the curve rather than sitting level. Level
- *     lines on a curved page is the tell that gives away a cheap drawing.
- *  5. **A rihāl with thickness** — two tapered slats, wider where they cross.
+ * So this is **Font Awesome Free 6's `book-quran`**, drawn by people who draw icons for a
+ * living, taken as a vector at about 2KB. See `res/drawable/ic_book_quran.xml` for the licence
+ * — CC BY 4.0, attributed in README.md and PROFILE.md § 9.
  *
- * Drawn rather than shipped as a raster: § 10 measures every byte for readers on Ghanaian
- * mobile data, and a picture is the easiest place to spend a hundred kilobytes unnoticed. It
- * takes its colours from tokens already measured in § 6e, so it adds a picture without adding
- * a colour.
+ * **It carries no lettering, and that is not incidental.** Sacred Rule 2 forbids generated
+ * Qur'anic text; an illustration with plausible Arabic-looking squiggles across its pages
+ * would be the same failure in a different coat. This is why the generated-image route was
+ * flagged before it was offered.
+ *
+ * ⬜ **The cover carries a star and crescent**, which is the icon set's choice rather than
+ * ours. It is a common motif and not a universally loved one as a symbol of Islam. Flagged
+ * for him rather than shipped quietly: `book-open` from the same set is one line away.
  */
 @Composable
 private fun MushafMark() {
     val colors = LocalWirdColors.current
-    Canvas(modifier = Modifier.size(56.dp)) {
-        val w = size.width
-        val h = size.height
-        val wood = colors.openPage.ink
-        val leaf = colors.accent
-        val paper = colors.surface
-
-        // ---- the stand: two slats crossing under the book ----
-        drawLine(wood, Offset(w * 0.20f, h * 0.95f), Offset(w * 0.63f, h * 0.55f), w * 0.07f, StrokeCap.Round)
-        drawLine(wood, Offset(w * 0.80f, h * 0.95f), Offset(w * 0.37f, h * 0.55f), w * 0.07f, StrokeCap.Round)
-
-        // ---- the cover, sitting a little proud of the paper on each side ----
-        val cover = Path().apply {
-            moveTo(w * 0.50f, h * 0.70f)
-            quadraticTo(w * 0.26f, h * 0.72f, w * 0.06f, h * 0.60f)
-            lineTo(w * 0.06f, h * 0.66f)
-            quadraticTo(w * 0.26f, h * 0.78f, w * 0.50f, h * 0.76f)
-            quadraticTo(w * 0.74f, h * 0.78f, w * 0.94f, h * 0.66f)
-            lineTo(w * 0.94f, h * 0.60f)
-            quadraticTo(w * 0.74f, h * 0.72f, w * 0.50f, h * 0.70f)
-            close()
-        }
-        drawPath(cover, color = leaf)
-
-        // ---- the two leaves, each sagging away from the gutter ----
-        listOf(-1f, 1f).forEach { side ->
-            val outer = w * (0.5f + side * 0.44f)
-            val mid = w * (0.5f + side * 0.24f)
-            val page = Path().apply {
-                moveTo(w * 0.50f, h * 0.32f)
-                // the top edge lifts, then falls to the outer corner
-                quadraticTo(mid, h * 0.20f, outer, h * 0.30f)
-                lineTo(outer, h * 0.60f)
-                // the bottom edge sags back to the gutter
-                quadraticTo(mid, h * 0.72f, w * 0.50f, h * 0.70f)
-                close()
-            }
-            drawPath(page, color = paper)
-            drawPath(page, color = leaf, style = Stroke(width = w * 0.035f))
-
-            // three lines of text, following the sag rather than sitting level
-            repeat(3) { row ->
-                val t = 0.40f + row * 0.11f
-                val yIn = h * (t + 0.02f)
-                val yOut = h * t
-                drawLine(
-                    color = leaf.copy(alpha = 0.45f),
-                    start = Offset(w * (0.5f + side * 0.10f), yIn),
-                    end = Offset(w * (0.5f + side * 0.36f), yOut),
-                    strokeWidth = w * 0.022f,
-                    cap = StrokeCap.Round,
-                )
-            }
-        }
-
-        // ---- the gutter: a narrow V, which is what says "two leaves" and not "one sheet" ----
-        drawLine(leaf, Offset(w * 0.50f, h * 0.32f), Offset(w * 0.50f, h * 0.70f), w * 0.035f, StrokeCap.Round)
-    }
+    Icon(
+        painter = painterResource(R.drawable.ic_book_quran),
+        contentDescription = null,
+        tint = colors.accent,
+        modifier = Modifier.size(40.dp),
+    )
 }
 
 /**
