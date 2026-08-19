@@ -72,5 +72,54 @@ class Translations(private val context: Context) {
             parsed
         }
 
+    /**
+     * One ayah, found without reading the whole sūrah.
+     *
+     * The assets are one file per page and verse keys run in order, so this **binary-searches
+     * the sūrah's page range** rather than scanning it. That is the difference between six
+     * file reads and forty-eight for something like Al-Baqarah 286 — and this runs while
+     * someone is waiting for a reply in a chat, on a Transsion phone.
+     *
+     * Null means the ayah is not there, which is a real answer: asking for 1:300 should be
+     * told the sūrah has seven, not handed the nearest thing.
+     */
+    suspend fun verse(
+        surah: Int,
+        ayah: Int,
+        source: TranslationSource,
+        firstPage: Int,
+        lastPage: Int,
+    ): TranslatedVerse? {
+        val target = surah to ayah
+        var lo = firstPage
+        var hi = lastPage
+        while (lo <= hi) {
+            val mid = (lo + hi) / 2
+            val verses = page(mid, source)
+            if (verses.isEmpty()) return null
+            verses.firstOrNull { it.verseKey == "$surah:$ayah" }?.let { return it }
+
+            val first = key(verses.first().verseKey) ?: return null
+            val last = key(verses.last().verseKey) ?: return null
+            when {
+                before(target, first) -> hi = mid - 1
+                before(last, target) -> lo = mid + 1
+                // Inside this page's range but not on it, so it does not exist.
+                else -> return null
+            }
+        }
+        return null
+    }
+
+    private fun key(verseKey: String): Pair<Int, Int>? {
+        val parts = verseKey.split(":")
+        val s = parts.getOrNull(0)?.toIntOrNull() ?: return null
+        val a = parts.getOrNull(1)?.toIntOrNull() ?: return null
+        return s to a
+    }
+
+    private fun before(a: Pair<Int, Int>, b: Pair<Int, Int>) =
+        a.first < b.first || (a.first == b.first && a.second < b.second)
+
     private companion object { const val TAG = "WirdTranslations" }
 }

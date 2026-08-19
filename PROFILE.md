@@ -1904,3 +1904,45 @@ rule, and Sacred Rule 6 underneath it: a seeded day claims he recited when he di
 water droplet** at 16dp. The second attempt is asymmetric and leans, which is what separates
 fire from water, and it is better — but it is not good. Options are a larger glyph, a
 different mark, or none at all, and it is his call.
+
+### 5ai. Asking what an ayah means — answered, offline. 2026-08-19
+
+He typed *"so explain verse 1 of fatiha"* into the companion and got *"I didn't catch that."*
+His report: *"i asked it to explain a verse and it couldnt."*
+
+**Two separate failures sat behind that one reply**, and only one of them was a real limit:
+
+1. The parser had no notion of the question at all.
+2. ⚠ **It could not have matched "fatiha" against an index that spells it "Al-Fatihah".**
+   Nobody types the transliteration. Sūrah matching now also tries a **core** form with the
+   `al-` article and one trailing `h` removed, guarded at four letters so short cores cannot
+   match inside ordinary words. "Ta-Ha" would core down to "ta", which is in half of English.
+
+**What was built, and its ceiling stated in the same breath:** the reply is the ayah's
+**bundled translation with the translator named**, and it says *"that is a translation, not a
+tafsir"* as part of the answer rather than as a disclaimer bolted on. A reader who thinks they
+have been handed a scholar's explanation has been misled by the shape of the reply.
+
+**His decision when offered the ladder: *"for now offline but we will add gemini."*** So:
+- **Now** — Saheeh International, bundled, offline, no key, no model, no cost.
+- **Later** — Gemini may rephrase a **fetched** tafsir. It may not author one. Sacred Rule 2
+  does not soften because the engine got better, and § 5h calls a wrong tafsir the highest-risk
+  thing in this app precisely because the reader usually cannot tell.
+
+⚠ **It refuses a question that named nothing.** "Explain this" has no ayah in it, and guessing
+that it meant today's first verse would be the parser inventing the question it was asked — on
+the one subject where being confidently wrong is worst. Check 49 asserts that, and asserts that
+a question of *fiqh* is still answered with an honest miss: there is no verse to fetch and no
+scholar to name.
+
+**Two existing checks had to be rewritten rather than deleted**, and that is the honest cost of
+the change: both were asserting the old limitation. One used "explain surah yasin to me" as an
+example of an unreadable clause, which stopped being true the day the companion learned to read
+it. **A test whose premise is a missing feature gets rewritten the day that feature arrives.**
+
+### 5aj. "Open full conversation" already went there. 2026-08-19
+
+He asked whether it should open the AI chatbot. **It already opens the companion**, full screen,
+same conversation, same history — there is no second and smarter bot behind it. The destination
+was never the problem; the intelligence was. Recorded so the question is not reopened as a
+navigation change when it is a capability one.

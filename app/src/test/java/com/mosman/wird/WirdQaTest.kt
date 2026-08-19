@@ -1231,11 +1231,15 @@ class PlainWordsTest {
      */
     @Test
     fun `what it cannot read is said out loud, and the rest still lands`() {
-        val actions = all("one page a day, and explain surah yasin to me")
+        // ⚠ **This clause changed on 2026-08-19 and the reason is worth keeping.** It used
+        // to be "explain surah yasin to me", which was a fine example of an unreadable clause
+        // right up until the companion learned to read it. A test whose premise is a missing
+        // feature has to be rewritten the day that feature arrives, not deleted.
+        val actions = all("one page a day, and call my brother about the car")
 
         assertTrue(actions.contains(CompanionAction.ChangePlan(2)))
         val missed = actions.filterIsInstance<CompanionAction.NotUnderstood>().single()
-        assertTrue("it must quote the clause: " + missed.said, missed.said.contains("yasin"))
+        assertTrue("it must quote the clause: " + missed.said, missed.said.contains("brother"))
 
         val reply = replyForAll(actions, null, "", tuesday)
         assertTrue("the change is confirmed: " + reply, reply.contains("One page a day"))
@@ -1337,9 +1341,16 @@ class PlainWordsTest {
         // Absurd amounts are typos, not plans.
         assertTrue(u("300 pages a day") is CompanionAction.NotUnderstood)
 
-        // Still no opinion about the Qur'an itself. Sacred Rule 2, and § 5h's fetch-and-
-        // attribute path does not exist yet.
-        assertTrue(u("what does al-kahf mean") is CompanionAction.NotUnderstood)
+        // ⚠ **Updated 2026-08-19: "what does al-kahf mean" IS answered now**, from the
+        // bundled translation with its translator named — § 5h's fetch-and-attribute path,
+        // built at his ask. See ExplainVerseTest.
+        //
+        // What has not changed is the boundary. The app still holds no opinion of its own
+        // about the Qur'an or about religious rulings, and this is the assertion that guards
+        // it: a question of fiqh has no verse to fetch and no scholar to name, so the honest
+        // answer is that it did not understand.
+        assertTrue(u("is it allowed to combine prayers") is CompanionAction.NotUnderstood)
+        assertTrue(u("explain this") is CompanionAction.NotUnderstood)
     }
 
     /**
@@ -1380,5 +1391,82 @@ class PlainWordsTest {
         assertEquals("one page", unitsLabel(2))
         assertEquals("a page and a half", unitsLabel(3))
         assertEquals("2 pages", unitsLabel(4))
+    }
+}
+
+/**
+ * Checks 47–49 — asking what an ayah means. **His ask, 2026-08-19.**
+ *
+ * He typed *"so explain verse 1 of fatiha"* into the companion and was told "I didn't catch
+ * that." Two separate failures sat behind that one reply, and both are asserted here: the
+ * parser had no notion of the question at all, and it could not have matched "fatiha" against
+ * an index that spells it "Al-Fatihah".
+ *
+ * ⚠ **What these checks deliberately do NOT assert is any explanation**, because the app does
+ * not produce one. Sacred Rule 2 stands: the reply is a fetched translation with its
+ * translator named, and check 49 is the guard that keeps it that way.
+ */
+class ExplainVerseTest {
+
+    private fun u(s: String) = CompanionBrain.understand(s, LocalTime.of(19, 0))
+
+    /** Check 47 — the sentence he actually typed, and the two others he is likeliest to. */
+    @Test
+    fun `it reads a verse reference however it was written`() {
+        assertEquals(
+            "his own sentence, verbatim",
+            CompanionAction.ExplainVerse(1, 1),
+            u("so explain verse 1 of fatiha"),
+        )
+        assertEquals(
+            "the least ambiguous form wins",
+            CompanionAction.ExplainVerse(2, 255),
+            u("what does 2:255 mean"),
+        )
+        assertEquals(
+            CompanionAction.ExplainVerse(18, 10),
+            u("translate ayah 10 of al-kahf"),
+        )
+
+        // A surah named with no ayah is a question about the title, answered as one.
+        assertEquals(CompanionAction.ExplainVerse(18, null), u("what does al-kahf mean"))
+    }
+
+    /**
+     * Check 48 — "fatiha" finds Al-Fatihah, and the shortcut does not start matching noise.
+     *
+     * Nobody types the index's transliteration. The core form drops the `al-` article and one
+     * trailing `h`, which is what turns "Al-Fatihah" into "fatiha" — but a core shorter than
+     * four letters would match inside ordinary words, so those are refused.
+     */
+    @Test
+    fun `a surah is found by the name people actually type`() {
+        assertEquals(1, (u("go to fatiha") as CompanionAction.OpenSurah).surah.number)
+        assertEquals(18, (u("open kahf") as CompanionAction.OpenSurah).surah.number)
+        assertEquals(36, (u("go to yasin") as CompanionAction.OpenSurah).surah.number)
+
+        // The guards: a bare time is not a surah, and a schedule sentence is not a question
+        // about the Qur'an.
+        assertTrue(u("at 9") is CompanionAction.CommitTo)
+        assertTrue(u("one page a day") is CompanionAction.ChangePlan)
+    }
+
+    /**
+     * Check 49 — ⚠ **it will not answer a question that named nothing.**
+     *
+     * "Explain this" has no ayah in it. Guessing that it meant today's first verse would be
+     * the parser inventing the question it was asked, on the one subject where being
+     * confidently wrong is worst. § 5h calls a wrong tafsir the highest-risk thing in the app
+     * precisely because the reader usually cannot tell.
+     */
+    @Test
+    fun `it refuses to guess which verse was meant`() {
+        assertTrue(u("explain this") is CompanionAction.NotUnderstood)
+        assertTrue(u("what does it mean") is CompanionAction.NotUnderstood)
+        assertTrue(u("explain the quran to me") is CompanionAction.NotUnderstood)
+
+        // And the miss reply now names this as something it can do, so the dead end is a menu.
+        val reply = replyFor(u("explain this"), null, "")
+        assertTrue("should offer the translation route: $reply", reply.contains("18:10"))
     }
 }

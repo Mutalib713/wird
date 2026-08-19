@@ -41,6 +41,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import com.mosman.wird.data.ThemeMode
+import com.mosman.wird.data.TranslationSource
+import com.mosman.wird.data.Translations
 import com.mosman.wird.ui.WirdTopBar
 import com.mosman.wird.ui.theme.LocalWirdColors
 import androidx.compose.foundation.layout.Box
@@ -55,6 +57,7 @@ import com.mosman.wird.data.DataOnDevice
 import com.mosman.wird.data.Export
 import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.Speaker
+import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.ui.ChatScreen
 import com.mosman.wird.ui.HomeScreen
 import com.mosman.wird.ui.OpenElsewhere
@@ -104,6 +107,7 @@ class MainActivity : ComponentActivity() {
             var commitment by remember { mutableStateOf(store.commitment) }
             var away by remember { mutableStateOf(store.away) }
             var pageNight by remember { mutableStateOf(store.pageNight) }
+            val translations = remember { Translations(this@MainActivity) }
             /** The chat, opened from Home's companion card. */
             var onChat by remember { mutableStateOf(false) }
             /** Home's overflow. Settings used to be a quarter of the tab bar; now it lives here. */
@@ -339,14 +343,27 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                turns = chat.say(
-                    Speaker.WIRD,
-                    replyForAll(
-                        actions,
-                        progress,
-                        positionLabelFor(startVerse, Mushaf.pageOf(position)),
-                    ),
-                )
+                // **The translation is answered on its own, off the main thread.** The words
+                // live in a bundled asset and reading one is IO, so this action is lifted out
+                // of the synchronous reply rather than blocking the conversation on a file
+                // read. Everything else answers immediately, as before.
+                val spoken = actions.filter { it !is CompanionAction.ExplainVerse }
+                if (spoken.isNotEmpty()) {
+                    turns = chat.say(
+                        Speaker.WIRD,
+                        replyForAll(
+                            spoken,
+                            progress,
+                            positionLabelFor(startVerse, Mushaf.pageOf(position)),
+                        ),
+                    )
+                }
+
+                actions.filterIsInstance<CompanionAction.ExplainVerse>().forEach { ask ->
+                    widgetScope.launch {
+                        turns = chat.say(Speaker.WIRD, translationFor(translations, ask))
+                    }
+                }
             }
 
             WirdTheme(mode = theme) {
@@ -721,4 +738,48 @@ private fun HomeMenu(
             onClick = onSettings,
         )
     }
+}
+
+/**
+ * What the companion says when asked what an ayah means. **His ask, 2026-08-19**, after
+ * typing *"so explain verse 1 of fatiha"* and being told "I didn't catch that."
+ *
+ * ⚠ **It answers with a TRANSLATION and says so in the same breath.** PROFILE.md § 5h approved
+ * explaining the Qur'an and Sacred Rule 2 was not softened by that approval: the words come
+ * from the bundled Saheeh International text, the translator is named every time, and nothing
+ * in this function writes, summarises or interprets anything. The line saying it is not a
+ * tafsir is part of the answer rather than a disclaimer bolted on, because a reader who thinks
+ * they have been given a scholar's explanation has been misled by the shape of the reply.
+ *
+ * **Offline, no key, no model, no cost** — his decision the same day: *"for now offline but we
+ * will add gemini."* When Gemini lands it may rephrase a *fetched* tafsir; it may not author
+ * one, and this function is the shape that rule takes in code.
+ */
+private suspend fun translationFor(
+    translations: Translations,
+    ask: CompanionAction.ExplainVerse,
+): String {
+    val surah = SurahIndex.byNumber(ask.surah)
+        ?: return "I don't know that surah."
+
+    // A surah named with no ayah is a question about the title, and is answered as one.
+    val ayah = ask.ayah
+        ?: return "${surah.name} means ${surah.meaning}. Name an ayah, like " +
+            "${surah.number}:1, and I'll show you its translation."
+
+    if (ayah > surah.verses) {
+        return "${surah.name} has ${surah.verses} ayahs, so there is no ${surah.number}:$ayah."
+    }
+
+    val found = translations.verse(
+        surah = surah.number,
+        ayah = ayah,
+        source = TranslationSource.SAHEEH,
+        firstPage = surah.firstPage,
+        lastPage = surah.lastPage,
+    ) ?: return "I couldn't find ${surah.number}:$ayah in the bundled translation."
+
+    return "${surah.name} ${surah.number}:$ayah\n\n" +
+        "${found.text}\n\n" +
+        "Translated by ${TranslationSource.SAHEEH.by}. That is a translation, not a tafsir."
 }

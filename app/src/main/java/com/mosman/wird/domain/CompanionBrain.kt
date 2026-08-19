@@ -58,6 +58,21 @@ sealed interface CompanionAction {
     /** "I'm back". Ends a pause early. */
     data object Resume : CompanionAction
 
+    /**
+     * "what does 1:1 mean", "explain verse 5 of Al-Kahf", "what does Al-Kahf mean".
+     *
+     * ⚠ **This returns a TRANSLATION, never an explanation**, and the distinction is Sacred
+     * Rule 2 rather than pedantry. The words come from the bundled Saheeh International text
+     * with the translator named on screen; nothing here writes, summarises or interprets. A
+     * tafsir would have to be fetched from a named scholar, and § 5h calls a wrong one the
+     * highest-risk thing in the app — unlike a wrong tajweed mark, the reader cannot tell.
+     *
+     * A null [ayah] means a sūrah was named without one. That answers with the meaning of the
+     * sūrah's **name** — "Al-Kahf means The Cave" — which is a fact about the title, not about
+     * the contents, and is said that way.
+     */
+    data class ExplainVerse(val surah: Int, val ayah: Int?) : CompanionAction
+
     /** Said nothing it recognised. Says so plainly rather than guessing. */
     data class NotUnderstood(val said: String) : CompanionAction
 }
@@ -148,6 +163,7 @@ object CompanionBrain {
         decline(t)?.let { return it }
         progress(t)?.let { return it }
         listen(t)?.let { return it }
+        explain(t)?.let { return it }
         open(t)?.let { return it }
         moveReminder(t, now)?.let { return it }
         dayPlan(t, plan)?.let { return it }
@@ -197,11 +213,37 @@ object CompanionBrain {
 
     private fun open(t: String): CompanionAction? {
         if (!t.has("open", "go to", "take me to", "show me", "jump to")) return null
-        // Longest name first, so a short name inside a longer one cannot win.
-        val surah = SurahIndex.all
-            .sortedByDescending { it.name.length }
-            .firstOrNull { plain(t).contains(plain(it.name)) }
-        return surah?.let { CompanionAction.OpenSurah(it) }
+        return matchSurah(t)?.let { CompanionAction.OpenSurah(it) }
+    }
+
+    /**
+     * "explain verse 1 of Fatiha", "what does 2:255 mean", "translate 18:10".
+     *
+     * **Asking is not enough on its own — it has to name something.** A bare "what does this
+     * mean" has no ayah in it, and guessing that it meant today's first verse would be the
+     * parser inventing a question it was not asked. That falls through to [CompanionAction
+     * .NotUnderstood], whose reply now names this as one of the things it *can* do.
+     */
+    private fun explain(t: String): CompanionAction? {
+        val asking = t.has(
+            "explain", "what does", "what is", "meaning of", "translate", "translation of",
+            "means", "tafsir", "tafseer",
+        )
+        if (!asking) return null
+
+        // "2:255" is the least ambiguous form and the cheapest to read, so it wins.
+        Regex("\\b(\\d{1,3}):(\\d{1,3})\\b").find(t)?.let { m ->
+            val surah = m.groupValues[1].toInt()
+            val ayah = m.groupValues[2].toInt()
+            SurahIndex.byNumber(surah)?.let { return CompanionAction.ExplainVerse(surah, ayah) }
+        }
+
+        // Otherwise a sūrah by name, with an ayah number somewhere near it if there is one.
+        val surah = matchSurah(t) ?: return null
+
+        val ayah = Regex("(?:verse|ayah|aya|ayat)\\s+(\\d{1,3})").find(t)?.groupValues?.get(1)?.toIntOrNull()
+            ?: Regex("(\\d{1,3})(?:st|nd|rd|th)?\\s+(?:verse|ayah)").find(t)?.groupValues?.get(1)?.toIntOrNull()
+        return CompanionAction.ExplainVerse(surah.number, ayah)
     }
 
     /**
@@ -456,6 +498,31 @@ object CompanionBrain {
 
     /** Surah names get written a dozen ways; compare on letters alone. */
     private fun plain(s: String) = s.lowercase().filter(Char::isLetterOrDigit)
+
+    /**
+     * A sūrah named in a sentence, however it was spelled.
+     *
+     * ⚠ **"fatiha" did not match "Al-Fatihah", and that is how this was found** — he typed
+     * *"so explain verse 1 of fatiha"* and the parser shrugged. Nobody types the index's
+     * transliteration. Two forms are therefore tried: the full name, and a **core** with the
+     * `al-` article and one trailing `h` removed, which is what turns "Al-Fatihah" into
+     * "fatiha".
+     *
+     * The core is only used when it is at least four letters long. Shorter than that and it
+     * starts matching inside unrelated words — "Ta-Ha" would core down to "ta", which appears
+     * in half the sentences anyone types.
+     *
+     * Longest name first, so a short name inside a longer one cannot win.
+     */
+    private fun matchSurah(t: String): Surah? {
+        val text = plain(t)
+        val byName = SurahIndex.all.sortedByDescending { it.name.length }
+        byName.firstOrNull { text.contains(plain(it.name)) }?.let { return it }
+        return byName.firstOrNull { s ->
+            val core = plain(s.name).removePrefix("al").removeSuffix("h")
+            core.length >= 4 && text.contains(core)
+        }
+    }
 
     /** Twenty pages a day is already more than anyone in § 2 reads. Past that is a typo. */
     private const val MAX_UNITS = 40

@@ -77,6 +77,11 @@ fun replyFor(
 
     is CompanionAction.Resume -> "Reminders are back on."
 
+    // Answered upstairs, because the words live in a bundled asset and reading one is IO.
+    // Returning an empty string here would put a blank turn in the conversation, so this
+    // action is filtered out before [replyForAll] ever sees it.
+    is CompanionAction.ExplainVerse -> ""
+
     // **The most important string in the companion**, and the reason it is written this way.
     //
     // A chat box invites anyone to type anything, and what is underneath is a handful of
@@ -85,7 +90,8 @@ fun replyFor(
     // turns a dead end into a menu. An "I don't understand" with no examples is how someone
     // decides the feature is broken and stops typing.
     is CompanionAction.NotUnderstood ->
-        "I didn't catch that. Name a time like after Isha, or use one of the buttons below."
+        "I didn't catch that. Name a time like after Isha, ask for a translation like 18:10, " +
+            "or use one of the buttons below."
 }
 
 /**
