@@ -24,6 +24,7 @@ import com.mosman.wird.domain.CompanionAction
 import com.mosman.wird.domain.CompanionBrain
 import com.mosman.wird.domain.replyForAll
 import com.mosman.wird.domain.surahs
+import com.mosman.wird.mushaf.MushafDownloadService
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
@@ -619,19 +620,11 @@ class MainActivity : ComponentActivity() {
                         cachedPages = cachedPages,
                         downloading = downloading,
                         onDownloadAll = {
-                            widgetScope.launch {
-                                downloading = 0 to Mushaf.PAGES
-                                val failed = mushaf.downloadAll { done, total ->
-                                    downloading = done to total
-                                }
-                                downloading = null
-                                cachedPages = withContext(Dispatchers.IO) { mushaf.cached() }
-                                exportNote = if (failed == 0) {
-                                    "The whole mushaf is on this phone. It reads offline now."
-                                } else {
-                                    "$failed pages didn't arrive. Tap again to pick up the rest."
-                                }
-                            }
+                            // **Handed to a service, not run here.** Owning a 45-minute job in
+                            // a screen's scope meant leaving Settings killed it. The service
+                            // outlives the screen and shows what is left in a notification.
+                            MushafDownloadService.start(this@MainActivity)
+                            downloading = 0 to Mushaf.PAGES
                         },
                         onResume = {
                             away = null

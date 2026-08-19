@@ -2147,3 +2147,39 @@ simply have been told.
 measured by arithmetic on its bitrate is not a measurement of his voice, and the per-second loudness
 samples were not captured because the recording predates the build that logs them. The next
 recitation produces the first real data.
+
+### 5as. The download moved into a service. 2026-08-19
+
+His instruction: *"do the download, cos it's supposed to run in the background and even a
+notification showing what's left."* He was right, and the previous version was honest about being
+wrong — the work lived in the Settings screen's own scope, so **leaving Settings killed it.** At
+four seconds a page, the whole mushaf is about forty-five minutes, and nobody sits on one screen
+for forty-five minutes.
+
+**A foreground service is Android's name for work that keeps running while a notification shows.**
+The system will not quietly kill it, precisely *because* the notification means the user knows it
+is happening. ⚠ **That trade is the whole reason it is the right tool** rather than a clever one:
+anything trying to pull ninety megabytes invisibly would be killed by exactly the battery managers
+§ 10 warns about on Transsion phones, and would deserve to be.
+
+**Proven on his Pixel, and the proof is the part that used to fail:** started from Settings, then
+**HOME pressed to leave the app entirely** — the count went 502 → 597 → 604 with the app closed.
+Final state: **604 pages, 92 MB of fonts and 26 MB of page text.** It reads offline now.
+
+**Three details worth keeping:**
+- The notification counts **pages to go**, not pages done. That is the figure a person actually
+  wants.
+- It repaints every ten pages. Six hundred and four repaints is six hundred and four system-UI
+  wakeups for a bar moving a fifth of a pixel.
+- It is **cancellable from the notification**, because a forty-five minute download nobody can stop
+  is a hostage situation.
+
+⬜ **Not built, and stated rather than hidden: it does not wait for wifi.** Someone starting this on
+mobile data spends ninety megabytes of it. The Settings row names the size first, but a metered-
+network guard is the honest fix and it does not exist.
+
+⬜ **Also open: the "Open in Quran for Android" action is hard-coded to their package.** He asked
+what happens for someone using a different Qur'an app. **There is no cross-app standard** —
+`quran://` is that app's own invention — so the honest improvement is to offer whatever app on the
+phone answers that scheme rather than naming one, and to accept that apps which never adopted it
+cannot be reached at all.
