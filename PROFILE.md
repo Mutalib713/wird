@@ -2380,6 +2380,24 @@ download timed out at 55% and left an empty directory** — no toolchain, no `so
 creates `ndk/27.0.12077973/` and populates it last, so the folder's existence proves nothing.
 Check for `toolchains/llvm/prebuilt` or `source.properties` before believing it.
 
+⚠ **`sdkmanager` cannot download the NDK on this connection, and it fails in two different
+ways.** Three attempts: the first timed out at 55%, the second died with **"invalid stored block
+lengths"** — a truncated stream failing at the unzip rather than at the download — and the third
+sat at zero bytes indefinitely. The `.android/cache` holds only repository XML, so there is no
+stale file to clear; the transfer itself is being cut.
+
+**The workaround, and it should be the first move next time rather than the fourth:** fetch the
+zip directly and let `curl` do what `sdkmanager` will not.
+
+```
+curl -L --ssl-no-revoke -C - --retry 20 --retry-delay 5 --retry-all-errors   -o android-ndk-r27b-windows.zip   https://dl.google.com/android/repository/android-ndk-r27b-windows.zip
+```
+
+`-C -` resumes from wherever a broken transfer stopped and `--retry-all-errors` reconnects
+through the drops, which is precisely the failure mode here. **781,495,902 bytes.** Note the
+version: the direct file is **r27b**, whose `Pkg.Revision` is `27.1.12297006`, so it is extracted
+to `Sdk/ndk/27.1.12297006/` rather than the `27.0.12077973` sdkmanager was asked for.
+
 #### What still has to be true, and is not yet
 
 - The NDK downloading without timing out
