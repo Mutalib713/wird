@@ -237,12 +237,29 @@ fun TodayScreen(
     // and Compose only redraws what it can see change.
     var repeatEach by remember { mutableIntStateOf(1) }
 
-    fun listen() {
-        // **Pressing Listen while it is already playing no longer stops it.** That was the
-        // only control there was, so it had to do both jobs; the bar now has a stop of its
-        // own, and a second press here would be a hidden second meaning for a button whose
-        // label says one thing.
-        if (audio is AudioState.Playing || audio is AudioState.Paused) return
+    // What is loaded right now, so tapping a second ayah can jump rather than refetch.
+    var loaded by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    /**
+     * Start listening, optionally **at a particular ayah**.
+     *
+     * ⚠ **[startAt] exists because tapping Play on an ayah started the whole portion from the
+     * top** — his report, 2026-08-19, and he is right that it is the opposite of what tapping
+     * *that* ayah means.
+     *
+     * Three cases, in the order they are cheap:
+     *  1. Already playing and the ayah is loaded — jump, no network, no delay.
+     *  2. An ayah outside today's portion — play **just that one**, because he asked for that
+     *     ayah and the surrounding ones were never today's reading.
+     *  3. Otherwise — fetch the portion and begin at that ayah.
+     */
+    fun listen(startAt: String? = null) {
+        // Already going: point it at the ayah instead of starting over.
+        if (audio is AudioState.Playing || audio is AudioState.Paused) {
+            val at = loaded.indexOf(startAt)
+            if (startAt != null && at >= 0) portionAudio.goTo(at)
+            return
+        }
         if (audio !is AudioState.Idle) { stopListening(); return }
         scope.launch {
             audio = AudioState.Fetching(0, 0)
@@ -261,7 +278,13 @@ fun TodayScreen(
                 return@launch
             }
 
-            val files = portionAudio.ensureCached(verses, audioQuality) { done, total ->
+            // An ayah he tapped on some other page is not part of today's portion, so the
+            // portion is not what he asked for. Play the one ayah.
+            val list = if (startAt != null && startAt !in verses) listOf(startAt) else verses
+            val begin = if (startAt != null) list.indexOf(startAt).coerceAtLeast(0) else 0
+            loaded = list
+
+            val files = portionAudio.ensureCached(list, audioQuality) { done, total ->
                 audio = AudioState.Fetching(done, total)
             }
             if (files == null) {
@@ -275,9 +298,10 @@ fun TodayScreen(
             }
             portionAudio.play(
                 files = files,
-                verses = verses,
-                onVerse = { i -> audio = AudioState.Playing(verses[i], i, verses.size) },
+                verses = list,
+                onVerse = { i -> audio = AudioState.Playing(list[i], i, list.size) },
                 onFinished = { audio = AudioState.Idle },
+                startIndex = begin,
             )
         }
     }
@@ -479,7 +503,7 @@ fun TodayScreen(
                     onToggleBookmark(key)
                     bookmarkTick++
                 },
-                onPlay = { listen() },
+                onPlay = { listen(startAt = key) },
                 onOpenElsewhere = OpenElsewhere.intentFor(context, key)?.let { i ->
                     {
                         context.startActivity(i)

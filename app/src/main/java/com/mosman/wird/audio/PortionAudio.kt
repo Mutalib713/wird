@@ -162,6 +162,11 @@ class PortionAudio(private val context: Context) {
         verses: List<String>,
         onVerse: (index: Int) -> Unit,
         onFinished: () -> Unit,
+        /**
+         * Where to begin. **Added 2026-08-19**: tapping Play on an ayah used to start the
+         * portion from the top, which is the opposite of what tapping *that* ayah means.
+         */
+        startIndex: Int = 0,
     ) {
         // Release whatever was playing without bumping [run] — the fetch that got us here
         // holds the current token, and cancelling it now would stop the thing we are
@@ -172,8 +177,16 @@ class PortionAudio(private val context: Context) {
         this.onVerse = onVerse
         this.onFinished = onFinished
         played = 0
-        playFrom(run, 0, files, verses, onVerse, onFinished)
+        playFrom(run, startIndex.coerceIn(0, (files.size - 1).coerceAtLeast(0)), files, verses, onVerse, onFinished)
     }
+
+    /**
+     * Move to an ayah that is already loaded.
+     *
+     * Public so the verse toolbar can hand playback to a different ayah **without refetching
+     * the portion** — everything is already on disk, so jumping should be instant.
+     */
+    fun goTo(index: Int) = jumpTo(index)
 
     /**
      * How many times each ayah is heard before the next one. **1, 2, 3, or [FOREVER].**

@@ -1994,3 +1994,27 @@ The words called anything before noon "morning" while the mark called anything b
 Both now take the greeting as the single source of truth — if the sentence says morning, the sky
 does. **The crescent stays hand-drawn**, because a disc with a second disc knocked out of it is a
 mark rather than an illustration, and § 5ag's rule cuts both ways.
+
+### 5am. Play this ayah meant play the whole chapter. 2026-08-19
+
+His report: *"when I click on an ayah to play it should play that ayah, but this one starts the
+whole chapter."*
+
+**He is right, and it was a one-line bug behind a well-named button.** The verse toolbar's
+control said *"Play this ayah"* and called `listen()`, which has only ever started the portion
+from the top. The label promised something the call could not do.
+
+**Three cases now, in the order they are cheap:**
+1. **Already playing, and the ayah is loaded** — jump to it. No network, no delay, nothing
+   refetched, because it is all on disk already.
+2. **An ayah outside today's portion** — play **only that one**. He tapped that ayah; the
+   surrounding ones were never today's reading, so a portion is not what he asked for.
+3. **Otherwise** — fetch the portion and begin at that ayah.
+
+*Verified on the emulator:* long-pressed the last line of Al-Fatihah, pressed Play this ayah,
+and the bar reported **"Al-Fatihah 1:7 · 7 of 7"**. Before the fix it always said 1 of 7.
+
+⚠ **The general shape of this bug is worth more than the fix.** A control whose *label* is
+right and whose *call* is generic reads as working until someone uses it for the thing the
+label promises. It survived a whole build of the recitation controls without being noticed,
+because every test drove playback from the page's Listen button and never from an ayah.
