@@ -723,32 +723,24 @@ private fun Figure(
 }
 
 /**
- * A flame, for the streak. His comp uses an emoji here and this does not.
+ * A flame, for the streak. **Taken, not drawn — after two attempts that read as water.**
  *
- * Emoji in UI chrome renders differently on every phone and reads as a placeholder; the gate
- * blocks it for that reason, and the rest of this screen already draws its own marks. A flame
- * is two curves meeting at a point, which is cheaper than it looks.
+ * The first was a symmetrical teardrop, which is literally a water droplet, on a card about
+ * a reading streak. The second leaned and carried the S-curve that separates fire from water
+ * and was still a blob at 16dp. PROFILE.md § 5ag's rule got its third proof, so this is Font
+ * Awesome Free's `fire-flame-curved`, CC BY 4.0, about 1KB. See `res/drawable/ic_flame.xml`.
+ *
+ * His comp uses an emoji here and this does not: emoji in UI chrome renders differently on
+ * every phone, the gate blocks it, and a tinted vector takes the accent colour in both themes.
  */
 @Composable
 private fun FlameGlyph(tint: Color) {
-    Canvas(modifier = Modifier.size(16.dp)) {
-        val w = size.width
-        val h = size.height
-        // ⚠ **A symmetrical teardrop is a water droplet, not a flame** — which is exactly
-        // what the first attempt drew, on a card about a reading streak. A flame is
-        // asymmetric: the tip leans, one side bulges, and the other carries an S-curve back
-        // in towards the base. That curl is the whole difference between fire and water.
-        val body = Path().apply {
-            moveTo(w * 0.56f, h * 0.04f)
-            quadraticTo(w * 0.98f, h * 0.44f, w * 0.76f, h * 0.76f)
-            quadraticTo(w * 0.58f, h * 1.00f, w * 0.36f, h * 0.90f)
-            quadraticTo(w * 0.10f, h * 0.74f, w * 0.30f, h * 0.46f)
-            quadraticTo(w * 0.44f, h * 0.28f, w * 0.38f, h * 0.14f)
-            quadraticTo(w * 0.48f, h * 0.24f, w * 0.56f, h * 0.04f)
-            close()
-        }
-        drawPath(body, color = tint)
-    }
+    Icon(
+        painter = painterResource(R.drawable.ic_flame),
+        contentDescription = null,
+        tint = tint,
+        modifier = Modifier.size(17.dp),
+    )
 }
 
 /**
