@@ -55,6 +55,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -347,6 +348,10 @@ fun TodayScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .safeDrawingPadding()
+                // You can still long-press an ayah while something is playing, and then both
+                // want the same strip of screen. The bar steps up over the toolbar rather
+                // than fighting it for the bottom edge.
+                .padding(bottom = if (selectedVerse != null) 76.dp else 0.dp)
                 .zIndex(2f),
         )
 
@@ -503,7 +508,14 @@ fun TodayScreen(
                     onToggleBookmark(key)
                     bookmarkTick++
                 },
-                onPlay = { listen(startAt = key) },
+                onPlay = {
+                    listen(startAt = key)
+                    // **The toolbar closes once it has been used.** Both it and the playback
+                    // bar are pinned to the bottom, so leaving it up stacked one on the other
+                    // — the ayah label was clipped and half the play button was behind a
+                    // share icon. Acting on a selection also finishes with it.
+                    selectedVerse = null
+                },
                 onOpenElsewhere = OpenElsewhere.intentFor(context, key)?.let { i ->
                     {
                         context.startActivity(i)

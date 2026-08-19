@@ -2018,3 +2018,39 @@ and the bar reported **"Al-Fatihah 1:7 · 7 of 7"**. Before the fix it always sa
 right and whose *call* is generic reads as working until someone uses it for the thing the
 label promises. It survived a whole build of the recitation controls without being noticed,
 because every test drove playback from the page's Listen button and never from an ayah.
+
+### 5an. The reciting highlight was already built, and two bars were fighting. 2026-08-19
+
+⚠ **A correction to something this session said out loud.** The last walkthrough offered to
+"add" the highlight on the ayah being recited, on the strength of § 6d's note that
+`highlightReciting` was *"not yet used"*. **It has been used for some time.** `MushafPageView`
+paints a continuous band across the run of glyphs whose verse key matches what is playing —
+per run rather than per line, because a mushaf line usually carries the end of one ayah and the
+start of the next. § 6d's note went stale and this section is the correction.
+
+**The screenshot that proved it also exposed a real defect, introduced an hour earlier.** The
+verse toolbar and the new playback bar are both pinned to the bottom of the page, so with an
+ayah selected they stacked: the ayah label was clipped mid-word and half the play button sat
+behind a share icon.
+
+Two fixes, because one of them is not enough:
+1. **The toolbar closes when its Play is used.** Acting on a selection finishes with it, and
+   that removes the collision on the path anyone actually takes.
+2. **The bar steps up over the toolbar** when a verse is selected anyway, since long-pressing
+   an ayah *while* something is playing is a real thing to do.
+
+**The lesson: a screenshot taken to verify one thing is worth reading for everything else in
+it.** That capture was taken to check which ayah playback started on. It answered that, showed
+the highlight working, and showed a layout collision — none of which was what it was for.
+
+### 5ao. On his phone. 2026-08-19
+
+Installed to the Pixel 6 Pro (`1A131FDEE006MD`, Android 17) as an update rather than a fresh
+install, so **his reading record was never at risk**: checked first that the existing install
+came from this machine, which meant the signing key matched and no uninstall was needed.
+
+*Verified after installing:* `files/` still holds his data, `position_unit=882` (page 442, in
+Ya-Sin) is unchanged, his settings survived, and there are no crash lines. **17.7 MB debug APK**
+— unshrunk, and not the number testers will see; that gets measured at task 16 with R8.
+
+⚠ Foreground was checked before anything was sent, per CLAUDE.md. It was Wird itself.
