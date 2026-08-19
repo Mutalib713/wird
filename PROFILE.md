@@ -2054,3 +2054,46 @@ Ya-Sin) is unchanged, his settings survived, and there are no crash lines. **17.
 — unshrunk, and not the number testers will see; that gets measured at task 16 with R8.
 
 ⚠ Foreground was checked before anything was sent, per CLAUDE.md. It was Wird itself.
+
+### 5ap. Task 14, probed before it was built. 2026-08-19
+
+**⚠ The task was written around whisper.cpp, and probing it first found the cost before a line
+of Kotlin existed.** That is what a ⚠ task is for.
+
+| Assumption the task rested on | What is actually true |
+|---|---|
+| whisper.cpp can be built here | **No NDK and no CMake** on this machine — a one-off 3–5 GB install |
+| The Tarteel model can be loaded | **No GGML/GGUF build exists.** 290 MB of PyTorch only |
+| The model is affordable | **45–57 MB quantised, against a 17.7 MB app**, on Ghanaian mobile data |
+
+That third line is the one that matters. § 10 fetches mushaf fonts **154 KB per page** precisely
+to avoid this, and a model three times the size of the whole app is not a detail.
+
+**The re-read that changed the plan.** Task 14's own done-when is narrower than transcription:
+*"reliably separates a real recitation from silence and from unrelated speech."* The first half
+is a **loudness** problem and costs nothing. So the cheap half ships first and its numbers decide
+whether the 50 MB is ever worth it. His call when shown the trade: *cheap check first, measure it,
+then decide.*
+
+**How it works, and why it is free.** `MediaRecorder.getMaxAmplitude()` is already polled every
+80 ms to drive the recording meter, so the recitation is measured **while it is recorded** — no
+decoding, no second pass, no model. ⚠ **Reading that counter resets it**, so the samples are taken
+from the value the meter already holds; a second caller would see a fraction of the sound and both
+would conclude the room was silent. That hazard was written into the code as a comment and then
+nearly introduced anyway by adding a second `level()` — caught on the duplicate definition.
+
+**⚠ What it can and cannot do, stated in the enum, in the reply, and here.** It separates
+recitation from silence, from a pocket, and from three seconds of throat-clearing. It **cannot**
+separate it from a phone call, a conversation, or the radio — nothing here listens to words. A
+check that quietly implies more than it verified is worse than no check.
+
+**The verdict never gates the day.** Marking is unaffected; the reading is a note beside it. On
+evidence this thin, letting it veto a recording would be the app calling someone a liar. Sacred
+Rule 3 also decides which way to lean when data is thin: the thresholds are *forgiving*, because
+wrongly telling someone their recitation did not count is how a person deletes a habit app, while
+wrongly accepting a poor recording costs nothing anyone can feel.
+
+⬜ **NOT TICKED, and that is the point.** Every threshold — a 1,200 speech floor, 10 spoken
+seconds, a 30% share — is **provisional and unmeasured on his voice, his phone, his room.** Task 14
+asks for the measured numbers written down and there are none yet. The logging is in place
+(`WirdHeard`); the numbers come from real recordings.
