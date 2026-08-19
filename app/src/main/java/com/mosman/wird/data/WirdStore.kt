@@ -200,6 +200,24 @@ class WirdStore(context: Context) {
         }
 
     /**
+     * Whether the **mushaf page** paints dark, kept apart from the app's theme.
+     *
+     * **His instruction, 2026-08-19**, describing the app he actually reads in: *"home and
+     * menu are in dark mode but page is light mode."* Quran for Android treats the reading
+     * surface as its own thing, and he is right that it should be — the chrome is software
+     * and follows the phone, while the page is a printed object you are looking at. Someone
+     * reading at night with a dark launcher does not necessarily want the Qur'an inverted.
+     *
+     * ⚠ **Before this, the page's own night toggle changed the WHOLE APP's theme.** Flipping
+     * it on the reading screen turned Home and the menus dark too, which is why the two could
+     * never disagree. Defaulting to light means a dark phone now shows dark chrome around a
+     * light page, which is exactly the arrangement he pointed at.
+     */
+    var pageNight: Boolean
+        get() = prefs.getBoolean(KEY_PAGE_NIGHT, false)
+        set(value) = prefs.edit { putBoolean(KEY_PAGE_NIGHT, value) }
+
+    /**
      * The stretch of days with no reminders, or null. **PLAN task 22.**
      *
      * Two dates in one string, same reasoning as [nudgeSchedule]: a half-written change
@@ -332,6 +350,7 @@ class WirdStore(context: Context) {
         const val KEY_NUDGE = "nudge_schedule"
         const val KEY_AUDIO = "audio_quality"
         const val KEY_AWAY = "away_period"
+        const val KEY_PAGE_NIGHT = "page_night"
         const val FIELD = " | "
         const val AWAY_SEP = ".."
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"

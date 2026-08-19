@@ -42,6 +42,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.data.ReadingMode
+import com.mosman.wird.data.ThemeMode
 import com.mosman.wird.audio.AudioState
 import com.mosman.wird.audio.PortionAudio
 import com.mosman.wird.audio.Recitation
@@ -63,6 +64,7 @@ import com.mosman.wird.domain.pages
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.WirdTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -270,6 +272,12 @@ fun TodayScreen(
         }
     }
 
+    // **The reading surface carries its own light and dark.** His instruction, 2026-08-19:
+    // *"home and menu are in dark mode but page is light mode."* Everything below sits in the
+    // page's theme rather than the app's, so the chrome can follow the phone while the mushaf
+    // stays a printed object. The toolbar and the verse sheet come with it, because a dark bar
+    // over a light page is two surfaces arguing.
+    WirdTheme(mode = if (dark) ThemeMode.DARK else ThemeMode.LIGHT) {
     Box(modifier = Modifier.fillMaxSize()) {
         // **Two ways to read the same page, and the mushaf is the default every time.**
         // section 5z: the translation is a separate mode rather than English poured between
@@ -458,6 +466,7 @@ fun TodayScreen(
                 showJump = false
             },
         )
+    }
     }
 }
 

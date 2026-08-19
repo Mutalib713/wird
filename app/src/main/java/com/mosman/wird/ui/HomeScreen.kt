@@ -191,12 +191,17 @@ fun HomeScreen(
             )
         }
 
-        progress?.takeIf { it.totalDaysRead > 0 }?.let { p ->
+        // ⚠ **Both of these used to disappear entirely until you had read a day**, which is
+        // how a brand-new Home ended at the check-in and looked unfinished. Found by dumping
+        // the view tree on a clean install: neither section was in it at all. His comps show
+        // them full, because a comp is always drawn with data in it — the empty state is the
+        // one screen a mockup never shows you and every new reader starts on.
+        progress?.let { p ->
             Spacer(Modifier.height(Scale.space4))
             NumbersCard(p)
         }
 
-        if (recent.isNotEmpty()) {
+        run {
             Spacer(Modifier.height(Scale.space4))
             ThisWeekCard(recent, pageFor)
         }
@@ -456,44 +461,91 @@ private fun Medallion(number: Int) {
 }
 
 /**
- * A mushaf open on a rihāl, from his image 1's portion card.
+ * A mushaf open on a rihāl.
  *
- * Two leaves meeting at a spine over a crossed wooden stand — the shape you recognise before
- * you have read a single label on the screen. Drawn with four strokes and two quadrilaterals
- * rather than shipped as an image: § 10 measures every byte on this project, and a picture is
- * the easiest place to spend a hundred kilobytes without noticing.
+ * ⚠ **Redrawn 2026-08-19 — his verdict on the first one was "it looks terrible".** He was
+ * right, and the reason is worth keeping because it applies to every drawn illustration:
+ * **the first version was made of straight lines, and a book has no straight lines.** Two flat
+ * quadrilaterals meeting at a point over a bare X read as a paper aeroplane on sticks. What
+ * makes a shape say *book* is the curve — leaves sag away from the spine under their own
+ * weight, and the outer edge is where you see it.
  *
- * The leaves take the accent and the stand takes the clay already measured for the fourth
- * tile, so this adds a picture without adding a colour.
+ * So this is built from the things that actually signal a bound mushaf:
+ *
+ *  1. **Curved leaves.** Each page is a quadratic bezier falling from the gutter to its outer
+ *     edge, which is the single change that stopped it looking like folded paper.
+ *  2. **A gutter, not a point.** The two leaves meet in a narrow V, the way an open book does.
+ *  3. **A visible cover** under the leaves — a darker band standing slightly proud of the
+ *     paper on both sides. Without it the pages float and nothing says the thing is bound.
+ *  4. **Lines of text**, three per leaf, following the curve rather than sitting level. Level
+ *     lines on a curved page is the tell that gives away a cheap drawing.
+ *  5. **A rihāl with thickness** — two tapered slats, wider where they cross.
+ *
+ * Drawn rather than shipped as a raster: § 10 measures every byte for readers on Ghanaian
+ * mobile data, and a picture is the easiest place to spend a hundred kilobytes unnoticed. It
+ * takes its colours from tokens already measured in § 6e, so it adds a picture without adding
+ * a colour.
  */
 @Composable
 private fun MushafMark() {
     val colors = LocalWirdColors.current
-    Canvas(modifier = Modifier.size(52.dp)) {
+    Canvas(modifier = Modifier.size(56.dp)) {
         val w = size.width
         val h = size.height
         val wood = colors.openPage.ink
         val leaf = colors.accent
+        val paper = colors.surface
 
-        // The stand: two legs crossing below the book.
-        drawLine(wood, Offset(w * 0.22f, h * 0.92f), Offset(w * 0.66f, h * 0.52f), w * 0.055f, StrokeCap.Round)
-        drawLine(wood, Offset(w * 0.78f, h * 0.92f), Offset(w * 0.34f, h * 0.52f), w * 0.055f, StrokeCap.Round)
+        // ---- the stand: two slats crossing under the book ----
+        drawLine(wood, Offset(w * 0.20f, h * 0.95f), Offset(w * 0.63f, h * 0.55f), w * 0.07f, StrokeCap.Round)
+        drawLine(wood, Offset(w * 0.80f, h * 0.95f), Offset(w * 0.37f, h * 0.55f), w * 0.07f, StrokeCap.Round)
 
-        // The two leaves, each a quadrilateral falling away from the spine.
+        // ---- the cover, sitting a little proud of the paper on each side ----
+        val cover = Path().apply {
+            moveTo(w * 0.50f, h * 0.70f)
+            quadraticTo(w * 0.26f, h * 0.72f, w * 0.06f, h * 0.60f)
+            lineTo(w * 0.06f, h * 0.66f)
+            quadraticTo(w * 0.26f, h * 0.78f, w * 0.50f, h * 0.76f)
+            quadraticTo(w * 0.74f, h * 0.78f, w * 0.94f, h * 0.66f)
+            lineTo(w * 0.94f, h * 0.60f)
+            quadraticTo(w * 0.74f, h * 0.72f, w * 0.50f, h * 0.70f)
+            close()
+        }
+        drawPath(cover, color = leaf)
+
+        // ---- the two leaves, each sagging away from the gutter ----
         listOf(-1f, 1f).forEach { side ->
-            val outerX = w * (0.5f + side * 0.40f)
+            val outer = w * (0.5f + side * 0.44f)
+            val mid = w * (0.5f + side * 0.24f)
             val page = Path().apply {
-                moveTo(w * 0.5f, h * 0.30f)
-                lineTo(outerX, h * 0.20f)
-                lineTo(outerX, h * 0.56f)
-                lineTo(w * 0.5f, h * 0.62f)
+                moveTo(w * 0.50f, h * 0.32f)
+                // the top edge lifts, then falls to the outer corner
+                quadraticTo(mid, h * 0.20f, outer, h * 0.30f)
+                lineTo(outer, h * 0.60f)
+                // the bottom edge sags back to the gutter
+                quadraticTo(mid, h * 0.72f, w * 0.50f, h * 0.70f)
                 close()
             }
-            drawPath(page, color = leaf.copy(alpha = 0.16f))
-            drawPath(page, color = leaf, style = Stroke(width = w * 0.045f))
+            drawPath(page, color = paper)
+            drawPath(page, color = leaf, style = Stroke(width = w * 0.035f))
+
+            // three lines of text, following the sag rather than sitting level
+            repeat(3) { row ->
+                val t = 0.40f + row * 0.11f
+                val yIn = h * (t + 0.02f)
+                val yOut = h * t
+                drawLine(
+                    color = leaf.copy(alpha = 0.45f),
+                    start = Offset(w * (0.5f + side * 0.10f), yIn),
+                    end = Offset(w * (0.5f + side * 0.36f), yOut),
+                    strokeWidth = w * 0.022f,
+                    cap = StrokeCap.Round,
+                )
+            }
         }
-        // The spine, which is what stops it reading as two loose sheets.
-        drawLine(leaf, Offset(w * 0.5f, h * 0.30f), Offset(w * 0.5f, h * 0.62f), w * 0.045f, StrokeCap.Round)
+
+        // ---- the gutter: a narrow V, which is what says "two leaves" and not "one sheet" ----
+        drawLine(leaf, Offset(w * 0.50f, h * 0.32f), Offset(w * 0.50f, h * 0.70f), w * 0.035f, StrokeCap.Round)
     }
 }
 
@@ -643,15 +695,36 @@ private fun NumbersCard(p: Progress) {
     Plate {
         Label("Your numbers")
         Spacer(Modifier.height(Scale.space3))
+
+        // **Day one is a real state and it gets a real sentence.** Sacred Rule 3: it says
+        // what will fill the card, not what is missing from it. "No data" is a fact about
+        // the app; "today would be your first" is a fact about the reader.
+        if (p.totalDaysRead == 0) {
+            Text(
+                text = "Nothing recorded yet. Finish today and this becomes day one.",
+                color = colors.textSecondary,
+                style = TextStyle(fontSize = Scale.caption, lineHeight = 20.sp),
+            )
+            return@Plate
+        }
+
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (p.currentStreak > 1) {
-                Figure(p.currentStreak.toString(), "Day streak", Modifier.weight(1f))
-                VerticalHair()
-            }
+            // **The streak always shows, even at zero.** It used to appear only above 1,
+            // so the card silently changed shape on the second day and a reader on day one
+            // never saw the thing the app is asking them to build. Sacred Rule 4 is why it
+            // is safe to show a nought: it never appears without total days read beside it.
+            Figure(
+                value = p.currentStreak.toString(),
+                caption = if (p.currentStreak == 1) "Day streak" else "Day streak",
+                modifier = Modifier.weight(1f),
+                glyph = { FlameGlyph(it) },
+            )
+            VerticalHair()
             Figure(
                 value = p.totalDaysRead.toString(),
                 caption = if (p.totalDaysRead == 1) "Day read" else "Total days read",
                 modifier = Modifier.weight(1f),
+                glyph = { BookGlyph(it) },
             )
             VerticalHair()
             Column(modifier = Modifier.weight(1.2f)) {
@@ -671,15 +744,59 @@ private fun NumbersCard(p: Progress) {
 }
 
 @Composable
-private fun Figure(value: String, caption: String, modifier: Modifier = Modifier) {
+private fun Figure(
+    value: String,
+    caption: String,
+    modifier: Modifier = Modifier,
+    glyph: (@Composable (Color) -> Unit)? = null,
+) {
     val colors = LocalWirdColors.current
     Column(modifier = modifier) {
-        Text(value, color = colors.accent, style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Medium))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            glyph?.let {
+                it(colors.accent)
+                Spacer(Modifier.width(Scale.space2))
+            }
+            Text(
+                text = value,
+                color = colors.accent,
+                style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Medium),
+            )
+        }
         Text(
             text = caption,
             color = colors.textSecondary,
             style = TextStyle(fontSize = 11.sp),
         )
+    }
+}
+
+/**
+ * A flame, for the streak. His comp uses an emoji here and this does not.
+ *
+ * Emoji in UI chrome renders differently on every phone and reads as a placeholder; the gate
+ * blocks it for that reason, and the rest of this screen already draws its own marks. A flame
+ * is two curves meeting at a point, which is cheaper than it looks.
+ */
+@Composable
+private fun FlameGlyph(tint: Color) {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        // ⚠ **A symmetrical teardrop is a water droplet, not a flame** — which is exactly
+        // what the first attempt drew, on a card about a reading streak. A flame is
+        // asymmetric: the tip leans, one side bulges, and the other carries an S-curve back
+        // in towards the base. That curl is the whole difference between fire and water.
+        val body = Path().apply {
+            moveTo(w * 0.56f, h * 0.04f)
+            quadraticTo(w * 0.98f, h * 0.44f, w * 0.76f, h * 0.76f)
+            quadraticTo(w * 0.58f, h * 1.00f, w * 0.36f, h * 0.90f)
+            quadraticTo(w * 0.10f, h * 0.74f, w * 0.30f, h * 0.46f)
+            quadraticTo(w * 0.44f, h * 0.28f, w * 0.38f, h * 0.14f)
+            quadraticTo(w * 0.48f, h * 0.24f, w * 0.56f, h * 0.04f)
+            close()
+        }
+        drawPath(body, color = tint)
     }
 }
 
@@ -697,6 +814,17 @@ private fun ThisWeekCard(recent: List<DayLog>, pageFor: (LocalDate) -> Int?) {
     val shown = recent.take(4)
 
     Plate {
+        if (shown.isEmpty()) {
+            Label("This week")
+            Spacer(Modifier.height(Scale.space3))
+            Text(
+                text = "The days you finish will be listed here, newest first.",
+                color = colors.textSecondary,
+                style = TextStyle(fontSize = Scale.caption, lineHeight = 20.sp),
+            )
+            return@Plate
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,

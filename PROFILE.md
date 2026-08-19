@@ -1807,3 +1807,79 @@ tree. Three facts agreeing is not the same as one phone showing the button.
 3. **A screenshot disagreed with the accessibility tree**, and the tree was right. Same lesson
    as § 5ad's false keyboard alarm: measure the tree, and treat a screenshot as an illustration
    rather than as evidence.
+
+### 5af. The page keeps its own light and dark. 2026-08-19
+
+His words, describing the app he actually reads in: *"the home and the rest of the pages
+automatically matches with the phone theme and is not dependent on the page… so Quran for
+Android, but home and menu are in dark mode but page is light mode."*
+
+**He is describing two surfaces with two different jobs.** The chrome is software and should
+follow the phone. The mushaf is a printed object you are looking at, and someone reading at
+night with a dark launcher does not necessarily want the Qur'an inverted.
+
+⚠ **Before this, the page's own night toggle changed the WHOLE APP's theme.** Flipping it on
+the reading screen turned Home and the menus dark as well, which is precisely why the two
+could never disagree — there was only ever one setting wearing two labels.
+
+**Now:** `WirdStore.pageNight` is the page's own preference, defaulting to **light**, and
+`TodayScreen` wraps its entire body in that theme. The toolbar and the verse sheet come with
+it, because a dark bar over a light page is two surfaces arguing.
+
+**Verified on the emulator with the phone in dark mode:** Home, the tab bar and the check-in
+card all painted dark; the mushaf page painted light in the same run. The device's night
+setting was read first and restored afterwards.
+
+⚠ **The chrome default is `SYSTEM` and has been since § 5u** — it already follows the phone.
+This emulator carries an explicit `DARK` left over from testing, which is a valid state and
+not what a fresh install does.
+
+### 5ag. The mushaf illustration, redrawn. 2026-08-19
+
+His verdict on the first one: *"the quran image there, it looks terrible."* He was right, and
+the diagnosis generalises to every drawn illustration:
+
+**It was made of straight lines, and a book has no straight lines.** Two flat quadrilaterals
+meeting at a point over a bare X read as a paper aeroplane on sticks. What makes a shape say
+*book* is the **curve** — leaves sag away from the spine under their own weight, and the outer
+edge is where you see it.
+
+The redraw is built from the things that actually signal a bound mushaf: curved leaves, a
+gutter rather than a point, a visible cover standing proud of the paper, three lines of text
+per leaf **following the sag rather than sitting level**, and a rihāl with thickness.
+
+**Still drawn rather than shipped as an image.** § 10 measures every byte for readers on
+Ghanaian mobile data, and a picture is the easiest place to spend a hundred kilobytes without
+noticing. It takes its colours from tokens already measured in § 6e, so it adds a picture
+without adding a colour.
+
+### 5ah. The two sections that were invisible. 2026-08-19
+
+He asked for the streak block and This week next. **Both were already built and neither had
+ever been seen**, including by him: `Your numbers` was gated on `totalDaysRead > 0` and
+`This week` on a non-empty list, so on any fresh install Home simply stopped after the
+check-in and looked unfinished.
+
+**The empty state is the one screen a mockup never shows you, and every new reader starts on
+it.** A comp is always drawn with data in it. Both sections now render on day zero and say
+what will fill them — *"Nothing recorded yet. Finish today and this becomes day one."* Sacred
+Rule 3: that is a fact about the reader, where "no data" would be a fact about the app.
+
+**The streak also shows at zero now.** It used to appear only above 1, so the card silently
+changed shape on the second day and a reader on day one never saw the thing the app is asking
+them to build. Sacred Rule 4 is what makes a nought safe to show: the streak never appears
+without total days read beside it.
+
+**Found by dumping the view tree on a clean install** — neither section was in it at all.
+⚠ **And a second lesson about that tool: dump only what is on screen.** The first dump said
+both sections were absent *after* the fix, because the screen had not been scrolled to them.
+Scroll, then dump.
+
+⚠ **Verified with seeded days, and the seed was deleted in the same session** — checked by
+listing `files/` afterwards and confirming the app fell back to its empty state. CLAUDE.md's
+rule, and Sacred Rule 6 underneath it: a seeded day claims he recited when he did not.
+
+⬜ **Not satisfied, and said rather than hidden: the streak's flame glyph still reads as a
+water droplet** at 16dp. The second attempt is asymmetric and leans, which is what separates
+fire from water, and it is better — but it is not good. Options are a larger glyph, a
+different mark, or none at all, and it is his call.

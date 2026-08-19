@@ -103,6 +103,7 @@ class MainActivity : ComponentActivity() {
             var exportNote by remember { mutableStateOf<String?>(null) }
             var commitment by remember { mutableStateOf(store.commitment) }
             var away by remember { mutableStateOf(store.away) }
+            var pageNight by remember { mutableStateOf(store.pageNight) }
             /** The chat, opened from Home's companion card. */
             var onChat by remember { mutableStateOf(false) }
             /** Home's overflow. Settings used to be a quarter of the tab bar; now it lives here. */
@@ -168,7 +169,10 @@ class MainActivity : ComponentActivity() {
 
             // Read here, in composable context. SYSTEM has no answer of its own, so both
             // overflow toggles have to ask what is actually being painted.
-            val pageDark = isDark(theme)
+            // ⚠ **No longer derived from the app's theme.** It is the page's own
+            // setting now, defaulting to light, so a dark phone gives dark chrome around a
+            // light mushaf. See WirdStore.pageNight.
+            val pageDark = pageNight
 
             // The widget shows today's portion and whether it is done, so it has to be told
             // whenever either moves. Fire-and-forget: nothing in the app waits on it, and it
@@ -490,8 +494,10 @@ class MainActivity : ComponentActivity() {
                             saved = bookmarks.all()
                         },
                         onNightMode = {
-                            store.themeMode = if (pageDark) ThemeMode.LIGHT else ThemeMode.DARK
-                            theme = store.themeMode
+                            // Flips the PAGE, not the app. Before 2026-08-19 this line set
+                            // store.themeMode and took Home and the menus with it.
+                            pageNight = !pageNight
+                            store.pageNight = pageNight
                         },
                         onDone = { method, file ->
                             days.markDone(

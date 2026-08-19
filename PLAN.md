@@ -480,7 +480,16 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   every new colour pair measured before it was used. Three defects found by running it: a
   medallion that read as a clock face, a dangling comma over an empty line when no name is set,
   and a screenshot that disagreed with the accessibility tree.
+  *Second pass, 2026-08-19, all four at his word:* the mushaf illustration redrawn (the first
+  was straight lines, and a book has no straight lines); **the reading page given its own
+  light/dark, split from the chrome** — his instruction, after Quran for Android: *"home and
+  menu are in dark mode but page is light mode"*, verified on the emulator in one run; and the
+  **streak and This week sections, which had never been visible to anyone** because both were
+  gated on having data. They now render on day zero. PROFILE.md § 5af, § 5ag, § 5ah.
+
   ⬜ **Not yet seen by him on his own phone**, and the Quran button cannot appear here at all.
+  ⬜ **The streak's flame glyph still reads as a water droplet** at 16dp. Said rather than
+  hidden; a larger mark, a different one, or none is his call.
 
 ## Milestone 4 — Testers
 
