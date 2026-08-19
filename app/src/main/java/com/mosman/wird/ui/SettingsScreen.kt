@@ -94,6 +94,9 @@ fun SettingsScreen(
     /** A stretch of days with no reminders, or null. PLAN task 22. */
     away: AwayPeriod?,
     /** Pages on this phone out of 604, and what the whole cache weighs. */
+    /** False when Android is silently swallowing every notification this app posts. */
+    notificationsOn: Boolean = true,
+    onFixNotifications: () -> Unit = {},
     cachedPages: Pair<Int, Long> = 0 to 0L,
     /** Non-null while the whole mushaf is being fetched: done out of total. */
     downloading: Pair<Int, Int>? = null,
@@ -140,6 +143,8 @@ fun SettingsScreen(
             positionLabel = positionLabel,
             schedule = schedule,
             away = away,
+            notificationsOn = notificationsOn,
+            onFixNotifications = onFixNotifications,
             cachedPages = cachedPages,
             downloading = downloading,
             onDownloadAll = onDownloadAll,
@@ -342,6 +347,8 @@ private fun SettingsList(
     positionLabel: String,
     schedule: NudgeSchedule,
     away: AwayPeriod?,
+    notificationsOn: Boolean,
+    onFixNotifications: () -> Unit,
     cachedPages: Pair<Int, Long>,
     downloading: Pair<Int, Int>?,
     onDownloadAll: () -> Unit,
@@ -378,6 +385,23 @@ private fun SettingsList(
         }
 
         Group("The reminder") {
+            // ⚠ **Found on his own phone, 2026-08-19: notifications were OFF for Wird.**
+            // POST_NOTIFICATIONS denied and importance=NONE, which means every nudge this app
+            // has armed since install fired into nothing. The alarms were real; Android threw
+            // the notification away at the last step.
+            //
+            // **A reminder app that cannot post is broken, not merely quiet**, and it has no
+            // way to discover that on its own — posting reports success either way. So the one
+            // screen where someone goes to check their reminder says it out loud, first, before
+            // the setting they came to adjust.
+            if (!notificationsOn) {
+                ValueRow(
+                    title = "Notifications are off",
+                    value = "Reminders can't arrive · fix",
+                    onClick = onFixNotifications,
+                )
+                Divider()
+            }
             ValueRow("When it arrives", schedule.label()) { onOpen(Detail.REMINDER) }
 
             // **A pause has to be visible somewhere you did not have to type.** PLAN task

@@ -2183,3 +2183,36 @@ what happens for someone using a different Qur'an app. **There is no cross-app s
 `quran://` is that app's own invention — so the honest improvement is to offer whatever app on the
 phone answers that scheme rather than naming one, and to accept that apps which never adopted it
 cannot be reached at all.
+
+### 5at. ⚠ Notifications were OFF on his phone, and the app never knew. 2026-08-19
+
+He said he did not see the download notification. Checking why found something far worse:
+
+```
+POST_NOTIFICATIONS: granted=false
+AppSettings: com.mosman.wird importance=NONE
+```
+
+**Every nudge this app has armed since install fired into nothing.** The alarms were real — task
+8's scheduler worked, `lastArmedFor` was written, the receiver woke — and Android threw the
+notification away at the last step. The reminder is the app's entire answer to the *forgetting*
+half of § 2's finding, and it has been dead on the one phone that matters.
+
+⚠ **The app had no way to find out, and that is the lesson.** Posting a notification reports
+success whether or not anyone can see it. There is no error, no exception, nothing in logcat. A
+reminder app cannot verify its own core feature by doing it — it has to *ask* whether it is
+allowed to, which is a different call entirely (`areNotificationsEnabled`).
+
+**Built:** Settings now checks on every open and, when notifications are off, says so **above**
+the reminder setting rather than below it — *"Notifications are off · Reminders can't arrive ·
+fix"* — and the tap opens Android's own notification screen for the app. Asking again in-app is
+not an option once the permission has been denied: the system stops showing the dialog, so the
+settings page is the only honest route.
+
+**Why it is read on every Settings open rather than cached at launch:** the whole point is to
+notice a change made *outside* the app.
+
+⬜ **This is also PLAN task 15's real shape.** That task's self-check compares `lastArmedFor`
+against `lastNudgeFiredAt` to catch a battery manager killing the alarm. This is the *other*
+failure and the more common one: the alarm runs perfectly and the notification is silently
+discarded. Both belong in the same place, and only one is built.

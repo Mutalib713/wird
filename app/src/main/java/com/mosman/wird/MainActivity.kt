@@ -114,6 +114,14 @@ class MainActivity : ComponentActivity() {
             val translations = remember { Translations(this@MainActivity) }
             val mushaf = remember { MushafRepository(this@MainActivity) }
             var cachedPages by remember { mutableStateOf(0 to 0L) }
+
+            // Re-read whenever Settings opens rather than once at launch: the whole point is
+            // to notice a change the user made outside the app, in Android's own settings.
+            var notificationsOn by remember { mutableStateOf(true) }
+            LaunchedEffect(screen) {
+                notificationsOn = androidx.core.app.NotificationManagerCompat
+                    .from(this@MainActivity).areNotificationsEnabled()
+            }
             var downloading by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
             // Counted when Settings is opened rather than held live: it is a directory listing,
@@ -617,6 +625,17 @@ class MainActivity : ComponentActivity() {
                         // A pause that has already run its course is history, not a state
                         // the screen should still be reporting.
                         away = away?.takeIf { !it.isPast(today) },
+                        notificationsOn = notificationsOn,
+                        onFixNotifications = {
+                            // Android's own screen for this app. Asking again in-app is not an
+                            // option once the permission has been denied: the system stops
+                            // showing the dialog, so the only honest route is the settings page.
+                            startActivity(
+                                android.content.Intent(
+                                    android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                                ).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
+                            )
+                        },
                         cachedPages = cachedPages,
                         downloading = downloading,
                         onDownloadAll = {
