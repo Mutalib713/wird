@@ -93,6 +93,11 @@ fun SettingsScreen(
     armed: Armed?,
     /** A stretch of days with no reminders, or null. PLAN task 22. */
     away: AwayPeriod?,
+    /** Pages on this phone out of 604, and what the whole cache weighs. */
+    cachedPages: Pair<Int, Long> = 0 to 0L,
+    /** Non-null while the whole mushaf is being fetched: done out of total. */
+    downloading: Pair<Int, Int>? = null,
+    onDownloadAll: () -> Unit = {},
     audioQuality: AudioQuality,
     readingMode: ReadingMode,
     /** What is on the phone right now, for the sentence before you decide. */
@@ -135,6 +140,9 @@ fun SettingsScreen(
             positionLabel = positionLabel,
             schedule = schedule,
             away = away,
+            cachedPages = cachedPages,
+            downloading = downloading,
+            onDownloadAll = onDownloadAll,
             onResume = onResume,
             audioQuality = audioQuality,
             theme = theme,
@@ -334,6 +342,9 @@ private fun SettingsList(
     positionLabel: String,
     schedule: NudgeSchedule,
     away: AwayPeriod?,
+    cachedPages: Pair<Int, Long>,
+    downloading: Pair<Int, Int>?,
+    onDownloadAll: () -> Unit,
     onResume: () -> Unit,
     audioQuality: AudioQuality,
     theme: ThemeMode,
@@ -380,6 +391,36 @@ private fun SettingsList(
                     "Paused while you're away",
                     "Back ${dayLabel(away.returnsOn, LocalDate.now())} · tap to end",
                     onClick = onResume,
+                )
+            }
+        }
+
+        // ---- what is actually on this phone ----
+        //
+        // **His instruction, 2026-08-19**, after pointing at how Quran for Android works:
+        // *"when you first open the app it downloads the pages for you... for the audio and
+        // models the user has to download it themselves."*
+        //
+        // Wird already fetched pages and audio one at a time as they were needed, which is the
+        // right default on Ghanaian data. What it had no way of saying was **"get it all now"**,
+        // so anybody about to lose signal could not prepare, and nothing on screen said what was
+        // already here. A cache you cannot see is one you cannot trust.
+        Group("On this phone") {
+            val (pages, bytes) = cachedPages
+            val whole = com.mosman.wird.domain.Mushaf.PAGES
+            ValueRow(
+                title = "Mushaf pages",
+                value = if (downloading != null) {
+                    "Getting ${downloading.first} of ${downloading.second}…"
+                } else {
+                    "$pages of $whole · ${megabytes(bytes)}"
+                },
+                onClick = if (downloading == null && pages < whole) onDownloadAll else ({}),
+            )
+            if (downloading == null && pages < whole) {
+                Explain(
+                    "Pages arrive as you read them. Tap to fetch the whole mushaf now — about " +
+                        "${(whole - pages) * 154 / 1024} MB, best on wifi, and then it reads offline."
                 )
             }
         }
@@ -615,6 +656,11 @@ private fun Choice(label: String, on: Boolean, onPick: () -> Unit) {
 }
 
 // ---- copy ----
+
+/** Bytes as something a person can weigh a download against. */
+private fun megabytes(bytes: Long): String =
+    if (bytes < 1024L * 1024L) "${bytes / 1024} KB"
+    else String.format(java.util.Locale.getDefault(), "%.1f MB", bytes / 1024.0 / 1024.0)
 
 private fun wantsLocation(armed: Armed?): Boolean = when (armed) {
     is Armed.AtFallback -> true

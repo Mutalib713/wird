@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Typeface
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
@@ -222,6 +224,51 @@ class MushafRepository(private val context: Context) {
             // that does not arrive now will simply be fetched when the reader turns to it.
             runCatching { load(p) }
         }
+    }
+
+    /** How many of the 604 pages are already on this phone, and what they weigh. */
+    fun cached(): Pair<Int, Long> {
+        val pages = (1..com.mosman.wird.domain.Mushaf.PAGES).count { isCached(it) }
+        // orEmpty() is for collections, not arrays - listFiles() returns Array<File>? and
+        // needs its own fallback.
+        val files = (fontDir.listFiles() ?: emptyArray()) + (pageDir.listFiles() ?: emptyArray())
+        val bytes = files.sumOf { it.length() }
+        return pages to bytes
+    }
+
+    /**
+     * Fetch the whole mushaf, page by page. **His instruction, 2026-08-19**, after pointing at
+     * how Quran for Android works: *"when you first open the app it downloads the pages for you."*
+     *
+     * **Why the app should do this rather than a cable.** Pages already arrive one at a time as
+     * they are read, which is the right default on Ghanaian data — but it means someone about to
+     * lose signal cannot prepare, and there was no way to say "get it all now". This is that.
+     *
+     * ⚠ **One page at a time, on purpose.** 604 parallel requests would be faster on wifi and
+     * would also be the fastest possible way to be rate-limited by a free API that owes us
+     * nothing, and to bury a phone on a slow connection. Failures are counted rather than
+     * thrown: a page that does not arrive is simply still missing, and the reader is told how
+     * many, which is the honest report and also a resumable one — running it again fetches only
+     * what is absent.
+     *
+     * @param onProgress done and total, for a progress bar that reflects real work.
+     * @return how many pages failed. Zero means the whole mushaf is on the phone.
+     */
+    suspend fun downloadAll(
+        onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+    ): Int = withContext(Dispatchers.IO) {
+        val total = com.mosman.wird.domain.Mushaf.PAGES
+        var failed = 0
+        (1..total).forEach { p ->
+            if (!currentCoroutineContext().isActive) return@withContext failed
+            if (!isCached(p)) {
+                val ok = runCatching { load(p) }.getOrNull()
+                if (ok !is PageState.Ready) failed++
+            }
+            onProgress(p, total)
+        }
+        Log.i(TAG, "whole mushaf requested: ${total - failed}/$total pages present")
+        failed
     }
 
     /**

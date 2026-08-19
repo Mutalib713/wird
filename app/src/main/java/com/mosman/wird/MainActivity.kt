@@ -24,6 +24,7 @@ import com.mosman.wird.domain.CompanionAction
 import com.mosman.wird.domain.CompanionBrain
 import com.mosman.wird.domain.replyForAll
 import com.mosman.wird.domain.surahs
+import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.ReadingPlan
@@ -71,6 +72,8 @@ import com.mosman.wird.ui.positionLabelFor
 import com.mosman.wird.ui.theme.WirdTheme
 import com.mosman.wird.widget.refreshWidget
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -108,6 +111,17 @@ class MainActivity : ComponentActivity() {
             var away by remember { mutableStateOf(store.away) }
             var pageNight by remember { mutableStateOf(store.pageNight) }
             val translations = remember { Translations(this@MainActivity) }
+            val mushaf = remember { MushafRepository(this@MainActivity) }
+            var cachedPages by remember { mutableStateOf(0 to 0L) }
+            var downloading by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+
+            // Counted when Settings is opened rather than held live: it is a directory listing,
+            // and doing it on every recomposition would be a file-system walk per frame.
+            LaunchedEffect(screen, downloading) {
+                if (screen == Screen.SETTINGS && downloading == null) {
+                    cachedPages = withContext(Dispatchers.IO) { mushaf.cached() }
+                }
+            }
             /** The chat, opened from Home's companion card. */
             var onChat by remember { mutableStateOf(false) }
             /** Home's overflow. Settings used to be a quarter of the tab bar; now it lives here. */
@@ -602,6 +616,23 @@ class MainActivity : ComponentActivity() {
                         // A pause that has already run its course is history, not a state
                         // the screen should still be reporting.
                         away = away?.takeIf { !it.isPast(today) },
+                        cachedPages = cachedPages,
+                        downloading = downloading,
+                        onDownloadAll = {
+                            widgetScope.launch {
+                                downloading = 0 to Mushaf.PAGES
+                                val failed = mushaf.downloadAll { done, total ->
+                                    downloading = done to total
+                                }
+                                downloading = null
+                                cachedPages = withContext(Dispatchers.IO) { mushaf.cached() }
+                                exportNote = if (failed == 0) {
+                                    "The whole mushaf is on this phone. It reads offline now."
+                                } else {
+                                    "$failed pages didn't arrive. Tap again to pick up the rest."
+                                }
+                            }
+                        },
                         onResume = {
                             away = null
                             store.away = null

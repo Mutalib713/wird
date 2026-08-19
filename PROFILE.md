@@ -2097,3 +2097,53 @@ wrongly accepting a poor recording costs nothing anyone can feel.
 seconds, a 30% share — is **provisional and unmeasured on his voice, his phone, his room.** Task 14
 asks for the measured numbers written down and there are none yet. The logging is in place
 (`WirdHeard`); the numbers come from real recordings.
+
+### 5aq. Downloads, the way Quran for Android does it. 2026-08-19
+
+His instruction, pointing at the app he reads in: *"the app itself is like 5 or 10 MB, so when you
+open it the first time it lets you download the pages first. Then for the voices and translations
+you go to settings and download what you want. That's the same thing we should do."*
+
+**Two-thirds of it was already true.** Pages have always arrived one at a time as they are read
+(154 KB font plus the page's text) and audio one ayah at a time, both cached forever. What was
+missing was the ability to say **"get it all now"**, and any way to see what is already here — a
+cache you cannot see is one you cannot trust.
+
+**Built:** an `ON THIS PHONE` section in Settings showing pages held out of 604 and what they
+weigh, with a tap to fetch the whole mushaf. One page at a time on purpose: 604 parallel requests
+would be the fastest possible way to be rate-limited by a free API that owes us nothing.
+**Resumable by construction** — cached pages are skipped, so running it again fetches only what is
+absent.
+
+⬜ **Known limit, stated rather than hidden: the download is tied to the screen.** It runs in the
+composable's scope, so leaving Settings stops it. At roughly four seconds a page the whole mushaf
+is about 45 minutes, which is far too long to hold someone on one screen. It survives being
+interrupted because it resumes, but this wants a foreground service before testers see it.
+
+**Translations stay bundled for now, and move for testers.** His words: *"we will add more
+translations with time since I already have them, then it's okay, but for the testers let them
+download it like Quran for Android."* So § 5z stands for this build and becomes a download later.
+
+**⚠ And the size objection to whisper is gone.** It was never "50 MB is too big" — it was "50 MB
+shipped to every tester on Ghanaian data". As an opt-in download it is the same bargain their app
+already makes for audio, and task 14's real half is buildable on those terms. He chose the order:
+downloads screen first, then whisper.
+
+### 5ar. The five-second page. 2026-08-19
+
+**Task 14 stopped being theoretical while checking something else.** His phone held one real
+recording, `recitation-2026-08-19.m4a`, 44,849 bytes, logged as `"method": "RECITED"` for a full
+page of Ya-Sin.
+
+The recorder is 64 kbps mono, so that file is **about 5.6 seconds**. A page of Qur'an takes one to
+three minutes.
+
+⚠ **This is the hole task 14 exists to close, and it is now evidence rather than argument.** The
+cheap check's `MIN_SPOKEN_SECONDS = 10` would have caught it — *"Saved, 5s. Shorter than a portion
+usually takes."* The day would still be marked, because the verdict never gates the day; he would
+simply have been told.
+
+**It also validates the direction of the thresholds without validating the numbers.** One file
+measured by arithmetic on its bitrate is not a measurement of his voice, and the per-second loudness
+samples were not captured because the recording predates the build that logs them. The next
+recitation produces the first real data.
