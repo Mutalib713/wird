@@ -2334,3 +2334,58 @@ his own record.**
 
 *Confirmed live on his phone instead:* `reading_direction=TOWARDS_FATIHAH` at unit 878 — page
 440, Ya-Sin. He set it in Settings himself, which is his own example running.
+
+### 5aw. Whisper, probed properly. 2026-08-19
+
+Task 14's expensive half, started at his word. **Nothing is built yet; what follows is the
+ground it will be built on, and two of the three blockers named on 2026-08-19 are gone.**
+
+#### ✅ The model no longer has to be converted — that whole step disappeared
+
+The first probe found only `tarteel-ai/whisper-base-ar-quran` as **290 MB of PyTorch with no
+GGML**, which meant downloading torch and converting. That was wrong to stop at. Others have
+already converted it:
+
+**`ram-a-dhan/tarteel-whisper-quran-ggml` — Apache-2.0**, the same licence as Tarteel's original:
+
+| File | Size |
+|---|---|
+| tiny, q8_0 | **41.5 MB** |
+| tiny | 74.1 MB |
+| base, q8_0 | **78.0 MB** |
+| base | 141.1 MB |
+
+⚠ **These came out of a search-page summary and were verified before being believed** — every
+repository checked for a real HTTP 200 and its file list read from the API, because a
+confabulated model name would have sent a whole session down a road that does not exist. Three
+other conversions exist and are unlicensed; this is the one with a stated licence.
+
+#### ✅ The size objection died when he changed the shape of the app
+
+His instruction that day: *"for the audio and models the user has to download it themselves."*
+**That is what unblocks this.** The original objection was 45-57 MB shipped to every tester on
+Ghanaian data; an optional download is nobody's cost but the person who asks for it.
+
+**His decision: offer both, and let each person choose** — tiny for someone on mobile data, base
+for someone on wifi with a better phone. Same shape as the audio-quality choice this app already
+has.
+
+#### ⬜ The NDK is the only heavy blocker left, and it has not landed
+
+whisper.cpp is C++ and needs the Android NDK to build. `cmake;3.22.1` installed. **The NDK
+download timed out at 55% and left an empty directory** — no toolchain, no `source.properties`,
+0 GB on disk. A second attempt is running.
+
+⚠ **Worth knowing: a failed NDK install leaves a directory that looks installed.** `sdkmanager`
+creates `ndk/27.0.12077973/` and populates it last, so the folder's existence proves nothing.
+Check for `toolchains/llvm/prebuilt` or `source.properties` before believing it.
+
+#### What still has to be true, and is not yet
+
+- The NDK downloading without timing out
+- whisper.cpp building for `arm64-v8a` and a JNI wrapper to call it from Kotlin
+- The download plumbing extended from mushaf pages to models, which the foreground service
+  already gives most of
+- ⚠ **And the only question that matters: accuracy on his voice, his phone, his room.** The
+  published 5.75% error rate is on clean professional recitation. Everything above is
+  arrangements; that measurement is the task.
