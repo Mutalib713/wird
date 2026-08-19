@@ -2313,6 +2313,24 @@ The check now asserts both truths: one page down is still Ya-Sin, and from Ya-Si
 down you reach As-Saffat. **The failing test was wrong and the code was right**, which is worth
 recording — the temptation in that moment is to "fix" working code to match a mistaken assertion.
 
-⬜ **Not done: the setup screen still does not ask.** The question exists in Settings, so anybody
-can change it, but a memoriser's very first day still starts them going the wrong way. Setup is
-where it belongs and that is a separate change.
+**Setup asks it now — built the same day, at his word.** It comes immediately after the
+memorise-or-read question, which is where he said it belongs and he was right: they are one
+decision from two angles.
+
+**The likelier answer is offered first, and neither is preselected.** Say "from memory" and
+*Upwards* is the top card; say "from the mushaf" and *Downwards* is. The order carries the hint
+without making the choice, because getting this wrong does not merely annoy — it sends every
+day's portion the opposite way through the book.
+
+**Each card names the destination, not just the word.** "Upwards — towards Al-Fatihah. Finish
+Ya-Sin and the next portion is Fatir." His own example, on the screen, because *upwards* and
+*downwards* mean opposite things to different people and a destination cannot be misread.
+
+⬜ **Unverified on a device, and said rather than implied.** Walking the flow needs a fresh
+install, the emulator was gone, and the only phone attached was his — `pm clear` there would have
+destroyed his position, settings, chat and recordings to confirm a screen. It compiles, the flow
+is wired and `check` is green; nobody has yet seen the screen. **Verifying it must not cost him
+his own record.**
+
+*Confirmed live on his phone instead:* `reading_direction=TOWARDS_FATIHAH` at unit 878 — page
+440, Ya-Sin. He set it in Settings himself, which is his own example running.

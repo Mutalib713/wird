@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mosman.wird.data.ReadingMode
+import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.SurahIndex
@@ -68,14 +69,17 @@ fun SetupScreen(
         startVerse: Pair<Int, Int>?,
         name: String?,
         mode: ReadingMode,
+        direction: ReadingDirection,
     ) -> Unit,
 ) {
     var name by remember { mutableStateOf<String?>(null) }
     var askedName by remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf<ReadingMode?>(null) }
+    var direction by remember { mutableStateOf<ReadingDirection?>(null) }
     var chosen by remember { mutableStateOf<Surah?>(null) }
     val surah = chosen
     val picked = mode
+    val way = direction
 
     when {
         !askedName -> YourName(
@@ -87,12 +91,92 @@ fun SetupScreen(
 
         picked == null -> HowYouRead { mode = it }
 
+        // **Asked immediately after how you read, at his instruction, 2026-08-19.** He is right
+        // that they are one decision from two angles: memorisers overwhelmingly work back
+        // towards Al-Baqarah, readers overwhelmingly go front to back. Asking them together is
+        // also the only way a memoriser's *first* day starts them going the right way — before
+        // this, direction lived only in Settings and a new memoriser had to discover it.
+        way == null -> WhichWay(picked) { direction = it }
+
         surah == null -> ChooseSurah { chosen = it }
 
         else -> FindYourPlace(
             surah = surah,
             onBack = { chosen = null },
-            onDone = { page, units, verse -> onDone(page, units, verse, name, picked) },
+            onDone = { page, units, verse -> onDone(page, units, verse, name, picked, way) },
+        )
+    }
+}
+
+/**
+ * "Which way do you go through the mushaf?"
+ *
+ * **His instruction, 2026-08-19**, in his own words: *"for me I memorise upwards, but some start
+ * from Baqarah downwards, and reading too is the same, so the app must know."*
+ *
+ * ⚠ **It is asked, never assumed, but the suggestion follows the previous answer.** A memoriser
+ * is far likelier to be working back from the short sūrahs, so that card is offered first when
+ * they said memorise — the order carries the hint, and neither is preselected. Getting this
+ * wrong does not merely annoy: it sends every day's portion the opposite way through the book.
+ *
+ * The wording is his. "Upwards" and "downwards" mean opposite things to different people, so
+ * each card names the destination underneath, which cannot be misread.
+ */
+@Composable
+private fun WhichWay(mode: ReadingMode, onPick: (ReadingDirection) -> Unit) {
+    val colors = LocalWirdColors.current
+    val memorising = mode == ReadingMode.MEMORISING
+
+    val up: @Composable () -> Unit = {
+        ModeCard(
+            title = "Upwards",
+            detail = "Towards Al-Fatihah. Finish Ya-Sin and the next portion is Fatir. " +
+                "The usual way when you are memorising.",
+            onClick = { onPick(ReadingDirection.TOWARDS_FATIHAH) },
+        )
+    }
+    val down: @Composable () -> Unit = {
+        ModeCard(
+            title = "Downwards",
+            detail = "Towards An-Nas. Finish Ya-Sin and the next portion is As-Saffat. " +
+                "The usual way when you are reading front to back.",
+            onClick = { onPick(ReadingDirection.TOWARDS_NAS) },
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.surface)
+            .safeDrawingPadding()
+            .padding(horizontal = Scale.space4),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = "Which way do you go?",
+            color = colors.textPrimary,
+            style = TextStyle(fontSize = Scale.display),
+        )
+        Spacer(Modifier.height(Scale.space2))
+        Text(
+            text = "When you finish a portion, this is where the next one comes from.",
+            color = colors.textSecondary,
+            style = TextStyle(fontSize = Scale.body),
+        )
+        Spacer(Modifier.height(Scale.space6))
+
+        // The likelier answer first, given what they just said. Neither is preselected.
+        if (memorising) {
+            up(); Spacer(Modifier.height(Scale.space3)); down()
+        } else {
+            down(); Spacer(Modifier.height(Scale.space3)); up()
+        }
+
+        Spacer(Modifier.height(Scale.space4))
+        Text(
+            text = "You can change this later in More.",
+            color = colors.textOutsidePortion,
+            style = TextStyle(fontSize = Scale.caption),
         )
     }
 }

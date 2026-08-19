@@ -415,7 +415,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else if (screen == Screen.SETUP) {
                     SetupScreen(
-                        onDone = { page, unitsPerDay, verse, name, mode ->
+                        onDone = { page, unitsPerDay, verse, name, mode, way ->
                             store.positionPage = page
                             store.plan = ReadingPlan(defaultUnits = unitsPerDay)
                             store.startVerse = verse
@@ -423,6 +423,8 @@ class MainActivity : ComponentActivity() {
                             readerName = store.readerName
                             store.readingMode = mode
                             readingMode = mode
+                            store.readingDirection = way
+                            direction = way
                             plan = store.plan
                             position = store.positionUnit
                             startVerse = verse
