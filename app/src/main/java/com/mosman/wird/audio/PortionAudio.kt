@@ -60,6 +60,15 @@ sealed interface AudioState {
     /** [index] is 0-based, so the screen can say "3 of 13". */
     data class Playing(val verseKey: String, val index: Int, val total: Int) : AudioState
 
+    /**
+     * Held, not finished. **His ask, 2026-08-19**, from the player in the app he reads in.
+     *
+     * A separate state rather than a boolean on [Playing] because the bar has to draw a
+     * different button, and a screen that has to ask "playing, but is it really?" is how a
+     * play button ends up showing a pause icon while nothing is playing.
+     */
+    data class Paused(val verseKey: String, val index: Int, val total: Int) : AudioState
+
     data class Failed(val reason: String) : AudioState
 }
 
@@ -158,7 +167,72 @@ class PortionAudio(private val context: Context) {
         // holds the current token, and cancelling it now would stop the thing we are
         // starting.
         releasePlayer()
+        this.files = files
+        this.verses = verses
+        this.onVerse = onVerse
+        this.onFinished = onFinished
+        played = 0
         playFrom(run, 0, files, verses, onVerse, onFinished)
+    }
+
+    /**
+     * How many times each ayah is heard before the next one. **1, 2, 3, or [FOREVER].**
+     *
+     * ⚠ **Per ayah, not per portion**, and that is the choice worth writing down. Repeating a
+     * whole portion three times is listening; repeating *one ayah* three times is how memorisation
+     * is actually done, and § 5r already gives this app a memorising mode. Mutalib pointed at a
+     * player showing "1 2 3 and infinity" and this is the reading of it that earns its place.
+     *
+     * Changing it mid-ayah takes effect on the ayah you are hearing, not the next one, because
+     * the reason anyone reaches for this control is that the ayah playing right now is the one
+     * they have not got yet.
+     */
+    var repeatEach: Int = 1
+        set(value) {
+            field = value
+            played = 0
+        }
+
+    /** How many times the current ayah has finished. */
+    private var played = 0
+
+    private var files: List<File> = emptyList()
+    private var verses: List<String> = emptyList()
+    private var onVerse: ((Int) -> Unit)? = null
+    private var onFinished: (() -> Unit)? = null
+    private var at: Int = 0
+
+    /** Hold it where it is. Nothing is released, so [resume] picks up mid-ayah. */
+    fun pause() {
+        runCatching { player?.pause() }
+    }
+
+    fun resume() {
+        runCatching { player?.start() }
+    }
+
+    /**
+     * The next ayah, the previous one, or this one from the top.
+     *
+     * **[previous] restarts the current ayah first**, the way every music player does: pressing
+     * back once means "I missed that", and only pressing it again means "the one before".
+     * Judged by how far in we are rather than by counting presses, so it needs no timer.
+     */
+    fun next() = jumpTo(at + 1)
+
+    fun previous() {
+        val restarting = runCatching { (player?.currentPosition ?: 0) > RESTART_MS }.getOrDefault(false)
+        jumpTo(if (restarting) at else at - 1)
+    }
+
+    fun replay() = jumpTo(at)
+
+    private fun jumpTo(index: Int) {
+        if (files.isEmpty()) return
+        val target = index.coerceIn(0, files.size - 1)
+        played = 0
+        releasePlayer()
+        playFrom(run, target, files, verses, onVerse ?: return, onFinished ?: return)
     }
 
     private fun playFrom(
@@ -174,6 +248,7 @@ class PortionAudio(private val context: Context) {
             onFinished()
             return
         }
+        at = index
         onVerse(index)
         player = MediaPlayer().apply {
             runCatching {
@@ -189,7 +264,12 @@ class PortionAudio(private val context: Context) {
                 setOnCompletionListener {
                     runCatching { release() }
                     player = null
-                    playFrom(mine, index + 1, files, verses, onVerse, onFinished)
+                    // The repeat count is read here rather than captured, so changing it
+                    // while an ayah is playing applies to that ayah.
+                    played++
+                    val again = repeatEach == FOREVER || played < repeatEach
+                    if (!again) played = 0
+                    playFrom(mine, if (again) index else index + 1, files, verses, onVerse, onFinished)
                 }
                 prepare()
                 start()
@@ -205,6 +285,8 @@ class PortionAudio(private val context: Context) {
     fun stop() {
         run++
         releasePlayer()
+        played = 0
+        at = 0
     }
 
     private fun releasePlayer() {
@@ -265,13 +347,21 @@ class PortionAudio(private val context: Context) {
         }
     }
 
-    private companion object {
-        const val TAG = "WirdRecital"
+    // One companion object, because a class only gets one — the second one this gained by
+    // accident took the whole file down with unresolved references to its own constants.
+    companion object {
+        /** Repeat this ayah until told otherwise. The infinity on his player. */
+        const val FOREVER = 0
+
+        /** Past this far in, "back" means restart rather than go back one. */
+        private const val RESTART_MS = 2_000
+
+        private const val TAG = "WirdRecital"
 
         /** The error pages these CDNs return with a 200 are around 678 bytes. */
-        const val MIN_PLAUSIBLE_BYTES = 4_000L
+        private const val MIN_PLAUSIBLE_BYTES = 4_000L
 
         /** ~20 pages at the heavier bitrate. Enough to revisit, bounded enough to forget. */
-        const val MAX_CACHE_BYTES = 50L * 1024 * 1024
+        private const val MAX_CACHE_BYTES = 50L * 1024 * 1024
     }
 }

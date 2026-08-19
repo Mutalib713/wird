@@ -501,43 +501,43 @@ private fun MushafMark() {
 }
 
 /**
- * A sun, for the greeting. His image 2's one piece of illustration.
+ * The sun or the moon beside the greeting.
  *
- * Drawn, not shipped: eight rays and a disc in the amber already measured for the listen
- * tile, so it costs no bytes and no new colour. It also turns with the day — the disc sits
- * low and the rays shorten after dark, because a blazing sun above "Good evening" is a
- * picture disagreeing with its own caption.
+ * ⚠ **Two bugs, one cause: this and the greeting were reading different clocks.** The words
+ * called anything before noon "morning" while the mark called anything before six "night", so
+ * at five in the morning the screen said **"Good morning" under a crescent moon**. Both now
+ * take [greeting] as the single source of truth — if the sentence says morning, the sky does.
+ *
+ * The sun is Font Awesome Free's, after his note that the comp does it differently and the
+ * drawn one did not match. The crescent stays hand-drawn: a disc with a second disc knocked
+ * out of it is a mark rather than an illustration, it is two lines of code, and it looked
+ * right the first time. § 5ag's rule cuts both ways.
  */
 @Composable
 private fun DayMark() {
     val colors = LocalWirdColors.current
-    val night = LocalTime.now().hour !in 6..18
-    val ink = if (night) colors.accent else colors.listen.ink
+    val night = greeting() == "Good evening"
 
-    Canvas(modifier = Modifier.size(56.dp)) {
-        val r = size.minDimension * 0.20f
-        drawCircle(color = ink.copy(alpha = 0.85f), radius = r, center = center)
-        if (!night) {
-            repeat(8) { i ->
-                rotate(degrees = i * 45f) {
-                    drawLine(
-                        color = ink.copy(alpha = 0.7f),
-                        start = Offset(center.x, center.y - r - 5.dp.toPx()),
-                        end = Offset(center.x, center.y - r - 11.dp.toPx()),
-                        strokeWidth = 2.dp.toPx(),
-                        cap = StrokeCap.Round,
-                    )
-                }
-            }
-        } else {
-            // A crescent, cut by knocking a second disc out of the first with the plate's
-            // own colour. Cheaper than a path, and it lands on the same pixel grid.
-            drawCircle(
-                color = colors.surfaceRaised,
-                radius = r * 0.92f,
-                center = Offset(center.x + r * 0.55f, center.y - r * 0.30f),
-            )
-        }
+    if (!night) {
+        Icon(
+            painter = painterResource(R.drawable.ic_sun),
+            contentDescription = null,
+            tint = colors.listen.ink,
+            modifier = Modifier.size(34.dp),
+        )
+        return
+    }
+
+    Canvas(modifier = Modifier.size(34.dp)) {
+        val r = size.minDimension * 0.34f
+        drawCircle(color = colors.accent.copy(alpha = 0.9f), radius = r, center = center)
+        // A crescent, cut by knocking a second disc out of the first with the plate's own
+        // colour. Cheaper than a path, and it lands on the same pixel grid.
+        drawCircle(
+            color = colors.surface,
+            radius = r * 0.92f,
+            center = Offset(center.x + r * 0.55f, center.y - r * 0.30f),
+        )
     }
 }
 

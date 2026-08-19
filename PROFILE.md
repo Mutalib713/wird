@@ -1946,3 +1946,51 @@ He asked whether it should open the AI chatbot. **It already opens the companion
 same conversation, same history — there is no second and smarter bot behind it. The destination
 was never the problem; the intelligence was. Recorded so the question is not reopened as a
 navigation change when it is a capability one.
+
+### 5ak. The recitation controls. 2026-08-19
+
+He held up the player in the app he reads in: *"when you start listening it should have options
+like forward pause replay, it has like 1 2 3 and infinity."*
+
+**What was there: one button.** It started the portion and a second tap stopped it. No way to
+hold it, no way to hear an ayah again without restarting the whole portion, and no way to sit on
+one ayah — which is the thing a memoriser does most.
+
+**Now:** the ayah being heard is named, with its place in the portion, over back · play/pause ·
+forward · stop, and a repeat control cycling **1 → 2 → 3 → ∞**.
+
+⚠ **The repeat counts AYAHS, not portions.** Repeating a whole portion three times is listening;
+repeating *one ayah* three times is how memorisation is actually done, and § 5r already gave this
+app a memorising mode with nothing behind it but relabelled buttons. **This is the first thing
+that mode has ever changed about behaviour.** If he meant per-portion, it is one number.
+
+**Two behaviours taken from how players work rather than how they look:**
+- **Back restarts the current ayah first.** Past two seconds in, "back" means *I missed that*,
+  and only a second press means the ayah before. Judged by position rather than by counting
+  presses, so it needs no timer.
+- **Changing the repeat count applies to the ayah playing now**, not the next one, because the
+  reason anyone reaches for it is the ayah they have not got yet.
+
+**The compiler asked two questions worth recording.** Adding a `Paused` state made two unrelated
+`when` blocks inexhaustive, which forced decisions rather than allowing drift: the page's Listen
+button stopped saying "Stop" (stopping belongs to the bar now, so one button no longer means two
+things), and the status line under the page went silent while paused, because the bar already
+names the ayah and saying it twice in two shapes is how a screen gets noisy.
+
+⚠ **One self-inflicted false alarm, the second this session.** Pause looked broken — the button
+still read "Pause" after tapping it — and it was not: my test helper was tapping coordinates from
+a stale `uiautomator dump`. Tapping the freshly-measured centre gives Play/Paused immediately.
+**Same lesson as § 5ad's keyboard alarm: re-measure immediately before the tap, never from an
+earlier dump.**
+
+### 5al. The sun, and a clock that disagreed with itself. 2026-08-19
+
+*"Check the sunshine, it was done differently."* The comp's sun is a real one; the drawn version
+did not match, so it is now Font Awesome's, like the mushaf and the flame.
+
+⚠ **It also uncovered a genuine bug: the greeting and the mark were reading different clocks.**
+The words called anything before noon "morning" while the mark called anything before six
+"night", so at five in the morning the screen said **"Good morning" under a crescent moon.**
+Both now take the greeting as the single source of truth — if the sentence says morning, the sky
+does. **The crescent stays hand-drawn**, because a disc with a second disc knocked out of it is a
+mark rather than an illustration, and § 5ag's rule cuts both ways.

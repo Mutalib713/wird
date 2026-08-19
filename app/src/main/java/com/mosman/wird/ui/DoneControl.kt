@@ -144,10 +144,16 @@ private fun NotYet(
             modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
         ) {
             Text(
+                // ⚠ **It stopped saying "Stop" on 2026-08-19**, and the compiler is what
+                // asked the question: adding a Paused state made this `when` inexhaustive and
+                // forced a decision here. Stopping now belongs to the ListenBar, which has a
+                // real control for it, so one button no longer means two things depending on
+                // what it is already doing.
                 text = when (audio) {
                     is AudioState.Idle, is AudioState.Failed -> "Listen to it instead"
                     is AudioState.Fetching -> "Getting the recitation…"
-                    is AudioState.Playing -> "Stop"
+                    is AudioState.Playing -> "Playing"
+                    is AudioState.Paused -> "Paused"
                 },
                 color = colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),

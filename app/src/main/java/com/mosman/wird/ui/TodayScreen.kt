@@ -55,6 +55,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import com.mosman.wird.domain.Assignment
@@ -232,7 +233,16 @@ fun TodayScreen(
         audio = AudioState.Idle
     }
 
+    // The repeat count lives here rather than in the player, because the bar has to draw it
+    // and Compose only redraws what it can see change.
+    var repeatEach by remember { mutableIntStateOf(1) }
+
     fun listen() {
+        // **Pressing Listen while it is already playing no longer stops it.** That was the
+        // only control there was, so it had to do both jobs; the bar now has a stop of its
+        // own, and a second press here would be a hidden second meaning for a button whose
+        // label says one thing.
+        if (audio is AudioState.Playing || audio is AudioState.Paused) return
         if (audio !is AudioState.Idle) { stopListening(); return }
         scope.launch {
             audio = AudioState.Fetching(0, 0)
@@ -279,6 +289,43 @@ fun TodayScreen(
     // over a light page is two surfaces arguing.
     WirdTheme(mode = if (dark) ThemeMode.DARK else ThemeMode.LIGHT) {
     Box(modifier = Modifier.fillMaxSize()) {
+        // **The controls sit over the page while something is playing, and vanish when it
+        // stops.** His ask, 2026-08-19. Drawn last so it lands above the mushaf, aligned to
+        // the bottom because that is where a thumb already is and § 5e keeps the top of the
+        // page clear of chrome.
+        ListenBar(
+            audio = audio,
+            repeatEach = repeatEach,
+            onPlayPause = {
+                when (audio) {
+                    is AudioState.Playing -> {
+                        portionAudio.pause()
+                        (audio as AudioState.Playing).let {
+                            audio = AudioState.Paused(it.verseKey, it.index, it.total)
+                        }
+                    }
+                    is AudioState.Paused -> {
+                        portionAudio.resume()
+                        (audio as AudioState.Paused).let {
+                            audio = AudioState.Playing(it.verseKey, it.index, it.total)
+                        }
+                    }
+                    else -> Unit
+                }
+            },
+            onPrevious = { portionAudio.previous() },
+            onNext = { portionAudio.next() },
+            onRepeat = {
+                repeatEach = nextRepeat(repeatEach)
+                portionAudio.repeatEach = repeatEach
+            },
+            onStop = { stopListening() },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .safeDrawingPadding()
+                .zIndex(2f),
+        )
+
         // **Two ways to read the same page, and the mushaf is the default every time.**
         // section 5z: the translation is a separate mode rather than English poured between
         // the mushaf's lines, because those lines are a per-page font's typesetting and an
@@ -647,6 +694,9 @@ private fun streakLine(p: com.mosman.wird.domain.Progress): String {
  */
 private fun audioLine(audio: AudioState): String? = when (audio) {
     is AudioState.Idle -> null
+    // The bar names the ayah and says which of how many, so a second line saying the same
+    // thing under the page would be the same fact twice in two shapes.
+    is AudioState.Paused -> null
     is AudioState.Fetching ->
         if (audio.total == 0) "Getting the recitation…"
         else "Getting the recitation, ${audio.done} of ${audio.total}"
