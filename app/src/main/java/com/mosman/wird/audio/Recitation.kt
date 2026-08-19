@@ -25,6 +25,7 @@ class Recitation(private val context: Context) {
 
     val isRecording: Boolean get() = recorder != null
 
+
     /** @return true if recording actually started. */
     fun start(into: File): Boolean {
         stop()

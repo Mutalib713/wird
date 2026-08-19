@@ -60,6 +60,9 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import com.mosman.wird.domain.Assignment
+import com.mosman.wird.domain.HeardResult
+import com.mosman.wird.domain.heardLabel
+import com.mosman.wird.domain.judgeRecitation
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.linesOn
 import com.mosman.wird.domain.pages
@@ -157,6 +160,11 @@ fun TodayScreen(
     val recitation = remember { Recitation(context0) }
     var recording by remember { mutableStateOf(false) }
     var seconds by remember { mutableIntStateOf(0) }
+    // One loudness sample per second of recording. PLAN task 14: this is what decides whether
+    // a recording sounds like a recitation at all, and it costs nothing to collect because
+    // MediaRecorder is already counting it.
+    var levels by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var heard by remember { mutableStateOf<HeardResult?>(null) }
     var level by remember { mutableFloatStateOf(0f) }
     var problem by remember { mutableStateOf<String?>(null) }
 
@@ -165,15 +173,37 @@ fun TodayScreen(
     LaunchedEffect(recording) {
         seconds = 0
         level = 0f
+        levels = emptyList()
         var ticks = 0
+        var peakThisSecond = 0f
         while (recording) {
             // Poll faster than the clock so the meter follows a voice rather than a
             // second hand. getMaxAmplitude reports the peak since the last call.
             delay(80)
             level = recitation.level()
-            if (++ticks % 12 == 0) seconds++
+
+            // ⚠ **The same reading feeds the meter and the check.** getMaxAmplitude resets
+            // itself when read, so a second caller would see a fraction of the sound and both
+            // would conclude the room was quiet. PLAN task 14's samples are therefore taken
+            // from the value the meter already has, never from a second call.
+            peakThisSecond = maxOf(peakThisSecond, level)
+            if (++ticks % 12 == 0) {
+                seconds++
+                // Back to the raw 0..32767 the domain works in, undoing the meter's square
+                // root. Judging in the API's own units keeps the thresholds meaningful to
+                // anyone reading them against Android's documentation.
+                levels = levels + (peakThisSecond * peakThisSecond * 32_767f).toInt()
+                peakThisSecond = 0f
+            }
         }
         level = 0f
+    }
+
+    // The verdict is a note beside the day, not a gate on it. Cleared when it is read.
+    LaunchedEffect(heard) {
+        val h = heard ?: return@LaunchedEffect
+        problem = heardLabel(h)
+        android.util.Log.i("WirdHeard", "recitation: ${h.verdict} ${h.spokenSeconds}/${h.totalSeconds}s share=${h.spokenShare}")
     }
 
     // A pick from the Sūrahs tab arrives as a page number rather than a navigation event,
@@ -442,6 +472,13 @@ fun TodayScreen(
                     if (file == null) {
                         problem = "That was too short to keep. Nothing was saved."
                     } else {
+                        // ⚠ **The verdict never gates the day.** PLAN task 14's check is
+                        // loudness, which cannot tell recitation from any other speech, so
+                        // letting it veto a recording would be the app calling someone a liar
+                        // on evidence it does not have. The day is marked either way and the
+                        // reading is shown beside it — Sacred Rule 6 asks the app not to
+                        // overstate, and that cuts both directions.
+                        heard = judgeRecitation(levels)
                         onDone(com.mosman.wird.domain.Method.RECITED, file)
                     }
                 },

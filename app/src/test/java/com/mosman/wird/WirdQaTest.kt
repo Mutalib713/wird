@@ -14,6 +14,9 @@ import com.mosman.wird.ui.OpenElsewhere
 import com.mosman.wird.domain.CompanionBrain
 import com.mosman.wird.domain.Coordinates
 import com.mosman.wird.domain.DayLog
+import com.mosman.wird.domain.Heard
+import com.mosman.wird.domain.heardLabel
+import com.mosman.wird.domain.judgeRecitation
 import com.mosman.wird.domain.JuzIndex
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
@@ -1468,5 +1471,91 @@ class ExplainVerseTest {
         // And the miss reply now names this as something it can do, so the dead end is a menu.
         val reply = replyFor(u("explain this"), null, "")
         assertTrue("should offer the translation route: $reply", reply.contains("18:10"))
+    }
+}
+
+/**
+ * Checks 50–52 — what the app is willing to say about a recording. **PLAN task 14, cheap half.**
+ *
+ * ⚠ These assert the *shape* of the judgement, not its accuracy. Accuracy is a measurement on
+ * Mutalib's own voice, on his phone, in his room, and it has not been taken yet — the thresholds
+ * are provisional and the task is not ticked until real numbers exist. A unit test cannot make a
+ * threshold true; it can only stop the logic around it from drifting.
+ */
+class HeardRecitationTest {
+
+    private fun loud(n: Int) = List(n) { 6_000 }
+    private fun quiet(n: Int) = List(n) { 120 }
+
+    /** Check 50 — the three cases the task actually asked to be separated. */
+    @Test
+    fun `it separates recitation from silence and from a false start`() {
+        assertEquals(
+            "a minute of sustained speech is a recitation",
+            Heard.RECITATION,
+            judgeRecitation(loud(60)).verdict,
+        )
+        assertEquals(
+            "a silent room is not",
+            Heard.TOO_QUIET,
+            judgeRecitation(quiet(60)).verdict,
+        )
+        assertEquals(
+            "neither is four seconds of it",
+            Heard.TOO_SHORT,
+            judgeRecitation(loud(4)).verdict,
+        )
+        assertEquals(
+            "and a recording that never started says so",
+            Heard.NOTHING,
+            judgeRecitation(emptyList()).verdict,
+        )
+    }
+
+    /**
+     * Check 51 — ⚠ **silence is diagnosed before shortness.**
+     *
+     * A silent two-second recording has two things wrong with it, and being told the *length*
+     * was the problem would send the reader off to record two silent minutes instead.
+     */
+    @Test
+    fun `a silent recording is called quiet, not short`() {
+        assertEquals(Heard.TOO_QUIET, judgeRecitation(quiet(2)).verdict)
+
+        // Real speech has gaps — breaths, pauses between ayahs. A third of the seconds
+        // carrying sound is enough, because the alternative is calling someone's pauses
+        // silence.
+        val withPauses = (loud(20) + quiet(30)).shuffled()
+        assertEquals(Heard.RECITATION, judgeRecitation(withPauses).verdict)
+    }
+
+    /**
+     * Check 52 — the numbers survive, and the words never accuse.
+     *
+     * PLAN task 14 asks for the measured numbers written down; a verdict with nothing behind it
+     * cannot be argued with when it is wrong. And Sacred Rule 3 governs the sentence itself: the
+     * reader has just finished reciting, which is the worst moment in the app to sound like a
+     * gatekeeper, so a doubt is phrased as something the app could not hear.
+     */
+    @Test
+    fun `it reports what it measured and never blames the reader`() {
+        val result = judgeRecitation(loud(30) + quiet(10))
+        assertEquals(30, result.spokenSeconds)
+        assertEquals(40, result.totalSeconds)
+        assertEquals(0.75f, result.spokenShare, 0.01f)
+
+        listOf(
+            judgeRecitation(loud(60)),
+            judgeRecitation(quiet(60)),
+            judgeRecitation(loud(3)),
+            judgeRecitation(emptyList()),
+        ).forEach { r ->
+            val said = heardLabel(r).lowercase()
+            listOf("failed", "invalid", "rejected", "wrong", "didn't count", "try again")
+                .forEach { banned ->
+                    assertFalse("Sacred Rule 3 violated by '$banned' in: $said", said.contains(banned))
+                }
+            assertTrue("every verdict says the recording was kept: $said", said.contains("record") || said.contains("saved"))
+        }
     }
 }
