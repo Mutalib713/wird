@@ -594,6 +594,30 @@ class MainActivity : ComponentActivity() {
                             hasRecording = days.audioFor(today) != null
                             progress = progressOf(days.all(), today)
 
+                            // ---- listen back, if this phone can. PLAN task 14 ----
+                            //
+                            // ⚠ **The day is already marked before this runs, and that order
+                            // is deliberate.** Sacred Rule 6 says a recording is what makes a
+                            // day recited; the transcription is *evidence about* that
+                            // recording and never a verdict on it. Nothing here can unmark a
+                            // day, and a phone with no model simply produces no evidence.
+                            //
+                            // It runs after the fact rather than blocking the screen because
+                            // a minute of audio takes real seconds, and the reader has
+                            // finished reciting — they should not be watching a spinner.
+                            if (method == Method.RECITED && file != null && recogniser.ready()) {
+                                widgetScope.launch {
+                                    val heard = recogniser.transcribe(file)
+                                    // The measurement PLAN task 14 asks for. Logged rather
+                                    // than shown, because until the numbers exist nobody knows
+                                    // whether this is worth putting in front of a reader.
+                                    android.util.Log.i(
+                                        "WirdWhisper",
+                                        if (heard != null) "HEARD: $heard" else "HEARD: nothing usable",
+                                    )
+                                }
+                            }
+
                             // **The position moves here and nowhere else.** Opening the
                             // app, swiping, or browsing must never advance it — only
                             // finishing does. That is the whole reason the portion is
