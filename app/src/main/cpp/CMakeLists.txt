@@ -3,13 +3,11 @@
 # **Nothing here is vendored and nothing is forked.** whisper.cpp lives in the repo as a git
 # submodule pinned to v1.9.2, and both files compiled below are read straight out of it:
 #
-#   * `jni.c` is compiled straight out of the submodule. Their bridge already exposes exactly
-#     what a transcription needs - init, transcribe, read the segments back, free - so writing
-#     our own would be copying working C to change nothing but the file it lives in.
-#   * The Kotlin class that binds to it, `com.whispercpp.whisper.WhisperLib`, is named to match
-#     THEIR symbols rather than our package convention. JNI links by mangled name, so the
-#     alternative was editing every function name in their file and re-editing it on every
-#     upgrade. See PROFILE.md § 5aw.
+#   * `src/whisper.cpp` and all of ggml come from the submodule, unmodified.
+#   * ⚠ **The JNI bridge is OURS** - `wird_whisper.c` - and that reversed an earlier decision.
+#     Upstream's Android example was compiled unmodified to avoid a fork, until its
+#     `params.language = "en"` was found running against Qur'anic Arabic. A demo carries a
+#     demo's assumptions. See PROFILE.md § 5az.
 #
 # Adapted from examples/whisper.android/lib/src/main/jni/whisper/CMakeLists.txt. Two deliberate
 # differences from theirs, both noted where they occur below.
@@ -43,7 +41,7 @@ message(STATUS "Wird is building whisper.cpp ${WHISPER_VERSION}")
 
 set(SOURCE_FILES
         ${WHISPER_LIB_DIR}/src/whisper.cpp
-        ${WHISPER_LIB_DIR}/examples/whisper.android/lib/src/main/jni/whisper/jni.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/wird_whisper.c
 )
 
 find_library(LOG_LIB log)

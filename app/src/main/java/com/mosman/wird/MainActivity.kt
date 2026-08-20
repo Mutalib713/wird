@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.audio.ModelDownload
 import com.mosman.wird.audio.Recogniser
+import com.mosman.wird.audio.WhisperNative
 import com.mosman.wird.data.DayLogStore
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.Where
@@ -67,7 +68,6 @@ import com.mosman.wird.ui.ChatScreen
 import com.mosman.wird.ui.HomeScreen
 import com.mosman.wird.ui.CheckState
 import com.mosman.wird.ui.OpenElsewhere
-import com.whispercpp.whisper.WhisperLib
 import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
 import com.mosman.wird.ui.SurahsTab
@@ -219,9 +219,9 @@ class MainActivity : ComponentActivity() {
                 val recogniser = Recogniser(this@MainActivity)
                 android.util.Log.i(
                     "WirdWhisper",
-                    "native=${WhisperLib.available} model=${recogniser.installed()} " +
+                    "native=${WhisperNative.available} model=${recogniser.installed()} " +
                         "ready=${recogniser.ready()}" +
-                        if (WhisperLib.available) " | ${WhisperLib.getSystemInfo()}" else "",
+                        if (WhisperNative.available) " | ${WhisperNative.getSystemInfo()}" else "",
                 )
             }
 
@@ -572,10 +572,33 @@ class MainActivity : ComponentActivity() {
                         // one that quietly does nothing.
                         onCheckRecitation = if (recogniser.ready()) ({
                             widgetScope.launch {
-                                checkState = CheckState.Working
                                 val file = days.audioFileFor(today)
                                 val started = System.currentTimeMillis()
-                                val heard = recogniser.transcribe(file)
+
+                                // A ticking clock in its own coroutine. ⚠ **This is the fix for
+                                // "it never worked":** the transcription was running fine and
+                                // the screen simply never changed, which is indistinguishable
+                                // from a hang. A moving number is the whole difference.
+                                val ticker = launch {
+                                    var n = 0
+                                    while (true) {
+                                        checkState = CheckState.Working(n)
+                                        kotlinx.coroutines.delay(1_000)
+                                        n++
+                                    }
+                                }
+
+                                val heard = try {
+                                    // ⚠ Bounded, because native code that never returns would
+                                    // otherwise leave the screen waiting forever. Generous: a
+                                    // long portion on a slow phone is genuinely minutes.
+                                    kotlinx.coroutines.withTimeoutOrNull(6 * 60 * 1000L) {
+                                        recogniser.transcribe(file)
+                                    }
+                                } finally {
+                                    ticker.cancel()
+                                }
+
                                 val took = String.format(
                                     java.util.Locale.getDefault(),
                                     "%.1f",
@@ -583,9 +606,9 @@ class MainActivity : ComponentActivity() {
                                 )
                                 checkState = if (heard.isNullOrBlank()) {
                                     CheckState.Nothing(
-                                        "It couldn't make out any words. That can mean the " +
-                                            "recording was too quiet, or the model is not " +
-                                            "good enough yet."
+                                        "It couldn't make out any words after ${took}s. The " +
+                                            "recording may be too quiet, or this model may not " +
+                                            "be good enough."
                                     )
                                 } else {
                                     CheckState.Heard(
@@ -737,7 +760,7 @@ class MainActivity : ComponentActivity() {
                         fetchingModel = fetchingModel,
                         // Null when there is no native library, which removes the row rather
                         // than showing a download that could never be used.
-                        onGetModel = if (WhisperLib.available) ({ option ->
+                        onGetModel = if (WhisperNative.available) ({ option ->
                             // Handed to the service rather than run here. A composition-scoped
                             // coroutine dies when the screen does, and 78 MB is far too much to
                             // lose because someone pressed back.

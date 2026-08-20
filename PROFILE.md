@@ -2569,3 +2569,51 @@ Wird was force-stopped and launched anyway, pulling him out of a conversation. T
 *was* checked — in the same command block as the action, so the answer arrived too late to change
 anything. **Checking the foreground and acting must be two separate steps**, or the check is
 decoration.
+
+### 5az. ⚠ The one line that made the whole thing wrong. 2026-08-20
+
+His first real check ran at **287% CPU for over a hundred seconds**. The log said the machinery
+was healthy:
+
+```
+check requested for recitation-2026-08-20.m4a, 352364 bytes
+decoded: 1879040 samples at 44100 Hz, 1 ch      ← 3.8s, and 1879040/44100 = 42.6s exactly
+transcribing 42s on 4 threads…
+```
+
+The decoder was proven correct by that arithmetic. What was wrong sat in whisper.cpp's own
+Android example, which Wird was compiling unmodified:
+
+```c
+params.language = "en";
+```
+
+**Qur'anic Arabic, into a model trained on Qur'anic Arabic, declared to be English.**
+
+⚠ **The mistake was the earlier decision, not the line.** § 5aw recorded compiling upstream's
+`jni.c` untouched as a virtue — *"one oddly-placed Kotlin file is a smaller price than a
+permanent fork"* — and that reasoning was wrong in a way worth naming: **a demo carries a demo's
+assumptions.** Their file exists to show the library working in a sample app, and its defaults
+are sample-app defaults. Reusing it imported a decision nobody in this project ever made.
+
+**Now `app/src/main/cpp/wird_whisper.c` is ours**, sixty lines calling their library, which is
+the ordinary way to use a C library. `com.whispercpp.whisper.WhisperLib` is deleted; its only
+purpose was matching symbols in a file we no longer compile.
+
+**What our bridge sets, and why each one is a decision rather than a default:**
+
+| | |
+|---|---|
+| `language = "ar"` | the reason the file exists |
+| `detect_language = false` | the language is known; guessing it is work spent to reach the same answer |
+| `translate = false` | ⚠ **Sacred Rule 2 territory** — the app must never turn a recitation into English and present it as what was said |
+| `print_realtime/progress/timestamps = false` | upstream prints every segment as it goes, which on a phone is real work done so a sample can look busy in logcat |
+
+⚠ **Still unmeasured: whether "ar" makes it faster as well as correct.** The hundred seconds was
+measured with the wrong language, so it is not a baseline for anything. The next run is the first
+honest number.
+
+**And the reason this was so hard to see:** WhatsApp was flooding Android's log buffer and
+evicting Wird's lines before they could be read. `logcat -G 16M` fixed it. **A log you cannot
+read is not evidence**, and on a phone shared with a busy app that is a real condition rather
+than a hypothetical one.

@@ -3,7 +3,6 @@ package com.mosman.wird.audio
 import android.content.Context
 import android.util.Log
 import com.mosman.wird.data.WirdStore
-import com.whispercpp.whisper.WhisperLib
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -111,7 +110,7 @@ class Recogniser(private val context: Context) {
     private fun plausible(file: File) = file.exists() && file.length() > MIN_PLAUSIBLE_BYTES
 
     /** Whether a recitation could be checked right now, without downloading anything. */
-    fun ready(): Boolean = WhisperLib.available && installed() != null
+    fun ready(): Boolean = WhisperNative.available && installed() != null
 
     /**
      * Transcribe a recording. Null when it cannot be done, with the reason logged.
@@ -122,7 +121,10 @@ class Recogniser(private val context: Context) {
      * recitation is already finished — nobody is waiting on a stopwatch.
      */
     suspend fun transcribe(recording: File): String? = withContext(Dispatchers.Default) {
-        if (!WhisperLib.available) {
+        // Logged before any work, so a run that dies later still proves it started. Without
+        // this, "nothing in the log" cannot be told apart from "never called".
+        Log.i(TAG, "check requested for ${recording.name}, ${recording.length()} bytes")
+        if (!WhisperNative.available) {
             Log.i(TAG, "no native library on this device")
             return@withContext null
         }
@@ -142,7 +144,7 @@ class Recogniser(private val context: Context) {
 
         var ctx = 0L
         try {
-            ctx = WhisperLib.initContext(fileFor(model).absolutePath)
+            ctx = WhisperNative.initContext(fileFor(model).absolutePath)
             if (ctx == 0L) {
                 Log.w(TAG, "whisper refused the model file")
                 return@withContext null
@@ -150,10 +152,11 @@ class Recogniser(private val context: Context) {
 
             val threads = Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
             val started = System.currentTimeMillis()
-            WhisperLib.fullTranscribe(ctx, threads, audio)
+            Log.i(TAG, "transcribing ${audio.size / AudioToPcm.WHISPER_HZ}s on $threads threads…")
+            WhisperNative.fullTranscribe(ctx, threads, audio)
 
             val text = buildString {
-                repeat(WhisperLib.getTextSegmentCount(ctx)) { append(WhisperLib.getTextSegment(ctx, it)) }
+                repeat(WhisperNative.getTextSegmentCount(ctx)) { append(WhisperNative.getTextSegment(ctx, it)) }
             }.trim()
 
             val seconds = audio.size / AudioToPcm.WHISPER_HZ
@@ -166,7 +169,7 @@ class Recogniser(private val context: Context) {
             Log.w(TAG, "transcription failed", e)
             null
         } finally {
-            if (ctx != 0L) runCatching { WhisperLib.freeContext(ctx) }
+            if (ctx != 0L) runCatching { WhisperNative.freeContext(ctx) }
         }
     }
 

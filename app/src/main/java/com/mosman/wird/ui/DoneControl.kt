@@ -250,7 +250,13 @@ private fun AlreadyDone(
             is CheckState.Working -> {
                 Spacer(Modifier.height(Scale.space2))
                 Text(
-                    text = "Listening back… this takes a few seconds.",
+                    // ⚠ **"A few seconds" was a lie and it cost him the feature.** Whisper on a
+                    // phone runs at roughly real time: a forty-second recitation takes tens of
+                    // seconds, and he reasonably read a still screen as a hung one. The count
+                    // is the whole fix — a number that moves is the difference between working
+                    // and broken, and it costs one line.
+                    text = "Listening back… ${checkState.seconds}s. It runs about as long as " +
+                        "the recording, and it works offline.",
                     color = colors.onSurfaceRaised,
                     style = TextStyle(fontSize = Scale.caption),
                 )
@@ -302,7 +308,8 @@ private fun AlreadyDone(
  */
 sealed interface CheckState {
     data object Idle : CheckState
-    data object Working : CheckState
+    /** [seconds] ticks while it runs, because a still screen and a hung screen look alike. */
+    data class Working(val seconds: Int) : CheckState
     data class Heard(val text: String, val seconds: Int, val took: String) : CheckState
     data class Nothing(val why: String) : CheckState
 }
