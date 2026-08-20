@@ -7,6 +7,23 @@ android {
     namespace = "com.mosman.wird"
     compileSdk = 36
 
+    /**
+     * The NDK that builds whisper.cpp. PLAN task 14.
+     *
+     * ⚠ Pinned to the version actually on this machine, and it is **r27b** rather than the
+     * r27 that `sdkmanager` was asked for - four sdkmanager attempts failed on this
+     * connection and the zip was fetched directly instead. PROFILE.md § 5aw carries the
+     * curl command, because the next machine will need it too.
+     */
+    ndkVersion = "27.1.12297006"
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.mosman.wird"
         // API 26 is the floor. Two reasons, both deliberate:
@@ -15,12 +32,47 @@ android {
         //   2. Testers are on Tecno / Infinix / itel. 26 reaches phones sold from
         //      2017 onward, which is well below anything they are carrying.
         minSdk = 26
+
+        // ⚠ **arm64 only, and that is a real exclusion rather than an oversight.** Every
+        // native ABI multiplies the size of the shipped library, and § 10 measures this app
+        // in kilobytes. arm64-v8a covers effectively every Android phone sold in years,
+        // including the Transsion devices the testers carry - but a genuinely old 32-bit
+        // handset gets no recitation check at all. WhisperLib.available answers false there
+        // and nothing else breaks, which is the behaviour an optional feature should have.
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
+
+        externalNativeBuild {
+            cmake {
+                // Upstream's own flags for the Android build. -DNDEBUG drops ggml's asserts,
+                // which are hot-path checks in a library doing matrix maths on a phone.
+                cppFlags += listOf("-O3", "-DNDEBUG")
+                arguments += listOf("-DANDROID_STL=c++_shared")
+            }
+        }
         targetSdk = 36
         versionCode = 1
         versionName = "0.1"
     }
 
     buildTypes {
+        debug {
+            /**
+             * ⚠ **x86_64 exists so the recitation check can be tested at all.**
+             *
+             * The emulator is `sdk_gphone64_x86_64`. An arm64-only build loads no whisper
+             * library there, so `WhisperLib.available` answers false and the entire feature is
+             * untestable anywhere except Mutalib's own phone — which § 10's device rules say is
+             * his daily handset, not a test rig.
+             *
+             * It costs about 4 MB on a debug APK nobody ships. **Release stays arm64 only.**
+             */
+            ndk {
+                abiFilters += "x86_64"
+            }
+        }
+
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -64,6 +116,20 @@ android {
             // pass, where the palette is Mutalib's to choose — picking a placeholder
             // here is how a default quietly becomes the brand. Tracked in PLAN task 16.
             "MissingApplicationIcon",
+            // ⚠ **The fourth disable, and the rule says write down why.**
+            //
+            // "Missing x86_64 ABI support for ChromeOS." Wird ships arm64-v8a because that is
+            // every Android phone sold in years, including the Transsion handsets the testers
+            // carry, and each extra ABI adds roughly 4 MB of whisper.cpp to an APK § 10
+            // measures in kilobytes. **Nobody reads their daily wird on a Chromebook**, and
+            // ChromeOS runs arm64 through its own binary translator anyway.
+            //
+            // The check is right in general and wrong for this app, which is exactly the kind
+            // of disable that needs a sentence rather than a silent entry. Debug builds *do*
+            // add x86_64 — see buildTypes — because the emulator is x86_64 and the recitation
+            // check would otherwise be untestable anywhere but his own phone. Lint reads the
+            // literal defaultConfig line rather than the merged variant, so it flags it anyway.
+            "ChromeOsAbiSupport",
         )
     }
 }

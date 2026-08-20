@@ -2408,9 +2408,48 @@ through the drops, which is precisely the failure mode here. **781,495,902 bytes
 version: the direct file is **r27b**, whose `Pkg.Revision` is `27.1.12297006`, so it is extracted
 to `Sdk/ndk/27.1.12297006/` rather than the `27.0.12077973` sdkmanager was asked for.
 
+#### ✅ whisper.cpp builds and ships — 2026-08-20
+
+**Pinned as a git submodule at v1.9.2, and nothing is vendored or forked.** Both C files come
+straight out of the submodule: `src/whisper.cpp` and upstream's own Android bridge,
+`examples/whisper.android/lib/src/main/jni/whisper/jni.c`.
+
+⚠ **The Kotlin class binding to it is `com.whispercpp.whisper.WhisperLib`, not one of ours, and
+that is deliberate.** JNI links by *mangled symbol name* — their C exports
+`Java_com_whispercpp_whisper_WhisperLib_00024Companion_initContext`, and the runtime finds it
+only if package, class and `$Companion` reproduce that string exactly. The alternative was
+renaming every symbol in their file and renaming them again on every upgrade. **One
+oddly-placed Kotlin file is a smaller price than a permanent fork.**
+
+**One library, not three.** Upstream builds `whisper`, `whisper_v8fp16_va` and `whisper_vfpv4`
+so its demo can choose at runtime; Wird ships arm64-v8a only, where fp16 is universal, so the
+other two would be dead weight.
+
+#### ⚠ The measurement that decides the shape of this feature
+
+| | |
+|---|---|
+| APK before | 17.7 MB |
+| APK after | **18.9 MB** |
+| **The engine costs** | **1.2 MB** |
+
+**That is the whole argument for building it this way.** The *engine* is cheap and the *model*
+is expensive (41.5–78 MB), so the engine ships with the app and the model is the optional
+download he asked for. Had the reverse been true, the feature would not be worth having.
+
+#### Two things the build surfaced
+
+1. ⚠ **The emulator is x86_64, so an arm64-only build makes this untestable anywhere but his
+   own phone** — which § 10's device rules call his daily handset, not a test rig. **Debug
+   builds therefore add x86_64**; release stays arm64 only. Roughly 4 MB on an APK nobody ships.
+2. **A fourth lint check is disabled, with a reason, per CLAUDE.md.** `ChromeOsAbiSupport` wants
+   an x86_64 binary for Chromebooks. Nobody reads their daily wird on a Chromebook, ChromeOS
+   translates arm64 anyway, and each ABI is ~4 MB. Lint reads the literal `defaultConfig` line
+   rather than the merged variant, so the debug x86_64 above does not satisfy it.
+
 #### What still has to be true, and is not yet
 
-- whisper.cpp building for `arm64-v8a` and a JNI wrapper to call it from Kotlin
+- Audio decoded from the recorder's M4A to the 16 kHz mono float PCM whisper wants for `arm64-v8a` and a JNI wrapper to call it from Kotlin
 - The download plumbing extended from mushaf pages to models, which the foreground service
   already gives most of
 - ⚠ **And the only question that matters: accuracy on his voice, his phone, his room.** The
