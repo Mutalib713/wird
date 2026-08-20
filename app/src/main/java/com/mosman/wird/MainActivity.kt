@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.mosman.wird.audio.AudioQuality
+import com.mosman.wird.audio.Recogniser
 import com.mosman.wird.data.DayLogStore
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.Where
@@ -64,6 +65,7 @@ import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.ui.ChatScreen
 import com.mosman.wird.ui.HomeScreen
 import com.mosman.wird.ui.OpenElsewhere
+import com.whispercpp.whisper.WhisperLib
 import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
 import com.mosman.wird.ui.SurahsTab
@@ -189,6 +191,19 @@ class MainActivity : ComponentActivity() {
             }
 
             LaunchedEffect(Unit) { onDevice = Export.whatIsHere(this@MainActivity) }
+
+            // PLAN task 14. Logged once at launch because "is the recitation checker usable on
+            // this phone" has three separate answers - no native library, no model, or ready -
+            // and on a tester's device the log is the only way anyone finds out which.
+            LaunchedEffect(Unit) {
+                val recogniser = Recogniser(this@MainActivity)
+                android.util.Log.i(
+                    "WirdWhisper",
+                    "native=${WhisperLib.available} model=${recogniser.installed()} " +
+                        "ready=${recogniser.ready()}" +
+                        if (WhisperLib.available) " | ${WhisperLib.getSystemInfo()}" else "",
+                )
+            }
 
             LaunchedEffect(Unit) {
                 // A no-op without permission, and a no-op while the stored fix is fresh.

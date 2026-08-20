@@ -57,8 +57,16 @@ add_library(whisper SHARED ${SOURCE_FILES})
 
 target_compile_definitions(whisper PUBLIC GGML_USE_CPU)
 target_compile_definitions(whisper PRIVATE WHISPER_VERSION="${WHISPER_VERSION}")
-target_compile_options(whisper PRIVATE -march=armv8.2-a+fp16)
-set(GGML_COMPILE_OPTIONS -march=armv8.2-a+fp16)
+# ⚠ **The fp16 flag is ARM-only and must be guarded.** Debug builds also produce x86_64 so the
+# emulator can run this, and clang rejects `-march=armv8.2-a+fp16` there outright:
+# `error: unknown target CPU`. Upstream never hits this because its own CMake only ever builds
+# the two ARM ABIs.
+if (ANDROID_ABI STREQUAL "arm64-v8a")
+    target_compile_options(whisper PRIVATE -march=armv8.2-a+fp16)
+    set(GGML_COMPILE_OPTIONS -march=armv8.2-a+fp16)
+else ()
+    set(GGML_COMPILE_OPTIONS "")
+endif ()
 
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(whisper PRIVATE -O3)
