@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.mosman.wird.audio.AudioQuality
+import com.mosman.wird.audio.ModelDownload
 import com.mosman.wird.audio.Recogniser
 import com.mosman.wird.data.DayLogStore
 import com.mosman.wird.data.ReadingMode
@@ -118,6 +119,9 @@ class MainActivity : ComponentActivity() {
             val translations = remember { Translations(this@MainActivity) }
             val mushaf = remember { MushafRepository(this@MainActivity) }
             var cachedPages by remember { mutableStateOf(0 to 0L) }
+            val recogniser = remember { Recogniser(this@MainActivity) }
+            var model by remember { mutableStateOf(recogniser.installed()) }
+            var fetchingModel by remember { mutableStateOf<Pair<Long, Long>?>(null) }
 
             // Re-read whenever Settings opens rather than once at launch: the whole point is
             // to notice a change the user made outside the app, in Android's own settings.
@@ -660,6 +664,26 @@ class MainActivity : ComponentActivity() {
                                 ).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
                             )
                         },
+                        model = model,
+                        fetchingModel = fetchingModel,
+                        // Null when there is no native library, which removes the row rather
+                        // than showing a download that could never be used.
+                        onGetModel = if (WhisperLib.available) ({ option ->
+                            widgetScope.launch {
+                                fetchingModel = 0L to 0L
+                                val ok = ModelDownload.fetch(
+                                    model = option,
+                                    into = java.io.File(filesDir, "models"),
+                                ) { done, total -> fetchingModel = done to total }
+                                fetchingModel = null
+                                model = recogniser.installed()
+                                exportNote = if (ok) {
+                                    "Ready. Wird can listen to your recitation now."
+                                } else {
+                                    "That didn't finish. Nothing was kept — tap to try again."
+                                }
+                            }
+                        }) else null,
                         cachedPages = cachedPages,
                         downloading = downloading,
                         onDownloadAll = {

@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mosman.wird.audio.AudioQuality
+import com.mosman.wird.audio.RecitationModel
 import com.mosman.wird.data.PlaceSource
 import com.mosman.wird.data.DataOnDevice
 import com.mosman.wird.data.ReadingMode
@@ -98,6 +99,12 @@ fun SettingsScreen(
     /** False when Android is silently swallowing every notification this app posts. */
     notificationsOn: Boolean = true,
     onFixNotifications: () -> Unit = {},
+    /** The recitation model on this phone, or null. PLAN task 14. */
+    model: RecitationModel? = null,
+    /** Non-null while one is downloading: bytes done and total. */
+    fetchingModel: Pair<Long, Long>? = null,
+    /** Null when this phone has no native library at all - 32-bit, or an old build. */
+    onGetModel: ((RecitationModel) -> Unit)? = null,
     cachedPages: Pair<Int, Long> = 0 to 0L,
     /** Non-null while the whole mushaf is being fetched: done out of total. */
     downloading: Pair<Int, Int>? = null,
@@ -149,6 +156,9 @@ fun SettingsScreen(
             away = away,
             notificationsOn = notificationsOn,
             onFixNotifications = onFixNotifications,
+            model = model,
+            fetchingModel = fetchingModel,
+            onGetModel = onGetModel,
             cachedPages = cachedPages,
             downloading = downloading,
             onDownloadAll = onDownloadAll,
@@ -373,6 +383,9 @@ private fun SettingsList(
     away: AwayPeriod?,
     notificationsOn: Boolean,
     onFixNotifications: () -> Unit,
+    model: RecitationModel?,
+    fetchingModel: Pair<Long, Long>?,
+    onGetModel: ((RecitationModel) -> Unit)?,
     cachedPages: Pair<Int, Long>,
     downloading: Pair<Int, Int>?,
     onDownloadAll: () -> Unit,
@@ -476,6 +489,53 @@ private fun SettingsList(
                     "Pages arrive as you read them. Tap to fetch the whole mushaf now — about " +
                         "${(whole - pages) * 154 / 1024} MB, best on wifi, and then it reads offline."
                 )
+            }
+
+            // ---- the recitation model ----
+            //
+            // **His terms, 2026-08-19:** *"for the audio and models the user has to download it
+            // themselves"*, and asked which size, *"offer both, let each person choose"*. So
+            // both sit here with their weight on the label, and neither is fetched for anyone.
+            //
+            // ⚠ **The row is absent entirely when the phone cannot run it**, rather than
+            // present and disabled. A 32-bit handset gets no native library, and offering a
+            // 42 MB download that could never work is worse than not mentioning it.
+            if (onGetModel != null) {
+                Divider()
+                if (fetchingModel != null) {
+                    val (done, total) = fetchingModel
+                    ValueRow(
+                        title = "Checking your recitation",
+                        value = if (total > 0) {
+                            "Getting it… ${done * 100 / total}%"
+                        } else {
+                            "Getting it… ${done / 1024 / 1024} MB"
+                        },
+                        onClick = {},
+                    )
+                } else if (model != null) {
+                    ValueRow(
+                        title = "Checking your recitation",
+                        value = "${model.label} · on this phone",
+                        onClick = {},
+                    )
+                    Explain(
+                        "It listens on the phone and nothing is uploaded. It can tell speech " +
+                            "from silence and hears the words; it is not a judge of tajweed."
+                    )
+                } else {
+                    RecitationModel.entries.forEach { option ->
+                        ValueRow(
+                            title = option.label,
+                            value = "${option.megabytes} MB · download",
+                            onClick = { onGetModel(option) },
+                        )
+                    }
+                    Explain(
+                        "Optional. Download one and Wird can listen to what you recited, on " +
+                            "the phone, with nothing uploaded. Best on wifi."
+                    )
+                }
             }
         }
 

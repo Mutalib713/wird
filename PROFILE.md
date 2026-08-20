@@ -2447,9 +2447,57 @@ download he asked for. Had the reverse been true, the feature would not be worth
    translates arm64 anyway, and each ABI is ~4 MB. Lint reads the literal `defaultConfig` line
    rather than the merged variant, so the debug x86_64 above does not satisfy it.
 
-#### What still has to be true, and is not yet
+#### ✅ The whole chain is built and runs on his phone — 2026-08-20
 
-- Audio decoded from the recorder's M4A to the 16 kHz mono float PCM whisper wants for `arm64-v8a` and a JNI wrapper to call it from Kotlin
+**Proof from his own Pixel, not a claim:**
+
+```
+WirdWhisper: native=true model=null ready=false
+WHISPER : CPU : NEON = 1 | ARM_FMA = 1 | OPENMP = 1 | REPACK = 1
+```
+
+No `FATAL`, no `UnsatisfiedLinkError`. The JNI bridge works on Android 17 arm64 with every ARM
+acceleration path active.
+
+**`AudioToPcm`** — the recorder writes mono AAC at 44,100 Hz; every Whisper model was trained on
+16,000 Hz mono floats. ⚠ **Feeding whisper the wrong rate does not error, it transcribes
+confident nonsense**, which is why this is its own testable file rather than a few lines inside
+the recogniser. **The resampler averages each window rather than picking the nearest sample, and
+that averaging IS the anti-aliasing** — nearest-sample folds everything above 8 kHz back into the
+speech range as a ghost, which is precisely the noise an acoustic model must not be handed.
+
+**`Recogniser`** — owns the model and the transcription, and answers **null at every step rather
+than throwing**. "No model" and "32-bit phone" are ordinary states for an optional feature, not
+errors. Threads capped at four: whisper scales with cores, but a phone giving every core to this
+is a phone that stutters, and the recitation already finished.
+
+**`ModelDownload`** — ⚠ **writes to `.part` and renames only after checking the byte count
+against what the server promised.** A 42 MB download interrupted at 40 MB leaves a file with a
+plausible name, and whisper.cpp handed a truncated model can take the process down **inside
+native code, where no Kotlin `catch` can reach it**. The same trap the fonts and the recitation
+audio both hit: a CDN error page arrives with a 200 and a believable filename.
+
+**Settings offers both sizes**, his decision, with the weight on the label. ⚠ **The row is absent
+entirely on a phone with no native library** rather than present and disabled — offering a 42 MB
+download that could never work is worse than not mentioning it.
+
+#### Two build traps, both recorded because neither is obvious
+
+1. **The ARM fp16 flag is invalid on x86_64** and clang rejects it outright with `unknown target
+   CPU`. Upstream never hits it because its CMake only builds ARM ABIs; Wird builds x86_64 for
+   debug so the emulator can run this. Now guarded by `ANDROID_ABI`.
+2. **`ByteBuffer.position(int)` is declared to return `Buffer` on Android**, so chaining it
+   before `asShortBuffer()` does not compile. Separate statements.
+
+#### ⬜ What is left, and it is the only thing that matters
+
+**Nobody has transcribed a single word yet.** Every piece is in place and the engine loads, but
+`ready=false` until a model is downloaded, and no recitation has been through it.
+
+⚠ **The measurement is the task**: accuracy on his voice, on his phone, in his room. The
+published 5.75% error rate is on clean professional recitation. Until a real portion has gone
+through it and the numbers are written down, task 14 stays open — and *"it was not accurate
+enough, cut it"* remains a legitimate outcome. for `arm64-v8a` and a JNI wrapper to call it from Kotlin
 - The download plumbing extended from mushaf pages to models, which the foreground service
   already gives most of
 - ⚠ **And the only question that matters: accuracy on his voice, his phone, his room.** The
