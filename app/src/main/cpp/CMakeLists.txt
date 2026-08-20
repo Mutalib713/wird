@@ -18,6 +18,21 @@ project(wird_whisper)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# ⚠ **-O3 GLOBALLY, and it has to be here rather than on a target.** Measured twice on his
+# Pixel: 7 seconds of audio took 61 seconds, and putting `-O3` on the `whisper` target changed
+# **nothing** - still 62.5s.
+#
+# The reason is that ggml is not one library. FetchContent builds it as **ggml, ggml-base and
+# ggml-cpu**, and every matrix multiply that actually costs time lives in `ggml-cpu`. Setting
+# options on `whisper`, or even on `ggml`, leaves the hot code compiled at -O0, which is what
+# the Android toolchain defaults to for a debug build.
+#
+# `add_compile_options` before any target is declared applies to every target in this build
+# **and every subproject FetchContent pulls in**, which is precisely the reach required. The
+# lesson generalises: **a flag set on the target you named is not set on the target doing the
+# work.**
+add_compile_options(-O3)
+
 # cpp -> main -> src -> app -> repo root
 set(WHISPER_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../../third_party/whisper.cpp)
 
