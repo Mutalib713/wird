@@ -2617,3 +2617,53 @@ honest number.
 evicting Wird's lines before they could be read. `logcat -G 16M` fixed it. **A log you cannot
 read is not evidence**, and on a phone shared with a busy app that is a real condition rather
 than a hypothetical one.
+
+### 5ba. ✅ The first real numbers, and a 72x bug. 2026-08-20
+
+**Measured on his Pixel, same 7-second clip, same model, three builds apart:**
+
+| Build | Time for 7s of audio | |
+|---|---|---|
+| upstream's `jni.c`, `lang="en"` | 100s+, abandoned | wrong language |
+| ours, `lang="ar"`, `-O3` on the `whisper` target | **61.1s**, then 62.5s | hot code still at -O0 |
+| ours, `add_compile_options(-O3)` before any target | **0.847s** | ggml-cpu finally optimised |
+
+**8.3x faster than real time**, and the transcription was right: he recited Ya-Sin and it
+returned **يس**. Extrapolated, a full page of recitation lands near seven seconds.
+
+#### ⚠ The bug, and why it took three attempts
+
+`-O3` was put on the `whisper` target, verified **by re-reading the CMakeLists**, and reported as
+fixed. It changed nothing. The generated ninja files had the answer the whole time: every
+compile carried `-g` and **no optimisation flag at all**.
+
+**ggml is not one library.** FetchContent builds `ggml`, `ggml-base` and **`ggml-cpu`**, and
+every matrix multiply that costs time lives in the last one. A flag on `whisper` — or even on
+`ggml` — never reaches it.
+
+**Two lessons, and the second is the expensive one:**
+
+1. **A flag set on the target you named is not set on the target doing the work.**
+2. ⚠ **Reading your own source is not verification.** The first fix was confirmed by looking at
+   the file that had just been written, which only proves the intention. The build output said
+   otherwise and was never consulted. CLAUDE.md already carries this rule — *verify with
+   evidence, not claims* — and it was broken by checking the wrong artefact. **0 optimisation
+   flags before, 51 after**, is what verification looks like.
+
+#### What this settles, and what it does not
+
+✅ **The engine is fast enough.** That was genuinely unknown and is now measured.
+✅ **It transcribes his voice correctly** on a short, clear utterance.
+
+⬜ **A full page, recited normally, is untested** — and that is the gate for what he actually
+asked for. His words: *"I don't need what it hears. I need it to hear it very well and highlight
+from the pages and verses where I made a mistake."*
+
+⚠ **Highlighting demands a far higher bar than transcribing.** A rough transcript is useful
+because the reader judges it. **Marking a verse as a mistake must be near-perfect, because
+telling someone they erred in the Qur'an when they did not is the worst thing this app could
+do.** Sacred Rule 3 governs far gentler moments than that one.
+
+⬜ **The BASE model still will not load** — `whisper_init_from_file` returns null on a file whose
+size matches the remote byte for byte. TINY from the same repository is fine. Unresolved, and
+not urgent while TINY is this quick.

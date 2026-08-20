@@ -476,8 +476,16 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   Tarteel models offered as optional downloads (42 MB / 78 MB) through the foreground service,
   and the reader picks which is in use. Finishing a recitation now transcribes and logs it.
 
-  ⬜ **NOT TICKED, and this is the whole point of the ⚠.** **Not one word has been transcribed
-  yet.** No recitation has been through it, so accuracy on his voice, his phone and his room is
+  **✅ First real numbers, 2026-08-20:** 7s of audio transcribed in **0.847s** on his Pixel with
+  TINY — **8.3x faster than real time** — and correct: he recited Ya-Sin, it returned **يس**. A
+  72x speedup came from `add_compile_options(-O3)`, because ggml's hot code lives in a separate
+  `ggml-cpu` target that a flag on `whisper` never reached. PROFILE.md § 5ba.
+
+  ⬜ **STILL NOT TICKED.** A short clear utterance is not a page of recitation, and the feature he
+  actually wants — *"highlight from the pages and verses where I made a mistake"* — needs a far
+  higher bar than transcription, plus Arabic text the app does not yet hold.
+
+  ⬜ **Previously: not one word had been transcribed.** No recitation has been through it, so accuracy on his voice, his phone and his room is
   entirely unknown — and the published 5.75% error rate is on clean professional recitation.
   **"It was not accurate enough, cut it" is still a legitimate outcome.**
 
