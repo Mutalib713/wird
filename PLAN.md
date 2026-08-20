@@ -455,7 +455,7 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   do at all, which is changing three things at once, six weeks later, without hunting for the
   screen they live on. See PROFILE.md § 5ad.
 
-- [ ] **14. ⚠ On-device recitation checker**
+- [~] **14. ⚠ On-device recitation checker** — built and running 2026-08-20; **UNMEASURED, so not ticked**
   whisper.cpp Android AAR + `tarteel-ai/whisper-base-ar-quran` (Apache-2.0). **Batch,
   not streaming.** Compare against the assigned passage, which is known — this is
   matching against a given answer, not open transcription, so it tolerates a high error
@@ -465,6 +465,30 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   *Done when:* it reliably separates a real recitation from silence and from unrelated
   speech, on Mutalib's own recordings, with the measured numbers written down. If it
   cannot, that is a real result — record it and drop the feature.
+
+  **✅ The cheap half shipped first** (2026-08-19): `judgeRecitation` separates a recitation
+  from a silent room, a pocket and a false start using loudness alone — no model, no download.
+  Checks 50–52. ⚠ Its thresholds are guesses until measured on his voice.
+
+  **✅ The expensive half is built and runs on his phone** (2026-08-20). whisper.cpp v1.9.2 as a
+  pinned submodule, upstream's `jni.c` unmodified, **engine costs 1.2 MB** (APK 17.7 → 18.9).
+  Proof from his Pixel: `native=true`, `NEON=1 ARM_FMA=1 OPENMP=1 REPACK=1`. Both Apache-2.0
+  Tarteel models offered as optional downloads (42 MB / 78 MB) through the foreground service,
+  and the reader picks which is in use. Finishing a recitation now transcribes and logs it.
+
+  ⬜ **NOT TICKED, and this is the whole point of the ⚠.** **Not one word has been transcribed
+  yet.** No recitation has been through it, so accuracy on his voice, his phone and his room is
+  entirely unknown — and the published 5.75% error rate is on clean professional recitation.
+  **"It was not accurate enough, cut it" is still a legitimate outcome.**
+
+  ⬜ **And a gap found while wiring it:** the app stores **glyph codes for the mushaf font, not
+  plain Arabic text**, so there is nothing to compare a transcription *against*. Comparison needs
+  the Uthmani text bundled the way the translations are (~1.2 MB, verified source, Sacred Rule
+  2). **Deliberately not built** — building the comparison before knowing the transcription is
+  any good is building on the assumption this task exists to test.
+
+  **Next session starts here:** he records one real portion, then
+  `adb logcat -s WirdWhisper` shows what it heard and how long it took. That is the measurement.
 
 - [x] **25. Home, rebuilt from his own comps** — done 2026-08-19, verified on the emulator
   He supplied four mockups and named what to take from each: image 1 the base, image 2 the
