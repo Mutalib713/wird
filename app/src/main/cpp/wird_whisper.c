@@ -29,6 +29,15 @@
 /* Arabic. The whole reason this file exists. */
 static const char *WIRD_LANGUAGE = "ar";
 
+/* Logged as it advances, so progress is observable without a stopwatch. */
+static void wird_progress(struct whisper_context *ctx, struct whisper_state *state,
+                          int progress, void *user_data) {
+    (void) ctx;
+    (void) state;
+    (void) user_data;
+    LOGI("progress %d%%", progress);
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_mosman_wird_audio_WhisperNative_initContext(
         JNIEnv *env, jobject thiz, jstring model_path) {
@@ -88,6 +97,36 @@ Java_com_mosman_wird_audio_WhisperNative_fullTranscribe(
     params.print_progress = false;
     params.print_timestamps = false;
     params.print_special = false;
+
+    /*
+     * ⚠ THE TWO SETTINGS THAT DECIDE WHETHER THIS FINISHES AT ALL.
+     *
+     * A 42-second recitation ran for 290 seconds at 386% CPU before this. Not deadlocked -
+     * genuinely working, and doing several times the necessary work. Both causes are classic
+     * with a FINE-TUNED Whisper model, which is what tarteel-ai/whisper-base-ar-quran is:
+     *
+     * 1. temperature_inc drives whisper's fallback loop. When a decode fails its entropy or
+     *    log-probability thresholds, whisper.cpp retries the same window at a higher
+     *    temperature, up to six times. A fine-tune trained on one narrow domain trips those
+     *    thresholds constantly, so nearly every window gets decoded six times over. Setting it
+     *    to zero says: decode once, take the answer.
+     *
+     * 2. no_timestamps. Fine-tunes for plain transcription are commonly trained WITHOUT
+     *    timestamp tokens. Asking such a model to emit them makes it predict tokens it was
+     *    never taught, which is the standard recipe for a repetition loop that runs until the
+     *    context is full. Wird wants the words and has never once wanted the timings.
+     *
+     * ⚠ What this costs: with no fallback, a genuinely bad window returns a poor result instead
+     * of being retried. That is the right trade here - the honest answer to "I could not make
+     * that out" is to say so, not to spend a minute of someone's battery guessing again.
+     */
+    params.temperature_inc = 0.0f;
+    params.no_timestamps = true;
+
+    /* Reports percentage as it goes. Without this, a slow run and a stuck run look identical
+     * from outside, which is exactly the ambiguity that cost two rounds of guessing. */
+    params.progress_callback = wird_progress;
+    params.progress_callback_user_data = NULL;
 
     LOGI("whisper_full: %d samples, %d threads, lang=%s", count, num_threads, params.language);
     const int result = whisper_full(context, params, samples, count);

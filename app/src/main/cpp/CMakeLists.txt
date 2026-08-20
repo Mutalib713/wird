@@ -66,8 +66,21 @@ else ()
     set(GGML_COMPILE_OPTIONS "")
 endif ()
 
+# ⚠ **-O3 ALWAYS, including debug builds, and this was measured.**
+#
+# Upstream guards its optimisation flags behind `NOT CMAKE_BUILD_TYPE STREQUAL "Debug"`, which is
+# ordinary practice and was copied without thought. The cost on his Pixel: **7 seconds of audio
+# took 61 seconds**, roughly nine times real time, because ggml's matrix maths was compiled with
+# no optimisation at all.
+#
+# **A debug build of the Kotlin does not require an unoptimised build of the C.** Nobody is
+# stepping through ggml with a debugger; it is a numerical library whose entire job is speed, and
+# an -O0 build of it is not a debuggable version of the feature, it is a broken one. The flags
+# that shrink the shipped library stay guarded, because those genuinely do interfere.
+target_compile_options(whisper PRIVATE -O3)
+set(GGML_COMPILE_OPTIONS ${GGML_COMPILE_OPTIONS} -O3)
+
 if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_options(whisper PRIVATE -O3)
     target_compile_options(whisper PRIVATE -fvisibility=hidden -fvisibility-inlines-hidden)
     target_compile_options(whisper PRIVATE -ffunction-sections -fdata-sections)
     target_link_options(whisper PRIVATE -Wl,--gc-sections)
