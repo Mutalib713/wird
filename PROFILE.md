@@ -2370,11 +2370,21 @@ Ghanaian data; an optional download is nobody's cost but the person who asks for
 for someone on wifi with a better phone. Same shape as the audio-quality choice this app already
 has.
 
-#### ⬜ The NDK is the only heavy blocker left, and it has not landed
+#### ✅ The NDK is in — 2026-08-20, after four failed sdkmanager attempts
 
-whisper.cpp is C++ and needs the Android NDK to build. `cmake;3.22.1` installed. **The NDK
-download timed out at 55% and left an empty directory** — no toolchain, no `source.properties`,
-0 GB on disk. A second attempt is running.
+whisper.cpp is C++ and needs the Android NDK to build. `cmake;3.22.1` installed from sdkmanager
+without trouble. **The NDK did not**, and the workaround below is now the recorded route.
+
+**Verified working:** `ndk/27.1.12297006`, **2.2 GB**, toolchain `windows-x86_64`, and
+`clang --version` answers **18.0.2**. `cmake` answers 3.22.1. Both were run rather than assumed.
+
+⚠ **Two things had to be cleaned up after the manual install, and both would have bitten later:**
+1. The zip extracts to `android-ndk-r27b/`, which Gradle does not recognise. It is renamed to
+   its own `Pkg.Revision`, **`27.1.12297006`**, which is the name AGP looks for.
+2. sdkmanager's failed attempt left `ndk/27.0.12077973/` holding a single 171-byte
+   `.installer/.installData` marker. **A broken NDK that Gradle can see is worse than none**, so
+   it was removed — after listing its contents, because a directory that reports "1 file" is not
+   the same as one that reports none.
 
 ⚠ **Worth knowing: a failed NDK install leaves a directory that looks installed.** `sdkmanager`
 creates `ndk/27.0.12077973/` and populates it last, so the folder's existence proves nothing.
@@ -2400,7 +2410,6 @@ to `Sdk/ndk/27.1.12297006/` rather than the `27.0.12077973` sdkmanager was asked
 
 #### What still has to be true, and is not yet
 
-- The NDK downloading without timing out
 - whisper.cpp building for `arm64-v8a` and a JNI wrapper to call it from Kotlin
 - The download plumbing extended from mushaf pages to models, which the foreground service
   already gives most of
