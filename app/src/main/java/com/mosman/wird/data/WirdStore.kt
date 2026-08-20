@@ -201,6 +201,22 @@ class WirdStore(context: Context) {
         }
 
     /**
+     * Which recitation model to actually use, when more than one is downloaded.
+     *
+     * ⚠ **Added because "try the smaller one instead" did nothing.** The first version picked
+     * the larger model whenever both were present, on the reasoning that someone who downloaded
+     * BASE second wanted accuracy. That is a fine default and a terrible rule: it made the two
+     * models impossible to compare, which is the entire reason PLAN task 14 offers both.
+     *
+     * Null means "whatever is on the phone", which is right for the ordinary case of one model.
+     */
+    var chosenModel: String?
+        get() = prefs.getString(KEY_MODEL, null)
+        set(value) = prefs.edit {
+            if (value == null) remove(KEY_MODEL) else putString(KEY_MODEL, value)
+        }
+
+    /**
      * Which way through the mushaf this reader travels. **His instruction, 2026-08-19.**
      *
      * Defaults to [ReadingDirection.TOWARDS_NAS] — front to back — because that is what every
@@ -366,6 +382,7 @@ class WirdStore(context: Context) {
         const val KEY_AWAY = "away_period"
         const val KEY_PAGE_NIGHT = "page_night"
         const val KEY_DIRECTION = "reading_direction"
+        const val KEY_MODEL = "recitation_model"
         const val FIELD = " | "
         const val AWAY_SEP = ".."
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"

@@ -105,6 +105,9 @@ fun SettingsScreen(
     fetchingModel: Pair<Long, Long>? = null,
     /** Null when this phone has no native library at all - 32-bit, or an old build. */
     onGetModel: ((RecitationModel) -> Unit)? = null,
+    /** Models already on the phone, so a second one can be tried against the first. */
+    downloadedModels: List<RecitationModel> = emptyList(),
+    onUseModel: (RecitationModel) -> Unit = {},
     cachedPages: Pair<Int, Long> = 0 to 0L,
     /** Non-null while the whole mushaf is being fetched: done out of total. */
     downloading: Pair<Int, Int>? = null,
@@ -159,6 +162,8 @@ fun SettingsScreen(
             model = model,
             fetchingModel = fetchingModel,
             onGetModel = onGetModel,
+            downloadedModels = downloadedModels,
+            onUseModel = onUseModel,
             cachedPages = cachedPages,
             downloading = downloading,
             onDownloadAll = onDownloadAll,
@@ -386,6 +391,8 @@ private fun SettingsList(
     model: RecitationModel?,
     fetchingModel: Pair<Long, Long>?,
     onGetModel: ((RecitationModel) -> Unit)?,
+    downloadedModels: List<RecitationModel>,
+    onUseModel: (RecitationModel) -> Unit,
     cachedPages: Pair<Int, Long>,
     downloading: Pair<Int, Int>?,
     onDownloadAll: () -> Unit,
@@ -505,35 +512,38 @@ private fun SettingsList(
                 if (fetchingModel != null) {
                     val (done, total) = fetchingModel
                     ValueRow(
-                        title = "Checking your recitation",
+                        title = "Recitation checker",
                         value = if (total > 0) {
-                            "Getting it… ${done * 100 / total}%"
+                            "Downloading, ${done * 100 / total}% · see the notification"
                         } else {
-                            "Getting it… ${done / 1024 / 1024} MB"
+                            "Downloading ${done / 1024 / 1024} MB · see the notification"
                         },
                         onClick = {},
                     )
-                } else if (model != null) {
-                    ValueRow(
-                        title = "Checking your recitation",
-                        value = "${model.label} · on this phone",
-                        onClick = {},
-                    )
-                    Explain(
-                        "It listens on the phone and nothing is uploaded. It can tell speech " +
-                            "from silence and hears the words; it is not a judge of tajweed."
-                    )
                 } else {
+                    // **Every model, downloaded or not, in one list.** Tapping one that is here
+                    // switches to it; tapping one that is not fetches it. That is what makes
+                    // the two comparable, which is the whole point of offering both.
                     RecitationModel.entries.forEach { option ->
+                        val here = option in downloadedModels
                         ValueRow(
                             title = option.label,
-                            value = "${option.megabytes} MB · download",
-                            onClick = { onGetModel(option) },
+                            value = when {
+                                option == model -> "in use"
+                                here -> "on this phone · tap to use"
+                                else -> "${option.megabytes} MB · download"
+                            },
+                            onClick = { if (here) onUseModel(option) else onGetModel(option) },
                         )
                     }
                     Explain(
-                        "Optional. Download one and Wird can listen to what you recited, on " +
-                            "the phone, with nothing uploaded. Best on wifi."
+                        if (model == null) {
+                            "Optional. Download one and Wird can listen to what you recited, " +
+                                "on the phone, with nothing uploaded. Best on wifi."
+                        } else {
+                            "It listens on the phone and nothing is uploaded. It hears the " +
+                                "words; it is not a judge of tajweed."
+                        }
                     )
                 }
             }

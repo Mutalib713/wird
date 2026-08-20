@@ -12,6 +12,9 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.mosman.wird.MainActivity
 import com.mosman.wird.domain.Mushaf
+import java.io.File
+import com.mosman.wird.audio.RecitationModel
+import com.mosman.wird.audio.ModelDownload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -63,6 +66,17 @@ class MushafDownloadService : Service() {
             return START_NOT_STICKY
         }
 
+        // ⚠ **Models come through here for the same reason pages do, and it was a real bug.**
+        // The model download first shipped inside the Settings screen's own coroutine scope,
+        // so walking away from Settings cancelled 78 MB mid-flight. Mutalib hit exactly this
+        // on 2026-08-20 - the download survived only because he happened to stay on the screen
+        // for four minutes watching a row that told him nothing.
+        val wanted = intent?.getStringExtra(EXTRA_MODEL)
+        if (wanted != null) {
+            startModel(RecitationModel.valueOf(wanted))
+            return START_STICKY
+        }
+
         // Already running: a second tap must not start a second sweep over 604 pages.
         if (job?.isActive == true) return START_STICKY
 
@@ -87,6 +101,63 @@ class MushafDownloadService : Service() {
         }
         return START_STICKY
     }
+
+    /** A recitation model, with its own progress and its own finishing line. */
+    private fun startModel(model: RecitationModel) {
+        if (job?.isActive == true) return
+        createChannel()
+        startForeground(NOTIFICATION_ID, modelNotification(model, 0, 0))
+
+        job = scope.launch {
+            var lastPercent = -1
+            val ok = ModelDownload.fetch(
+                model = model,
+                into = File(applicationContext.filesDir, "models"),
+            ) { done, total ->
+                // Percent rather than every buffer: a 78 MB file arrives in 64 KB pieces, and
+                // repainting the notification 1,200 times says nothing a bar does not.
+                val percent = if (total > 0) (done * 100 / total).toInt() else -1
+                if (percent != lastPercent) {
+                    lastPercent = percent
+                    notify(modelNotification(model, done, total))
+                }
+            }
+            notify(modelDone(model, ok))
+            stopForeground(STOP_FOREGROUND_DETACH)
+            stopSelf()
+        }
+    }
+
+    private fun modelNotification(model: RecitationModel, done: Long, total: Long): Notification {
+        val stop = PendingIntent.getService(
+            this,
+            2,
+            Intent(this, MushafDownloadService::class.java).setAction(ACTION_STOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val mb = (total.takeIf { it > 0 } ?: (model.megabytes * 1024L * 1024L))
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setContentTitle("Getting the recitation checker")
+            .setContentText("${done / 1024 / 1024} of ${mb / 1024 / 1024} MB")
+            .setProgress(100, if (mb > 0) (done * 100 / mb).toInt() else 0, mb <= 0)
+            .setOngoing(true)
+            .addAction(0, "Stop", stop)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+    }
+
+    private fun modelDone(model: RecitationModel, ok: Boolean): Notification =
+        NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setContentTitle(if (ok) "Wird can listen now" else "That download didn't finish")
+            .setContentText(
+                if (ok) "${model.label} is on your phone. Nothing you record is uploaded."
+                else "Nothing was kept. Open Settings to try again."
+            )
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
 
     override fun onDestroy() {
         scope.cancel()
@@ -159,6 +230,15 @@ class MushafDownloadService : Service() {
         private const val CHANNEL_ID = "wird_downloads"
         private const val NOTIFICATION_ID = 4201
         private const val ACTION_STOP = "com.mosman.wird.STOP_DOWNLOAD"
+        private const val EXTRA_MODEL = "com.mosman.wird.MODEL"
+
+        /** Fetch a recitation model, surviving whatever screen asked for it. */
+        fun startModel(context: Context, model: RecitationModel) {
+            context.startForegroundService(
+                Intent(context, MushafDownloadService::class.java)
+                    .putExtra(EXTRA_MODEL, model.name)
+            )
+        }
 
         /** Begin, or do nothing if it is already going. */
         fun start(context: Context) {

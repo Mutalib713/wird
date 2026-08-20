@@ -2,6 +2,7 @@ package com.mosman.wird.audio
 
 import android.content.Context
 import android.util.Log
+import com.mosman.wird.data.WirdStore
 import com.whispercpp.whisper.WhisperLib
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -71,14 +72,34 @@ class Recogniser(private val context: Context) {
 
     fun fileFor(model: RecitationModel) = File(dir, model.fileName)
 
+    /** Every model actually sitting on this phone. */
+    fun downloaded(): List<RecitationModel> =
+        RecitationModel.entries.filter { plausible(fileFor(it)) }
+
     /**
      * The model this phone will actually use, or null.
      *
-     * **The larger one wins when both are present**, because someone who downloaded BASE after
-     * TINY was asking for accuracy, and the download they made second is the answer.
+     * ⚠ **The reader's choice wins, and that replaced a rule that quietly broke the feature.**
+     * The first version always preferred the larger model when both were present. It sounded
+     * sensible and it meant *"let me try the smaller one instead"* silently did nothing — which
+     * is the one thing PLAN task 14 exists to let him do, since the whole question is whether
+     * 78 MB buys anything 42 MB does not.
+     *
+     * With no choice recorded it falls back to whatever is here, largest first, so a phone with
+     * one model needs no decision at all.
      */
-    fun installed(): RecitationModel? =
-        listOf(RecitationModel.BASE, RecitationModel.TINY).firstOrNull { plausible(fileFor(it)) }
+    fun installed(): RecitationModel? {
+        val here = downloaded()
+        if (here.isEmpty()) return null
+        val chosen = WirdStore(context).chosenModel
+            ?.let { name -> here.firstOrNull { it.name == name } }
+        return chosen ?: here.maxByOrNull { it.megabytes }
+    }
+
+    /** Remember which of the downloaded models to use. */
+    fun choose(model: RecitationModel) {
+        WirdStore(context).chosenModel = model.name
+    }
 
     /**
      * ⚠ **Size-checked, because a half-downloaded model is worse than none.**

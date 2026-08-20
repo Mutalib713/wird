@@ -122,6 +122,7 @@ class MainActivity : ComponentActivity() {
             val recogniser = remember { Recogniser(this@MainActivity) }
             var model by remember { mutableStateOf(recogniser.installed()) }
             var fetchingModel by remember { mutableStateOf<Pair<Long, Long>?>(null) }
+            var downloadedModels by remember { mutableStateOf(recogniser.downloaded()) }
 
             // Re-read whenever Settings opens rather than once at launch: the whole point is
             // to notice a change the user made outside the app, in Android's own settings.
@@ -137,6 +138,19 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(screen, downloading) {
                 if (screen == Screen.SETTINGS && downloading == null) {
                     cachedPages = withContext(Dispatchers.IO) { mushaf.cached() }
+                }
+            }
+
+            // ⚠ **Re-read every time Settings opens, because the download now finishes
+            // somewhere else.** The service owns it, so this screen has no callback to wait
+            // for - it just looks at what is on disk. That also makes the row self-healing:
+            // whatever went wrong, reopening Settings shows the truth.
+            LaunchedEffect(screen) {
+                if (screen == Screen.SETTINGS) {
+                    withContext(Dispatchers.IO) {
+                        downloadedModels = recogniser.downloaded()
+                        model = recogniser.installed()
+                    }
                 }
             }
             /** The chat, opened from Home's companion card. */
@@ -669,21 +683,16 @@ class MainActivity : ComponentActivity() {
                         // Null when there is no native library, which removes the row rather
                         // than showing a download that could never be used.
                         onGetModel = if (WhisperLib.available) ({ option ->
-                            widgetScope.launch {
-                                fetchingModel = 0L to 0L
-                                val ok = ModelDownload.fetch(
-                                    model = option,
-                                    into = java.io.File(filesDir, "models"),
-                                ) { done, total -> fetchingModel = done to total }
-                                fetchingModel = null
-                                model = recogniser.installed()
-                                exportNote = if (ok) {
-                                    "Ready. Wird can listen to your recitation now."
-                                } else {
-                                    "That didn't finish. Nothing was kept — tap to try again."
-                                }
-                            }
+                            // Handed to the service rather than run here. A composition-scoped
+                            // coroutine dies when the screen does, and 78 MB is far too much to
+                            // lose because someone pressed back.
+                            MushafDownloadService.startModel(this@MainActivity, option)
                         }) else null,
+                        downloadedModels = downloadedModels,
+                        onUseModel = { option ->
+                            recogniser.choose(option)
+                            model = option
+                        },
                         cachedPages = cachedPages,
                         downloading = downloading,
                         onDownloadAll = {

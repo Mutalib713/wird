@@ -2503,3 +2503,34 @@ enough, cut it"* remains a legitimate outcome. for `arm64-v8a` and a JNI wrapper
 - ⚠ **And the only question that matters: accuracy on his voice, his phone, his room.** The
   published 5.75% error rate is on clean professional recitation. Everything above is
   arrangements; that measurement is the task.
+
+### 5ax. Two bugs his "it's not working" found. 2026-08-20
+
+He reported the model download stuck on *"checking your recitation"* for two to five minutes.
+**The download had actually finished** — 81,768,585 bytes of the BASE model, correctly renamed —
+and his whole mushaf had downloaded too, 604 of 604 pages at 115.2 MB. But he was right that
+something was wrong, and looking found two real faults plus one he could not have seen.
+
+**1. The row's title read as a live status.** "Checking your recitation" is a feature name, and
+underneath it said "Getting it…". Together they read as *the app is checking a recitation right
+now and has hung.* Renamed to **"Recitation checker"**, and the progress line now points at the
+notification, which is where a long download should be watched.
+
+**2. ⚠ The download would have died if he had left Settings — I made the same mistake twice in
+one day.** It ran in the Settings screen's own coroutine scope, so navigating away cancels it.
+This is precisely the fault the mushaf download had, which is *why* `MushafDownloadService`
+exists, and I did not reuse it. **He only kept his 78 MB because he happened to stay on the
+screen for four minutes watching a row that told him nothing.** Models now go through the same
+foreground service, with their own progress notification and a Stop action.
+
+**3. ⚠ The bug he could not see: "try the smaller one instead" would have done nothing.** The
+recogniser preferred the *larger* model whenever both were present — a sensible-sounding rule
+that silently defeats the entire reason § 5aw offers two sizes. Comparing them was impossible.
+
+**Now the reader chooses.** Settings lists both, marking one *in use*, one *on this phone · tap
+to use*, and one *download*. The choice is remembered; with nothing chosen it falls back to the
+largest present, so a phone with one model still needs no decision.
+
+**The general lesson, and it is the one worth keeping:** *a default that sounds reasonable can
+quietly remove the feature it was defaulting for.* "Prefer the better model" is obviously right
+in isolation and made the measurement he asked for impossible.
