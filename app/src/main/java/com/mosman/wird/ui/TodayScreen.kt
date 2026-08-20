@@ -104,6 +104,10 @@ fun TodayScreen(
     doneMethod: com.mosman.wird.domain.Method? = null,
     progress: com.mosman.wird.domain.Progress? = null,
     hasRecording: Boolean = false,
+    /** Runs the recitation check on today's recording. Null when this phone cannot. */
+    onCheckRecitation: (() -> Unit)? = null,
+    /** What that check is doing or found. PLAN task 14. */
+    checkState: CheckState = CheckState.Idle,
     audioFile: () -> java.io.File = { java.io.File("") },
     /** Which Shatri recording to fetch. The reader's data, so the reader's choice. */
     audioQuality: AudioQuality = AudioQuality.LIGHT,
@@ -425,6 +429,8 @@ fun TodayScreen(
                         doneMethod = doneMethod,
                         mode = readingMode,
                         hasRecording = hasRecording,
+                        onCheck = onCheckRecitation,
+                        checkState = checkState,
                         recording = recording,
                         problem = problem,
                         onStartRecording = {

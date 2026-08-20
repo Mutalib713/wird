@@ -65,6 +65,7 @@ import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.ui.ChatScreen
 import com.mosman.wird.ui.HomeScreen
+import com.mosman.wird.ui.CheckState
 import com.mosman.wird.ui.OpenElsewhere
 import com.whispercpp.whisper.WhisperLib
 import com.mosman.wird.ui.RecitationsScreen
@@ -123,6 +124,7 @@ class MainActivity : ComponentActivity() {
             var model by remember { mutableStateOf(recogniser.installed()) }
             var fetchingModel by remember { mutableStateOf<Pair<Long, Long>?>(null) }
             var downloadedModels by remember { mutableStateOf(recogniser.downloaded()) }
+            var checkState by remember { mutableStateOf<CheckState>(CheckState.Idle) }
 
             // Re-read whenever Settings opens rather than once at launch: the whole point is
             // to notice a change the user made outside the app, in Android's own settings.
@@ -565,6 +567,35 @@ class MainActivity : ComponentActivity() {
                         doneMethod = doneMethod,
                         progress = progress,
                         hasRecording = hasRecording,
+                        checkState = checkState,
+                        // Null when the phone cannot do it, so no button appears rather than
+                        // one that quietly does nothing.
+                        onCheckRecitation = if (recogniser.ready()) ({
+                            widgetScope.launch {
+                                checkState = CheckState.Working
+                                val file = days.audioFileFor(today)
+                                val started = System.currentTimeMillis()
+                                val heard = recogniser.transcribe(file)
+                                val took = String.format(
+                                    java.util.Locale.getDefault(),
+                                    "%.1f",
+                                    (System.currentTimeMillis() - started) / 1000.0,
+                                )
+                                checkState = if (heard.isNullOrBlank()) {
+                                    CheckState.Nothing(
+                                        "It couldn't make out any words. That can mean the " +
+                                            "recording was too quiet, or the model is not " +
+                                            "good enough yet."
+                                    )
+                                } else {
+                                    CheckState.Heard(
+                                        text = heard,
+                                        seconds = (file.length() / 8000).toInt(),
+                                        took = took,
+                                    )
+                                }
+                            }
+                        }) else null,
                         audioFile = { days.audioFileFor(today) },
                         audioQuality = audioQuality,
                         readingMode = readingMode,

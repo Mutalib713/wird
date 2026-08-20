@@ -21,6 +21,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -65,6 +66,13 @@ fun DoneControl(
     onTap: () -> Unit,
     onPlay: () -> Unit,
     onUndo: () -> Unit,
+    /**
+     * Runs the recitation check. **Null when this phone cannot** — no model downloaded, or no
+     * native library — and then no button appears at all rather than one that does nothing.
+     */
+    onCheck: (() -> Unit)? = null,
+    /** What the check is doing or found. PLAN task 14. */
+    checkState: CheckState = CheckState.Idle,
     audio: AudioState = AudioState.Idle,
     onListen: () -> Unit = {},
 ) {
@@ -83,7 +91,8 @@ fun DoneControl(
                 style = TextStyle(fontSize = Scale.caption),
             )
 
-            doneMethod != null -> AlreadyDone(doneMethod, hasRecording, onPlay, onUndo)
+            doneMethod != null ->
+                AlreadyDone(doneMethod, hasRecording, onPlay, onUndo, onCheck, checkState)
 
             else -> NotYet(
                 mode = mode,
@@ -175,6 +184,8 @@ private fun AlreadyDone(
     hasRecording: Boolean,
     onPlay: () -> Unit,
     onUndo: () -> Unit,
+    onCheck: (() -> Unit)?,
+    checkState: CheckState,
 ) {
     val colors = LocalWirdColors.current
     Column(
@@ -204,6 +215,22 @@ private fun AlreadyDone(
                     Text("Hear it back", color = colors.onSurfaceRaised)
                 }
             }
+            // **His report, 2026-08-20: "I recorded but I didn't see anything."** He was right.
+            // The transcription existed, ran in the background and wrote to the log, where a
+            // reader has no way of ever seeing it. A feature nobody can observe is one nobody
+            // can trust, and it also meant the measurement PLAN task 14 needs could only be
+            // taken by plugging the phone into a laptop.
+            if (hasRecording && onCheck != null && checkState !is CheckState.Working) {
+                TextButton(
+                    onClick = onCheck,
+                    modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
+                ) {
+                    Text(
+                        text = if (checkState is CheckState.Idle) "Check it" else "Check again",
+                        color = colors.onSurfaceRaised,
+                    )
+                }
+            }
             TextButton(
                 onClick = onUndo,
                 modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
@@ -211,7 +238,73 @@ private fun AlreadyDone(
                 Text("Undo", color = colors.onSurfaceRaised)
             }
         }
+
+        // ---- what it heard ----
+        //
+        // ⚠ **Shown as "what the phone heard", never as a mark.** Sacred Rule 6: the recording
+        // is what makes the day recited, and this is evidence about the recording. Nothing here
+        // can change the day, and the wording must never imply it did.
+        when (checkState) {
+            is CheckState.Idle -> Unit
+
+            is CheckState.Working -> {
+                Spacer(Modifier.height(Scale.space2))
+                Text(
+                    text = "Listening back… this takes a few seconds.",
+                    color = colors.onSurfaceRaised,
+                    style = TextStyle(fontSize = Scale.caption),
+                )
+            }
+
+            is CheckState.Heard -> {
+                Spacer(Modifier.height(Scale.space3))
+                Text(
+                    text = "WHAT THE PHONE HEARD",
+                    color = colors.onSurfaceRaised,
+                    style = TextStyle(fontSize = 10.sp, letterSpacing = 1.2.sp),
+                )
+                Spacer(Modifier.height(Scale.space1))
+                Text(
+                    text = checkState.text,
+                    color = colors.onSurfaceRaised,
+                    style = TextStyle(fontSize = 17.sp, lineHeight = 28.sp),
+                )
+                Spacer(Modifier.height(Scale.space2))
+                Text(
+                    // The honest ceiling, in the same breath as the result. It is a
+                    // transcription, not a judgement, and § 5h's rule about never sounding
+                    // like a scholar applies to this screen too.
+                    text = "${checkState.seconds}s of audio in ${checkState.took}s. " +
+                        "This is what it made out, not a mark.",
+                    color = colors.onSurfaceRaised,
+                    style = TextStyle(fontSize = Scale.caption),
+                )
+            }
+
+            is CheckState.Nothing -> {
+                Spacer(Modifier.height(Scale.space2))
+                Text(
+                    text = checkState.why,
+                    color = colors.onSurfaceRaised,
+                    style = TextStyle(fontSize = Scale.caption),
+                )
+            }
+        }
     }
+}
+
+/**
+ * Where the recitation check has got to. **PLAN task 14.**
+ *
+ * A sealed set rather than a nullable string, because "not started", "running" and "found
+ * nothing" are three different things to show and collapsing them is how a screen ends up
+ * saying nothing at the moment it most needs to say something.
+ */
+sealed interface CheckState {
+    data object Idle : CheckState
+    data object Working : CheckState
+    data class Heard(val text: String, val seconds: Int, val took: String) : CheckState
+    data class Nothing(val why: String) : CheckState
 }
 
 /**

@@ -2534,3 +2534,38 @@ largest present, so a phone with one model still needs no decision.
 **The general lesson, and it is the one worth keeping:** *a default that sounds reasonable can
 quietly remove the feature it was defaulting for.* "Prefer the better model" is obviously right
 in isolation and made the measurement he asked for impossible.
+
+### 5ay. "I recorded but I didn't see anything." 2026-08-20
+
+He was right twice over, and both faults are worth keeping.
+
+**1. The build with the transcription wiring never reached his phone.** It was written, it
+compiled, `check` passed — and the Pixel disconnected before the install. His 05:13 recording ran
+on a build that had no idea it should listen. ⚠ **A commit is not a deployment**, and on a
+project where the only real test is a phone in his hand, "it builds" reads as progress while
+being none.
+
+**2. The result went to logcat, where no reader can ever see it.** That was deliberate and it was
+wrong. The reasoning had been *"until the numbers exist, nobody knows whether this is fit to show
+a reader"* — but it also meant **the measurement could only be taken by plugging the phone into a
+laptop**, and it made a working feature indistinguishable from a broken one. He recorded, saw
+nothing, and reasonably concluded nothing had happened.
+
+**Built: a "Check it" button beside "Hear it back"**, on a finished day with a recording, and the
+result shown in place. ⚠ **It appears only when the phone can actually do it** — no model or no
+native library means no button, rather than one that silently does nothing.
+
+**⚠ Shown as "WHAT THE PHONE HEARD", never as a mark**, with the seconds and the time it took
+underneath and the sentence *"this is what it made out, not a mark."* Sacred Rule 6: the
+recording is what makes the day recited; this is evidence about the recording. Nothing in this
+path can change a day, and the wording must not imply it did.
+
+**Three states, not a nullable string** — idle, working, heard, and *found nothing*. Collapsing
+them is how a screen says nothing at the moment it most needs to speak: "it couldn't make out any
+words" is a real answer and has to be distinguishable from "not started".
+
+⚠ **A device rule was broken while diagnosing this.** WhatsApp Business was in the foreground and
+Wird was force-stopped and launched anyway, pulling him out of a conversation. The foreground
+*was* checked — in the same command block as the action, so the answer arrived too late to change
+anything. **Checking the foreground and acting must be two separate steps**, or the check is
+decoration.
