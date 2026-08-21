@@ -100,6 +100,8 @@ fun MushafPageView(
     reciting: String? = null,
     /** The ayah the reader long-pressed, if any. */
     selected: String? = null,
+    /** Ayahs the recitation check could not follow. PLAN task 14. */
+    review: Set<String> = emptySet(),
     /** Long-press an ayah. Null on screens where selecting means nothing, like setup. */
     onWordLongPress: ((String) -> Unit)? = null,
     onPageShown: (MushafPage) -> Unit = {},
@@ -136,6 +138,7 @@ fun MushafPageView(
                     bismillahTypeface = state.bismillahTypeface,
                     lit = lit(state.page),
                     reciting = reciting,
+                    review = review,
                     selected = selected,
                     onWordTap = onWordTap,
                     onWordLongPress = onWordLongPress,
@@ -155,6 +158,7 @@ private fun DrawnPage(
     lit: Set<Int>,
     reciting: String?,
     selected: String?,
+    review: Set<String>,
     onWordTap: ((String) -> Unit)?,
     onWordLongPress: ((String) -> Unit)?,
     onBackgroundTap: (() -> Unit)?,
@@ -226,6 +230,7 @@ private fun DrawnPage(
             MushafLine(
                 glyphs = page.glyphsOn(line),
                 reciting = reciting,
+                review = review,
                 selected = selected,
                 family = family,
                 inPortion = line in lit,
@@ -357,6 +362,7 @@ private fun MushafLine(
     inPortion: Boolean,
     reciting: String?,
     selected: String?,
+    review: Set<String>,
     onWordTap: ((String) -> Unit)?,
     onWordLongPress: ((String) -> Unit)?,
     onBackgroundTap: (() -> Unit)?,
@@ -409,12 +415,15 @@ private fun MushafLine(
         // Still per-run and not per-line: a mushaf line usually carries the end of one ayah
         // and the start of the next, and painting the whole row would highlight words nobody
         // is reciting.
-        var band by remember(glyphs, reciting, selected) {
+        var band by remember(glyphs, reciting, selected, review) {
             mutableStateOf<Pair<Float, Float>?>(null)
         }
+        // Order is precedence, and it is deliberate. What is playing or what you just touched
+        // is about *now*; a review mark is about something already finished, so it yields.
         val washColor = when {
             glyphs.any { it.verseKey == reciting } -> colors.highlightReciting
             glyphs.any { it.verseKey == selected } -> colors.highlightSelected
+            glyphs.any { it.verseKey in review } -> colors.highlightReview
             else -> Color.Transparent
         }
 
@@ -439,7 +448,8 @@ private fun MushafLine(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 glyphs.forEach { g ->
-                    val lit = g.verseKey == reciting || g.verseKey == selected
+                    val lit = g.verseKey == reciting || g.verseKey == selected ||
+                        g.verseKey in review
                     // No accent on the ayah numerals. It was tried and measured: deep
                     // teal against ink is 1.78:1 and sage against paper is 1.69:1, so the
                     // "marked" numeral was the same colour as the text around it. The

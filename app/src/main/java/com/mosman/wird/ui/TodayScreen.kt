@@ -108,6 +108,8 @@ fun TodayScreen(
     onCheckRecitation: (() -> Unit)? = null,
     /** What that check is doing or found. PLAN task 14. */
     checkState: CheckState = CheckState.Idle,
+    /** Ayahs the recitation check could not follow, painted on the page. PLAN task 14. */
+    reviewVerses: Set<String> = emptySet(),
     audioFile: () -> java.io.File = { java.io.File("") },
     /** Which Shatri recording to fetch. The reader's data, so the reader's choice. */
     audioQuality: AudioQuality = AudioQuality.LIGHT,
@@ -414,6 +416,7 @@ fun TodayScreen(
             // Only while it is actually playing. A download in progress marks nothing —
             // the page should not start rearranging itself before you hear anything.
             reciting = (audio as? AudioState.Playing)?.verseKey,
+            review = reviewVerses,
             selected = selectedVerse,
             // Long-press selects; a plain tap still belongs to the background handler that
             // shows the chrome, so selecting cannot be done by accident while reading.

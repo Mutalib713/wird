@@ -78,6 +78,8 @@ fun MushafPager(
      * paper is 1.69:1, measured when the ayah numerals were tried and rejected.
      */
     reciting: String? = null,
+    /** Ayahs the recitation check could not follow. PLAN task 14. */
+    review: Set<String> = emptySet(),
     selected: String? = null,
     onWordLongPress: ((String) -> Unit)? = null,
     onPageShown: (MushafPage) -> Unit = {},
@@ -151,6 +153,7 @@ fun MushafPager(
                     state = state,
                     lit = lit,
             reciting = reciting,
+            review = review,
             selected = selected,
             onWordLongPress = onWordLongPress,
                     showSkeleton = dressAsSkeleton,

@@ -72,6 +72,22 @@ data class RecitationVerdict(
 ) {
     val problems: List<CheckedWord>
         get() = words.filter { it.mark == WordMark.MISSING || it.mark == WordMark.DIFFERENT }
+
+    /**
+     * The ayahs to look at again, or empty when the check could not be trusted.
+     *
+     * ⚠ **Verses rather than words, and that is his instruction as well as the honest
+     * resolution.** His ask named *"pages and verses"*, and marking an individual word would
+     * claim a precision the model does not have — a speech transcript can say roughly where a
+     * recitation diverged, not which syllable. An ayah is also the actionable unit: it is a
+     * thing you can read again.
+     *
+     * ⚠ **Empty unless [confident].** Everything downstream reads this, so a check that could
+     * not follow the recitation marks nothing at all rather than relying on each screen to
+     * remember to ask.
+     */
+    val versesToReview: Set<String>
+        get() = if (!confident) emptySet() else problems.map { it.verseKey }.toSet()
 }
 
 /**
@@ -135,9 +151,19 @@ fun checkRecitation(
     minimumCoverage: Float = MIN_COVERAGE,
 ): RecitationVerdict {
     val heardWords = arabicWords(heard)
-    val expectedFolded = expected.map { foldArabic(it.second) }
 
-    if (expected.isEmpty()) {
+    // ⚠ **Some "words" on a real page are pause marks, and they are not words.** The imlaei text
+    // carries standalone stop signs — ۖ ۚ ۗ — as their own space-separated tokens. They fold to
+    // nothing, are silent by definition, and can never be matched against a transcript.
+    //
+    // Leaving them in was a real false-accusation bug, found by checking against the shipped
+    // Qur'an rather than a hand-written example: page 300 came back with four ayahs of Al-Kahf
+    // marked wrong on a recitation that was **letter-perfect**. The synthetic test could not
+    // have caught it, because nobody types a pause mark into a test fixture.
+    val real = expected.filter { foldArabic(it.second).isNotEmpty() }
+    val expectedFolded = real.map { foldArabic(it.second) }
+
+    if (real.isEmpty()) {
         return RecitationVerdict(emptyList(), false, 0f, "There is nothing to check against.")
     }
 
@@ -146,8 +172,8 @@ fun checkRecitation(
     // whole ethic of this file.
     if (heardWords.isEmpty()) {
         return RecitationVerdict(
-            words = expected.mapIndexed { i, (key, word) ->
-                CheckedWord(key, indexWithinVerse(expected, i), word, WordMark.UNCHECKED)
+            words = real.mapIndexed { i, (key, word) ->
+                CheckedWord(key, indexWithinVerse(real, i), word, WordMark.UNCHECKED)
             },
             confident = false,
             coverage = 0f,
@@ -162,7 +188,7 @@ fun checkRecitation(
     val lastMatched = matched.lastOrNull() ?: -1
     val coverage = matched.size.toFloat() / expectedFolded.size
 
-    val words = expected.mapIndexed { i, (key, word) ->
+    val words = real.mapIndexed { i, (key, word) ->
         val mark = when {
             i in matched -> WordMark.MATCHED
             // ⚠ Past the last thing heard, so this is unread rather than misread. Stopping
@@ -170,7 +196,7 @@ fun checkRecitation(
             i > lastMatched -> WordMark.UNCHECKED
             else -> WordMark.DIFFERENT
         }
-        CheckedWord(key, indexWithinVerse(expected, i), word, mark)
+        CheckedWord(key, indexWithinVerse(real, i), word, mark)
     }
 
     val confident = coverage >= minimumCoverage

@@ -33,6 +33,8 @@ import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.assignPortion
+import com.mosman.wird.domain.checkRecitation
+import com.mosman.wird.domain.pages
 import com.mosman.wird.domain.progressOf
 import com.mosman.wird.domain.todaysAssignment
 import com.mosman.wird.nudge.Armed
@@ -46,6 +48,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import com.mosman.wird.data.ThemeMode
+import com.mosman.wird.data.ArabicText
 import com.mosman.wird.data.TranslationSource
 import com.mosman.wird.data.Translations
 import com.mosman.wird.ui.WirdTopBar
@@ -125,6 +128,8 @@ class MainActivity : ComponentActivity() {
             var fetchingModel by remember { mutableStateOf<Pair<Long, Long>?>(null) }
             var downloadedModels by remember { mutableStateOf(recogniser.downloaded()) }
             var checkState by remember { mutableStateOf<CheckState>(CheckState.Idle) }
+            val arabic = remember { ArabicText(this@MainActivity) }
+            var reviewVerses by remember { mutableStateOf<Set<String>>(emptySet()) }
 
             // Re-read whenever Settings opens rather than once at launch: the whole point is
             // to notice a change the user made outside the app, in Android's own settings.
@@ -568,6 +573,7 @@ class MainActivity : ComponentActivity() {
                         progress = progress,
                         hasRecording = hasRecording,
                         checkState = checkState,
+                        reviewVerses = reviewVerses,
                         // Null when the phone cannot do it, so no button appears rather than
                         // one that quietly does nothing.
                         onCheckRecitation = if (recogniser.ready()) ({
@@ -604,17 +610,35 @@ class MainActivity : ComponentActivity() {
                                     "%.1f",
                                     (System.currentTimeMillis() - started) / 1000.0,
                                 )
-                                checkState = if (heard.isNullOrBlank()) {
-                                    CheckState.Nothing(
+                                if (heard.isNullOrBlank()) {
+                                    reviewVerses = emptySet()
+                                    checkState = CheckState.Nothing(
                                         "It couldn't make out any words after ${took}s. The " +
                                             "recording may be too quiet, or this model may not " +
                                             "be good enough."
                                     )
                                 } else {
-                                    CheckState.Heard(
+                                    // ⚠ Compared against the page rather than shown raw. The
+                                    // expected words come from the ayahs today's portion
+                                    // actually covers, so a reader who stopped early is judged
+                                    // against what they set out to read and nothing more.
+                                    val expected = withContext(Dispatchers.IO) {
+                                        arabic.wordsAcross(assignment.pages)
+                                    }
+                                    val verdict = checkRecitation(expected, heard)
+                                    reviewVerses = verdict.versesToReview
+                                    android.util.Log.i(
+                                        "WirdWhisper",
+                                        "verdict: ${verdict.coverage} covered, " +
+                                            "confident=${verdict.confident}, " +
+                                            "marked=${verdict.versesToReview} | heard: $heard",
+                                    )
+                                    checkState = CheckState.Heard(
                                         text = heard,
                                         seconds = (file.length() / 8000).toInt(),
                                         took = took,
+                                        summary = verdict.summary,
+                                        marked = verdict.versesToReview.size,
                                     )
                                 }
                             }

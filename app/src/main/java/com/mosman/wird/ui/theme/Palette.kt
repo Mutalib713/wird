@@ -80,6 +80,17 @@ object Q {
     /** Their `selection_highlight` - the ayah you long-pressed. */
     val selected = Color(0x404694A6)
 
+    /**
+     * The ayah the recitation check could not follow. **PLAN task 14.**
+     *
+     * ⚠ **Amber, and deliberately not red.** Red means error, and this mark is not an
+     * accusation - it is the app saying *"I could not match this one, look again"*. Sacred Rule
+     * 3 forbids guilt in the wording and the same rule has to govern the colour, which is read
+     * before any word is. Kept at the same 25% alpha as the other two so a page with several
+     * marks still reads as a page rather than a warning screen.
+     */
+    val review = Color(0x40D9A441)
+
     // ---- ⚠ the warm ground was built and then reversed. § 6e ----
     //
     // Offered three ways on 2026-08-19 he chose "teal stays, take the warm cream ground and
@@ -189,6 +200,9 @@ data class WirdColors(
     val highlightReciting: Color,
     /** The ayah you selected. */
     val highlightSelected: Color,
+
+    /** The ayah to look at again after a recitation check. **§ 6e, PLAN task 14.** */
+    val highlightReview: Color,
 )
 
 /**
@@ -219,6 +233,7 @@ val LightColors = WirdColors(
     openPage = TileColors(Q.clayTint, Q.clayEdge, Q.clayInk),
     highlightReciting = Q.reciting,
     highlightSelected = Q.selected,
+    highlightReview = Q.review,
 )
 
 /**
@@ -248,6 +263,7 @@ val DarkColors = WirdColors(
     openPage = TileColors(Q.nightClay, Q.nightClay, Q.nightClayInk),
     highlightReciting = Q.reciting,
     highlightSelected = Q.selected,
+    highlightReview = Q.review,
 )
 
 val LocalWirdColors = staticCompositionLocalOf { LightColors }

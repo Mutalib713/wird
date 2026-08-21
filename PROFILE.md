@@ -2667,3 +2667,57 @@ do.** Sacred Rule 3 governs far gentler moments than that one.
 ⬜ **The BASE model still will not load** — `whisper_init_from_file` returns null on a file whose
 size matches the remote byte for byte. TINY from the same repository is fine. Unresolved, and
 not urgent while TINY is this quick.
+
+### 5bb. Mistake highlighting, and the bug only real data could find. 2026-08-20
+
+His ask, built: *"highlight from the pages and verses that this is where I did mistake."*
+
+**Verses, not words** — his own wording, and the honest resolution. A speech transcript can say
+roughly where a recitation diverged; it cannot say which syllable. An ayah is also the actionable
+unit: a thing you can read again.
+
+**Amber, not red.** ⚠ Red means error and this mark is not an accusation — it is the app saying
+*"I could not match this one, look again."* Sacred Rule 3 forbids guilt in the wording, and the
+same rule has to govern the colour, which is read before any word is. Same 25% alpha as the
+reciting and selected highlights, so a page with several marks still reads as a page rather than
+a warning screen.
+
+**Precedence:** reciting, then selected, then review. What is playing or what you just touched is
+about *now*; a review mark is about something already finished, so it yields.
+
+#### ⚠ The bug a hand-written test could never have caught
+
+Six checks against a typed-out Al-Fatihah all passed. Then three checks were added that read the
+**shipped asset files**, and one failed immediately:
+
+```
+page 300 falsely marked [18:54, 18:56, 18:57, 18:58]
+```
+
+Four ayahs of Al-Kahf marked wrong on a recitation that was **letter-perfect**.
+
+**The cause: some "words" on a real page are pause marks.** The imlaei text carries standalone
+stop signs — ۖ ۚ ۗ — as their own space-separated tokens. They fold to nothing, they are silent
+by definition, and they can never match anything in a transcript. The comparison filtered empty
+tokens out of what was *heard* and kept them in what was *expected*, so every one of them was an
+unmatchable word and became a mistake.
+
+**Nobody types a pause mark into a test fixture.** That is the whole lesson: **a test written
+from imagination tests the algorithm; only the real data tests the assumptions.** And the
+assumption here — *"a space-separated token is a word"* — was invisible until the Qur'an itself
+disagreed.
+
+⚠ It is also exactly the failure this feature must never have. Had it shipped, his first
+letter-perfect recitation of that page would have been met with four ayahs marked as errors.
+
+#### What is built, and what is still unproven
+
+✅ The Qur'an's text bundled and verified at **6,236 verses**.
+✅ Comparison, with nine checks including three against the shipped files.
+✅ Verses painted amber on the mushaf page, and a plain sentence under the recording.
+✅ Below **70% coverage it marks nothing at all** and names itself as the thing that failed.
+
+⬜ ⚠ **Not once tested against a real recitation.** Every check proves the *logic* behaves; none
+proves the *model* is accurate enough for any of it to be safe. The 70% threshold is a guess.
+**Until a full portion has been through it, this is a feature that has never met its own
+problem.**

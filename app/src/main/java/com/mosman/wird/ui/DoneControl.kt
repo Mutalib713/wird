@@ -265,23 +265,31 @@ private fun AlreadyDone(
             is CheckState.Heard -> {
                 Spacer(Modifier.height(Scale.space3))
                 Text(
-                    text = "WHAT THE PHONE HEARD",
+                    // **The verdict, not the transcript.** His instruction: *"I don't need what
+                    // it hears."* The transcript is still logged, because it is what makes a
+                    // wrong verdict diagnosable, but it is no longer what he is shown.
+                    text = checkState.summary.ifEmpty { checkState.text },
                     color = colors.onSurfaceRaised,
-                    style = TextStyle(fontSize = 10.sp, letterSpacing = 1.2.sp),
+                    style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
                 )
-                Spacer(Modifier.height(Scale.space1))
-                Text(
-                    text = checkState.text,
-                    color = colors.onSurfaceRaised,
-                    style = TextStyle(fontSize = 17.sp, lineHeight = 28.sp),
-                )
+                if (checkState.marked > 0) {
+                    Spacer(Modifier.height(Scale.space1))
+                    Text(
+                        // ⚠ Says where to look, and never says "wrong". The mark on the page is
+                        // amber for the same reason - a colour is read before any word is.
+                        text = if (checkState.marked == 1) {
+                            "One ayah is marked on the page above."
+                        } else {
+                            "${checkState.marked} ayahs are marked on the page above."
+                        },
+                        color = colors.onSurfaceRaised,
+                        style = TextStyle(fontSize = Scale.caption),
+                    )
+                }
                 Spacer(Modifier.height(Scale.space2))
                 Text(
-                    // The honest ceiling, in the same breath as the result. It is a
-                    // transcription, not a judgement, and § 5h's rule about never sounding
-                    // like a scholar applies to this screen too.
-                    text = "${checkState.seconds}s of audio in ${checkState.took}s. " +
-                        "This is what it made out, not a mark.",
+                    text = "${checkState.seconds}s of audio, checked in ${checkState.took}s. " +
+                        "It compares words, not tajweed.",
                     color = colors.onSurfaceRaised,
                     style = TextStyle(fontSize = Scale.caption),
                 )
@@ -310,7 +318,19 @@ sealed interface CheckState {
     data object Idle : CheckState
     /** [seconds] ticks while it runs, because a still screen and a hung screen look alike. */
     data class Working(val seconds: Int) : CheckState
-    data class Heard(val text: String, val seconds: Int, val took: String) : CheckState
+    /**
+     * The comparison came back. **This is what he asked for**, and [text] is kept only for the
+     * log and for the case where there was nothing to compare against.
+     */
+    data class Heard(
+        val text: String,
+        val seconds: Int,
+        val took: String,
+        /** What to tell him, already written by the domain. */
+        val summary: String = "",
+        /** Ayahs marked on the page. Empty when the check would not commit. */
+        val marked: Int = 0,
+    ) : CheckState
     data class Nothing(val why: String) : CheckState
 }
 

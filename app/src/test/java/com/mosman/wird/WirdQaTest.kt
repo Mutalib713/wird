@@ -53,6 +53,8 @@ import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import org.json.JSONArray
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
@@ -1785,5 +1787,96 @@ class RecitationCheckTest {
                 assertFalse("blames the reader with '$banned': $said", said.lowercase().contains(banned))
             }
         }
+    }
+}
+
+/**
+ * Checks 61–63 — the comparison against the **real bundled Qur'an**, not a hand-written example.
+ *
+ * ⚠ **This is the check that matters more than the six before it.** Those used six words typed
+ * into a test file, which proves the algorithm and proves nothing about the data it will meet.
+ * These read `app/src/main/assets/arabic/{page}.json` — the actual files shipped in the APK — so a
+ * fetch that silently wrote the wrong spelling, or a folding rule that fails on a letter
+ * Al-Fatihah happens not to contain, is caught here rather than on his phone.
+ *
+ * Reading the assets from disk rather than through Android's AssetManager is what lets this run
+ * on the JVM with no device at all, which is the only way it can run on every `check`.
+ */
+class ArabicAssetTest {
+
+    private fun page(n: Int): List<Pair<String, String>> {
+        val file = File("src/main/assets/arabic/$n.json")
+        assertTrue("page $n is missing from the assets: ${file.absolutePath}", file.exists())
+        val array = JSONArray(file.readText())
+        return buildList {
+            for (i in 0 until array.length()) {
+                val verse = array.getJSONObject(i)
+                val key = verse.getString("v")
+                verse.getString("t").split(' ').filter { it.isNotBlank() }.forEach { add(key to it) }
+            }
+        }
+    }
+
+    /** Check 61 — the shipped text is the Qur'an's, by its own count. */
+    @Test
+    fun `every page is present and the verses add up`() {
+        val dir = File("src/main/assets/arabic")
+        assertTrue("the Arabic assets are missing entirely", dir.isDirectory)
+        assertEquals("there must be one file per page", 604, dir.listFiles { f -> f.extension == "json" }!!.size)
+
+        var verses = 0
+        for (n in 1..604) {
+            val array = JSONArray(File(dir, "$n.json").readText())
+            verses += array.length()
+            // ⚠ A verse with no words would read on screen as an ayah he skipped.
+            for (i in 0 until array.length()) {
+                val t = array.getJSONObject(i).getString("t")
+                assertTrue("page $n has an empty verse", t.isNotBlank())
+            }
+        }
+        assertEquals("the Qur'an has 6,236 verses and so must this", 6236, verses)
+    }
+
+    /**
+     * Check 62 — ⚠ **reciting the real page perfectly must mark NOTHING.**
+     *
+     * The one that would catch a broken folding rule. The "recitation" here is the page's own
+     * text with its vowel marks stripped, which is what a speech model produces — so any letter
+     * form the folding does not handle shows up immediately as a false accusation.
+     */
+    @Test
+    fun `the real page, recited exactly, is marked clean`() {
+        // Page 1 is Al-Fatihah, page 604 the closing surahs, page 300 ordinary running text.
+        listOf(1, 300, 604).forEach { n ->
+            val expected = page(n)
+            val recited = expected.joinToString(" ") { foldArabic(it.second) }
+            val verdict = checkRecitation(expected, recited)
+
+            assertTrue("page $n should be followable", verdict.confident)
+            assertTrue(
+                "page $n falsely marked ${verdict.versesToReview}",
+                verdict.versesToReview.isEmpty(),
+            )
+            assertEquals("page $n coverage", 1.0f, verdict.coverage, 0.001f)
+        }
+    }
+
+    /** Check 63 — a real mistake on a real page is found, and lands in the right ayah. */
+    @Test
+    fun `one wrong word on a real page marks that ayah and no other`() {
+        val expected = page(1)
+        // Swap one word for a word from elsewhere in the Qur'an, keeping everything else.
+        val target = expected.size / 2
+        val recited = expected.mapIndexed { i, (_, word) ->
+            if (i == target) "قل" else foldArabic(word)
+        }.joinToString(" ")
+
+        val verdict = checkRecitation(expected, recited)
+        assertTrue(verdict.confident)
+        assertEquals(
+            "exactly the ayah containing the swapped word: ${verdict.versesToReview}",
+            setOf(expected[target].first),
+            verdict.versesToReview,
+        )
     }
 }
