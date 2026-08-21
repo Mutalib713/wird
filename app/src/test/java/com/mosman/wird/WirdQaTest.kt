@@ -17,6 +17,9 @@ import com.mosman.wird.domain.DayLog
 import com.mosman.wird.domain.Heard
 import com.mosman.wird.domain.heardLabel
 import com.mosman.wird.domain.judgeRecitation
+import com.mosman.wird.domain.WordMark
+import com.mosman.wird.domain.checkRecitation
+import com.mosman.wird.domain.foldArabic
 import com.mosman.wird.domain.JuzIndex
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
@@ -46,6 +49,7 @@ import com.mosman.wird.mushaf.MushafPage
 import com.mosman.wird.ui.reciteLabel
 import com.mosman.wird.ui.tapLabel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -1638,5 +1642,148 @@ class ReadingDirectionTest {
             assignPortion(yaSin, 2, ReadingDirection.TOWARDS_NAS).nextStartUnit,
             assignPortion(yaSin, 2).nextStartUnit,
         )
+    }
+}
+
+/**
+ * Checks 55–60 — comparing a recitation against the page. **PLAN task 14, his actual ask.**
+ *
+ * *"I need it to hear it very well and highlight from the pages and verses that this is where I
+ * did mistake."*
+ *
+ * ⚠ **Most of these checks exist to prove it stays QUIET**, not that it finds things. Telling
+ * someone they erred in the Qur'an when they did not is the worst thing this app can do, so the
+ * tests that matter are the ones that would catch a false accusation.
+ *
+ * Al-Fatihah is used throughout because its words are short and its verse boundaries obvious;
+ * the algorithm knows nothing about which sūrah it is looking at.
+ */
+class RecitationCheckTest {
+
+    /** Al-Fatihah 1:2, written the way the page has it — with full vowel marks. */
+    private val page = listOf(
+        "1:2" to "الْحَمْدُ",
+        "1:2" to "لِلَّهِ",
+        "1:2" to "رَبِّ",
+        "1:2" to "الْعَالَمِينَ",
+        "1:3" to "الرَّحْمَٰنِ",
+        "1:3" to "الرَّحِيمِ",
+    )
+
+    /** Check 55 — ⚠ a perfect recitation must produce no marks at all. */
+    @Test
+    fun `a correct recitation is marked correct, despite different spelling`() {
+        // What a speech model actually returns: no vowel marks, plain alif.
+        val heard = "الحمد لله رب العالمين الرحمن الرحيم"
+        val verdict = checkRecitation(page, heard)
+
+        assertTrue("it must be confident about a clean match", verdict.confident)
+        assertTrue(
+            "NOTHING may be marked: ${verdict.problems.map { it.expected }}",
+            verdict.problems.isEmpty(),
+        )
+        assertEquals(1.0f, verdict.coverage, 0.01f)
+    }
+
+    /**
+     * Check 56 — the folding that makes check 55 possible, on its own.
+     *
+     * ⚠ Without this every word on every page is a mistake, because the Qur'anic text carries
+     * marks a transcript never contains. It is a fingerprint for lining strings up and touches
+     * nothing that is displayed.
+     */
+    @Test
+    fun `spelling differences a reciter cannot pronounce are folded away`() {
+        assertEquals(foldArabic("الْحَمْدُ"), foldArabic("الحمد"))
+        assertEquals(foldArabic("الرَّحْمَٰنِ"), foldArabic("الرحمن"))
+        // The alif wears four hats and sounds like one letter.
+        assertEquals(foldArabic("أحد"), foldArabic("احد"))
+        assertEquals(foldArabic("ٱللَّه"), foldArabic("الله"))
+        // Ta marbuta and alif maqsura, which transcripts use interchangeably.
+        assertEquals(foldArabic("صلاة"), foldArabic("صلاه"))
+        assertEquals(foldArabic("موسى"), foldArabic("موسي"))
+
+        // ⚠ But genuinely different words must stay different, or nothing can ever be found.
+        assertNotEquals(foldArabic("الحمد"), foldArabic("العالمين"))
+    }
+
+    /** Check 57 — one wrong word is found, and only that word. */
+    @Test
+    fun `a single wrong word is marked and its neighbours are not`() {
+        val heard = "الحمد لله رب الناس الرحمن الرحيم"
+        val verdict = checkRecitation(page, heard)
+
+        assertTrue(verdict.confident)
+        val wrong = verdict.problems
+        assertEquals("exactly one word should be marked: ${wrong.map { it.expected }}", 1, wrong.size)
+        assertEquals("الْعَالَمِينَ", wrong.first().expected)
+        assertEquals("and it must know which verse it is in", "1:2", wrong.first().verseKey)
+    }
+
+    /**
+     * Check 58 — ⚠ **the check this feature would be unusable without.**
+     *
+     * A word skipped in the middle would, under naive word-by-word comparison, push every later
+     * word out of step and mark the whole rest of the page wrong. The longest-common-subsequence
+     * walk exists entirely to stop that, and this is the assertion that proves it.
+     */
+    @Test
+    fun `a skipped word does not cascade into marking the whole page wrong`() {
+        val heard = "الحمد لله العالمين الرحمن الرحيم"  // "رب" skipped
+        val verdict = checkRecitation(page, heard)
+
+        val wrong = verdict.problems
+        assertEquals("only the skipped word: ${wrong.map { it.expected }}", 1, wrong.size)
+        assertEquals("رَبِّ", wrong.first().expected)
+
+        // The words AFTER the gap must still be recognised as correct.
+        val after = verdict.words.filter { it.expected == "الرَّحْمَٰنِ" || it.expected == "الرَّحِيمِ" }
+        assertTrue("everything after the gap must stay matched", after.all { it.mark == WordMark.MATCHED })
+    }
+
+    /**
+     * Check 59 — ⚠ **stopping early is not a mistake, and must never be shown as one.**
+     *
+     * Someone who recites half a page and stops has done nothing wrong. Marking the unread half
+     * as errors would be the app accusing them of a mistake they did not make.
+     */
+    @Test
+    fun `an unfinished recitation leaves the rest unmarked rather than wrong`() {
+        val heard = "الحمد لله رب العالمين"  // stopped after 1:2
+        val verdict = checkRecitation(page, heard, minimumCoverage = 0.5f)
+
+        assertTrue("nothing may be called wrong", verdict.problems.isEmpty())
+        val tail = verdict.words.filter { it.verseKey == "1:3" }
+        assertTrue("the unread verse is UNCHECKED", tail.all { it.mark == WordMark.UNCHECKED })
+        assertTrue("and the words say so: ${verdict.summary}", verdict.summary.contains("stopped"))
+    }
+
+    /**
+     * Check 60 — ⚠ **when it cannot follow the recitation it marks NOTHING and blames itself.**
+     *
+     * The single most important behaviour in the file. A bad recording, a noisy room, a model
+     * that mishears — none of those are the reader's error, and the app must not dress them up
+     * as one. Sacred Rule 3 governs the sentence as strictly as the logic.
+     */
+    @Test
+    fun `a check it could not follow accuses nobody`() {
+        val nonsense = checkRecitation(page, "قل هو الله احد لم يلد")
+        assertFalse("it must not be confident", nonsense.confident)
+        assertTrue("and must mark nothing: ${nonsense.problems.size} marked", nonsense.problems.isEmpty() || !nonsense.confident)
+
+        val nothing = checkRecitation(page, "")
+        assertFalse(nothing.confident)
+        assertTrue("silence marks nothing wrong", nothing.problems.isEmpty())
+        assertTrue(
+            "every word is unchecked rather than missing",
+            nothing.words.all { it.mark == WordMark.UNCHECKED },
+        )
+
+        // Sacred Rule 3: nothing it says may blame the reader.
+        listOf(nonsense.summary, nothing.summary).forEach { said ->
+            listOf("wrong", "failed", "error", "mistake", "incorrect").forEach { banned ->
+                assertFalse("blames the reader with '$banned': $said", said.lowercase().contains(banned))
+            }
+        }
     }
 }
