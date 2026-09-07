@@ -38,10 +38,34 @@ static void wird_progress(struct whisper_context *ctx, struct whisper_state *sta
     LOGI("progress %d%%", progress);
 }
 
+/* Route internal whisper and ggml messages to logcat. */
+static void wird_whisper_log(enum ggml_log_level level, const char *text, void *user_data) {
+    (void) user_data;
+    if (text == NULL || text[0] == '\0' || (text[0] == '\n' && text[1] == '\0')) return;
+    int priority = ANDROID_LOG_INFO;
+    switch (level) {
+        case GGML_LOG_LEVEL_ERROR: priority = ANDROID_LOG_ERROR; break;
+        case GGML_LOG_LEVEL_WARN:  priority = ANDROID_LOG_WARN; break;
+        case GGML_LOG_LEVEL_DEBUG: priority = ANDROID_LOG_DEBUG; break;
+        default:                   priority = ANDROID_LOG_INFO; break;
+    }
+    __android_log_print(priority, TAG, "%s", text);
+}
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
+    (void) vm;
+    (void) reserved;
+    whisper_log_set(wird_whisper_log, NULL);
+    ggml_log_set(wird_whisper_log, NULL);
+    return JNI_VERSION_1_6;
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_mosman_wird_audio_WhisperNative_initContext(
         JNIEnv *env, jobject thiz, jstring model_path) {
     (void) thiz;
+    whisper_log_set(wird_whisper_log, NULL);
+    ggml_log_set(wird_whisper_log, NULL);
     const char *path = (*env)->GetStringUTFChars(env, model_path, NULL);
 
     struct whisper_context_params cparams = whisper_context_default_params();
@@ -52,7 +76,7 @@ Java_com_mosman_wird_audio_WhisperNative_initContext(
     (*env)->ReleaseStringUTFChars(env, model_path, path);
 
     if (context == NULL) {
-        LOGW("model would not load");
+        LOGW("model would not load: %s", path);
         return 0;
     }
     return (jlong) context;

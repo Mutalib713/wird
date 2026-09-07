@@ -481,22 +481,27 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   72x speedup came from `add_compile_options(-O3)`, because ggml's hot code lives in a separate
   `ggml-cpu` target that a flag on `whisper` never reached. PROFILE.md § 5ba.
 
-  ⬜ **STILL NOT TICKED.** A short clear utterance is not a page of recitation, and the feature he
-  actually wants — *"highlight from the pages and verses where I made a mistake"* — needs a far
-  higher bar than transcription, plus Arabic text the app does not yet hold.
+  **✅ Arabic reference text bundled and LCS comparison built** (2026-08-20/21, commits `c3ff362` and `33654a7`):
+  All 604 pages bundled as clean Tanzil imlaei text in `app/src/main/assets/arabic/*.json` via `ArabicText.kt`
+  (6,236 verses verified, Sacred Rule 2). `checkRecitation` compares heard words against the expected page words
+  using a longest-common-subsequence diff walk with `foldArabic`. A real false-positive bug (pause marks on page 300
+  falsely marked 4 ayahs of Al-Kahf) was found and fixed by stripping pause marks. Amber ayah highlighting
+  (`versesToReview`) is wired to `MushafPageView`, with a 70% coverage floor (`MIN_COVERAGE = 0.70f`) below
+  which it stays quiet and marks nothing. 63 QA checks pass.
 
-  ⬜ **Previously: not one word had been transcribed.** No recitation has been through it, so accuracy on his voice, his phone and his room is
-  entirely unknown — and the published 5.75% error rate is on clean professional recitation.
-  **"It was not accurate enough, cut it" is still a legitimate outcome.**
+  **✅ Whisper and ggml native logging routed to logcat** (2026-09-07):
+  `wird_whisper.c` routes internal whisper/ggml errors and diagnostics directly to Android logcat via
+  `whisper_log_set` and `ggml_log_set` under the `WirdNative` tag, enabling immediate diagnosis of model loading
+  issues (including why BASE refused to initialize).
 
-  ⬜ **And a gap found while wiring it:** the app stores **glyph codes for the mushaf font, not
-  plain Arabic text**, so there is nothing to compare a transcription *against*. Comparison needs
-  the Uthmani text bundled the way the translations are (~1.2 MB, verified source, Sacred Rule
-  2). **Deliberately not built** — building the comparison before knowing the transcription is
-  any good is building on the assumption this task exists to test.
+  ⬜ **STILL NOT TICKED — ON-DEVICE MEASUREMENT PENDING.**
+  While the pipeline is end-to-end complete and verified by unit tests, a real recitation over a full portion
+  (e.g., page 439/440) still needs to be run through the checker on Mutalib's own voice and phone to measure:
+  1. Real-time factor (seconds of audio vs transcription latency on full portion)
+  2. Word accuracy / coverage and false error rate
+  3. Logcat diagnostic on BASE model loading via `WirdNative`
 
-  **Next session starts here:** he records one real portion, then
-  `adb logcat -s WirdWhisper` shows what it heard and how long it took. That is the measurement.
+  **Next step:** Install the updated build on the Pixel, run "Check it" on a recitation, and record the measured numbers.
 
 - [x] **25. Home, rebuilt from his own comps** — done 2026-08-19, verified on the emulator
   He supplied four mockups and named what to take from each: image 1 the base, image 2 the
