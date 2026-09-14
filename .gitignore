@@ -27,3 +27,15 @@ firebase-service-account*.json
 # Cached mushaf assets — fetched on demand, not versioned
 /app/src/main/assets/qcf/
 /fonts-cache/
+
+# Databases
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Editors and assistants
+.vscode/
+.claude/
+.cursor/

@@ -68,7 +68,7 @@ adb devices                      # confirm the phone is attached first
 - android-36.1, ~34s incremental builds. First clean build with a cold daemon is ~1m10s;
   a cold `assembleDebug` is ~2m15s.
 - **The Pixel 6 Pro runs Android 17** (`ro.build.version.release` = 17, model `raven`,
-  serial `1A131FDEE006MD`). We build against compileSdk/targetSdk 36, so compatibility
+  serial `<device-serial>`). We build against compileSdk/targetSdk 36, so compatibility
   modes apply on that device. This matters more than it looks: **the phone you develop
   on is at the newest end of the range and your testers are at the oldest.** Anything
   about notifications, alarms or background work behaves differently at both ends, and

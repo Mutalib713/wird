@@ -2075,7 +2075,7 @@ the highlight working, and showed a layout collision — none of which was what 
 
 ### 5ao. On his phone. 2026-08-19
 
-Installed to the Pixel 6 Pro (`1A131FDEE006MD`, Android 17) as an update rather than a fresh
+Installed to the Pixel 6 Pro (`<device-serial>`, Android 17) as an update rather than a fresh
 install, so **his reading record was never at risk**: checked first that the existing install
 came from this machine, which meant the signing key matched and no uninstall was needed.
 
