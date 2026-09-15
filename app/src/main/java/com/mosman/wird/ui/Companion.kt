@@ -51,6 +51,8 @@ import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.Turn
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.clayCard
+import com.mosman.wird.ui.theme.clayPill
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -106,24 +108,24 @@ fun Companion(
         onReply(t)
     }
 
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val containerBg = if (isDark) Color(0xFF142921) else colors.recite.fill
+    val highlight = if (isDark) Color.White.copy(alpha = 0.14f) else Color.White.copy(alpha = 0.65f)
+    val shadow = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF7A8B80).copy(alpha = 0.18f)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Scale.card))
-            // ⚠ **Tinted, and that is the fix for his first look at it.** Built on the plain
-            // card colour it was the same plate as the portion above it, so the two ran
-            // together into one long block. His comps tint this card specifically - it is the
-            // one section that is a conversation rather than a record, and it should not look
-            // like the rest. The tint is § 6e's teal, measured: ink 13.14, accent 4.59.
-            .background(colors.recite.fill)
-            .border(1.dp, colors.recite.edge, RoundedCornerShape(Scale.card))
-            .padding(Scale.space4),
+            .clayCard(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = containerBg,
+                highlightColor = highlight,
+                shadowColor = shadow,
+                elevation = 6.dp,
+            )
+            .padding(18.dp),
     ) {
         // ---- what this is, and how long it lasts ----
-        //
-        // The caption is his comp's, and it is worth having because it answers the question
-        // the card otherwise provokes: why is this here some days and not others? Sacred
-        // Rule 3 — someone who has already read today is not asked whether they are going to.
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -131,7 +133,7 @@ fun Companion(
             Text(
                 text = "TODAY'S CHECK-IN",
                 color = colors.textSecondary,
-                style = TextStyle(fontSize = 10.5.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(fontSize = 10.5.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.Bold),
                 modifier = Modifier.weight(1f),
             )
             Text(
@@ -166,7 +168,7 @@ fun Companion(
 
         Spacer(Modifier.height(Scale.space3))
 
-        // ---- your turn: still the primary control, still here ----
+        // ---- your turn: input field + send button ----
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -175,9 +177,11 @@ fun Companion(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(Scale.radius * 2))
-                    .background(colors.surfaceRaised)
-                    .border(1.dp, colors.cardEdge, RoundedCornerShape(Scale.radius * 2))
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF10201A) else colors.surfaceRaised,
+                        elevation = 2.dp,
+                    )
                     .defaultMinSize(minHeight = Scale.minTarget)
                     .padding(horizontal = Scale.space3, vertical = Scale.space2),
                 contentAlignment = Alignment.CenterStart,
@@ -200,11 +204,12 @@ fun Companion(
             }
             Box(
                 modifier = Modifier
-                    // Round, and the glyph points away rather than up - his comps' shape,
-                    // and the one every messaging app has taught people to look for.
-                    .size(Scale.minTarget)
-                    .clip(CircleShape)
-                    .background(colors.accent)
+                    .size(44.dp)
+                    .clayPill(
+                        shape = CircleShape,
+                        backgroundColor = colors.accent,
+                        elevation = 3.dp,
+                    )
                     .alpha(if (typed.isBlank()) 0.4f else 1f)
                     .clickable(enabled = typed.isNotBlank()) { send(typed) }
                     .semantics { contentDescription = "Send" },
@@ -409,9 +414,11 @@ private fun Shortcut(label: String, onClick: () -> Unit) {
     val colors = LocalWirdColors.current
     Row(
         modifier = Modifier
-            .clip(CircleShape)
-            .background(colors.surfaceRaised)
-            .border(1.dp, colors.cardEdge, CircleShape)
+            .clayPill(
+                shape = CircleShape,
+                backgroundColor = colors.surfaceRaised,
+                elevation = 2.dp,
+            )
             .clickable(onClick = onClick)
             .defaultMinSize(minHeight = 38.dp)
             .padding(horizontal = 13.dp, vertical = 9.dp),

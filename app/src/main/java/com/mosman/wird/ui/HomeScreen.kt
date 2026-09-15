@@ -1,5 +1,9 @@
 package com.mosman.wird.ui
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,6 +16,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,7 +31,11 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,13 +45,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Canvas
 import com.mosman.wird.R
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Assignment
@@ -55,6 +64,9 @@ import com.mosman.wird.domain.surahs
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 import com.mosman.wird.ui.theme.TileColors
+import com.mosman.wird.ui.theme.clayCard
+import com.mosman.wird.ui.theme.clayPill
+import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.chrono.HijrahDate
@@ -93,141 +105,149 @@ fun HomeScreen(
     doneMethod: Method?,
     recent: List<DayLog>,
     onOpenPage: () -> Unit,
-    /** The conversation so far. Owned by MainActivity, which also persists it. */
+    modifier: Modifier = Modifier,
     turns: List<Turn> = emptyList(),
-    /** Raw text the reader typed or tapped. Understood and answered upstairs. */
     onSaid: (String) -> Unit = {},
-    /** Opens the full conversation. */
     onOpenChat: () -> Unit = {},
     positionLabel: String = "",
-    /** What to call the reader, or null if they skipped the question. */
     readerName: String? = null,
-    /** Which page a past day covered, for the week's page column. Null when unrecorded. */
     pageFor: (LocalDate) -> Int? = { null },
-    /** Marks today read without leaving Home. The tap route, logged as a tap. */
     onMarkRead: () -> Unit = {},
-    /** Reading from the mushaf or reciting from memory. Changes labels only - § 5r. */
     mode: ReadingMode = ReadingMode.READING,
-    /**
-     * Hands today's portion to Quran for Android. **Null when that app is not installed**,
-     * and then no button appears at all. PLAN task 12: an action that opens the Play Store
-     * instead is an advert wearing a feature's clothes.
-     */
     onOpenInQuran: (() -> Unit)? = null,
+    onOpenBookmarks: () -> Unit = {},
+    onMenu: (() -> Unit)? = null,
+    menu: @Composable () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .background(colors.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Scale.space4),
+            .verticalScroll(rememberScrollState()),
     ) {
-        Spacer(Modifier.height(Scale.space4))
-
-        // ---- who you are, and when ----
-        //
-        // The app's name and the overflow live in the shared bar since § 5t. What is left
-        // here describes today rather than the app.
-        if (positionLabel.isNotEmpty()) {
-            Text(
-                text = positionLabel.uppercase(),
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = 10.sp, letterSpacing = 1.2.sp),
-            )
-            Spacer(Modifier.height(Scale.space2))
-        }
-        Text(
-            text = todayLine(),
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = 12.sp, letterSpacing = 0.6.sp, fontWeight = FontWeight.Medium),
+        // Atmospheric Dawn Mosque Header (reference design)
+        AtmosphericHeader(
+            readerName = readerName ?: "Mutalib",
+            positionText = if (positionLabel.isNotEmpty()) positionLabel else "Al-Fātihah 1, page 1",
+            onOpenPosition = onOpenPage,
+            onOpenBookmarks = onOpenBookmarks,
+            onMenu = onMenu,
+            menu = menu,
         )
 
-        Spacer(Modifier.height(Scale.space3))
+        // Cards body with soft rounded overlap
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = (-14).dp)
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .background(colors.surface)
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+        ) {
+            var cardIndex = 0
 
-        // **The greeting, taken whole from his image 2**, which is the one thing he named
-        // twice: two lines, the name underneath in the accent, and a sun beside it. The
-        // earlier Home had the same words at the same size with nothing to the right of
-        // them, and the difference between those two screens is entirely the sun.
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            // ⚠ **The comma and the second line both belong to the name.** Built without
-            // that condition it rendered "Good morning," with a dangling comma over an empty
-            // line of 36sp, which is the gap that showed up on the emulator. A name is
-            // optional by § 5k - setup offers a Skip - so the no-name case is a real state,
-            // not an edge case, and it has to look deliberate.
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (readerName != null) "${greeting()}," else greeting(),
-                    color = colors.textPrimary,
-                    style = TextStyle(fontSize = 30.sp, lineHeight = 36.sp),
-                )
-                readerName?.let {
-                    Text(
-                        text = it,
-                        color = colors.accent,
-                        style = TextStyle(fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight.Medium),
+            StaggeredEnter(index = cardIndex++) {
+                PortionCard(assignment, doneMethod, onOpenPage, onMarkRead, mode, onOpenInQuran)
+            }
+
+            // Sacred Rule 3: someone who has read today does not need asking whether they are going to
+            if (doneMethod == null) {
+                Spacer(Modifier.height(Scale.space4))
+                StaggeredEnter(index = cardIndex++) {
+                    Companion(
+                        question = companionQuestion(),
+                        turns = turns,
+                        shortcuts = listOf("After Isha", "In an hour", "Not today"),
+                        onReply = onSaid,
+                        onOpenChat = onOpenChat,
                     )
                 }
             }
-            DayMark()
-        }
 
-        Spacer(Modifier.height(Scale.space6))
+            progress?.let { p ->
+                Spacer(Modifier.height(Scale.space4))
+                StaggeredEnter(index = cardIndex++) {
+                    NumbersCard(p)
+                }
+            }
 
-        PortionCard(assignment, doneMethod, onOpenPage, onMarkRead, mode, onOpenInQuran)
-
-        // ---- what is being asked ----
-        //
-        // His image 2 captions this "only visible until you finish today", which is what the
-        // screen already did. Sacred Rule 3: someone who has read today does not need asking
-        // whether they are going to.
-        if (doneMethod == null) {
             Spacer(Modifier.height(Scale.space4))
-            Companion(
-                question = companionQuestion(),
-                turns = turns,
-                shortcuts = listOf("After Isha", "In an hour", "Not today"),
-                onReply = onSaid,
-                onOpenChat = onOpenChat,
-            )
-        }
+            StaggeredEnter(index = cardIndex++) {
+                ThisWeekCard(recent, pageFor)
+            }
 
-        // ⚠ **Both of these used to disappear entirely until you had read a day**, which is
-        // how a brand-new Home ended at the check-in and looked unfinished. Found by dumping
-        // the view tree on a clean install: neither section was in it at all. His comps show
-        // them full, because a comp is always drawn with data in it — the empty state is the
-        // one screen a mockup never shows you and every new reader starts on.
-        progress?.let { p ->
-            Spacer(Modifier.height(Scale.space4))
-            NumbersCard(p)
+            // Bottom clearance for floating island dock
+            Spacer(Modifier.height(84.dp))
         }
-
-        run {
-            Spacer(Modifier.height(Scale.space4))
-            ThisWeekCard(recent, pageFor)
-        }
-
-        Spacer(Modifier.height(Scale.space8))
     }
 }
 
 /**
- * The plate every section sits on. **§ 6e.**
- *
- * One composable rather than four copies of the same three modifiers, because the day one of
- * them drifts is the day the screen stops looking made by one person.
+ * Entrance animation for cards: subtle slide up + fade in with staggered index delay.
+ */
+@Composable
+private fun StaggeredEnter(
+    index: Int,
+    content: @Composable () -> Unit,
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(index * 85L)
+        visible = true
+    }
+    val translateY by animateFloatAsState(
+        targetValue = if (visible) 0f else 36f,
+        animationSpec = tween(
+            durationMillis = 400,
+            easing = FastOutSlowInEasing,
+        ),
+        label = "translateY_$index",
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 350,
+            easing = FastOutSlowInEasing,
+        ),
+        label = "alpha_$index",
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                translationY = translateY
+                this.alpha = alpha
+            }
+    ) {
+        content()
+    }
+}
+
+/**
+ * The claymorphic plate every section sits on.
+ * Soft inflated 3D tactile card with dual-light gradient bevels and elevation drop shadows.
  */
 @Composable
 private fun Plate(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val cardBg = if (isDark) Color(0xFF19241E) else Color(0xFFFFFFFF)
+    val highlight = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.75f)
+    val shadow = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF7D725E).copy(alpha = 0.18f)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Scale.card))
-            .background(colors.surfaceRaised)
-            .border(1.dp, colors.cardEdge, RoundedCornerShape(Scale.card))
-            .padding(Scale.space4),
+            .clayCard(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = cardBg,
+                highlightColor = highlight,
+                shadowColor = shadow,
+                elevation = 6.dp,
+            )
+            .padding(18.dp),
     ) { content() }
 }
 
@@ -247,9 +267,15 @@ private fun PortionCard(
     onOpenInQuran: (() -> Unit)?,
 ) {
     val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val surahs = remember(assignment) { assignment.surahs }
     val surah = surahs.firstOrNull()
     val name = surah?.name ?: "Page ${assignment.startPage}"
+    val page = Mushaf.pageOf(assignment.startUnit)
+    val span = surah?.let { (it.lastPage - it.firstPage + 1).coerceAtLeast(1) } ?: 1
+    val into = surah?.let { (page - it.firstPage).coerceAtLeast(0) } ?: 0
+    val fraction = (into.toFloat() / span).coerceIn(0f, 1f)
+    val percent = (fraction * 100).toInt()
 
     Plate {
         Label(if (doneMethod == null) "Today's portion" else "Today, done")
@@ -262,7 +288,7 @@ private fun PortionCard(
                 Text(
                     text = name,
                     color = colors.textPrimary,
-                    style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Medium),
+                    style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
@@ -271,45 +297,77 @@ private fun PortionCard(
                     style = TextStyle(fontSize = Scale.caption),
                 )
             }
-            // His comps put a mushaf on a stand at this corner, and he asked for it by name.
-            // Drawn rather than shipped as a raster: it is the same reasoning as every other
-            // glyph here, and an illustration that costs no bytes is one the Ghana floor
-            // never has to argue about.
-            MushafMark()
         }
 
-        Spacer(Modifier.height(Scale.space4))
-        Hairline()
-        Spacer(Modifier.height(Scale.space3))
+        Spacer(Modifier.height(14.dp))
 
-        // ---- where it starts, and how far through ----
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column {
-                Label("Start page")
-                Spacer(Modifier.height(Scale.space1))
-                Text(
-                    text = assignment.startPage.toString(),
-                    color = colors.textPrimary,
-                    style = TextStyle(fontSize = Scale.title, fontWeight = FontWeight.Medium),
-                )
-            }
-            Spacer(Modifier.width(Scale.space6))
-            Column(modifier = Modifier.weight(1f)) {
-                ThroughTheMushaf(assignment)
-            }
+        // 3 Clay stat boxes (1 page, start page, % through)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ClayStatPill(
+                value = if (assignment.units == 1) "1 page" else "${assignment.units} pages",
+                label = "Today's goal",
+                modifier = Modifier.weight(1f),
+            )
+            ClayStatPill(
+                value = "Page ${assignment.startPage}",
+                label = "Start page",
+                modifier = Modifier.weight(1f),
+            )
+            ClayStatPill(
+                value = "$percent%",
+                label = surah?.let { "Through ${it.name}" } ?: "Progress",
+                modifier = Modifier.weight(1.1f),
+            )
         }
 
-        Spacer(Modifier.height(Scale.space4))
+        Spacer(Modifier.height(12.dp))
+
+        // Progress bar with dual page markers
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "p. ${assignment.startPage}",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = colors.textSecondary,
+            )
+            Text(
+                text = surah?.let { "p. ${it.lastPage}" } ?: "p. 604",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = colors.textSecondary,
+            )
+        }
+        Spacer(Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(7.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(if (isDark) Color(0xFF132019) else Color(0xFFE5EDE8)),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction.coerceAtLeast(0.04f))
+                    .height(7.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(colors.accent),
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
 
         // ---- the four ways to act ----
-        //
-        // ⚠ Only "I read it" completes the day from here. Reciting and listening open the
-        // page, because the recorder and the player both live there — § 5j. Honest rather
-        // than ideal, and unchanged by this restyle.
         val done = doneMethod != null
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Scale.space2),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ActionTile(
                 tile = colors.recite,
@@ -339,29 +397,24 @@ private fun PortionCard(
             )
             ActionTile(
                 tile = colors.openPage,
-                label = "Open the page",
+                label = "Mushaf",
                 glyph = { BookGlyph(it) },
                 modifier = Modifier.weight(1f),
                 onClick = onOpenPage,
             )
         }
 
-        // ---- hand it to the other app ----
-        //
-        // **His ask, 2026-08-19**, and it lands on machinery PLAN task 12 already built and
-        // proved: Quran for Android exports a `quran://sura/ayah` forwarder, read out of their
-        // own GPL source rather than guessed.
-        //
-        // ⚠ **It is absent unless that app is installed**, which is also why nobody has seen
-        // it yet — no device here has Quran for Android, so task 12 stayed "verified only in
-        // the negative". The first phone that has it settles the last open half of that task.
+        // Quran for Android button if available
         onOpenInQuran?.let { open ->
             Spacer(Modifier.height(Scale.space3))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(Scale.radius * 2))
-                    .border(1.dp, colors.cardEdge, RoundedCornerShape(Scale.radius * 2))
+                    .clayPill(
+                        shape = RoundedCornerShape(14.dp),
+                        backgroundColor = if (isDark) Color(0xFF132019) else Color(0xFFF1F5F2),
+                        elevation = 2.dp,
+                    )
                     .clickable(onClick = open)
                     .defaultMinSize(minHeight = Scale.minTarget)
                     .padding(horizontal = Scale.space3),
@@ -377,6 +430,43 @@ private fun PortionCard(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ClayStatPill(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    Column(
+        modifier = modifier
+            .clayCard(
+                shape = RoundedCornerShape(14.dp),
+                backgroundColor = if (isDark) Color(0xFF13221B) else Color(0xFFF4F7F5),
+                highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.7f),
+                shadowColor = Color.Black.copy(alpha = if (isDark) 0.4f else 0.08f),
+                elevation = 2.dp,
+            )
+            .padding(horizontal = 6.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = colors.textPrimary,
+            maxLines = 1,
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 9.5.sp,
+            color = colors.textSecondary,
+            maxLines = 1,
+        )
     }
 }
 
@@ -398,11 +488,16 @@ private fun ActionTile(
     onClick: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(Scale.radius * 2))
-            .background(tile.fill)
-            .border(1.dp, tile.edge, RoundedCornerShape(Scale.radius * 2))
+            .clayCard(
+                shape = RoundedCornerShape(16.dp),
+                backgroundColor = if (enabled) tile.fill else tile.fill.copy(alpha = 0.5f),
+                highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.55f),
+                shadowColor = Color.Black.copy(alpha = if (isDark) 0.4f else 0.12f),
+                elevation = 3.dp,
+            )
             .clickable(enabled = enabled, onClick = onClick)
             .defaultMinSize(minHeight = 84.dp)
             .padding(horizontal = Scale.space1, vertical = Scale.space3),
@@ -809,6 +904,85 @@ private fun ThisWeekCard(recent: List<DayLog>, pageFor: (LocalDate) -> Int?) {
                 style = TextStyle(fontSize = 11.sp),
             )
         }
+        Spacer(Modifier.height(Scale.space3))
+
+        // 7 circular day tracker beads (past 7 days ending today)
+        val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+        val today = LocalDate.now()
+        val last7Days = remember { (6 downTo 0).map { today.minusDays(it.toLong()) } }
+        val completedDates = remember(recent) { recent.map { it.date }.toSet() }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            last7Days.forEach { date ->
+                val isDone = date in completedDates
+                val isToday = date == today
+                val dayInitial = date.dayOfWeek.name.take(1)
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = dayInitial,
+                        fontSize = 11.sp,
+                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isToday) colors.accent else colors.textSecondary,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .then(
+                                when {
+                                    isDone -> Modifier
+                                        .background(colors.accent)
+                                        .clayPill(
+                                            shape = CircleShape,
+                                            backgroundColor = colors.accent,
+                                            elevation = 2.dp,
+                                        )
+                                    isToday -> Modifier
+                                        .border(1.5.dp, colors.accent, CircleShape)
+                                        .background(colors.accent.copy(alpha = 0.12f))
+                                    else -> Modifier
+                                        .background(if (isDark) Color(0xFF16231D) else Color(0xFFE8EFEA))
+                                }
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (isDone) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        } else if (isToday) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.accent)
+                            )
+                        } else {
+                            Text(
+                                text = "·",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary.copy(alpha = 0.6f),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(Scale.space3))
+        Hairline()
         Spacer(Modifier.height(Scale.space2))
 
         shown.forEachIndexed { i, log ->

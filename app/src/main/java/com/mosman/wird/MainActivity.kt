@@ -75,6 +75,7 @@ import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
 import com.mosman.wird.ui.SurahsTab
 import com.mosman.wird.ui.WirdTab
+import com.mosman.wird.ui.FloatingIslandDock
 import com.mosman.wird.ui.SetupScreen
 import com.mosman.wird.ui.TodayScreen
 import com.mosman.wird.ui.positionLabelFor
@@ -476,52 +477,39 @@ class MainActivity : ComponentActivity() {
                     )
 
                 } else {
-                  Column(
+                  Box(
                       modifier = Modifier
                           .fillMaxSize()
                           .navigationBarsPadding(),
                   ) {
-                    // The bar is hidden while the mushaf is open: the page is the one screen
-                    // that should have nothing parked above it. Sacred Rule 5's other half.
-                    if (!onPage) {
-                        WirdTopBar(
-                            current = tab,
-                            onPick = { tab = it },
-                            // Only Home has an overflow. On the other two it would open a
-                            // menu about a screen you are not looking at.
-                            onMenu = if (tab == WirdTab.HOME) ({ menuOpen = true }) else null,
-                            menu = {
-                                if (menuOpen) {
-                                    // Read in composable context: the toggle needs what is
-                                    // actually on screen, which SYSTEM only answers at draw
-                                    // time.
-                                    val darkNow = isDark(theme)
-                                    HomeMenu(
-                                        dark = darkNow,
-                                        onNightMode = {
-                                            store.themeMode =
-                                                if (darkNow) ThemeMode.LIGHT else ThemeMode.DARK
-                                            theme = store.themeMode
-                                            menuOpen = false
-                                        },
-                                        onSettings = { menuOpen = false; screen = Screen.SETTINGS },
-                                        onDismiss = { menuOpen = false },
-                                    )
-                                }
-                            },
-                        )
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                      when (tab) {
-                        WirdTab.HOME -> if (!onPage) HomeScreen(
-                            assignment = assignment,
-                            progress = progress,
-                            doneMethod = doneMethod,
-                            recent = days.all().sortedByDescending { it.date },
-                            onOpenPage = { onPage = true },
-                            positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
-                            readerName = readerName,
-                            mode = readingMode,
+                    when (tab) {
+                      WirdTab.HOME -> if (!onPage) HomeScreen(
+                          assignment = assignment,
+                          progress = progress,
+                          doneMethod = doneMethod,
+                          recent = days.all().sortedByDescending { it.date },
+                          onOpenPage = { onPage = true },
+                          positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
+                          readerName = readerName,
+                          mode = readingMode,
+                          onOpenBookmarks = { tab = WirdTab.SURAHS },
+                          onMenu = { menuOpen = true },
+                          menu = {
+                              if (menuOpen) {
+                                  val darkNow = isDark(theme)
+                                  HomeMenu(
+                                      dark = darkNow,
+                                      onNightMode = {
+                                          store.themeMode =
+                                              if (darkNow) ThemeMode.LIGHT else ThemeMode.DARK
+                                          theme = store.themeMode
+                                          menuOpen = false
+                                      },
+                                      onSettings = { menuOpen = false; screen = Screen.SETTINGS },
+                                      onDismiss = { menuOpen = false },
+                                  )
+                              }
+                          },
                             // **The action only exists when the app does.** PLAN task 12:
                             // asked of the package manager every time rather than cached,
                             // because an app can be installed while Wird is in the
@@ -756,6 +744,13 @@ class MainActivity : ComponentActivity() {
                         )
                       }
 
+                    // Option C Floating Island Capsule Dock at bottom
+                    if (!onPage) {
+                        FloatingIslandDock(
+                            current = tab,
+                            onPick = { tab = it },
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                        )
                     }
                   }
                 }
