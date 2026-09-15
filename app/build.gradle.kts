@@ -108,6 +108,8 @@ android {
             // "A newer version of X is available." Fires whenever any dependency ships
             // a release. Upgrades are a deliberate task, not a build failure.
             "GradleDependency",
+            // "A newer version of Gradle than X is available." Same outside-world schedule.
+            "AndroidGradlePluginVersion",
             // "compileSdk 37 is available." Only android-36 and android-36.1 are
             // installed on this machine, and 36 is what Thrum builds against. Revisit
             // before the first public build, not on a random Tuesday.

@@ -726,7 +726,11 @@ class MainActivity : ComponentActivity() {
 
                         WirdTab.SURAHS -> SurahsTab(
                             bookmarks = saved,
-                            onOpenPage = { p -> openPage = p; onPage = true },
+                            onOpenPage = { p ->
+                                openPage = p
+                                onPage = true
+                                tab = WirdTab.HOME
+                            },
                             onOpenBookmark = { b ->
                                 // The page for the ayah itself, resolved once here rather
                                 // than per row in the list.
@@ -734,6 +738,7 @@ class MainActivity : ComponentActivity() {
                                     .byNumber(b.verseKey.substringBefore(':').toIntOrNull() ?: 0)
                                     ?.firstPage
                                 onPage = true
+                                tab = WirdTab.HOME
                             },
                             onPick = { surah ->
                                 // Picking a surah is a reading action, so it lands you on

@@ -214,17 +214,18 @@ private fun DrawnPage(
         } else {
             Text(
                 text = surahLabel,
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption),
+                color = colors.textPrimary,
+                style = TextStyle(fontSize = Scale.title),
             )
         }
 
         Spacer(Modifier.height(Scale.space6))
 
         lines.forEach { line ->
+            val inPortion = lit.isEmpty() || line in lit
             if (line == bismillahBeforeLine && page.bismillahCodes != null && bismillahTypeface != null) {
                 Spacer(Modifier.height(Scale.space4))
-                Bismillah(page.bismillahCodes, bismillahTypeface, line in lit)
+                Bismillah(page.bismillahCodes, bismillahTypeface, inPortion)
                 Spacer(Modifier.height(Scale.space4))
             }
             MushafLine(
@@ -233,7 +234,7 @@ private fun DrawnPage(
                 review = review,
                 selected = selected,
                 family = family,
-                inPortion = line in lit,
+                inPortion = inPortion,
                 onWordTap = onWordTap,
                 onWordLongPress = onWordLongPress,
                 onBackgroundTap = onBackgroundTap,
@@ -391,16 +392,27 @@ private fun MushafLine(
             },
     ) {
         val available = with(density) { maxWidth.toPx() }
-        val joined = remember(glyphs) { glyphs.joinToString("") { it.code } }
+        // Measure each glyph individually so natural width reflects exactly what the
+        // separate Text composables in the SpaceBetween Row measure, with no kerning
+        // or ligature discrepancies from a joined run.
+        val natural = remember(glyphs, family) {
+            glyphs.sumOf { g ->
+                measurer.measure(
+                    text = AnnotatedString(g.code),
+                    style = TextStyle(fontFamily = family, fontSize = Scale.mushafLine),
+                    softWrap = false,
+                ).size.width
+            }.toFloat()
+        }
 
-        val fitted = remember(joined, available) {
-            val natural = measurer.measure(
-                text = AnnotatedString(joined),
-                style = TextStyle(fontFamily = family, fontSize = Scale.mushafLine),
-                softWrap = false,
-            ).size.width.toFloat()
-            // Leave room: SpaceBetween still needs gaps between the words.
-            val target = available * 0.94f
+        val fitted = remember(natural, available, density, glyphs.size) {
+            val minGap = with(density) { 3.dp.toPx() }
+            val count = glyphs.size
+            val target = if (count > 1) {
+                minOf(available * 0.92f, available - (count - 1) * minGap)
+            } else {
+                available * 0.85f
+            }
             if (natural > target && natural > 0f) Scale.mushafLine * (target / natural)
             else Scale.mushafLine
         }
@@ -507,11 +519,6 @@ private fun MushafLine(
                                                 { it(g.verseKey) }
                                             },
                                         )
-                                        // A word is smaller than a fingertip. The row is
-                                        // already tall enough; this widens the target
-                                        // sideways so tapping a one-letter word is not a
-                                        // game of accuracy.
-                                        .padding(horizontal = 2.dp)
                                 }
                             ),
                     )
