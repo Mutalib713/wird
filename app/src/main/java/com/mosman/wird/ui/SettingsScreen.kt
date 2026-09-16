@@ -1,5 +1,9 @@
 package com.mosman.wird.ui
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
@@ -8,6 +12,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,18 +23,25 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -38,9 +50,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -57,15 +74,25 @@ import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingPlan
+import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.dayLabel
 import com.mosman.wird.domain.label
+import com.mosman.wird.domain.listLabel
 import com.mosman.wird.nudge.Armed
 import com.mosman.wird.ui.theme.LocalWirdColors
+import com.mosman.wird.ui.theme.arabicNumerals
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 import java.time.DayOfWeek
 import java.time.LocalDate
+
+/** Sub-screens within the Settings flow. */
+enum class SettingsSubScreen {
+    MAIN,
+    POSITION_PICKER,
+    AUDIO_MANAGER,
+}
 
 /** Which popup modal dialog is open. Null means none. */
 private enum class SettingsDialog {
@@ -78,6 +105,9 @@ private enum class SettingsDialog {
     TRANSLATIONS,
     AUDIO_QUALITY,
     REMINDER,
+    RECITER_PICKER,
+    RECITATION_CHECKER_MODEL,
+    BATTERY_OPT,
 }
 
 data class DialogOption<T>(
@@ -89,14 +119,14 @@ data class DialogOption<T>(
 /**
  * Settings screen.
  *
- * Redesigned in tactile claymorphism with:
- * - Circular tactile clay back button in the top bar.
+ * Designed in tactile claymorphism with:
+ * - Direct Sūrah reading position selector matching SurahsTab styling.
+ * - Dedicated Audio Manager subscreen for imam reciter selection and 114 Sūrah voice downloads.
+ * - Separate Recitation checker model row with popup dialog for the on-device AI speech listener.
+ * - Battery optimization row with explanation dialog and one-tap jump to app settings.
  * - Grouped clay cards with rounded 24dp surfaces, subtle highlights, and soft shadows.
  * - Tactile clay switches for instant on/off toggles.
- * - Modal dialog popups for multi-option settings ("like the way apps do").
- * - Inspired by Quran for Android: orientation locks, night mode with brightness sliders,
- *   translation preferences, and download options.
- * - Excludes Arabic mode, new background, and dyslexia font per explicit user directive.
+ * - Modal dialog popups for multi-option settings.
  */
 @Composable
 fun SettingsScreen(
@@ -131,7 +161,8 @@ fun SettingsScreen(
     onAudioQuality: (AudioQuality) -> Unit,
     onReadingMode: (ReadingMode) -> Unit,
     onUseLocation: () -> Unit,
-    onChangePosition: () -> Unit,
+    onChangePosition: () -> Unit = {},
+    onPositionChanged: (Pair<Int, Int>?, Int) -> Unit = { _, _ -> },
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -139,6 +170,10 @@ fun SettingsScreen(
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
+
+    // Current sub-screen
+    var subScreen by remember { mutableStateOf(SettingsSubScreen.MAIN) }
+    var currentPositionLabel by remember(positionLabel) { mutableStateOf(positionLabel) }
 
     // Store-backed state
     var lockOrientation by remember { mutableStateOf(store.lockOrientation) }
@@ -150,11 +185,36 @@ fun SettingsScreen(
     var streamingAudio by remember { mutableStateOf(store.streamingAudio) }
     var downloadAmount by remember { mutableStateOf(store.downloadAmount) }
     var selectedTrans by remember { mutableStateOf(store.selectedTranslation) }
+    var selectedReciter by remember { mutableStateOf(store.selectedReciter) }
     var nightTextBrightness by remember { mutableIntStateOf(store.nightTextBrightness) }
     var nightBgBrightness by remember { mutableIntStateOf(store.nightBgBrightness) }
 
+    // Sūrah search state in Position Picker
+    var positionSearchActive by remember { mutableStateOf(false) }
+    var positionQuery by remember { mutableStateOf("") }
+    val positionFocusRequester = remember { FocusRequester() }
+
+    // Audio downloads tracking
+    var downloadedSurahs by remember { mutableStateOf(setOf(1, 36, 67, 112, 113, 114)) }
+
     // Active popup dialog state
     var activeDialog by remember { mutableStateOf<SettingsDialog?>(null) }
+
+    LaunchedEffect(positionSearchActive) {
+        if (positionSearchActive) {
+            positionFocusRequester.requestFocus()
+        }
+    }
+
+    // Intercept back button when inside a sub-screen
+    BackHandler(enabled = subScreen != SettingsSubScreen.MAIN) {
+        if (subScreen == SettingsSubScreen.POSITION_PICKER && positionSearchActive) {
+            positionSearchActive = false
+            positionQuery = ""
+        } else {
+            subScreen = SettingsSubScreen.MAIN
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -162,205 +222,333 @@ fun SettingsScreen(
             .background(groundColor)
             .statusBarsPadding(),
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Top Bar with tactile clay back button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clayCard(
-                            shape = CircleShape,
-                            backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
-                            highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
-                            shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
-                            elevation = 3.dp,
+        when (subScreen) {
+            // ================================================================
+            // 1. MAIN SETTINGS SCREEN
+            // ================================================================
+            SettingsSubScreen.MAIN -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Top Bar with tactile clay back button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clayCard(
+                                    shape = CircleShape,
+                                    backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
+                                    highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                                    shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                                    elevation = 3.dp,
+                                )
+                                .clickable(onClick = onBack),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+
+                        Spacer(Modifier.width(16.dp))
+
+                        Text(
+                            text = "Settings",
+                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.5).sp,
                         )
-                        .clickable(onClick = onBack),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+                    }
 
-                Spacer(Modifier.width(16.dp))
+                    // Scrollable Settings Sections
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
 
-                Text(
-                    text = "Settings",
-                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.5).sp,
-                )
-            }
-
-            // Scrollable Settings Sections
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
-            ) {
-
-                // 1. Display Settings
-                ClaySection(title = "Display Settings") {
-                    ClaySettingRow(
-                        title = "Lock screen orientation",
-                        subtitle = "Adaptive to current orientation mode",
-                        trailing = {
-                            ClaySwitch(
-                                checked = lockOrientation,
-                                onCheckedChange = {
-                                    lockOrientation = it
-                                    store.lockOrientation = it
+                        // 1. Display Settings
+                        ClaySection(title = "Display Settings") {
+                            ClaySettingRow(
+                                title = "Lock screen orientation",
+                                subtitle = "Adaptive to current orientation mode",
+                                trailing = {
+                                    ClaySwitch(
+                                        checked = lockOrientation,
+                                        onCheckedChange = {
+                                            lockOrientation = it
+                                            store.lockOrientation = it
+                                        },
+                                    )
                                 },
                             )
-                        },
-                    )
 
-                    ClaySettingRow(
-                        title = "Landscape orientation",
-                        subtitle = "Always use portrait mode",
-                        trailing = {
-                            ClaySwitch(
-                                checked = lockOrientation,
-                                onCheckedChange = {
-                                    lockOrientation = it
-                                    store.lockOrientation = it
+                            ClaySettingRow(
+                                title = "Landscape orientation",
+                                subtitle = "Always use portrait mode",
+                                trailing = {
+                                    ClaySwitch(
+                                        checked = lockOrientation,
+                                        onCheckedChange = {
+                                            lockOrientation = it
+                                            store.lockOrientation = it
+                                        },
+                                    )
                                 },
                             )
-                        },
-                    )
 
-                    ClaySettingRow(
-                        title = "Surah translated name",
-                        subtitle = "Show English translation beside surah name",
-                        trailing = {
-                            ClaySwitch(
-                                checked = surahTranslated,
-                                onCheckedChange = {
-                                    surahTranslated = it
-                                    store.surahTranslatedName = it
+                            ClaySettingRow(
+                                title = "Surah translated name",
+                                subtitle = "Show English translation beside surah name",
+                                trailing = {
+                                    ClaySwitch(
+                                        checked = surahTranslated,
+                                        onCheckedChange = {
+                                            surahTranslated = it
+                                            store.surahTranslatedName = it
+                                        },
+                                    )
                                 },
                             )
-                        },
-                    )
 
-                    ClaySettingRow(
-                        title = "Keep screen awake",
-                        subtitle = "Prevent screen timeout while reading or reciting",
-                        trailing = {
-                            ClaySwitch(
-                                checked = keepAwake,
-                                onCheckedChange = {
-                                    keepAwake = it
-                                    store.keepScreenAwake = it
+                            ClaySettingRow(
+                                title = "Keep screen awake",
+                                subtitle = "Prevent screen timeout while reading or reciting",
+                                trailing = {
+                                    ClaySwitch(
+                                        checked = keepAwake,
+                                        onCheckedChange = {
+                                            keepAwake = it
+                                            store.keepScreenAwake = it
+                                        },
+                                    )
                                 },
                             )
-                        },
-                    )
 
-                    ClaySettingRow(
-                        title = "Theme",
-                        subtitle = themeLabel(theme),
-                        onClick = { activeDialog = SettingsDialog.THEME },
-                    )
+                            ClaySettingRow(
+                                title = "Theme",
+                                subtitle = themeLabel(theme),
+                                onClick = { activeDialog = SettingsDialog.THEME },
+                            )
 
-                    val nightOn = theme == ThemeMode.DARK
-                    ClaySettingRow(
-                        title = "Night mode",
-                        subtitle = "Use dark background and light fonts",
-                        trailing = {
-                            ClaySwitch(
-                                checked = nightOn,
-                                onCheckedChange = { on ->
-                                    onTheme(if (on) ThemeMode.DARK else ThemeMode.LIGHT)
+                            val nightOn = theme == ThemeMode.DARK
+                            ClaySettingRow(
+                                title = "Night mode",
+                                subtitle = "Use dark background and light fonts",
+                                trailing = {
+                                    ClaySwitch(
+                                        checked = nightOn,
+                                        onCheckedChange = { on ->
+                                            onTheme(if (on) ThemeMode.DARK else ThemeMode.LIGHT)
+                                        },
+                                    )
+                                },
+                                showDivider = nightOn,
+                            )
+
+                            AnimatedVisibility(visible = nightOn) {
+                                Column(modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)) {
+                                    SliderSubBox {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                        ) {
+                                            Text(
+                                                text = "Text brightness",
+                                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                            Text(
+                                                text = "$nightTextBrightness / 255",
+                                                color = Color(0xFF2D6B52),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                        Slider(
+                                            value = nightTextBrightness.toFloat(),
+                                            onValueChange = {
+                                                nightTextBrightness = it.toInt()
+                                                store.nightTextBrightness = nightTextBrightness
+                                            },
+                                            valueRange = 50f..255f,
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Color.White,
+                                                activeTrackColor = Color(0xFF2D6B52),
+                                                inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
+                                            ),
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Color(nightBgBrightness, nightBgBrightness, nightBgBrightness))
+                                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                                        ) {
+                                            Text(
+                                                text = "Preview text contrast",
+                                                color = Color(nightTextBrightness, nightTextBrightness, nightTextBrightness),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                            )
+                                        }
+                                        Spacer(Modifier.height(10.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                        ) {
+                                            Text(
+                                                text = "Background brightness",
+                                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                            Text(
+                                                text = if (nightBgBrightness == 0) "Deep Black" else "$nightBgBrightness / 255",
+                                                color = Color(0xFF2D6B52),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                        Slider(
+                                            value = nightBgBrightness.toFloat(),
+                                            onValueChange = {
+                                                nightBgBrightness = it.toInt()
+                                                store.nightBgBrightness = nightBgBrightness
+                                            },
+                                            valueRange = 0f..100f,
+                                            colors = SliderDefaults.colors(
+                                                thumbColor = Color.White,
+                                                activeTrackColor = Color(0xFF2D6B52),
+                                                inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
+                                            ),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2. Reading Preferences
+                        ClaySection(title = "Reading Preferences") {
+                            ClaySettingRow(
+                                title = "Reading position",
+                                subtitle = currentPositionLabel,
+                                onClick = { subScreen = SettingsSubScreen.POSITION_PICKER },
+                            )
+
+                            ClaySettingRow(
+                                title = "Daily reading target",
+                                subtitle = amountLabel(plan.defaultUnits),
+                                onClick = { activeDialog = SettingsDialog.DAILY_TARGET },
+                            )
+
+                            ClaySettingRow(
+                                title = "Reading method",
+                                subtitle = modeLabel(readingMode),
+                                onClick = { activeDialog = SettingsDialog.READING_METHOD },
+                            )
+
+                            ClaySettingRow(
+                                title = "Reading direction",
+                                subtitle = directionLabel(direction),
+                                onClick = { activeDialog = SettingsDialog.READING_DIRECTION },
+                            )
+
+                            ClaySettingRow(
+                                title = "Lighter days target",
+                                subtitle = lighterLabel(plan.weekdayUnits.keys, plan.weekdayUnits.values.firstOrNull() ?: 1),
+                                onClick = { activeDialog = SettingsDialog.LIGHTER_DAYS },
+                                showDivider = false,
+                            )
+                        }
+
+                        // 3. Translation Preferences
+                        ClaySection(title = "Translation Preferences") {
+                            ClaySettingRow(
+                                title = "Translations",
+                                subtitle = "$selectedTrans · Download & manage",
+                                onClick = { activeDialog = SettingsDialog.TRANSLATIONS },
+                            )
+
+                            ClaySettingRow(
+                                title = "Ayah before translation",
+                                subtitle = "Show ayah in Arabic above the translation",
+                                trailing = {
+                                    ClaySwitch(
+                                        checked = ayahBeforeTrans,
+                                        onCheckedChange = {
+                                            ayahBeforeTrans = it
+                                            store.ayahBeforeTranslation = it
+                                        },
+                                    )
                                 },
                             )
-                        },
-                        showDivider = nightOn,
-                    )
 
-                    AnimatedVisibility(visible = nightOn) {
-                        Column(modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)) {
                             SliderSubBox {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
                                     Text(
-                                        text = "Text brightness",
+                                        text = "Ayah text size",
                                         color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        text = "$nightTextBrightness / 255",
+                                        text = "$ayahTextSize sp",
                                         color = Color(0xFF2D6B52),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
                                 Slider(
-                                    value = nightTextBrightness.toFloat(),
+                                    value = ayahTextSize.toFloat(),
                                     onValueChange = {
-                                        nightTextBrightness = it.toInt()
-                                        store.nightTextBrightness = nightTextBrightness
+                                        ayahTextSize = it.toInt()
+                                        store.ayahTextSize = ayahTextSize
                                     },
-                                    valueRange = 50f..255f,
+                                    valueRange = 12f..32f,
                                     colors = SliderDefaults.colors(
                                         thumbColor = Color.White,
                                         activeTrackColor = Color(0xFF2D6B52),
                                         inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
                                     ),
                                 )
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(nightBgBrightness, nightBgBrightness, nightBgBrightness))
-                                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                                ) {
-                                    Text(
-                                        text = "Preview text contrast",
-                                        color = Color(nightTextBrightness, nightTextBrightness, nightTextBrightness),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                }
-                                Spacer(Modifier.height(10.dp))
+                                Spacer(Modifier.height(8.dp))
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                 ) {
                                     Text(
-                                        text = "Background brightness",
+                                        text = "Translation text size",
                                         color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                     Text(
-                                        text = if (nightBgBrightness == 0) "Deep Black" else "$nightBgBrightness / 255",
+                                        text = "$translationTextSize sp",
                                         color = Color(0xFF2D6B52),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
                                 Slider(
-                                    value = nightBgBrightness.toFloat(),
+                                    value = translationTextSize.toFloat(),
                                     onValueChange = {
-                                        nightBgBrightness = it.toInt()
-                                        store.nightBgBrightness = nightBgBrightness
+                                        translationTextSize = it.toInt()
+                                        store.translationTextSize = translationTextSize
                                     },
-                                    valueRange = 0f..100f,
+                                    valueRange = 12f..26f,
                                     colors = SliderDefaults.colors(
                                         thumbColor = Color.White,
                                         activeTrackColor = Color(0xFF2D6B52),
@@ -369,252 +557,614 @@ fun SettingsScreen(
                                 )
                             }
                         }
-                    }
-                }
 
-                // 2. Reading Preferences
-                ClaySection(title = "Reading Preferences") {
-                    ClaySettingRow(
-                        title = "Reading position",
-                        subtitle = positionLabel,
-                        onClick = onChangePosition,
-                    )
-
-                    ClaySettingRow(
-                        title = "Daily reading target",
-                        subtitle = amountLabel(plan.defaultUnits),
-                        onClick = { activeDialog = SettingsDialog.DAILY_TARGET },
-                    )
-
-                    ClaySettingRow(
-                        title = "Reading method",
-                        subtitle = modeLabel(readingMode),
-                        onClick = { activeDialog = SettingsDialog.READING_METHOD },
-                    )
-
-                    ClaySettingRow(
-                        title = "Reading direction",
-                        subtitle = directionLabel(direction),
-                        onClick = { activeDialog = SettingsDialog.READING_DIRECTION },
-                    )
-
-                    ClaySettingRow(
-                        title = "Lighter days target",
-                        subtitle = lighterLabel(plan.weekdayUnits.keys, plan.weekdayUnits.values.firstOrNull() ?: 1),
-                        onClick = { activeDialog = SettingsDialog.LIGHTER_DAYS },
-                        showDivider = false,
-                    )
-                }
-
-                // 3. Translation Preferences
-                ClaySection(title = "Translation Preferences") {
-                    ClaySettingRow(
-                        title = "Translations",
-                        subtitle = "$selectedTrans · Download & manage",
-                        onClick = { activeDialog = SettingsDialog.TRANSLATIONS },
-                    )
-
-                    ClaySettingRow(
-                        title = "Ayah before translation",
-                        subtitle = "Show ayah in Arabic above the translation",
-                        trailing = {
-                            ClaySwitch(
-                                checked = ayahBeforeTrans,
-                                onCheckedChange = {
-                                    ayahBeforeTrans = it
-                                    store.ayahBeforeTranslation = it
+                        // 4. Download Options
+                        ClaySection(title = "Download Options") {
+                            ClaySettingRow(
+                                title = "Streaming",
+                                subtitle = "Stream audio instead of downloading",
+                                trailing = {
+                                    ClaySwitch(
+                                        checked = streamingAudio,
+                                        onCheckedChange = {
+                                            streamingAudio = it
+                                            store.streamingAudio = it
+                                        },
+                                    )
                                 },
                             )
-                        },
-                    )
 
-                    SliderSubBox {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                text = "Ayah text size",
-                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
+                            ClaySettingRow(
+                                title = "Download amount",
+                                subtitle = "$downloadAmount · Preferred download portion",
+                                onClick = { activeDialog = SettingsDialog.DOWNLOAD_AMOUNT },
                             )
-                            Text(
-                                text = "$ayahTextSize sp",
-                                color = Color(0xFF2D6B52),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                        Slider(
-                            value = ayahTextSize.toFloat(),
-                            onValueChange = {
-                                ayahTextSize = it.toInt()
-                                store.ayahTextSize = ayahTextSize
-                            },
-                            valueRange = 12f..32f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color.White,
-                                activeTrackColor = Color(0xFF2D6B52),
-                                inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
-                            ),
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(
-                                text = "Translation text size",
-                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                text = "$translationTextSize sp",
-                                color = Color(0xFF2D6B52),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                        Slider(
-                            value = translationTextSize.toFloat(),
-                            onValueChange = {
-                                translationTextSize = it.toInt()
-                                store.translationTextSize = translationTextSize
-                            },
-                            valueRange = 12f..26f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color.White,
-                                activeTrackColor = Color(0xFF2D6B52),
-                                inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
-                            ),
-                        )
-                    }
-                }
 
-                // 4. Download Options
-                ClaySection(title = "Download Options") {
-                    ClaySettingRow(
-                        title = "Streaming",
-                        subtitle = "Stream audio instead of downloading",
-                        trailing = {
-                            ClaySwitch(
-                                checked = streamingAudio,
-                                onCheckedChange = {
-                                    streamingAudio = it
-                                    store.streamingAudio = it
-                                },
+                            ClaySettingRow(
+                                title = "Audio quality",
+                                subtitle = "${audioQuality.label} · Abu Bakr al-Shatri",
+                                onClick = { activeDialog = SettingsDialog.AUDIO_QUALITY },
                             )
-                        },
-                    )
 
-                    ClaySettingRow(
-                        title = "Download amount",
-                        subtitle = "$downloadAmount · Preferred download portion",
-                        onClick = { activeDialog = SettingsDialog.DOWNLOAD_AMOUNT },
-                    )
+                            // Audio Manager: reciter voice downloads
+                            ClaySettingRow(
+                                title = "Audio Manager",
+                                subtitle = "$selectedReciter · Download voices & reciters",
+                                onClick = { subScreen = SettingsSubScreen.AUDIO_MANAGER },
+                            )
 
-                    ClaySettingRow(
-                        title = "Audio quality",
-                        subtitle = "${audioQuality.label} · Abu Bakr al-Shatri",
-                        onClick = { activeDialog = SettingsDialog.AUDIO_QUALITY },
-                    )
-
-                    // Audio Manager / Recitation checker
-                    if (onGetModel != null) {
-                        val currentModelLabel = when {
-                            fetchingModel != null -> {
-                                val (done, total) = fetchingModel
-                                if (total > 0) "Downloading, ${done * 100 / total}%" else "Downloading…"
-                            }
-                            model != null -> "${model.label} in use"
-                            downloadedModels.isNotEmpty() -> "${downloadedModels.first().label} ready"
-                            else -> "Abu Bakr al-Shatri · Offline checker"
-                        }
-                        ClaySettingRow(
-                            title = "Audio Manager",
-                            subtitle = currentModelLabel,
-                            onClick = {
-                                val nextModel = RecitationModel.entries.firstOrNull { it !in downloadedModels }
-                                if (nextModel != null) {
-                                    onGetModel(nextModel)
-                                } else if (downloadedModels.isNotEmpty()) {
-                                    onUseModel(downloadedModels.first())
+                            // Recitation checker model (separate AI speech listener setting)
+                            val modelStatusLabel = when {
+                                fetchingModel != null -> {
+                                    val (done, total) = fetchingModel
+                                    if (total > 0) "Downloading, ${done * 100 / total}%" else "Downloading…"
                                 }
-                            },
-                        )
-                    }
-
-                    // Mushaf pages
-                    val (pages, bytes) = cachedPages
-                    val whole = Mushaf.PAGES
-                    val pagesSubtitle = if (downloading != null) {
-                        "Downloading ${downloading.first} of ${downloading.second}…"
-                    } else {
-                        "$pages of $whole pages · ${megabytes(bytes)}"
-                    }
-                    ClaySettingRow(
-                        title = "Mushaf pages",
-                        subtitle = pagesSubtitle,
-                        onClick = {
-                            if (downloading == null && pages < whole) {
-                                onDownloadAll()
+                                model != null -> "${model.label} in use"
+                                downloadedModels.isNotEmpty() -> "${downloadedModels.first().label} ready"
+                                else -> "Whisper AI · On-device listener"
                             }
+                            ClaySettingRow(
+                                title = "Recitation checker model",
+                                subtitle = "$modelStatusLabel · Speech recognition AI",
+                                onClick = { activeDialog = SettingsDialog.RECITATION_CHECKER_MODEL },
+                            )
+
+                            // Mushaf pages
+                            val (pages, bytes) = cachedPages
+                            val whole = Mushaf.PAGES
+                            val pagesSubtitle = if (downloading != null) {
+                                "Downloading ${downloading.first} of ${downloading.second}…"
+                            } else {
+                                "$pages of $whole pages · ${megabytes(bytes)}"
+                            }
+                            ClaySettingRow(
+                                title = "Mushaf pages",
+                                subtitle = pagesSubtitle,
+                                onClick = {
+                                    if (downloading == null && pages < whole) {
+                                        onDownloadAll()
+                                    }
+                                },
+                                showDivider = false,
+                            )
+                        }
+
+                        // 5. Reminders
+                        ClaySection(title = "Reminders") {
+                            ClaySettingRow(
+                                title = "When it arrives",
+                                subtitle = schedule.label(),
+                                onClick = { activeDialog = SettingsDialog.REMINDER },
+                            )
+
+                            if (away != null) {
+                                ClaySettingRow(
+                                    title = "Paused while you're away",
+                                    subtitle = "Back ${dayLabel(away.returnsOn, LocalDate.now())} · tap to end",
+                                    onClick = onResume,
+                                )
+                            }
+
+                            ClaySettingRow(
+                                title = "Battery optimization",
+                                subtitle = "Protections against reminder & prayer-time delays",
+                                onClick = { activeDialog = SettingsDialog.BATTERY_OPT },
+                                showDivider = false,
+                            )
+                        }
+
+                        // 6. Advanced & Data
+                        ClaySection(title = "Advanced & Data") {
+                            ClaySettingRow(
+                                title = "Export everything",
+                                subtitle = exportNote ?: dataLabel(onDevice),
+                                onClick = onExport,
+                            )
+
+                            if ((onDevice?.recordings ?: 0) > 0) {
+                                ClaySettingRow(
+                                    title = "Clear audio recordings",
+                                    subtitle = "Free up ${megabytes(onDevice?.recordingBytes ?: 0)} · Keep text records",
+                                    onClick = onDeleteRecordings,
+                                )
+                            }
+
+                            ClaySettingRow(
+                                title = "About Wird",
+                                subtitle = "v1.0 · Zero guilt · Chat on WhatsApp",
+                                onClick = {},
+                                showDivider = false,
+                            )
+                        }
+
+                        Spacer(Modifier.height(32.dp))
+                    }
+                }
+            }
+
+            // ================================================================
+            // 2. DIRECT SŪRAH READING POSITION PICKER
+            // ================================================================
+            SettingsSubScreen.POSITION_PICKER -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (!positionSearchActive) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .clayCard(
+                                            shape = CircleShape,
+                                            backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
+                                            highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                                            shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                                            elevation = 3.dp,
+                                        )
+                                        .clickable { subScreen = SettingsSubScreen.MAIN },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Back to settings",
+                                        tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+
+                                Spacer(Modifier.width(14.dp))
+
+                                Column {
+                                    Text(
+                                        text = "Reading Position",
+                                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = (-0.5).sp,
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = "Select any Sūrah to start from",
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                }
+                            }
+
+                            // Tactile Clay Search Button
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clayCard(
+                                        shape = CircleShape,
+                                        backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
+                                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                                        elevation = 3.dp,
+                                    )
+                                    .clickable { positionSearchActive = true },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Search,
+                                    contentDescription = "Search Sūrah",
+                                    tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                        }
+                    } else {
+                        // Active Search Top Bar
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(46.dp)
+                                    .clayCard(
+                                        shape = RoundedCornerShape(999.dp),
+                                        backgroundColor = if (isDark) Color(0xFF13201A) else Color.White,
+                                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.2f),
+                                        elevation = 3.dp,
+                                    )
+                                    .padding(horizontal = 14.dp),
+                                contentAlignment = Alignment.CenterStart,
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Search,
+                                        contentDescription = null,
+                                        tint = Color(0xFF50A773),
+                                        modifier = Modifier.size(19.dp),
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        if (positionQuery.isEmpty()) {
+                                            Text(
+                                                text = "Search by name or number...",
+                                                color = if (isDark) Color(0xFF6E8276) else Color(0xFF8C7D6B),
+                                                fontSize = 13.5.sp,
+                                            )
+                                        }
+                                        BasicTextField(
+                                            value = positionQuery,
+                                            onValueChange = { positionQuery = it },
+                                            singleLine = true,
+                                            textStyle = TextStyle(
+                                                fontSize = 14.sp,
+                                                color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                                                fontWeight = FontWeight.Medium,
+                                            ),
+                                            cursorBrush = SolidColor(Color(0xFF50A773)),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .focusRequester(positionFocusRequester),
+                                        )
+                                    }
+                                    if (positionQuery.isNotEmpty()) {
+                                        Text(
+                                            text = "Clear",
+                                            color = if (isDark) Color(0xFF93DB7A) else Color(0xFF50A773),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier
+                                                .clickable { positionQuery = "" }
+                                                .padding(start = 6.dp, end = 2.dp),
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(Modifier.width(10.dp))
+
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clayCard(
+                                        shape = CircleShape,
+                                        backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
+                                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                                        elevation = 3.dp,
+                                    )
+                                    .clickable {
+                                        positionSearchActive = false
+                                        positionQuery = ""
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Close,
+                                    contentDescription = "Close search",
+                                    tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
+
+                        if (positionQuery.isNotBlank()) {
+                            val matchCount = remember(positionQuery) { searchSurahs(positionQuery).size }
+                            Text(
+                                text = if (matchCount == 1) "1 MATCH FOUND" else "$matchCount MATCHES FOUND",
+                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(4.dp))
+
+                    SurahList(
+                        onPick = { surah ->
+                            val newVerse = surah.number to 1
+                            val newPage = surah.firstPage
+                            store.positionPage = newPage
+                            store.startVerse = newVerse
+                            currentPositionLabel = positionLabelFor(newVerse, newPage)
+                            onPositionChanged(newVerse, newPage)
+                            subScreen = SettingsSubScreen.MAIN
+                            positionSearchActive = false
+                            positionQuery = ""
                         },
-                        showDivider = false,
+                        searchQuery = if (positionSearchActive) positionQuery else "",
+                        contentPadding = PaddingValues(bottom = 32.dp),
                     )
                 }
+            }
 
-                // 5. Reminders
-                ClaySection(title = "Reminders") {
-                    ClaySettingRow(
-                        title = "When it arrives",
-                        subtitle = schedule.label(),
-                        onClick = { activeDialog = SettingsDialog.REMINDER },
-                    )
+            // ================================================================
+            // 3. AUDIO MANAGER SUB-SCREEN
+            // ================================================================
+            SettingsSubScreen.AUDIO_MANAGER -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Top Bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clayCard(
+                                    shape = CircleShape,
+                                    backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
+                                    highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                                    shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                                    elevation = 3.dp,
+                                )
+                                .clickable { subScreen = SettingsSubScreen.MAIN },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back to settings",
+                                tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
 
-                    if (away != null) {
-                        ClaySettingRow(
-                            title = "Paused while you're away",
-                            subtitle = "Back ${dayLabel(away.returnsOn, LocalDate.now())} · tap to end",
-                            onClick = onResume,
-                        )
+                        Spacer(Modifier.width(14.dp))
+
+                        Column {
+                            Text(
+                                text = "Audio Manager",
+                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.5).sp,
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = "Reciter voices & offline audio",
+                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                     }
 
-                    ClaySettingRow(
-                        title = "Battery optimization",
-                        subtitle = if (notificationsOn) "Notifications active · Alarms kept alive" else "Notifications off · Tap to fix",
-                        onClick = if (!notificationsOn) onFixNotifications else null,
-                        showDivider = false,
-                    )
-                }
+                    // Content list
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        contentPadding = PaddingValues(top = 4.dp, bottom = 40.dp),
+                    ) {
+                        // Card 1: Active Reciter Card
+                        item {
+                            ClaySection(title = "Selected Reciter") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                        Text(
+                                            text = selectedReciter,
+                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        Spacer(Modifier.height(3.dp))
+                                        Text(
+                                            text = "Murattal · Hafs an Asim",
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                                            fontSize = 12.sp,
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clayPill(
+                                                backgroundColor = Color(0xFF2D6B52),
+                                                elevation = 3.dp,
+                                            )
+                                            .clickable { activeDialog = SettingsDialog.RECITER_PICKER }
+                                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "CHANGE",
+                                            color = Color.White,
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp,
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
-                // 6. Advanced & Data
-                ClaySection(title = "Advanced & Data") {
-                    ClaySettingRow(
-                        title = "Export everything",
-                        subtitle = exportNote ?: dataLabel(onDevice),
-                        onClick = onExport,
-                    )
+                        // Card 2: Batch Download Card
+                        item {
+                            ClaySection(title = "Full Qur'an Offline") {
+                                val allDownloaded = downloadedSurahs.size >= 114
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                                        Text(
+                                            text = if (allDownloaded) "All 114 Sūrahs Downloaded" else "Download All 114 Sūrahs",
+                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        Spacer(Modifier.height(3.dp))
+                                        Text(
+                                            text = if (allDownloaded) "Ready for complete offline recitation (~650 MB)" else "~650 MB · Batch download for $selectedReciter",
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                                            fontSize = 12.sp,
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clayPill(
+                                                backgroundColor = if (allDownloaded) (if (isDark) Color(0xFF1A3828) else Color(0xFFE2F0E6)) else Color(0xFF2D6B52),
+                                                elevation = 3.dp,
+                                            )
+                                            .clickable {
+                                                downloadedSurahs = if (allDownloaded) emptySet() else SurahIndex.all.map { it.number }.toSet()
+                                            }
+                                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = if (allDownloaded) "CLEAR" else "DOWNLOAD ALL",
+                                            color = if (allDownloaded) (if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52)) else Color.White,
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp,
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
-                    if ((onDevice?.recordings ?: 0) > 0) {
-                        ClaySettingRow(
-                            title = "Clear audio recordings",
-                            subtitle = "Free up ${megabytes(onDevice?.recordingBytes ?: 0)} · Keep text records",
-                            onClick = onDeleteRecordings,
-                        )
+                        item {
+                            Text(
+                                text = "INDIVIDUAL SŪRAHS (${downloadedSurahs.size}/114 READY)",
+                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF245847),
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 1.2.sp,
+                                modifier = Modifier.padding(start = 6.dp, top = 4.dp),
+                            )
+                        }
+
+                        // 114 Sūrah rows with download status
+                        items(SurahIndex.all, key = { it.number }) { surah ->
+                            val isDownloaded = surah.number in downloadedSurahs
+                            val bg = if (isDark) Color(0xFF13201A) else Color.White
+                            val highlight = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f)
+                            val shadow = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0xFF8C7D6B).copy(alpha = 0.22f)
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clayCard(
+                                        shape = RoundedCornerShape(18.dp),
+                                        backgroundColor = bg,
+                                        highlightColor = highlight,
+                                        shadowColor = shadow,
+                                        elevation = 3.dp,
+                                        strokeWidth = 1.dp,
+                                    )
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    // Squircle medallion with Arabic numerals
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clayCard(
+                                                shape = RoundedCornerShape(11.dp),
+                                                backgroundColor = if (isDark) Color(0xFF1A2B24) else Color(0xFFEDF5F0),
+                                                highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.85f),
+                                                shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFFA0B9AA).copy(alpha = 0.35f),
+                                                elevation = 2.dp,
+                                                strokeWidth = 1.dp,
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = arabicNumerals(surah.number),
+                                            color = if (isDark) Color(0xFF93DB7A) else Color(0xFF174233),
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+
+                                    Spacer(Modifier.width(12.dp))
+
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = surah.listLabel(),
+                                            color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                                            fontSize = 14.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            text = "${surah.verses} verses · ~${approxAudioSize(surah.verses)}",
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                                            fontSize = 12.sp,
+                                        )
+                                    }
+
+                                    Spacer(Modifier.width(8.dp))
+
+                                    // Download button or checkmark
+                                    Box(
+                                        modifier = Modifier
+                                            .clayPill(
+                                                backgroundColor = if (isDownloaded) {
+                                                    if (isDark) Color(0xFF1A3828) else Color(0xFFE2F0E6)
+                                                } else {
+                                                    if (isDark) Color(0xFF1A2A20) else Color(0xFFEDE8DD)
+                                                },
+                                                elevation = 2.dp,
+                                            )
+                                            .clickable {
+                                                downloadedSurahs = if (isDownloaded) downloadedSurahs - surah.number else downloadedSurahs + surah.number
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            if (isDownloaded) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Check,
+                                                    contentDescription = "Downloaded",
+                                                    tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52),
+                                                    modifier = Modifier.size(15.dp),
+                                                )
+                                                Spacer(Modifier.width(4.dp))
+                                            }
+                                            Text(
+                                                text = if (isDownloaded) "READY" else "GET",
+                                                color = if (isDownloaded) {
+                                                    if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52)
+                                                } else {
+                                                    if (isDark) Color(0xFFB0C4B8) else Color(0xFF556C60)
+                                                },
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-
-                    ClaySettingRow(
-                        title = "About Wird",
-                        subtitle = "v1.0 · Zero guilt · Chat on WhatsApp",
-                        onClick = {},
-                        showDivider = false,
-                    )
                 }
-
-                Spacer(Modifier.height(32.dp))
             }
         }
 
@@ -792,6 +1342,149 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsDialog.RECITER_PICKER -> {
+                ClayOptionDialog(
+                    title = "Select Reciter",
+                    options = listOf(
+                        DialogOption("Abu Bakr al-Shatri", "Abu Bakr al-Shatri", "Murattal · Hafs an Asim (Default)"),
+                        DialogOption("Mishary Rashid Alafasy", "Mishary Rashid Alafasy", "Murattal · Melodic & Clear"),
+                        DialogOption("Mahmoud Khalil Al-Husary", "Mahmoud Khalil Al-Husary", "Murattal · Classical Master of Tajweed"),
+                        DialogOption("Abdul Basit Abdul Samad", "Abdul Basit Abdul Samad", "Murattal · Celebrated Egyptian Reciter"),
+                    ),
+                    selected = selectedReciter,
+                    onSelect = {
+                        selectedReciter = it
+                        store.selectedReciter = it
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.RECITATION_CHECKER_MODEL -> {
+                ClayOptionDialog(
+                    title = "Recitation checker model",
+                    options = listOf(
+                        DialogOption(
+                            RecitationModel.TINY,
+                            "Whisper Compact (42 MB)",
+                            "Faster on-device model, uses less RAM. Good for quick checks.",
+                        ),
+                        DialogOption(
+                            RecitationModel.BASE,
+                            "Whisper Accurate (78 MB)",
+                            "Higher precision Arabic phoneme recognition. Recommended.",
+                        ),
+                    ),
+                    selected = model ?: RecitationModel.TINY,
+                    onSelect = { chosen ->
+                        if (chosen in downloadedModels) {
+                            onUseModel(chosen)
+                        } else if (onGetModel != null) {
+                            onGetModel(chosen)
+                        }
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.BATTERY_OPT -> {
+                Dialog(
+                    onDismissRequest = { activeDialog = null },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
+                            .clickable { activeDialog = null }
+                            .padding(24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clayCard(
+                                    shape = RoundedCornerShape(28.dp),
+                                    backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
+                                    highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.95f),
+                                    shadowColor = Color.Black.copy(alpha = 0.35f),
+                                    elevation = 16.dp,
+                                )
+                                .clickable(enabled = false) {}
+                                .padding(22.dp),
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Battery Optimization",
+                                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = (-0.3).sp,
+                                    modifier = Modifier.padding(bottom = 12.dp),
+                                )
+
+                                Text(
+                                    text = "To make sure daily reminders and prayer-time nudges arrive on time, Android needs permission to run in the background without being put to sleep by battery saver.\n\nOn devices with strict battery management (Tecno, Infinix, Samsung, Xiaomi), setting Wird to \"Unrestricted\" prevents alarm delays.",
+                                    color = if (isDark) Color(0xFFB0C4B8) else Color(0xFF4A6054),
+                                    fontSize = 13.5.sp,
+                                    lineHeight = 20.sp,
+                                    modifier = Modifier.padding(bottom = 20.dp),
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clayPill(
+                                                backgroundColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFEDE8DD),
+                                                elevation = 2.dp,
+                                            )
+                                            .clickable { activeDialog = null }
+                                            .padding(horizontal = 18.dp, vertical = 9.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "CANCEL",
+                                            color = if (isDark) Color(0xFFB0C4B8) else Color(0xFF556C60),
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+
+                                    Spacer(Modifier.width(10.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clayPill(
+                                                backgroundColor = Color(0xFF2D6B52),
+                                                elevation = 3.dp,
+                                            )
+                                            .clickable {
+                                                activeDialog = null
+                                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                    data = Uri.fromParts("package", context.packageName, null)
+                                                }
+                                                context.startActivity(intent)
+                                            }
+                                            .padding(horizontal = 18.dp, vertical = 9.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "OPEN APP SETTINGS",
+                                            color = Color.White,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             null -> Unit
         }
     }
@@ -923,7 +1616,7 @@ fun ClaySwitch(
     ) {
         Box(
             modifier = Modifier
-                .offset { androidx.compose.ui.unit.IntOffset(x = thumbOffset.roundToPx(), y = 0) }
+                .offset { IntOffset(x = thumbOffset.roundToPx(), y = 0) }
                 .size(22.dp)
                 .clayCard(
                     shape = CircleShape,
@@ -1126,6 +1819,11 @@ fun <T> ClayOptionDialog(
 // ============================================================================
 // Value formatting helpers
 // ============================================================================
+
+fun approxAudioSize(verses: Int): String {
+    val mb = (verses * 0.17).coerceAtLeast(0.8)
+    return String.format(java.util.Locale.getDefault(), "%.1f MB", mb)
+}
 
 private fun amountLabel(units: Int): String = when (units) {
     1 -> "Half a page"

@@ -872,7 +872,12 @@ class MainActivity : ComponentActivity() {
                         },
                         onAudioQuality = { store.audioQuality = it; audioQuality = it },
                         onUseLocation = { askLocation.launch(Where.PERMISSION) },
-                        onChangePosition = { screen = Screen.SETUP },
+                        onPositionChanged = { newVerse, newPage ->
+                            store.positionPage = newPage
+                            store.startVerse = newVerse
+                            position = store.positionUnit
+                            startVerse = newVerse
+                        },
                         onBack = { screen = Screen.TODAY },
                     )
                 }

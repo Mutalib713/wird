@@ -400,6 +400,10 @@ class WirdStore(context: Context) {
         get() = prefs.getString(KEY_SELECTED_TRANS, "Saheeh International") ?: "Saheeh International"
         set(value) = prefs.edit { putString(KEY_SELECTED_TRANS, value) }
 
+    var selectedReciter: String
+        get() = prefs.getString(KEY_SELECTED_RECITER, "Abu Bakr al-Shatri") ?: "Abu Bakr al-Shatri"
+        set(value) = prefs.edit { putString(KEY_SELECTED_RECITER, value) }
+
     var nightTextBrightness: Int
         get() = prefs.getInt(KEY_NIGHT_TEXT_BRIGHTNESS, 210)
         set(value) = prefs.edit { putInt(KEY_NIGHT_TEXT_BRIGHTNESS, value) }
@@ -436,6 +440,7 @@ class WirdStore(context: Context) {
         const val KEY_STREAMING_AUDIO = "streaming_audio"
         const val KEY_DOWNLOAD_AMOUNT = "download_amount"
         const val KEY_SELECTED_TRANS = "selected_translation"
+        const val KEY_SELECTED_RECITER = "selected_reciter"
         const val KEY_NIGHT_TEXT_BRIGHTNESS = "night_text_brightness"
         const val KEY_NIGHT_BG_BRIGHTNESS = "night_bg_brightness"
         const val FIELD = " | "
