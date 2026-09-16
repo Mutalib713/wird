@@ -1,26 +1,33 @@
 package com.mosman.wird.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -32,16 +39,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.mosman.wird.audio.AudioQuality
 import com.mosman.wird.audio.RecitationModel
-import com.mosman.wird.data.PlaceSource
 import com.mosman.wird.data.DataOnDevice
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.data.ThemeMode
+import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.AwayPeriod
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
@@ -52,39 +61,42 @@ import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.dayLabel
 import com.mosman.wird.domain.label
 import com.mosman.wird.nudge.Armed
-import com.mosman.wird.nudge.NudgeScheduler
 import com.mosman.wird.ui.theme.LocalWirdColors
-import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.clayCard
+import com.mosman.wird.ui.theme.clayPill
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalTime
 
-/** Which setting is open. Null means the list. */
-private enum class Detail { DIRECTION, AMOUNT, LIGHTER, MODE, REMINDER, AUDIO, THEME, DATA }
+/** Which popup modal dialog is open. Null means none. */
+private enum class SettingsDialog {
+    DOWNLOAD_AMOUNT,
+    DAILY_TARGET,
+    READING_METHOD,
+    READING_DIRECTION,
+    LIGHTER_DAYS,
+    THEME,
+    TRANSLATIONS,
+    AUDIO_QUALITY,
+    REMINDER,
+}
+
+data class DialogOption<T>(
+    val value: T,
+    val title: String,
+    val description: String,
+)
 
 /**
- * Settings.
+ * Settings screen.
  *
- * **Second rebuild, 2026-08-17**, to the design's *after* pattern — Mutalib compared both
- * and said "that one is way better". He is right, and the difference is structural.
- *
- * The first rebuild fixed the real complaint (it was unreadable, because nothing separated
- * one section from the next) but left every control inline, so the screen was long: five
- * groups of chips is something you scroll rather than scan.
- *
- * **This version collapses each setting to one row showing its current value**, with a
- * chevron to drill in and change it:
- *
- * > **Lighter days**
- * > `FRIDAY AND SUNDAY · HALF A PAGE`  ›
- *
- * The value *is* the caption. You take in the whole of settings at a glance and see what
- * everything is currently set to; only the thing you came to change costs a tap. It is what
- * iOS and Android settings do, and it is why they stay legible at forty rows where an
- * all-inline screen stops being legible at eight.
- *
- * The controls themselves are unchanged from the first rebuild — they moved into the detail
- * screens rather than being rewritten.
+ * Redesigned in tactile claymorphism with:
+ * - Circular tactile clay back button in the top bar.
+ * - Grouped clay cards with rounded 24dp surfaces, subtle highlights, and soft shadows.
+ * - Tactile clay switches for instant on/off toggles.
+ * - Modal dialog popups for multi-option settings ("like the way apps do").
+ * - Inspired by Quran for Android: orientation locks, night mode with brightness sliders,
+ *   translation preferences, and download options.
+ * - Excludes Arabic mode, new background, and dyslexia font per explicit user directive.
  */
 @Composable
 fun SettingsScreen(
@@ -93,34 +105,24 @@ fun SettingsScreen(
     positionLabel: String,
     schedule: NudgeSchedule,
     armed: Armed?,
-    /** A stretch of days with no reminders, or null. PLAN task 22. */
     away: AwayPeriod?,
-    /** Pages on this phone out of 604, and what the whole cache weighs. */
-    /** False when Android is silently swallowing every notification this app posts. */
     notificationsOn: Boolean = true,
     onFixNotifications: () -> Unit = {},
-    /** The recitation model on this phone, or null. PLAN task 14. */
     model: RecitationModel? = null,
-    /** Non-null while one is downloading: bytes done and total. */
     fetchingModel: Pair<Long, Long>? = null,
-    /** Null when this phone has no native library at all - 32-bit, or an old build. */
     onGetModel: ((RecitationModel) -> Unit)? = null,
-    /** Models already on the phone, so a second one can be tried against the first. */
     downloadedModels: List<RecitationModel> = emptyList(),
     onUseModel: (RecitationModel) -> Unit = {},
     cachedPages: Pair<Int, Long> = 0 to 0L,
-    /** Non-null while the whole mushaf is being fetched: done out of total. */
     downloading: Pair<Int, Int>? = null,
     onDownloadAll: () -> Unit = {},
     audioQuality: AudioQuality,
     readingMode: ReadingMode,
     direction: ReadingDirection = ReadingDirection.TOWARDS_NAS,
     onDirection: (ReadingDirection) -> Unit = {},
-    /** What is on the phone right now, for the sentence before you decide. */
     onDevice: DataOnDevice?,
     onExport: () -> Unit,
     onDeleteRecordings: () -> Unit,
-    /** Set after an export runs, so the screen can say what happened. */
     exportNote: String?,
     onTheme: (ThemeMode) -> Unit,
     onPlan: (ReadingPlan) -> Unit,
@@ -132,526 +134,998 @@ fun SettingsScreen(
     onChangePosition: () -> Unit,
     onBack: () -> Unit,
 ) {
-    var detail by remember { mutableStateOf<Detail?>(null) }
-    var overrideDays by remember { mutableStateOf(plan.weekdayUnits.keys) }
-    var overrideUnits by remember {
-        mutableIntStateOf(plan.weekdayUnits.values.firstOrNull() ?: 1)
-    }
+    val context = LocalContext.current
+    val store = remember(context) { WirdStore(context) }
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
 
-    fun push(default: Int = plan.defaultUnits) {
-        onPlan(
-            ReadingPlan(
-                defaultUnits = default,
-                weekdayUnits = overrideDays.associateWith { overrideUnits },
-            )
-        )
-    }
+    // Store-backed state
+    var lockOrientation by remember { mutableStateOf(store.lockOrientation) }
+    var keepAwake by remember { mutableStateOf(store.keepScreenAwake) }
+    var surahTranslated by remember { mutableStateOf(store.surahTranslatedName) }
+    var ayahBeforeTrans by remember { mutableStateOf(store.ayahBeforeTranslation) }
+    var ayahTextSize by remember { mutableIntStateOf(store.ayahTextSize) }
+    var translationTextSize by remember { mutableIntStateOf(store.translationTextSize) }
+    var streamingAudio by remember { mutableStateOf(store.streamingAudio) }
+    var downloadAmount by remember { mutableStateOf(store.downloadAmount) }
+    var selectedTrans by remember { mutableStateOf(store.selectedTranslation) }
+    var nightTextBrightness by remember { mutableIntStateOf(store.nightTextBrightness) }
+    var nightBgBrightness by remember { mutableIntStateOf(store.nightBgBrightness) }
 
-    when (val open = detail) {
-        null -> SettingsList(
-            plan = plan,
-            readingMode = readingMode,
-            direction = direction,
-            overrideDays = overrideDays,
-            overrideUnits = overrideUnits,
-            positionLabel = positionLabel,
-            schedule = schedule,
-            away = away,
-            notificationsOn = notificationsOn,
-            onFixNotifications = onFixNotifications,
-            model = model,
-            fetchingModel = fetchingModel,
-            onGetModel = onGetModel,
-            downloadedModels = downloadedModels,
-            onUseModel = onUseModel,
-            cachedPages = cachedPages,
-            downloading = downloading,
-            onDownloadAll = onDownloadAll,
-            onResume = onResume,
-            audioQuality = audioQuality,
-            theme = theme,
-            onDevice = onDevice,
-            onOpen = { detail = it },
-            onChangePosition = onChangePosition,
-            onBack = onBack,
-        )
+    // Active popup dialog state
+    var activeDialog by remember { mutableStateOf<SettingsDialog?>(null) }
 
-        else -> DetailScreen(title = open.title(), onClose = { detail = null }) {
-            when (open) {
-                Detail.AMOUNT -> {
-                    Explain("How much of the mushaf today's portion covers.")
-                    Chips(
-                        listOf(1 to "Half a page", 2 to "One page", 4 to "Two pages"),
-                        plan.defaultUnits,
-                    ) { push(default = it) }
-                    Explain("This changes today's portion too, not just tomorrow's.")
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(groundColor)
+            .statusBarsPadding(),
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Top Bar with tactile clay back button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clayCard(
+                            shape = CircleShape,
+                            backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
+                            highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                            shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                            elevation = 3.dp,
+                        )
+                        .clickable(onClick = onBack),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
 
-                Detail.LIGHTER -> {
-                    Explain("Pick the days that are heavier for you, and give them less.")
-                    Column(verticalArrangement = Arrangement.spacedBy(Scale.space1)) {
-                        DayOfWeek.entries.chunked(4).forEach { days ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
-                                days.forEach { day ->
-                                    Choice(
-                                        label = day.name.take(2).lowercase()
-                                            .replaceFirstChar(Char::titlecase),
-                                        on = day in overrideDays,
-                                    ) {
-                                        overrideDays =
-                                            if (day in overrideDays) overrideDays - day
-                                            else overrideDays + day
-                                        push()
-                                    }
+                Spacer(Modifier.width(16.dp))
+
+                Text(
+                    text = "Settings",
+                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp,
+                )
+            }
+
+            // Scrollable Settings Sections
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+
+                // 1. Display Settings
+                ClaySection(title = "Display Settings") {
+                    ClaySettingRow(
+                        title = "Lock screen orientation",
+                        subtitle = "Adaptive to current orientation mode",
+                        trailing = {
+                            ClaySwitch(
+                                checked = lockOrientation,
+                                onCheckedChange = {
+                                    lockOrientation = it
+                                    store.lockOrientation = it
+                                },
+                            )
+                        },
+                    )
+
+                    ClaySettingRow(
+                        title = "Landscape orientation",
+                        subtitle = "Always use portrait mode",
+                        trailing = {
+                            ClaySwitch(
+                                checked = lockOrientation,
+                                onCheckedChange = {
+                                    lockOrientation = it
+                                    store.lockOrientation = it
+                                },
+                            )
+                        },
+                    )
+
+                    ClaySettingRow(
+                        title = "Surah translated name",
+                        subtitle = "Show English translation beside surah name",
+                        trailing = {
+                            ClaySwitch(
+                                checked = surahTranslated,
+                                onCheckedChange = {
+                                    surahTranslated = it
+                                    store.surahTranslatedName = it
+                                },
+                            )
+                        },
+                    )
+
+                    ClaySettingRow(
+                        title = "Keep screen awake",
+                        subtitle = "Prevent screen timeout while reading or reciting",
+                        trailing = {
+                            ClaySwitch(
+                                checked = keepAwake,
+                                onCheckedChange = {
+                                    keepAwake = it
+                                    store.keepScreenAwake = it
+                                },
+                            )
+                        },
+                    )
+
+                    ClaySettingRow(
+                        title = "Theme",
+                        subtitle = themeLabel(theme),
+                        onClick = { activeDialog = SettingsDialog.THEME },
+                    )
+
+                    val nightOn = theme == ThemeMode.DARK
+                    ClaySettingRow(
+                        title = "Night mode",
+                        subtitle = "Use dark background and light fonts",
+                        trailing = {
+                            ClaySwitch(
+                                checked = nightOn,
+                                onCheckedChange = { on ->
+                                    onTheme(if (on) ThemeMode.DARK else ThemeMode.LIGHT)
+                                },
+                            )
+                        },
+                        showDivider = nightOn,
+                    )
+
+                    AnimatedVisibility(visible = nightOn) {
+                        Column(modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)) {
+                            SliderSubBox {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(
+                                        text = "Text brightness",
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        text = "$nightTextBrightness / 255",
+                                        color = Color(0xFF2D6B52),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    )
                                 }
+                                Slider(
+                                    value = nightTextBrightness.toFloat(),
+                                    onValueChange = {
+                                        nightTextBrightness = it.toInt()
+                                        store.nightTextBrightness = nightTextBrightness
+                                    },
+                                    valueRange = 50f..255f,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = Color.White,
+                                        activeTrackColor = Color(0xFF2D6B52),
+                                        inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
+                                    ),
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color(nightBgBrightness, nightBgBrightness, nightBgBrightness))
+                                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                                ) {
+                                    Text(
+                                        text = "Preview text contrast",
+                                        color = Color(nightTextBrightness, nightTextBrightness, nightTextBrightness),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                }
+                                Spacer(Modifier.height(10.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Text(
+                                        text = "Background brightness",
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        text = if (nightBgBrightness == 0) "Deep Black" else "$nightBgBrightness / 255",
+                                        color = Color(0xFF2D6B52),
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                                Slider(
+                                    value = nightBgBrightness.toFloat(),
+                                    onValueChange = {
+                                        nightBgBrightness = it.toInt()
+                                        store.nightBgBrightness = nightBgBrightness
+                                    },
+                                    valueRange = 0f..100f,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = Color.White,
+                                        activeTrackColor = Color(0xFF2D6B52),
+                                        inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
+                                    ),
+                                )
                             }
                         }
                     }
-                    if (overrideDays.isNotEmpty()) {
-                        Spacer(Modifier.height(Scale.space6))
-                        Explain("How much on those days")
-                        Chips(listOf(1 to "Half a page", 2 to "One page"), overrideUnits) {
-                            overrideUnits = it; push()
+                }
+
+                // 2. Reading Preferences
+                ClaySection(title = "Reading Preferences") {
+                    ClaySettingRow(
+                        title = "Reading position",
+                        subtitle = positionLabel,
+                        onClick = onChangePosition,
+                    )
+
+                    ClaySettingRow(
+                        title = "Daily reading target",
+                        subtitle = amountLabel(plan.defaultUnits),
+                        onClick = { activeDialog = SettingsDialog.DAILY_TARGET },
+                    )
+
+                    ClaySettingRow(
+                        title = "Reading method",
+                        subtitle = modeLabel(readingMode),
+                        onClick = { activeDialog = SettingsDialog.READING_METHOD },
+                    )
+
+                    ClaySettingRow(
+                        title = "Reading direction",
+                        subtitle = directionLabel(direction),
+                        onClick = { activeDialog = SettingsDialog.READING_DIRECTION },
+                    )
+
+                    ClaySettingRow(
+                        title = "Lighter days target",
+                        subtitle = lighterLabel(plan.weekdayUnits.keys, plan.weekdayUnits.values.firstOrNull() ?: 1),
+                        onClick = { activeDialog = SettingsDialog.LIGHTER_DAYS },
+                        showDivider = false,
+                    )
+                }
+
+                // 3. Translation Preferences
+                ClaySection(title = "Translation Preferences") {
+                    ClaySettingRow(
+                        title = "Translations",
+                        subtitle = "$selectedTrans · Download & manage",
+                        onClick = { activeDialog = SettingsDialog.TRANSLATIONS },
+                    )
+
+                    ClaySettingRow(
+                        title = "Ayah before translation",
+                        subtitle = "Show ayah in Arabic above the translation",
+                        trailing = {
+                            ClaySwitch(
+                                checked = ayahBeforeTrans,
+                                onCheckedChange = {
+                                    ayahBeforeTrans = it
+                                    store.ayahBeforeTranslation = it
+                                },
+                            )
+                        },
+                    )
+
+                    SliderSubBox {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = "Ayah text size",
+                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = "$ayahTextSize sp",
+                                color = Color(0xFF2D6B52),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
                         }
+                        Slider(
+                            value = ayahTextSize.toFloat(),
+                            onValueChange = {
+                                ayahTextSize = it.toInt()
+                                store.ayahTextSize = ayahTextSize
+                            },
+                            valueRange = 12f..32f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color.White,
+                                activeTrackColor = Color(0xFF2D6B52),
+                                inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
+                            ),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                text = "Translation text size",
+                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = "$translationTextSize sp",
+                                color = Color(0xFF2D6B52),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        Slider(
+                            value = translationTextSize.toFloat(),
+                            onValueChange = {
+                                translationTextSize = it.toInt()
+                                store.translationTextSize = translationTextSize
+                            },
+                            valueRange = 12f..26f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color.White,
+                                activeTrackColor = Color(0xFF2D6B52),
+                                inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
+                            ),
+                        )
                     }
                 }
 
-                Detail.DATA -> {
-                    Explain(
-                        "One file with your day log, your saved ayahs, your check-ins and " +
-                            "every recording. Nothing is uploaded to make it."
+                // 4. Download Options
+                ClaySection(title = "Download Options") {
+                    ClaySettingRow(
+                        title = "Streaming",
+                        subtitle = "Stream audio instead of downloading",
+                        trailing = {
+                            ClaySwitch(
+                                checked = streamingAudio,
+                                onCheckedChange = {
+                                    streamingAudio = it
+                                    store.streamingAudio = it
+                                },
+                            )
+                        },
                     )
-                    Action("Export everything", onExport)
-                    exportNote?.let { Explain(it) }
+
+                    ClaySettingRow(
+                        title = "Download amount",
+                        subtitle = "$downloadAmount · Preferred download portion",
+                        onClick = { activeDialog = SettingsDialog.DOWNLOAD_AMOUNT },
+                    )
+
+                    ClaySettingRow(
+                        title = "Audio quality",
+                        subtitle = "${audioQuality.label} · Abu Bakr al-Shatri",
+                        onClick = { activeDialog = SettingsDialog.AUDIO_QUALITY },
+                    )
+
+                    // Audio Manager / Recitation checker
+                    if (onGetModel != null) {
+                        val currentModelLabel = when {
+                            fetchingModel != null -> {
+                                val (done, total) = fetchingModel
+                                if (total > 0) "Downloading, ${done * 100 / total}%" else "Downloading…"
+                            }
+                            model != null -> "${model.label} in use"
+                            downloadedModels.isNotEmpty() -> "${downloadedModels.first().label} ready"
+                            else -> "Abu Bakr al-Shatri · Offline checker"
+                        }
+                        ClaySettingRow(
+                            title = "Audio Manager",
+                            subtitle = currentModelLabel,
+                            onClick = {
+                                val nextModel = RecitationModel.entries.firstOrNull { it !in downloadedModels }
+                                if (nextModel != null) {
+                                    onGetModel(nextModel)
+                                } else if (downloadedModels.isNotEmpty()) {
+                                    onUseModel(downloadedModels.first())
+                                }
+                            },
+                        )
+                    }
+
+                    // Mushaf pages
+                    val (pages, bytes) = cachedPages
+                    val whole = Mushaf.PAGES
+                    val pagesSubtitle = if (downloading != null) {
+                        "Downloading ${downloading.first} of ${downloading.second}…"
+                    } else {
+                        "$pages of $whole pages · ${megabytes(bytes)}"
+                    }
+                    ClaySettingRow(
+                        title = "Mushaf pages",
+                        subtitle = pagesSubtitle,
+                        onClick = {
+                            if (downloading == null && pages < whole) {
+                                onDownloadAll()
+                            }
+                        },
+                        showDivider = false,
+                    )
+                }
+
+                // 5. Reminders
+                ClaySection(title = "Reminders") {
+                    ClaySettingRow(
+                        title = "When it arrives",
+                        subtitle = schedule.label(),
+                        onClick = { activeDialog = SettingsDialog.REMINDER },
+                    )
+
+                    if (away != null) {
+                        ClaySettingRow(
+                            title = "Paused while you're away",
+                            subtitle = "Back ${dayLabel(away.returnsOn, LocalDate.now())} · tap to end",
+                            onClick = onResume,
+                        )
+                    }
+
+                    ClaySettingRow(
+                        title = "Battery optimization",
+                        subtitle = if (notificationsOn) "Notifications active · Alarms kept alive" else "Notifications off · Tap to fix",
+                        onClick = if (!notificationsOn) onFixNotifications else null,
+                        showDivider = false,
+                    )
+                }
+
+                // 6. Advanced & Data
+                ClaySection(title = "Advanced & Data") {
+                    ClaySettingRow(
+                        title = "Export everything",
+                        subtitle = exportNote ?: dataLabel(onDevice),
+                        onClick = onExport,
+                    )
 
                     if ((onDevice?.recordings ?: 0) > 0) {
-                        Spacer(Modifier.height(Scale.space4))
-                        Explain(
-                            "Recordings are the big thing here. Deleting them keeps your " +
-                                "record of having recited - only the audio goes."
+                        ClaySettingRow(
+                            title = "Clear audio recordings",
+                            subtitle = "Free up ${megabytes(onDevice?.recordingBytes ?: 0)} · Keep text records",
+                            onClick = onDeleteRecordings,
                         )
-                        Action("Delete recordings", onDeleteRecordings)
                     }
-                }
 
-                Detail.MODE -> {
-                    Explain(
-                        "Changes what the buttons are called. Reciting aloud is still how " +
-                            "a day gets marked, either way."
+                    ClaySettingRow(
+                        title = "About Wird",
+                        subtitle = "v1.0 · Zero guilt · Chat on WhatsApp",
+                        onClick = {},
+                        showDivider = false,
                     )
-                    Chips3(
-                        listOf(
-                            "From the mushaf" to (readingMode == ReadingMode.READING),
-                            "From memory" to (readingMode == ReadingMode.MEMORISING),
-                        ),
-                    ) { i ->
-                        onReadingMode(
-                            if (i == 0) ReadingMode.READING else ReadingMode.MEMORISING
-                        )
-                    }
                 }
 
-                Detail.DIRECTION -> {
-                    Explain(
-                        "Most people reading front to back go towards An-Nas. Most people " +
-                            "memorising work backwards, towards Al-Baqarah. This decides where " +
-                            "tomorrow's portion comes from."
-                    )
-                    Chips3(
-                        listOf(
-                            "Upwards, towards Al-Fatihah" to (direction == ReadingDirection.TOWARDS_FATIHAH),
-                            "Downwards, towards An-Nas" to (direction == ReadingDirection.TOWARDS_NAS),
-                        )
-                    ) { i ->
-                        onDirection(
-                            if (i == 0) ReadingDirection.TOWARDS_FATIHAH else ReadingDirection.TOWARDS_NAS
-                        )
-                    }
-                }
-
-                Detail.REMINDER -> {
-                    Explain(reminderCaption(schedule, armed))
-                    Chips3(
-                        listOf(
-                            "After a prayer" to (schedule is NudgeSchedule.AfterPrayer),
-                            "At a set time" to (schedule is NudgeSchedule.AtClockTime),
-                            "Off" to (schedule is NudgeSchedule.Off),
-                        )
-                    ) { i ->
-                        onSchedule(
-                            when (i) {
-                                0 -> NudgeSchedule.Default
-                                1 -> NudgeSchedule.AtClockTime(NudgeScheduler.FALLBACK_TIME)
-                                else -> NudgeSchedule.Off
-                            }
-                        )
-                    }
-
-                    when (schedule) {
-                        is NudgeSchedule.AfterPrayer -> {
-                            Spacer(Modifier.height(Scale.space6))
-                            Explain("Which prayer")
-                            Column(verticalArrangement = Arrangement.spacedBy(Scale.space1)) {
-                                Prayer.entries.chunked(3).forEach { row ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
-                                        row.forEach { p ->
-                                            Choice(p.label, schedule.prayer == p) {
-                                                onSchedule(schedule.copy(prayer = p))
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            Spacer(Modifier.height(Scale.space6))
-                            Explain("How long after")
-                            Chips(
-                                listOf(0 to "At it", 15 to "15 min", 30 to "30 min", 60 to "An hour"),
-                                schedule.offsetMinutes,
-                            ) { onSchedule(schedule.copy(offsetMinutes = it)) }
-
-                            if (wantsLocation(armed)) {
-                                Spacer(Modifier.height(Scale.space6))
-                                Explain("Sunset needs a rough location. It never leaves the phone.")
-                                Action("Let Wird check where I am", onUseLocation)
-                            }
-                        }
-
-                        is NudgeSchedule.AtClockTime -> {
-                            Spacer(Modifier.height(Scale.space6))
-                            Explain("What time")
-                            Row(
-                                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(Scale.space1),
-                            ) {
-                                (4..23).forEach { hour ->
-                                    val at = LocalTime.of(hour, 0)
-                                    Choice(shortClock(at), schedule.time.hour == hour) {
-                                        onSchedule(NudgeSchedule.AtClockTime(at))
-                                    }
-                                }
-                            }
-                        }
-
-                        is NudgeSchedule.Off -> Unit
-                    }
-                }
-
-                Detail.AUDIO -> {
-                    Explain(
-                        "Abu Bakr al-Shatri. Downloaded once, then it plays with no signal " +
-                            "at all — so the only cost is the first listen."
-                    )
-                    Chips3(AudioQuality.entries.map { it.label to (it == audioQuality) }) { i ->
-                        onAudioQuality(AudioQuality.entries[i])
-                    }
-                    Spacer(Modifier.height(Scale.space4))
-                    Explain(AudioQuality.entries.joinToString("   ") { "${it.label}: ${it.perPageMb}" })
-                }
-
-                Detail.THEME -> {
-                    Explain("Dark is easier at night. The mushaf page stays readable either way.")
-                    Chips3(
-                        listOf(
-                            "Light" to (theme == ThemeMode.LIGHT),
-                            "Dark" to (theme == ThemeMode.DARK),
-                            "Match phone" to (theme == ThemeMode.SYSTEM),
-                        )
-                    ) { i -> onTheme(listOf(ThemeMode.LIGHT, ThemeMode.DARK, ThemeMode.SYSTEM)[i]) }
-                }
+                Spacer(Modifier.height(32.dp))
             }
+        }
+
+        // ====================================================================
+        // Tactile Clay Dialog Popups
+        // ====================================================================
+
+        when (activeDialog) {
+            SettingsDialog.DOWNLOAD_AMOUNT -> {
+                ClayOptionDialog(
+                    title = "Download amount",
+                    options = listOf(
+                        DialogOption("Page", "Page", "Download audio for current page only"),
+                        DialogOption("Surah", "Surah", "Download audio for entire chapter"),
+                        DialogOption("Juz", "Juz", "Download audio for full 20-page section"),
+                    ),
+                    selected = downloadAmount,
+                    onSelect = {
+                        downloadAmount = it
+                        store.downloadAmount = it
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.DAILY_TARGET -> {
+                ClayOptionDialog(
+                    title = "Daily reading target",
+                    options = listOf(
+                        DialogOption(1, "Half a page", "Light daily portion"),
+                        DialogOption(2, "1 page", "Recommended daily portion"),
+                        DialogOption(4, "2 pages", "Faster completion pace"),
+                    ),
+                    selected = plan.defaultUnits,
+                    onSelect = { units ->
+                        onPlan(plan.copy(defaultUnits = units))
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.READING_METHOD -> {
+                ClayOptionDialog(
+                    title = "Reading method",
+                    options = listOf(
+                        DialogOption(ReadingMode.READING, "From the mushaf", "Reading with printed text open"),
+                        DialogOption(ReadingMode.MEMORISING, "From memory", "Reciting from memory (Hifdh revision)"),
+                    ),
+                    selected = readingMode,
+                    onSelect = onReadingMode,
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.READING_DIRECTION -> {
+                ClayOptionDialog(
+                    title = "Reading direction",
+                    options = listOf(
+                        DialogOption(ReadingDirection.TOWARDS_NAS, "Towards An-Nas", "Front to back (standard reading)"),
+                        DialogOption(ReadingDirection.TOWARDS_FATIHAH, "Towards Al-Fatihah", "Back to front (standard for revision)"),
+                    ),
+                    selected = direction,
+                    onSelect = onDirection,
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.LIGHTER_DAYS -> {
+                val currentPreset = when {
+                    plan.weekdayUnits.isEmpty() -> 0
+                    plan.weekdayUnits.keys == setOf(DayOfWeek.FRIDAY) -> 1
+                    plan.weekdayUnits.keys == setOf(DayOfWeek.FRIDAY, DayOfWeek.SUNDAY) -> 2
+                    else -> 3
+                }
+                ClayOptionDialog(
+                    title = "Lighter days target",
+                    options = listOf(
+                        DialogOption(0, "None", "Every day has the same target"),
+                        DialogOption(1, "Friday (Half a page)", "Lighter on Jumu'ah"),
+                        DialogOption(2, "Friday & Sunday (Half a page)", "Lighter on weekends"),
+                        DialogOption(3, "Thursday & Friday (Half a page)", "Pre-weekend and Jumu'ah"),
+                    ),
+                    selected = currentPreset,
+                    onSelect = { preset ->
+                        val newPlan = when (preset) {
+                            1 -> plan.copy(weekdayUnits = mapOf(DayOfWeek.FRIDAY to 1))
+                            2 -> plan.copy(weekdayUnits = mapOf(DayOfWeek.FRIDAY to 1, DayOfWeek.SUNDAY to 1))
+                            3 -> plan.copy(weekdayUnits = mapOf(DayOfWeek.THURSDAY to 1, DayOfWeek.FRIDAY to 1))
+                            else -> plan.copy(weekdayUnits = emptyMap())
+                        }
+                        onPlan(newPlan)
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.THEME -> {
+                ClayOptionDialog(
+                    title = "Theme",
+                    options = listOf(
+                        DialogOption(ThemeMode.LIGHT, "Warm Cream", "Sanctuary light daytime palette"),
+                        DialogOption(ThemeMode.DARK, "Night Dark", "Deep dark green nighttime palette"),
+                        DialogOption(ThemeMode.SYSTEM, "Match Phone", "Follow system dark mode toggle"),
+                    ),
+                    selected = theme,
+                    onSelect = onTheme,
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.TRANSLATIONS -> {
+                ClayOptionDialog(
+                    title = "Translations",
+                    options = listOf(
+                        DialogOption("Saheeh International", "Saheeh International", "Standard contemporary English"),
+                        DialogOption("The Clear Quran", "The Clear Quran", "Dr. Mustafa Khattab · Fluent thematic modern English"),
+                        DialogOption("Yusuf Ali", "Yusuf Ali", "Classic English translation"),
+                    ),
+                    selected = selectedTrans,
+                    onSelect = {
+                        selectedTrans = it
+                        store.selectedTranslation = it
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.AUDIO_QUALITY -> {
+                ClayOptionDialog(
+                    title = "Audio quality",
+                    options = listOf(
+                        DialogOption(AudioQuality.LIGHT, "Standard (64 kbps)", "1.1 MB / page · Recommended for mobile data"),
+                        DialogOption(AudioQuality.BETTER, "High (128 kbps)", "2.3 MB / page · Best sound quality"),
+                    ),
+                    selected = audioQuality,
+                    onSelect = onAudioQuality,
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.REMINDER -> {
+                val currentRemIndex = when (schedule) {
+                    is NudgeSchedule.AfterPrayer -> when (schedule.prayer) {
+                        Prayer.MAGHRIB -> 0
+                        Prayer.ISHA -> 1
+                        Prayer.FAJR -> 2
+                        else -> 0
+                    }
+                    is NudgeSchedule.AtClockTime -> if (schedule.time.hour == 20) 3 else 4
+                    is NudgeSchedule.Off -> 5
+                }
+                ClayOptionDialog(
+                    title = "When it arrives",
+                    options = listOf(
+                        DialogOption(0, "After Maghrib", "15 minutes after sunset"),
+                        DialogOption(1, "After 'Isha", "Quiet night reading before sleep"),
+                        DialogOption(2, "After Fajr", "Start of the morning"),
+                        DialogOption(3, "Fixed time: 8:00 PM", "Every day at 8:00 PM"),
+                        DialogOption(4, "Fixed time: 9:00 PM", "Every day at 9:00 PM"),
+                        DialogOption(5, "Off", "No reminders"),
+                    ),
+                    selected = currentRemIndex,
+                    onSelect = { idx ->
+                        val newSchedule = when (idx) {
+                            0 -> NudgeSchedule.AfterPrayer(Prayer.MAGHRIB, 15)
+                            1 -> NudgeSchedule.AfterPrayer(Prayer.ISHA, 15)
+                            2 -> NudgeSchedule.AfterPrayer(Prayer.FAJR, 15)
+                            3 -> NudgeSchedule.AtClockTime(java.time.LocalTime.of(20, 0))
+                            4 -> NudgeSchedule.AtClockTime(java.time.LocalTime.of(21, 0))
+                            else -> NudgeSchedule.Off
+                        }
+                        onSchedule(newSchedule)
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            null -> Unit
         }
     }
 }
 
-private fun Detail.title(): String = when (this) {
-    Detail.DIRECTION -> "Which way you go"
-    Detail.AMOUNT -> "How much a day"
-    Detail.LIGHTER -> "Lighter days"
-    Detail.MODE -> "How you read"
-    Detail.REMINDER -> "The reminder"
-    Detail.AUDIO -> "Listening"
-    Detail.THEME -> "How it looks"
-    Detail.DATA -> "Your data"
-}
-
-// ---- the list ----
+// ============================================================================
+// Tactile Claymorphism UI Components
+// ============================================================================
 
 @Composable
-private fun SettingsList(
-    plan: ReadingPlan,
-    readingMode: ReadingMode,
-    direction: ReadingDirection,
-    overrideDays: Set<DayOfWeek>,
-    overrideUnits: Int,
-    positionLabel: String,
-    schedule: NudgeSchedule,
-    away: AwayPeriod?,
-    notificationsOn: Boolean,
-    onFixNotifications: () -> Unit,
-    model: RecitationModel?,
-    fetchingModel: Pair<Long, Long>?,
-    onGetModel: ((RecitationModel) -> Unit)?,
-    downloadedModels: List<RecitationModel>,
-    onUseModel: (RecitationModel) -> Unit,
-    cachedPages: Pair<Int, Long>,
-    downloading: Pair<Int, Int>?,
-    onDownloadAll: () -> Unit,
-    onResume: () -> Unit,
-    audioQuality: AudioQuality,
-    theme: ThemeMode,
-    onDevice: DataOnDevice?,
-    onOpen: (Detail) -> Unit,
-    onChangePosition: () -> Unit,
-    onBack: () -> Unit,
+fun ClaySection(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
 ) {
     val colors = LocalWirdColors.current
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Scale.space4),
-    ) {
-        Spacer(Modifier.height(Scale.space6))
-        Text("Settings", color = colors.textPrimary, style = TextStyle(fontSize = Scale.display))
-        Spacer(Modifier.height(Scale.space4))
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
 
-        Group("Reading") {
-            ValueRow("How much a day", amountLabel(plan.defaultUnits)) { onOpen(Detail.AMOUNT) }
-            Divider()
-            ValueRow("How you read", modeLabel(readingMode)) { onOpen(Detail.MODE) }
-            Divider()
-            // **His instruction, 2026-08-19: this belongs beside the memorise question**, and
-            // he is right that they are one decision. Memorisers overwhelmingly work from the
-            // back towards Al-Baqarah; readers overwhelmingly go front to back. Asking them
-            // together is asking one thing twice from two angles.
-            ValueRow("Which way you go", directionLabel(direction)) { onOpen(Detail.DIRECTION) }
-            Divider()
-            ValueRow("Lighter days", lighterLabel(overrideDays, overrideUnits)) {
-                onOpen(Detail.LIGHTER)
-            }
-            Divider()
-            ValueRow("Where you are", positionLabel, onClick = onChangePosition)
-        }
-
-        Group("The reminder") {
-            // ⚠ **Found on his own phone, 2026-08-19: notifications were OFF for Wird.**
-            // POST_NOTIFICATIONS denied and importance=NONE, which means every nudge this app
-            // has armed since install fired into nothing. The alarms were real; Android threw
-            // the notification away at the last step.
-            //
-            // **A reminder app that cannot post is broken, not merely quiet**, and it has no
-            // way to discover that on its own — posting reports success either way. So the one
-            // screen where someone goes to check their reminder says it out loud, first, before
-            // the setting they came to adjust.
-            if (!notificationsOn) {
-                ValueRow(
-                    title = "Notifications are off",
-                    value = "Reminders can't arrive · fix",
-                    onClick = onFixNotifications,
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = title.uppercase(),
+            color = if (isDark) Color(0xFF8FA597) else Color(0xFF245847),
+            fontSize = 11.5.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.2.sp,
+            modifier = Modifier.padding(start = 6.dp, bottom = 8.dp),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clayCard(
+                    shape = RoundedCornerShape(24.dp),
+                    backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
+                    highlightColor = Color.White.copy(alpha = if (isDark) 0.08f else 0.95f),
+                    shadowColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
+                    elevation = 4.dp,
                 )
-                Divider()
-            }
-            ValueRow("When it arrives", schedule.label()) { onOpen(Detail.REMINDER) }
-
-            // **A pause has to be visible somewhere you did not have to type.** PLAN task
-            // 22: "I'm travelling till Sunday" stops the reminder for days, and a silence
-            // with no explanation on screen is indistinguishable from the app being broken
-            // - which is exactly what task 15's self-check is built to detect. It ends here
-            // too, because a pause you can only undo with the right sentence is a trap.
-            if (away != null) {
-                Divider()
-                ValueRow(
-                    "Paused while you're away",
-                    "Back ${dayLabel(away.returnsOn, LocalDate.now())} · tap to end",
-                    onClick = onResume,
-                )
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+        ) {
+            Column {
+                content()
             }
         }
-
-        // ---- what is actually on this phone ----
-        //
-        // **His instruction, 2026-08-19**, after pointing at how Quran for Android works:
-        // *"when you first open the app it downloads the pages for you... for the audio and
-        // models the user has to download it themselves."*
-        //
-        // Wird already fetched pages and audio one at a time as they were needed, which is the
-        // right default on Ghanaian data. What it had no way of saying was **"get it all now"**,
-        // so anybody about to lose signal could not prepare, and nothing on screen said what was
-        // already here. A cache you cannot see is one you cannot trust.
-        Group("On this phone") {
-            val (pages, bytes) = cachedPages
-            val whole = com.mosman.wird.domain.Mushaf.PAGES
-            ValueRow(
-                title = "Mushaf pages",
-                value = if (downloading != null) {
-                    "Getting ${downloading.first} of ${downloading.second}…"
-                } else {
-                    "$pages of $whole · ${megabytes(bytes)}"
-                },
-                onClick = if (downloading == null && pages < whole) onDownloadAll else ({}),
-            )
-            if (downloading == null && pages < whole) {
-                Explain(
-                    "Pages arrive as you read them. Tap to fetch the whole mushaf now — about " +
-                        "${(whole - pages) * 154 / 1024} MB, best on wifi, and then it reads offline."
-                )
-            }
-
-            // ---- the recitation model ----
-            //
-            // **His terms, 2026-08-19:** *"for the audio and models the user has to download it
-            // themselves"*, and asked which size, *"offer both, let each person choose"*. So
-            // both sit here with their weight on the label, and neither is fetched for anyone.
-            //
-            // ⚠ **The row is absent entirely when the phone cannot run it**, rather than
-            // present and disabled. A 32-bit handset gets no native library, and offering a
-            // 42 MB download that could never work is worse than not mentioning it.
-            if (onGetModel != null) {
-                Divider()
-                if (fetchingModel != null) {
-                    val (done, total) = fetchingModel
-                    ValueRow(
-                        title = "Recitation checker",
-                        value = if (total > 0) {
-                            "Downloading, ${done * 100 / total}% · see the notification"
-                        } else {
-                            "Downloading ${done / 1024 / 1024} MB · see the notification"
-                        },
-                        onClick = {},
-                    )
-                } else {
-                    // **Every model, downloaded or not, in one list.** Tapping one that is here
-                    // switches to it; tapping one that is not fetches it. That is what makes
-                    // the two comparable, which is the whole point of offering both.
-                    RecitationModel.entries.forEach { option ->
-                        val here = option in downloadedModels
-                        ValueRow(
-                            title = option.label,
-                            value = when {
-                                option == model -> "in use"
-                                here -> "on this phone · tap to use"
-                                else -> "${option.megabytes} MB · download"
-                            },
-                            onClick = { if (here) onUseModel(option) else onGetModel(option) },
-                        )
-                    }
-                    Explain(
-                        if (model == null) {
-                            "Optional. Download one and Wird can listen to what you recited, " +
-                                "on the phone, with nothing uploaded. Best on wifi."
-                        } else {
-                            "It listens on the phone and nothing is uploaded. It hears the " +
-                                "words; it is not a judge of tajweed."
-                        }
-                    )
-                }
-            }
-        }
-
-        Group("Listening") {
-            ValueRow("Audio quality", "${audioQuality.label} · ${audioQuality.perPageMb}") {
-                onOpen(Detail.AUDIO)
-            }
-        }
-
-        Group("How it looks") {
-            ValueRow("Theme", themeLabel(theme)) { onOpen(Detail.THEME) }
-        }
-
-        // **PLAN task 19.** Sacred Rule 1 promises nothing leaves the phone; this is the other
-        // half of that promise, because private and trapped are otherwise the same thing.
-        Group("Your data") {
-            ValueRow("Export everything", dataLabel(onDevice)) { onOpen(Detail.DATA) }
-        }
-
-        Spacer(Modifier.height(Scale.space6))
-        Action("Back to today's portion", onBack)
-        Spacer(Modifier.height(Scale.space8))
     }
 }
 
-/**
- * One row: what it is, what it is currently set to, and a way in.
- *
- * The value line is small-caps rather than sentence case so it reads as *state* rather than
- * as an instruction — you are being told the setting, not asked something.
- */
 @Composable
-private fun ValueRow(title: String, value: String, onClick: () -> Unit) {
+fun ClaySettingRow(
+    title: String,
+    subtitle: String,
+    onClick: (() -> Unit)? = null,
+    trailing: @Composable (() -> Unit)? = null,
+    showDivider: Boolean = true,
+) {
     val colors = LocalWirdColors.current
-    Row(
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .defaultMinSize(minHeight = Scale.minTarget)
-            .padding(Scale.space4),
-        verticalAlignment = Alignment.CenterVertically,
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(vertical = 12.dp, horizontal = 2.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = colors.textPrimary,
-                style = TextStyle(fontSize = Scale.body, fontWeight = FontWeight.Medium),
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = value.uppercase(),
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = 11.5.sp, letterSpacing = 0.7.sp),
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 12.dp),
+            ) {
+                Text(
+                    text = title,
+                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(2.5.dp))
+                Text(
+                    text = subtitle,
+                    color = if (isDark) Color(0xFF9CAFA4) else Color(0xFF6A7C73),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                )
+            }
+            if (trailing != null) {
+                trailing()
+            } else if (onClick != null) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = if (isDark) Color(0xFF557766) else Color(0xFF9CAFA4),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            // The row is already labelled by its title and value; naming the chevron too
-            // would make TalkBack read a third thing that means nothing on its own.
-            contentDescription = null,
-            tint = colors.textOutsidePortion,
-            modifier = Modifier.size(20.dp),
+    }
+    if (showDivider) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(if (isDark) Color(0xFF1B2E24) else Color(0xFFF1ECE1)),
         )
     }
 }
 
 @Composable
-private fun DetailScreen(title: String, onClose: () -> Unit, body: @Composable () -> Unit) {
-    val colors = LocalWirdColors.current
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Scale.space4),
+fun ClaySwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val thumbOffset by animateDpAsState(
+        targetValue = if (checked) 20.dp else 2.dp,
+        label = "switchThumb",
+    )
+    val trackBg = if (checked) Color(0xFF2D6B52) else Color(0xFFD8D2C4)
+
+    Box(
+        modifier = modifier
+            .size(width = 46.dp, height = 26.dp)
+            .clip(RoundedCornerShape(13.dp))
+            .background(trackBg)
+            .clickable { onCheckedChange(!checked) },
+        contentAlignment = Alignment.CenterStart,
     ) {
-        Spacer(Modifier.height(Scale.space4))
-        Row(
+        Box(
             modifier = Modifier
-                .clickable(onClick = onClose)
-                .defaultMinSize(minHeight = Scale.minTarget)
-                .padding(vertical = Scale.space2, horizontal = Scale.space1),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back to settings",
-                tint = colors.accent,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(Modifier.height(0.dp))
-            Text(
-                text = "  Settings",
-                color = colors.accent,
-                style = TextStyle(fontSize = Scale.body),
-            )
-        }
-        Spacer(Modifier.height(Scale.space4))
-        Text(title, color = colors.textPrimary, style = TextStyle(fontSize = Scale.display))
-        Spacer(Modifier.height(Scale.space6))
-        body()
-        Spacer(Modifier.height(Scale.space8))
+                .offset { androidx.compose.ui.unit.IntOffset(x = thumbOffset.roundToPx(), y = 0) }
+                .size(22.dp)
+                .clayCard(
+                    shape = CircleShape,
+                    backgroundColor = Color.White,
+                    highlightColor = Color.White.copy(alpha = 0.95f),
+                    shadowColor = Color.Black.copy(alpha = 0.35f),
+                    elevation = 2.dp,
+                    strokeWidth = 0.5.dp,
+                ),
+        )
     }
 }
 
-// ---- value summaries ----
+@Composable
+fun SliderSubBox(
+    content: @Composable () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isDark) Color(0xFF0F1A15) else Color(0xFFF8F5EE))
+            .border(1.dp, if (isDark) Color(0xFF1B2E24) else Color(0xFFEBE4D5), RoundedCornerShape(16.dp))
+            .padding(14.dp),
+    ) {
+        Column {
+            content()
+        }
+    }
+}
+
+@Composable
+fun <T> ClayOptionDialog(
+    title: String,
+    options: List<DialogOption<T>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    var currentChoice by remember(selected) { mutableStateOf(selected) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(onClick = onDismiss)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(28.dp),
+                        backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.95f),
+                        shadowColor = Color.Black.copy(alpha = 0.35f),
+                        elevation = 16.dp,
+                    )
+                    .clickable(enabled = false) {}
+                    .padding(22.dp),
+            ) {
+                Column {
+                    Text(
+                        text = title,
+                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.3).sp,
+                        modifier = Modifier.padding(bottom = 16.dp, start = 2.dp),
+                    )
+
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        options.forEach { opt ->
+                            val isSelected = opt.value == currentChoice
+                            val itemBg = if (isSelected) {
+                                if (isDark) Color(0xFF1E382B) else Color(0xFFE8F4EC)
+                            } else {
+                                if (isDark) Color(0xFF0F1A15) else Color(0xFFF8F5EE)
+                            }
+                            val borderColor = if (isSelected) {
+                                Color(0xFF2D6B52)
+                            } else {
+                                if (isDark) Color(0xFF1B2E24) else Color(0xFFEBE4D5)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(itemBg)
+                                    .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+                                    .clickable {
+                                        currentChoice = opt.value
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                // Radio circle
+                                Box(
+                                    modifier = Modifier
+                                        .size(22.dp)
+                                        .border(
+                                            width = 2.dp,
+                                            color = if (isSelected) Color(0xFF2D6B52) else Color(0xFF9CAFA4),
+                                            shape = CircleShape,
+                                        )
+                                        .background(if (isDark) Color(0xFF14221B) else Color.White, CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    if (isSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .background(Color(0xFF2D6B52), CircleShape),
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.width(14.dp))
+                                Column {
+                                    Text(
+                                        text = opt.title,
+                                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    if (opt.description.isNotEmpty()) {
+                                        Spacer(Modifier.height(1.dp))
+                                        Text(
+                                            text = opt.description,
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                                            fontSize = 12.sp,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(18.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        // Cancel button
+                        Box(
+                            modifier = Modifier
+                                .clayPill(
+                                    backgroundColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFEDE8DD),
+                                    elevation = 2.dp,
+                                )
+                                .clickable(onClick = onDismiss)
+                                .padding(horizontal = 18.dp, vertical = 9.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "CANCEL",
+                                color = if (isDark) Color(0xFFB0C4B8) else Color(0xFF556C60),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        // Select button
+                        Box(
+                            modifier = Modifier
+                                .clayPill(
+                                    backgroundColor = Color(0xFF2D6B52),
+                                    elevation = 3.dp,
+                                )
+                                .clickable {
+                                    onSelect(currentChoice)
+                                    onDismiss()
+                                }
+                                .padding(horizontal = 20.dp, vertical = 9.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "SELECT",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Value formatting helpers
+// ============================================================================
 
 private fun amountLabel(units: Int): String = when (units) {
     1 -> "Half a page"
@@ -660,7 +1134,6 @@ private fun amountLabel(units: Int): String = when (units) {
     else -> "$units half-pages"
 }
 
-/** "Friday and Sunday · half a page", or "None" — the shape the design used. */
 private fun lighterLabel(days: Set<DayOfWeek>, units: Int): String {
     if (days.isEmpty()) return "None"
     val names = DayOfWeek.entries.filter { it in days }.map { d ->
@@ -675,180 +1148,25 @@ private fun lighterLabel(days: Set<DayOfWeek>, units: Int): String {
 }
 
 private fun themeLabel(theme: ThemeMode): String = when (theme) {
-    ThemeMode.LIGHT -> "Light"
-    ThemeMode.DARK -> "Dark"
+    ThemeMode.LIGHT -> "Warm Cream"
+    ThemeMode.DARK -> "Night Dark"
     ThemeMode.SYSTEM -> "Match phone"
 }
 
-// ---- pieces ----
-
-@Composable
-private fun Group(title: String, content: @Composable () -> Unit) {
-    val colors = LocalWirdColors.current
-    Spacer(Modifier.height(Scale.space6))
-    Text(
-        text = title.uppercase(),
-        color = colors.textSecondary,
-        style = TextStyle(fontSize = 11.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.Medium),
-        modifier = Modifier.padding(start = Scale.space2, bottom = Scale.space2),
-    )
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Scale.radius))
-            .background(colors.surfaceRaised.copy(alpha = 0.35f)),
-    ) { content() }
-}
-
-@Composable
-private fun Explain(text: String) {
-    val colors = LocalWirdColors.current
-    Text(
-        text = text,
-        color = colors.textSecondary,
-        style = TextStyle(fontSize = Scale.caption),
-        modifier = Modifier.padding(bottom = Scale.space3),
-    )
-}
-
-@Composable
-private fun Divider() {
-    val colors = LocalWirdColors.current
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Scale.space4)
-            .height(1.dp)
-            .background(colors.textOutsidePortion.copy(alpha = 0.22f))
-    )
-}
-
-@Composable
-private fun Chips(options: List<Pair<Int, String>>, selected: Int, onPick: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
-        options.forEach { (value, label) -> Choice(label, value == selected) { onPick(value) } }
-    }
-}
-
-@Composable
-private fun Chips3(options: List<Pair<String, Boolean>>, onPick: (Int) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Scale.space1)) {
-        options.forEachIndexed { i, (label, on) -> Choice(label, on) { onPick(i) } }
-    }
-}
-
-@Composable
-private fun Action(label: String, onClick: () -> Unit) {
-    val colors = LocalWirdColors.current
-    Text(
-        text = label,
-        color = colors.accent,
-        style = TextStyle(fontSize = Scale.body),
-        modifier = Modifier
-            .clip(RoundedCornerShape(Scale.radius))
-            .clickable(onClick = onClick)
-            .defaultMinSize(minHeight = Scale.minTarget)
-            .padding(vertical = Scale.space3, horizontal = Scale.space2),
-    )
-}
-
-/**
- * Selection carried by a filled ground rather than by colour alone — the palette is a
- * value ramp, so a "selected" colour would read as the same colour.
- */
-@Composable
-private fun Choice(label: String, on: Boolean, onPick: () -> Unit) {
-    val colors = LocalWirdColors.current
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(Scale.radius))
-            .background(if (on) colors.done else Color.Transparent)
-            .clickable(onClick = onPick)
-            .defaultMinSize(minHeight = Scale.minTarget)
-            .padding(horizontal = Scale.space3, vertical = Scale.space2),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = if (on) colors.onSurfaceRaised else colors.textSecondary,
-            style = TextStyle(
-                fontSize = Scale.body,
-                fontWeight = if (on) FontWeight.Medium else FontWeight.Normal,
-            ),
-        )
-    }
-}
-
-// ---- copy ----
-
-/** Bytes as something a person can weigh a download against. */
-private fun megabytes(bytes: Long): String =
-    if (bytes < 1024L * 1024L) "${bytes / 1024} KB"
-    else String.format(java.util.Locale.getDefault(), "%.1f MB", bytes / 1024.0 / 1024.0)
-
-/** His words on screen; the code's names say where you end up. See [ReadingDirection]. */
-private fun directionLabel(direction: ReadingDirection): String = when (direction) {
-    ReadingDirection.TOWARDS_FATIHAH -> "Upwards, towards Al-Fatihah"
-    ReadingDirection.TOWARDS_NAS -> "Downwards, towards An-Nas"
-}
-
-private fun wantsLocation(armed: Armed?): Boolean = when (armed) {
-    is Armed.AtFallback -> true
-    is Armed.At -> armed.source == PlaceSource.TIMEZONE
-    else -> false
-}
-
-private fun reminderCaption(schedule: NudgeSchedule, armed: Armed?): String {
-    val drift = if (armed.isInexact()) " Android may let it drift a few minutes." else ""
-    return when (schedule) {
-        is NudgeSchedule.Off -> "Nothing will arrive. Turn it back on whenever you want."
-        is NudgeSchedule.AtClockTime -> "${schedule.label()}, every day.$drift"
-        is NudgeSchedule.AfterPrayer -> when (armed) {
-            is Armed.AtFallback ->
-                "Wird can't work out sunset without knowing roughly where you are, so it " +
-                    "will come at ${shortClockLong(NudgeScheduler.FALLBACK_TIME)} until it does.$drift"
-            else -> "It follows the sun, so it stays right all year.$drift"
-        }
-    }
-}
-
-private fun Armed?.isInexact(): Boolean = when (this) {
-    is Armed.At -> !exact
-    is Armed.AtFallback -> !exact
-    else -> false
-}
-
-private fun shortClock(time: LocalTime): String {
-    val hour = if (time.hour % 12 == 0) 12 else time.hour % 12
-    return "$hour${if (time.hour < 12) "am" else "pm"}"
-}
-
-private fun shortClockLong(time: LocalTime): String {
-    val hour = if (time.hour % 12 == 0) 12 else time.hour % 12
-    return "$hour:%02d %s".format(time.minute, if (time.hour < 12) "am" else "pm")
-}
-
-/** "Ya-Sin 5, page 440" — where the app thinks you are, in words. */
-fun positionLabelFor(startVerse: Pair<Int, Int>?, page: Int): String {
-    val surah = startVerse?.let { SurahIndex.byNumber(it.first) }
-        ?: SurahIndex.on(page).firstOrNull()
-    val name = surah?.name ?: "Page $page"
-    return when {
-        startVerse != null && surah != null -> "$name ${startVerse.second}, page $page"
-        else -> "$name, page $page"
-    }
-}
-
-/** Guards against a stored page outside the mushaf, however it got there. */
-fun clampPage(page: Int): Int = page.coerceIn(1, Mushaf.PAGES)
-
-/** "From the mushaf" / "From memory", for the settings value row. */
 private fun modeLabel(mode: ReadingMode): String = when (mode) {
     ReadingMode.READING -> "From the mushaf"
     ReadingMode.MEMORISING -> "From memory"
 }
 
-/** "3 recordings, 1.2 MB" - or the honest nothing, when there is nothing yet. */
+private fun directionLabel(direction: ReadingDirection): String = when (direction) {
+    ReadingDirection.TOWARDS_FATIHAH -> "Towards Al-Fatihah"
+    ReadingDirection.TOWARDS_NAS -> "Towards An-Nas"
+}
+
+private fun megabytes(bytes: Long): String =
+    if (bytes < 1024L * 1024L) "${bytes / 1024} KB"
+    else String.format(java.util.Locale.getDefault(), "%.1f MB", bytes / 1024.0 / 1024.0)
+
 private fun dataLabel(d: DataOnDevice?): String {
     if (d == null) return "Checking…"
     if (d.days == 0 && d.recordings == 0) return "Nothing recorded yet"
@@ -859,3 +1177,15 @@ private fun dataLabel(d: DataOnDevice?): String {
     val recs = if (d.recordings == 1) "1 recording" else "${d.recordings} recordings"
     return "$days · $recs · $size"
 }
+
+fun positionLabelFor(startVerse: Pair<Int, Int>?, page: Int): String {
+    val surah = startVerse?.let { SurahIndex.byNumber(it.first) }
+        ?: SurahIndex.on(page).firstOrNull()
+    val name = surah?.name ?: "Page $page"
+    return when {
+        startVerse != null && surah != null -> "$name ${startVerse.second}, page $page"
+        else -> "$name, page $page"
+    }
+}
+
+fun clampPage(page: Int): Int = page.coerceIn(1, Mushaf.PAGES)

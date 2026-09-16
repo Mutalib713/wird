@@ -364,6 +364,50 @@ class WirdStore(context: Context) {
             }
         }
 
+    var lockOrientation: Boolean
+        get() = prefs.getBoolean(KEY_LOCK_ORIENTATION, false)
+        set(value) = prefs.edit { putBoolean(KEY_LOCK_ORIENTATION, value) }
+
+    var keepScreenAwake: Boolean
+        get() = prefs.getBoolean(KEY_KEEP_AWAKE, true)
+        set(value) = prefs.edit { putBoolean(KEY_KEEP_AWAKE, value) }
+
+    var surahTranslatedName: Boolean
+        get() = prefs.getBoolean(KEY_SURAH_TRANSLATED, true)
+        set(value) = prefs.edit { putBoolean(KEY_SURAH_TRANSLATED, value) }
+
+    var ayahBeforeTranslation: Boolean
+        get() = prefs.getBoolean(KEY_AYAH_BEFORE_TRANS, true)
+        set(value) = prefs.edit { putBoolean(KEY_AYAH_BEFORE_TRANS, value) }
+
+    var ayahTextSize: Int
+        get() = prefs.getInt(KEY_AYAH_TEXT_SIZE, 15)
+        set(value) = prefs.edit { putInt(KEY_AYAH_TEXT_SIZE, value) }
+
+    var translationTextSize: Int
+        get() = prefs.getInt(KEY_TRANS_TEXT_SIZE, 15)
+        set(value) = prefs.edit { putInt(KEY_TRANS_TEXT_SIZE, value) }
+
+    var streamingAudio: Boolean
+        get() = prefs.getBoolean(KEY_STREAMING_AUDIO, false)
+        set(value) = prefs.edit { putBoolean(KEY_STREAMING_AUDIO, value) }
+
+    var downloadAmount: String
+        get() = prefs.getString(KEY_DOWNLOAD_AMOUNT, "Page") ?: "Page"
+        set(value) = prefs.edit { putString(KEY_DOWNLOAD_AMOUNT, value) }
+
+    var selectedTranslation: String
+        get() = prefs.getString(KEY_SELECTED_TRANS, "Saheeh International") ?: "Saheeh International"
+        set(value) = prefs.edit { putString(KEY_SELECTED_TRANS, value) }
+
+    var nightTextBrightness: Int
+        get() = prefs.getInt(KEY_NIGHT_TEXT_BRIGHTNESS, 210)
+        set(value) = prefs.edit { putInt(KEY_NIGHT_TEXT_BRIGHTNESS, value) }
+
+    var nightBgBrightness: Int
+        get() = prefs.getInt(KEY_NIGHT_BG_BRIGHTNESS, 0)
+        set(value) = prefs.edit { putInt(KEY_NIGHT_BG_BRIGHTNESS, value) }
+
     private companion object {
         const val PREFS = "wird_position"
         const val KEY_UNIT = "position_unit"
@@ -383,6 +427,17 @@ class WirdStore(context: Context) {
         const val KEY_PAGE_NIGHT = "page_night"
         const val KEY_DIRECTION = "reading_direction"
         const val KEY_MODEL = "recitation_model"
+        const val KEY_LOCK_ORIENTATION = "lock_orientation"
+        const val KEY_KEEP_AWAKE = "keep_screen_awake"
+        const val KEY_SURAH_TRANSLATED = "surah_translated_name"
+        const val KEY_AYAH_BEFORE_TRANS = "ayah_before_translation"
+        const val KEY_AYAH_TEXT_SIZE = "ayah_text_size"
+        const val KEY_TRANS_TEXT_SIZE = "translation_text_size"
+        const val KEY_STREAMING_AUDIO = "streaming_audio"
+        const val KEY_DOWNLOAD_AMOUNT = "download_amount"
+        const val KEY_SELECTED_TRANS = "selected_translation"
+        const val KEY_NIGHT_TEXT_BRIGHTNESS = "night_text_brightness"
+        const val KEY_NIGHT_BG_BRIGHTNESS = "night_bg_brightness"
         const val FIELD = " | "
         const val AWAY_SEP = ".."
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
