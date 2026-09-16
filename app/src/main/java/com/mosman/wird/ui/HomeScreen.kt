@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -48,6 +47,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -63,7 +63,6 @@ import com.mosman.wird.domain.Turn
 import com.mosman.wird.domain.surahs
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
-import com.mosman.wird.ui.theme.TileColors
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 import kotlinx.coroutines.delay
@@ -120,11 +119,13 @@ fun HomeScreen(
     menu: @Composable () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.surface)
+            .background(groundColor)
             .verticalScroll(rememberScrollState()),
     ) {
         // Atmospheric Dawn Mosque Header (reference design)
@@ -143,7 +144,7 @@ fun HomeScreen(
                 .fillMaxWidth()
                 .offset(y = (-14).dp)
                 .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .background(colors.surface)
+                .background(groundColor)
                 .padding(horizontal = 16.dp, vertical = 6.dp),
         ) {
             var cardIndex = 0
@@ -152,18 +153,17 @@ fun HomeScreen(
                 PortionCard(assignment, doneMethod, onOpenPage, onMarkRead, mode, onOpenInQuran)
             }
 
-            // Sacred Rule 3: someone who has read today does not need asking whether they are going to
-            if (doneMethod == null) {
-                Spacer(Modifier.height(Scale.space4))
-                StaggeredEnter(index = cardIndex++) {
-                    Companion(
-                        question = companionQuestion(),
-                        turns = turns,
-                        shortcuts = listOf("After Isha", "In an hour", "Not today"),
-                        onReply = onSaid,
-                        onOpenChat = onOpenChat,
-                    )
-                }
+            // Companion is always visible on the Home Screen
+            Spacer(Modifier.height(Scale.space4))
+            StaggeredEnter(index = cardIndex++) {
+                Companion(
+                    question = companionQuestion(doneMethod != null),
+                    turns = turns,
+                    shortcuts = listOf("After 'Isha", "In an hour", "Not today"),
+                    onReply = onSaid,
+                    onOpenChat = onOpenChat,
+                    isDone = doneMethod != null,
+                )
             }
 
             progress?.let { p ->
@@ -233,29 +233,29 @@ private fun StaggeredEnter(
 private fun Plate(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
-    val cardBg = if (isDark) Color(0xFF19241E) else Color(0xFFFFFFFF)
-    val highlight = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.75f)
-    val shadow = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF7D725E).copy(alpha = 0.18f)
+    val cardBg = if (isDark) Color(0xFF111E18) else Color(0xFFFFFFFF)
+    val highlight = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.95f)
+    val shadow = if (isDark) Color.Black.copy(alpha = 0.6f) else Color(0xFF8C7D6B).copy(alpha = 0.28f)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clayCard(
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(24.dp),
                 backgroundColor = cardBg,
                 highlightColor = highlight,
                 shadowColor = shadow,
-                elevation = 6.dp,
+                elevation = 7.dp,
+                strokeWidth = 1.5.dp,
             )
             .padding(18.dp),
     ) { content() }
 }
 
 /**
- * Today's portion, as his comps arrange it.
- *
- * The order is theirs: the label, the medallion with the sūrah's own numeral, the name, the
- * state, the start page and how far through, then the four ways to act.
+ * Today's portion, matching the user's approved reference design.
+ * Features the squircle Arabic medallion, title & verses, 3 clay stat boxes,
+ * dual-counter progress bar, and 4 tactile action tiles (Record in dark forest green).
  */
 @Composable
 private fun PortionCard(
@@ -278,37 +278,84 @@ private fun PortionCard(
     val percent = (fraction * 100).toInt()
 
     Plate {
-        Label(if (doneMethod == null) "Today's portion" else "Today, done")
-        Spacer(Modifier.height(Scale.space3))
+        // Card header row with status pill
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (doneMethod == null) "TODAY'S PORTION" else "TODAY, DONE",
+                color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp),
+            )
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF162620) else Color(0xFFF1EDE1),
+                        elevation = 1.dp,
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF8ED676) else Color(0xFF245847))
+                    )
+                    Text(
+                        text = when (doneMethod) {
+                            Method.RECITED -> "Recited aloud"
+                            Method.TAPPED -> "Marked as read"
+                            null -> "Not yet marked"
+                        },
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                    )
+                }
+            }
+        }
 
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            surah?.let { Medallion(it.number) }
-            Spacer(Modifier.width(Scale.space4))
+        Spacer(Modifier.height(12.dp))
+
+        // Sūrah row: Medallion (Arabic number) + Name + Details (NO book illustration)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Medallion(surah?.number ?: 1)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = name,
-                    color = colors.textPrimary,
-                    style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                    color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                    style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif),
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = portionDetail(assignment, doneMethod),
-                    color = colors.textSecondary,
-                    style = TextStyle(fontSize = Scale.caption),
+                    text = surah?.let { "${it.name} · Verses 1–${it.lastPage * 15}" } ?: portionDetail(assignment, doneMethod),
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                    style = TextStyle(fontSize = 11.5.sp),
                 )
             }
         }
 
         Spacer(Modifier.height(14.dp))
 
-        // 3 Clay stat boxes (1 page, start page, % through)
+        // 3 Clay stat boxes (1 page, start page, % through mushaf)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ClayStatPill(
-                value = if (assignment.units == 1) "1 page" else "${assignment.units} pages",
-                label = "Today's goal",
+                value = if (assignment.units <= 2) "1 page" else "${assignment.units / 2} pages",
+                label = "Daily amount",
                 modifier = Modifier.weight(1f),
             )
             ClayStatPill(
@@ -318,8 +365,9 @@ private fun PortionCard(
             )
             ClayStatPill(
                 value = "$percent%",
-                label = surah?.let { "Through ${it.name}" } ?: "Progress",
-                modifier = Modifier.weight(1.1f),
+                label = "Of mushaf",
+                valueColor = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                modifier = Modifier.weight(1f),
             )
         }
 
@@ -332,73 +380,73 @@ private fun PortionCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "p. ${assignment.startPage}",
-                fontSize = 11.sp,
+                text = "Page ${assignment.startPage} of 604",
+                fontSize = 10.5.sp,
                 fontWeight = FontWeight.Medium,
-                color = colors.textSecondary,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
             )
             Text(
-                text = surah?.let { "p. ${it.lastPage}" } ?: "p. 604",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                color = colors.textSecondary,
+                text = "${(604 - assignment.startPage).coerceAtLeast(0)} pages left",
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
             )
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(5.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(7.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(if (isDark) Color(0xFF132019) else Color(0xFFE5EDE8)),
+                .clip(RoundedCornerShape(999.dp))
+                .background(if (isDark) Color(0xFF1B2722) else Color(0xFFE6DFCF)),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(fraction.coerceAtLeast(0.04f))
                     .height(7.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(colors.accent),
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(if (isDark) Color(0xFF68BD5B) else Color(0xFF245847)),
             )
         }
 
         Spacer(Modifier.height(16.dp))
 
-        // ---- the four ways to act ----
+        // ---- the four tactile action tiles ----
         val done = doneMethod != null
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ActionTile(
-                tile = colors.recite,
                 label = reciteLabel(mode),
                 glyph = { MicGlyph(it) },
+                isPrimary = true,
                 modifier = Modifier.weight(1f),
                 onClick = onOpenPage,
             )
             ActionTile(
-                tile = colors.read,
-                label = if (done) doneLabel(doneMethod) else tapLabel(mode),
+                label = if (done) doneLabel(doneMethod) else "Mark Done",
                 glyph = { tint ->
-                    Icon(Icons.Filled.Check, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Filled.Check, contentDescription = null, tint = tint, modifier = Modifier.size(19.dp))
                 },
+                isPrimary = false,
                 enabled = !done,
                 modifier = Modifier.weight(1f),
                 onClick = onMarkRead,
             )
             ActionTile(
-                tile = colors.listen,
                 label = "Listen",
                 glyph = { tint ->
                     Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
                 },
+                isPrimary = false,
                 modifier = Modifier.weight(1f),
                 onClick = onOpenPage,
             )
             ActionTile(
-                tile = colors.openPage,
                 label = "Mushaf",
                 glyph = { BookGlyph(it) },
+                isPrimary = false,
                 modifier = Modifier.weight(1f),
                 onClick = onOpenPage,
             )
@@ -438,121 +486,120 @@ private fun ClayStatPill(
     value: String,
     label: String,
     modifier: Modifier = Modifier,
+    valueColor: Color? = null,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val textColor = valueColor ?: (if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D))
     Column(
         modifier = modifier
             .clayCard(
                 shape = RoundedCornerShape(14.dp),
-                backgroundColor = if (isDark) Color(0xFF13221B) else Color(0xFFF4F7F5),
-                highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.7f),
-                shadowColor = Color.Black.copy(alpha = if (isDark) 0.4f else 0.08f),
+                backgroundColor = if (isDark) Color(0xFF16241E) else Color(0xFFF7F4EB),
+                highlightColor = Color.White.copy(alpha = if (isDark) 0.08f else 0.8f),
+                shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.16f),
                 elevation = 2.dp,
+                strokeWidth = 1.dp,
             )
-            .padding(horizontal = 6.dp, vertical = 8.dp),
+            .padding(horizontal = 6.dp, vertical = 9.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = value,
-            fontSize = 13.sp,
+            fontSize = 13.5.sp,
             fontWeight = FontWeight.Bold,
-            color = colors.textPrimary,
+            color = textColor,
             maxLines = 1,
         )
         Spacer(Modifier.height(2.dp))
         Text(
             text = label,
-            fontSize = 9.5.sp,
-            color = colors.textSecondary,
+            fontSize = 10.sp,
+            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
             maxLines = 1,
         )
     }
 }
 
 /**
- * One action, as a tinted tile.
- *
- * ⚠ **The tint cannot carry this on its own** — § 6e measured every fill at 1.01-1.05:1
- * against the plate behind it. The hairline gives it an edge and the coloured glyph gives it
- * an identity; the tint is atmosphere. Colour is never the only signal: the label says what
- * the tile does in words.
+ * One action tile.
+ * Matches the reference: Record is primary forest green (#1E3F32) with white ink,
+ * other tiles are warm cream (#F7F3E8) with dark green (#245847) ink.
  */
 @Composable
 private fun ActionTile(
-    tile: TileColors,
     label: String,
     glyph: @Composable (Color) -> Unit,
     modifier: Modifier = Modifier,
+    isPrimary: Boolean = false,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val bg = when {
+        isPrimary -> if (isDark) Color(0xFF1B4537) else Color(0xFF1E3F32)
+        else -> if (isDark) Color(0xFF16241E) else Color(0xFFF7F3E8)
+    }
+    val ink = when {
+        isPrimary -> Color.White
+        else -> if (isDark) Color(0xFFBAD3C5) else Color(0xFF245847)
+    }
+    val highlight = if (isPrimary) Color.White.copy(alpha = 0.25f) else Color.White.copy(alpha = if (isDark) 0.12f else 0.85f)
+    val shadow = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0xFF8C7D6B).copy(alpha = 0.16f)
+
     Column(
         modifier = modifier
             .clayCard(
                 shape = RoundedCornerShape(16.dp),
-                backgroundColor = if (enabled) tile.fill else tile.fill.copy(alpha = 0.5f),
-                highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.55f),
-                shadowColor = Color.Black.copy(alpha = if (isDark) 0.4f else 0.12f),
-                elevation = 3.dp,
+                backgroundColor = if (enabled) bg else bg.copy(alpha = 0.5f),
+                highlightColor = highlight,
+                shadowColor = shadow,
+                elevation = 4.dp,
+                strokeWidth = 1.dp,
             )
             .clickable(enabled = enabled, onClick = onClick)
             .defaultMinSize(minHeight = 84.dp)
-            .padding(horizontal = Scale.space1, vertical = Scale.space3),
+            .padding(horizontal = 4.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        glyph(if (enabled) tile.ink else colors.textSecondary)
-        Spacer(Modifier.height(Scale.space2))
+        glyph(if (enabled) ink else ink.copy(alpha = 0.4f))
+        Spacer(Modifier.height(6.dp))
         Text(
             text = label,
-            color = colors.onSurfaceRaised,
+            color = if (enabled) ink else ink.copy(alpha = 0.4f),
             textAlign = TextAlign.Center,
-            style = TextStyle(fontSize = 11.sp, lineHeight = 14.sp),
+            style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold, lineHeight = 13.sp),
         )
     }
 }
 
 /**
- * The sūrah's number, in the numerals the mushaf itself uses.
- *
- * His comps ring it in a scalloped medallion. The scallop is drawn rather than shipped as an
- * asset — twelve arcs on a circle costs nothing to download, which the Ghana floor cares
- * about more than it cares about the difference between a drawn ring and a traced one.
+ * The sūrah's number in Arabic numerals inside a mint squircle medallion.
  */
 @Composable
 private fun Medallion(number: Int) {
     val colors = LocalWirdColors.current
-    Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val r = size.minDimension / 2f
-
-            // ⚠ **Beads, not ticks — and the first attempt got this wrong.** Twelve short
-            // strokes pointing inward from a ring is a clock face, which is what it read as
-            // on the emulator: a clock sitting where a sūrah number should be, on a screen
-            // that is otherwise about time. Beads sit ON the ring instead of pointing across
-            // it, and nothing about them suggests an hour.
-            drawCircle(
-                color = colors.accent.copy(alpha = 0.22f),
-                radius = r - 2.dp.toPx(),
-                style = Stroke(width = 1.dp.toPx()),
-            )
-            repeat(8) { i ->
-                rotate(degrees = i * 45f) {
-                    drawCircle(
-                        color = colors.accent.copy(alpha = 0.38f),
-                        radius = 1.6.dp.toPx(),
-                        center = Offset(center.x, center.y - r + 2.dp.toPx()),
-                    )
-                }
-            }
-        }
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clayCard(
+                shape = RoundedCornerShape(14.dp),
+                backgroundColor = if (isDark) Color(0xFF1A2B24) else Color(0xFFEDF5F0),
+                highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.85f),
+                shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFFA0B9AA).copy(alpha = 0.35f),
+                elevation = 3.dp,
+                strokeWidth = 1.dp,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
         Text(
             text = arabicNumerals(number),
-            color = colors.accent,
-            style = TextStyle(fontSize = 26.sp),
+            color = if (isDark) Color(0xFF93DB7A) else Color(0xFF174233),
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
         )
     }
 }
@@ -764,153 +811,169 @@ private fun ThroughTheMushaf(assignment: Assignment) {
  * sentence, and they are right — an older row put "5 RECITED" directly above "5 recited
  * aloud, 18 marked as read", which is one number said twice in two shapes.
  */
+/**
+ * The two numbers, plus the split, in the approved clay layout.
+ */
 @Composable
 private fun NumbersCard(p: Progress) {
     val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     Plate {
-        Label("Your numbers")
-        Spacer(Modifier.height(Scale.space3))
-
-        // **Day one is a real state and it gets a real sentence.** Sacred Rule 3: it says
-        // what will fill the card, not what is missing from it. "No data" is a fact about
-        // the app; "today would be your first" is a fact about the reader.
-        if (p.totalDaysRead == 0) {
-            Text(
-                text = "Nothing recorded yet. Finish today and this becomes day one.",
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption, lineHeight = 20.sp),
-            )
-            return@Plate
-        }
-
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            // **The streak always shows, even at zero.** It used to appear only above 1,
-            // so the card silently changed shape on the second day and a reader on day one
-            // never saw the thing the app is asking them to build. Sacred Rule 4 is why it
-            // is safe to show a nought: it never appears without total days read beside it.
-            Figure(
-                value = p.currentStreak.toString(),
-                caption = if (p.currentStreak == 1) "Day streak" else "Day streak",
-                modifier = Modifier.weight(1f),
-                glyph = { FlameGlyph(it) },
-            )
-            VerticalHair()
-            Figure(
-                value = p.totalDaysRead.toString(),
-                caption = if (p.totalDaysRead == 1) "Day read" else "Total days read",
-                modifier = Modifier.weight(1f),
-                glyph = { BookGlyph(it) },
-            )
-            VerticalHair()
-            Column(modifier = Modifier.weight(1.2f)) {
-                Text(
-                    text = "${p.recitedDays} recited aloud,",
-                    color = colors.textSecondary,
-                    style = TextStyle(fontSize = Scale.caption),
-                )
-                Text(
-                    text = "${p.tappedDays} marked as read.",
-                    color = colors.textSecondary,
-                    style = TextStyle(fontSize = Scale.caption),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun Figure(
-    value: String,
-    caption: String,
-    modifier: Modifier = Modifier,
-    glyph: (@Composable (Color) -> Unit)? = null,
-) {
-    val colors = LocalWirdColors.current
-    Column(modifier = modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            glyph?.let {
-                it(colors.accent)
-                Spacer(Modifier.width(Scale.space2))
-            }
-            Text(
-                text = value,
-                color = colors.accent,
-                style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Medium),
-            )
-        }
-        Text(
-            text = caption,
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = 11.sp),
-        )
-    }
-}
-
-/**
- * A flame, for the streak. **Taken, not drawn — after two attempts that read as water.**
- *
- * The first was a symmetrical teardrop, which is literally a water droplet, on a card about
- * a reading streak. The second leaned and carried the S-curve that separates fire from water
- * and was still a blob at 16dp. PROFILE.md § 5ag's rule got its third proof, so this is Font
- * Awesome Free's `fire-flame-curved`, CC BY 4.0, about 1KB. See `res/drawable/ic_flame.xml`.
- *
- * His comp uses an emoji here and this does not: emoji in UI chrome renders differently on
- * every phone, the gate blocks it, and a tinted vector takes the accent colour in both themes.
- */
-@Composable
-private fun FlameGlyph(tint: Color) {
-    Icon(
-        painter = painterResource(R.drawable.ic_flame),
-        contentDescription = null,
-        tint = tint,
-        modifier = Modifier.size(17.dp),
-    )
-}
-
-/**
- * The last few days, with the page each one covered.
- *
- * **Two things that make this a table rather than loose lines**, both kept from the build
- * § 5o corrected: ruled rows, and a left marker per row — **filled for a recitation, hollow
- * for a tap.** Sacred Rule 6 says the two are never blurred, and colour is not the only thing
- * saying which: the words are right there.
- */
-@Composable
-private fun ThisWeekCard(recent: List<DayLog>, pageFor: (LocalDate) -> Int?) {
-    val colors = LocalWirdColors.current
-    val shown = recent.take(4)
-
-    Plate {
-        if (shown.isEmpty()) {
-            Label("This week")
-            Spacer(Modifier.height(Scale.space3))
-            Text(
-                text = "The days you finish will be listed here, newest first.",
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption, lineHeight = 20.sp),
-            )
-            return@Plate
-        }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Label("This week")
             Text(
-                text = if (shown.size == 1) "Last day" else "Last ${shown.size} days",
-                color = colors.textSecondary,
+                text = "YOUR NUMBERS",
+                color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp),
+            )
+            Text(
+                text = "Overall progress",
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
                 style = TextStyle(fontSize = 11.sp),
             )
         }
-        Spacer(Modifier.height(Scale.space3))
+        Spacer(Modifier.height(14.dp))
 
-        // 7 circular day tracker beads (past 7 days ending today)
-        val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
-        val today = LocalDate.now()
-        val last7Days = remember { (6 downTo 0).map { today.minusDays(it.toLong()) } }
-        val completedDates = remember(recent) { recent.map { it.date }.toSet() }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            // Col 1: Streak
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FlameGlyph(tint = if (isDark) Color(0xFFF9C86A) else Color(0xFFE07A2A))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "${p.currentStreak}",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "Day streak",
+                    fontSize = 11.sp,
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                )
+            }
+
+            // Vertical divider
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(36.dp)
+                    .background(if (isDark) Color(0xFF24362E) else Color(0xFFEAE4D5))
+            )
+
+            // Col 2: Total days read
+            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BookGlyph(if (isDark) Color(0xFF8ED676) else Color(0xFF245847))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "${p.totalDaysRead}",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                    )
+                }
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "Total days read",
+                    fontSize = 11.sp,
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                )
+            }
+
+            // Vertical divider
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(36.dp)
+                    .background(if (isDark) Color(0xFF24362E) else Color(0xFFEAE4D5))
+            )
+
+            // Col 3: Split
+            Column(modifier = Modifier.weight(1.3f).padding(start = 12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    MicGlyph(if (isDark) Color(0xFF8ED676) else Color(0xFF245847))
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "${p.recitedDays} recited aloud",
+                        fontSize = 11.sp,
+                        color = if (isDark) Color(0xFFBAD3C5) else Color(0xFF556C60),
+                        maxLines = 1,
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "${p.tappedDays} marked as read",
+                        fontSize = 11.sp,
+                        color = if (isDark) Color(0xFFBAD3C5) else Color(0xFF556C60),
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FlameGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Icon(
+        painter = painterResource(R.drawable.ic_flame),
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier.size(18.dp),
+    )
+}
+
+/**
+ * This week card featuring exclusively the 7 circular day tracker beads.
+ * Past day rows have been cleanly removed as requested.
+ */
+@Composable
+private fun ThisWeekCard(recent: List<DayLog>, pageFor: (LocalDate) -> Int?) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val today = LocalDate.now()
+    val last7Days = remember { (6 downTo 0).map { today.minusDays(it.toLong()) } }
+    val completedDates = remember(recent) { recent.map { it.date }.toSet() }
+    val completedInWeek = remember(completedDates, last7Days) {
+        last7Days.count { it in completedDates }
+    }
+
+    Plate {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "THIS WEEK",
+                color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp),
+            )
+            Text(
+                text = "$completedInWeek of 7 days completed",
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                style = TextStyle(fontSize = 11.sp),
+            )
+        }
+        Spacer(Modifier.height(14.dp))
 
         Row(
             modifier = Modifier
@@ -922,34 +985,37 @@ private fun ThisWeekCard(recent: List<DayLog>, pageFor: (LocalDate) -> Int?) {
             last7Days.forEach { date ->
                 val isDone = date in completedDates
                 val isToday = date == today
-                val dayInitial = date.dayOfWeek.name.take(1)
+                val dayLabel = date.dayOfWeek.name.take(3).lowercase().replaceFirstChar { it.uppercase() }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = dayInitial,
-                        fontSize = 11.sp,
-                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isToday) colors.accent else colors.textSecondary,
+                        text = dayLabel,
+                        fontSize = 10.5.sp,
+                        fontWeight = if (isToday) FontWeight.Bold else FontWeight.SemiBold,
+                        color = when {
+                            isToday -> if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                            else -> if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73)
+                        },
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(6.dp))
                     Box(
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(34.dp)
                             .clip(CircleShape)
                             .then(
                                 when {
                                     isDone -> Modifier
-                                        .background(colors.accent)
+                                        .background(Color(0xFF245847))
                                         .clayPill(
                                             shape = CircleShape,
-                                            backgroundColor = colors.accent,
+                                            backgroundColor = Color(0xFF245847),
                                             elevation = 2.dp,
                                         )
                                     isToday -> Modifier
-                                        .border(1.5.dp, colors.accent, CircleShape)
-                                        .background(colors.accent.copy(alpha = 0.12f))
+                                        .border(1.5.dp, if (isDark) Color(0xFF8ED676) else Color(0xFF245847), CircleShape)
+                                        .background((if (isDark) Color(0xFF8ED676) else Color(0xFF245847)).copy(alpha = 0.12f))
                                     else -> Modifier
-                                        .background(if (isDark) Color(0xFF16231D) else Color(0xFFE8EFEA))
+                                        .background(if (isDark) Color(0xFF17241F) else Color(0xFFEAE4D5))
                                 }
                             ),
                         contentAlignment = Alignment.Center,
@@ -966,82 +1032,20 @@ private fun ThisWeekCard(recent: List<DayLog>, pageFor: (LocalDate) -> Int?) {
                                 modifier = Modifier
                                     .size(6.dp)
                                     .clip(CircleShape)
-                                    .background(colors.accent)
+                                    .background(if (isDark) Color(0xFF8ED676) else Color(0xFF245847))
                             )
                         } else {
                             Text(
                                 text = "·",
-                                fontSize = 14.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = colors.textSecondary.copy(alpha = 0.6f),
+                                color = if (isDark) Color(0xFF556C60) else Color(0xFF8A9990),
                             )
                         }
                     }
                 }
             }
         }
-
-        Spacer(Modifier.height(Scale.space3))
-        Hairline()
-        Spacer(Modifier.height(Scale.space2))
-
-        shown.forEachIndexed { i, log ->
-            if (i > 0) Hairline()
-            val recited = log.method == Method.RECITED
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = Scale.space3),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(3.dp)
-                        .height(30.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .then(
-                            if (recited) {
-                                Modifier.background(colors.accent)
-                            } else {
-                                Modifier.border(1.dp, colors.accent.copy(alpha = 0.6f), RoundedCornerShape(2.dp))
-                            }
-                        )
-                )
-                Spacer(Modifier.width(Scale.space3))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = dayName(log.date),
-                        color = colors.textPrimary,
-                        style = TextStyle(fontSize = 15.sp),
-                    )
-                    Text(
-                        text = if (recited) "Recited aloud" else "Marked as read",
-                        color = if (recited) colors.accent else colors.textSecondary,
-                        style = TextStyle(fontSize = 12.sp),
-                    )
-                }
-                pageFor(log.date)?.let { page ->
-                    Text(
-                        text = "Page $page",
-                        color = colors.textSecondary,
-                        style = TextStyle(fontSize = 12.sp),
-                    )
-                }
-                Spacer(Modifier.width(Scale.space1))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = colors.textSecondary.copy(alpha = 0.6f),
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-
-        Spacer(Modifier.height(Scale.space2))
-        Text(
-            // Sacred Rule 3, said out loud rather than merely implemented.
-            text = "Days you missed aren't listed. There is no row saying you failed.",
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = 11.sp),
-        )
     }
 }
 
@@ -1087,10 +1091,15 @@ private fun greeting(): String = when (LocalTime.now().hour) {
     else -> "Good evening"
 }
 
-private fun companionQuestion(): String = when (LocalTime.now().hour) {
-    in 0..11 -> "Reading this morning?"
-    in 12..16 -> "Reading today?"
-    else -> "Are you reading tonight?"
+private fun companionQuestion(isDone: Boolean = false): String {
+    if (isDone) {
+        return "Alhamdulillah on finishing today! How did your portion feel?"
+    }
+    return when (LocalTime.now().hour) {
+        in 0..11 -> "Will you read today's portion before Dhuhr prayer?"
+        in 12..16 -> "Reading your portion this afternoon?"
+        else -> "Are you reading tonight?"
+    }
 }
 
 /** What the read tile says once the day is already finished. */
@@ -1143,13 +1152,4 @@ private fun portionDetail(a: Assignment, doneMethod: Method?): String {
         null -> "not yet marked"
     }
     return listOfNotNull(amount, span, state).joinToString(" · ")
-}
-
-private fun dayName(date: LocalDate): String {
-    val today = LocalDate.now()
-    return when (date) {
-        today -> "Today"
-        today.minusDays(1) -> "Yesterday"
-        else -> date.format(DateTimeFormatter.ofPattern("EEEE"))
-    }
 }

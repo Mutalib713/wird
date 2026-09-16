@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -285,61 +283,6 @@ fun AtmosphericHeader(
                         }
                     }
                 }
-            }
-
-            Spacer(Modifier.height(18.dp))
-
-            // Al-Fātihah position pill button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clayPill(
-                        shape = RoundedCornerShape(999.dp),
-                        backgroundColor = Color(0xFF143026).copy(alpha = 0.88f),
-                        highlightColor = Color.White.copy(alpha = 0.25f),
-                        shadowColor = Color.Black.copy(alpha = 0.45f),
-                    )
-                    .clickable(onClick = onOpenPosition)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF245847)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.LocationOn,
-                            contentDescription = null,
-                            tint = Color(0xFF8ED676),
-                            modifier = Modifier.size(15.dp),
-                        )
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = positionText,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFFFFFF),
-                        )
-                        Text(
-                            text = "Your current position",
-                            fontSize = 10.5.sp,
-                            color = Color(0xFFA5BAAF),
-                        )
-                    }
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = Color(0xFFC0D3C9),
-                    modifier = Modifier.size(18.dp),
-                )
             }
 
             Spacer(Modifier.height(16.dp))
