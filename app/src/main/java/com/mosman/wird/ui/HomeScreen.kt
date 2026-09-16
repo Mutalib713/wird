@@ -819,6 +819,8 @@ private fun ThroughTheMushaf(assignment: Assignment) {
 private fun NumbersCard(p: Progress) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val aloudRatio = if (p.totalDaysRead > 0) (p.recitedDays * 100) / p.totalDaysRead else 0
+
     Plate {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -841,25 +843,25 @@ private fun NumbersCard(p: Progress) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceAround,
         ) {
             // Col 1: Streak
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    FlameGlyph(tint = if (isDark) Color(0xFFF9C86A) else Color(0xFFE07A2A))
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "${p.currentStreak}",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
-                    )
-                }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "🔥 ${p.currentStreak}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isDark) Color(0xFFE67E22) else Color(0xFFD35400),
+                )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Day streak",
-                    fontSize = 11.sp,
-                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                    text = "Day Streak",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                 )
             }
 
@@ -867,27 +869,27 @@ private fun NumbersCard(p: Progress) {
             Box(
                 modifier = Modifier
                     .width(1.dp)
-                    .height(36.dp)
-                    .background(if (isDark) Color(0xFF24362E) else Color(0xFFEAE4D5))
+                    .height(30.dp)
+                    .background(if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFF8C7D6B).copy(alpha = 0.2f))
             )
 
             // Col 2: Total days read
-            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    BookGlyph(if (isDark) Color(0xFF8ED676) else Color(0xFF245847))
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "${p.totalDaysRead}",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
-                    )
-                }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "📖 ${p.totalDaysRead}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32),
+                )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Total days read",
-                    fontSize = 11.sp,
-                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                    text = "Total Days",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                 )
             }
 
@@ -895,38 +897,28 @@ private fun NumbersCard(p: Progress) {
             Box(
                 modifier = Modifier
                     .width(1.dp)
-                    .height(36.dp)
-                    .background(if (isDark) Color(0xFF24362E) else Color(0xFFEAE4D5))
+                    .height(30.dp)
+                    .background(if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFF8C7D6B).copy(alpha = 0.2f))
             )
 
-            // Col 3: Split
-            Column(modifier = Modifier.weight(1.3f).padding(start = 12.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    MicGlyph(if (isDark) Color(0xFF8ED676) else Color(0xFF245847))
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "${p.recitedDays} recited aloud",
-                        fontSize = 11.sp,
-                        color = if (isDark) Color(0xFFBAD3C5) else Color(0xFF556C60),
-                        maxLines = 1,
-                    )
-                }
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Filled.Check,
-                        contentDescription = null,
-                        tint = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
-                        modifier = Modifier.size(14.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "${p.tappedDays} marked as read",
-                        fontSize = 11.sp,
-                        color = if (isDark) Color(0xFFBAD3C5) else Color(0xFF556C60),
-                        maxLines = 1,
-                    )
-                }
+            // Col 3: Aloud Ratio
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "🎙️ $aloudRatio%",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (isDark) Color(0xFF50A773) else Color(0xFF245847),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "Aloud Ratio",
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                )
             }
         }
     }

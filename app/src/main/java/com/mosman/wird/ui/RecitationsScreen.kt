@@ -180,17 +180,18 @@ fun RecitationsScreen(
                         .background(if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFF8C7D6B).copy(alpha = 0.2f)),
                 )
 
-                // Recited Aloud
+                val aloudRatio = if (progress.totalDaysRead > 0) (progress.recitedDays * 100) / progress.totalDaysRead else 0
+                // Aloud Ratio
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "🎙️ ${progress.recitedDays}",
+                        text = "🎙️ $aloudRatio%",
                         color = if (isDark) Color(0xFF50A773) else Color(0xFF2D7A56),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "Recited Aloud",
+                        text = "Aloud Ratio",
                         color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium,
