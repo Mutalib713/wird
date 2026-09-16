@@ -740,7 +740,9 @@ class MainActivity : ComponentActivity() {
                         WirdTab.HISTORY -> RecitationsScreen(
                             logs = days.all(),
                             audioFor = { d -> days.audioFor(d) },
+                            coveredFor = { d -> days.coveredOn(d) },
                             onPlay = { f -> playback.play(f) },
+                            onStop = { playback.stopPlaying() },
                         )
                       }
 

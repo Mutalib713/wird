@@ -30,6 +30,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import com.mosman.wird.domain.Juz
 import com.mosman.wird.domain.JuzIndex
 import com.mosman.wird.domain.RevealedIn
@@ -38,6 +46,8 @@ import com.mosman.wird.domain.listLabel
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.clayCard
+import com.mosman.wird.ui.theme.arabicNumerals
 
 /**
  * Search and pick a surah.
@@ -58,10 +68,13 @@ fun SurahList(
      * where a bare page means nothing, like setup, and the row is then not tappable.
      */
     onOpenPage: ((Int) -> Unit)? = null,
+    searchQuery: String? = null,
+    contentPadding: PaddingValues = PaddingValues(bottom = 100.dp),
 ) {
     val colors = LocalWirdColors.current
-    var query by remember { mutableStateOf("") }
-    val matches = remember(query) { searchSurahs(query) }
+    var internalQuery by remember { mutableStateOf("") }
+    val effectiveQuery = searchQuery ?: internalQuery
+    val matches = remember(effectiveQuery) { searchSurahs(effectiveQuery) }
 
     // Null while searching. Computed once per query rather than per row: a surah belongs to
     // the juz' its FIRST page falls in, which is what puts Al-Mu'minun, An-Nur and Al-Furqan
@@ -72,8 +85,8 @@ fun SurahList(
     // juz 1-3 and An-Nisa spans 4-5, so nothing *begins* in juz 2 or 5. It read as a bug, and
     // worse, someone looking for Juz' 2 could not find it. So the list walks all thirty and a
     // juz' with no surah start says which surah you are still inside.
-    val grouped: List<Pair<Juz, List<Surah>>>? = remember(query) {
-        if (query.isNotBlank()) {
+    val grouped: List<Pair<Juz, List<Surah>>>? = remember(effectiveQuery) {
+        if (effectiveQuery.isNotBlank()) {
             null
         } else {
             val startsIn = matches.groupBy { JuzIndex.of(it.firstPage).number }
@@ -82,29 +95,35 @@ fun SurahList(
     }
 
     Column(modifier = modifier) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            label = { Text("Search surah") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = Scale.space4),
-            // Without this the field draws in Material's default purple — a sixth colour
-            // on a five-colour palette, on the first screen of a brand-new install.
-            // Sacred Rule 8. Caught on the emulator 2026-08-17; invisible on the dev phone
-            // because it was already past setup and never saw this screen again.
-            colors = wirdFieldColors(),
-        )
-        Spacer(Modifier.height(Scale.space2))
+        if (searchQuery == null) {
+            OutlinedTextField(
+                value = internalQuery,
+                onValueChange = { internalQuery = it },
+                label = { Text("Search surah") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Scale.space4),
+                // Without this the field draws in Material's default purple — a sixth colour
+                // on a five-colour palette, on the first screen of a brand-new install.
+                // Sacred Rule 8. Caught on the emulator 2026-08-17; invisible on the dev phone
+                // because it was already past setup and never saw this screen again.
+                colors = wirdFieldColors(),
+            )
+            Spacer(Modifier.height(Scale.space2))
+        }
 
         if (matches.isEmpty()) {
             Text(
-                text = "Nothing matches \"$query\". Try part of the name, or its number.",
+                text = "Nothing matches \"$effectiveQuery\". Try part of the name, or its number.",
                 color = colors.textSecondary,
                 style = TextStyle(fontSize = Scale.caption),
                 modifier = Modifier.padding(horizontal = Scale.space4, vertical = Scale.space3),
             )
         } else {
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = contentPadding,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 if (grouped != null) {
                     // Browsing: Juz' bands, the way Quran for Android does it.
                     grouped.forEach { (juz, surahs) ->
@@ -158,95 +177,126 @@ fun SurahJumpSheet(onDismiss: () -> Unit, onPick: (Surah) -> Unit) {
 }
 
 /**
- * A juz' section header.
- *
- * ⚠ **Both strings use [textPrimary], and that is measured, not stylistic.** On the light
- * band `#DEE2E6` the secondary grey is **3.99:1** and fails AA; primary is 11.85:1. See
- * PROFILE.md § 6d.
+ * A juz' section header in tactile claymorphism.
+ * Shows Juz' number on the left and the bare starting page on the right.
  */
 @Composable
 private fun JuzBand(juz: Juz) {
     val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val bandBg = if (isDark) Color(0xFF0F1D17) else Color(0xFFEBE6D8)
+    val bandText = if (isDark) Color(0xFF92AA9E) else Color(0xFF384F45)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(colors.band)
-            .padding(horizontal = Scale.space4, vertical = Scale.space3),
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .background(bandBg, shape = RoundedCornerShape(10.dp))
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = "Juz' ${juz.number}",
-            color = colors.textPrimary,
-            style = TextStyle(fontSize = Scale.body),
+            color = bandText,
+            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp),
         )
         Text(
             text = juz.firstPage.toString(),
-            color = colors.textPrimary,
-            style = TextStyle(fontSize = Scale.body),
+            color = bandText,
+            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold),
         )
     }
 }
 
 /**
- * One surah.
+ * One surah rendered as an inflated 3D claymorphic card.
  *
- * Built to the reference Mutalib sent, and every part of it was something he asked for:
- * the number in its own column, **the meaning beside the name** — "An-Nisa (The Women)" —
- * where it was revealed and how many verses underneath, and **the start page as a bare
- * number**.
- *
- * *"Just write the number, don't bring the p there"*, and *"like 22 to 49, don't do it like
- * that, just write 22"*. So a range becomes its opening page: Al-Baqarah is 2, Ali 'Imran is
- * 50. The range was honest but it was answering a question nobody asked — you tap a surah to
- * go to its beginning, so where it ends is not the number you need.
+ * Left: Mint squircle medallion with Arabic numerals (١, ٢, etc.)
+ * Center: Sūrah name with meaning - "Al-Fatihah (The Opener)" - and revelation details underneath
+ * Right: Bare start page number - "1", "2", "50"
  */
 @Composable
 private fun SurahRow(surah: Surah, onPick: (Surah) -> Unit) {
     val colors = LocalWirdColors.current
-    Row(
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val bg = if (isDark) Color(0xFF13201A) else Color(0xFFFFFFFF)
+    val highlight = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f)
+    val shadow = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0xFF8C7D6B).copy(alpha = 0.22f)
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onPick(surah) }
-            .defaultMinSize(minHeight = Scale.minTarget)
-            .padding(horizontal = Scale.space4, vertical = Scale.space3),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = surah.number.toString(),
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
-            textAlign = TextAlign.End,
-            modifier = Modifier.width(32.dp),
-        )
-        Spacer(Modifier.width(Scale.space3))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = surah.listLabel(),
-                color = colors.textPrimary,
-                style = TextStyle(fontSize = Scale.body),
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .clayCard(
+                shape = RoundedCornerShape(18.dp),
+                backgroundColor = bg,
+                highlightColor = highlight,
+                shadowColor = shadow,
+                elevation = 4.dp,
+                strokeWidth = 1.dp,
             )
+            .clickable { onPick(surah) }
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Squircle medallion with Arabic numerals
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clayCard(
+                        shape = RoundedCornerShape(12.dp),
+                        backgroundColor = if (isDark) Color(0xFF1A2B24) else Color(0xFFEDF5F0),
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.85f),
+                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFFA0B9AA).copy(alpha = 0.35f),
+                        elevation = 2.dp,
+                        strokeWidth = 1.dp,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = arabicNumerals(surah.number),
+                    color = if (isDark) Color(0xFF93DB7A) else Color(0xFF174233),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Spacer(Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = surah.listLabel(),
+                    color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                    style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "${revealedLabel(surah)} · ${surah.verses} verses",
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                    style = TextStyle(fontSize = 12.sp),
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            // Bare page number
             Text(
-                text = "${revealedLabel(surah)} · ${surah.verses} verses",
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption),
+                text = surah.firstPage.toString(),
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
             )
         }
-
-        Spacer(Modifier.width(Scale.space3))
-        Text(
-            text = surah.firstPage.toString(),
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
-        )
     }
 }
 
 /** How mushafs label it, rather than the API's "makkah" / "madinah". */
 private fun revealedLabel(surah: Surah): String = when (surah.revealedIn) {
-    RevealedIn.MAKKI -> "Makki"
-    RevealedIn.MADANI -> "Madani"
+    RevealedIn.MAKKI -> "Meccan"
+    RevealedIn.MADANI -> "Medinan"
 }
 
 /**
@@ -299,11 +349,16 @@ fun wirdFieldColors(): TextFieldColors {
 @Composable
 private fun StillInside(juz: Juz, onOpenPage: ((Int) -> Unit)?) {
     val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val ongoing = SurahIndex.on(juz.firstPage).lastOrNull()
+    val bg = if (isDark) Color(0xFF0E1814) else Color(0xFFF8F5EE)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
             .then(
                 if (onOpenPage == null) {
                     Modifier
@@ -311,20 +366,20 @@ private fun StillInside(juz: Juz, onOpenPage: ((Int) -> Unit)?) {
                     Modifier.clickable { onOpenPage(juz.firstPage) }
                 }
             )
-            .defaultMinSize(minHeight = Scale.minTarget)
-            .padding(horizontal = Scale.space4, vertical = Scale.space3),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = ongoing?.let { "Still in ${it.name}" } ?: "Continues",
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
+            text = ongoing?.let { "↳ Still inside ${it.name}" } ?: "↳ Continues",
+            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+            style = TextStyle(fontSize = 12.5.sp),
             modifier = Modifier.weight(1f),
         )
         Text(
             text = juz.firstPage.toString(),
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
+            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
         )
     }
 }

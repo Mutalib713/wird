@@ -65,3 +65,9 @@ fun Modifier.clayPill(
             shape = shape,
         )
 }
+
+val ARABIC_DIGITS = listOf('٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩')
+
+/** Converts an integer (like 35) into Arabic numerals (like ٣٥) */
+fun arabicNumerals(n: Int): String =
+    n.toString().map { ARABIC_DIGITS[it - '0'] }.joinToString("")

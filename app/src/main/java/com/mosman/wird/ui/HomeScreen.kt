@@ -65,6 +65,7 @@ import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
+import com.mosman.wird.ui.theme.arabicNumerals
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
@@ -1079,11 +1080,6 @@ private fun Label(text: String) {
 
 // ---- words ----
 
-/** 18 → ١٨. The numerals the mushaf itself uses. */
-private fun arabicNumerals(n: Int): String =
-    n.toString().map { ARABIC_DIGITS[it - '0'] }.joinToString("")
-
-private val ARABIC_DIGITS = listOf('٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩')
 
 private fun greeting(): String = when (LocalTime.now().hour) {
     in 0..11 -> "Good morning"
