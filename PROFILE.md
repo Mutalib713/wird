@@ -66,12 +66,16 @@ Nothing else is a success metric. Not installs, not stars, not screens built.
 11. OEM notification survival: detect the manufacturer, walk the user through their
     phone's specific battery settings
 12. Firebase App Distribution build; a one-page Vercel site with install link and
-    feedback; in-app feedback to WhatsApp
+    feedback; on-device Privacy Pledge (in-app feedback to WhatsApp removed 2026-09-17
+    by Mutalib's explicit instruction)
 
 ## 5. NOT IN V1
 
 Explicit exclusions. No session builds these "helpfully."
 
+- **In-app feedback to WhatsApp** — removed 2026-09-17 by Mutalib's explicit instruction
+  (*"for the in app feedback remove it from the plan i dont want tat feature"*).
+  Replaced with on-device Privacy Pledge card and dialog in Settings.
 - **Tajweed scoring or pronunciation correction.** That is Tarteel's job and it does it
   better. Link out.
 - **Live word-by-word recitation following.** Measured at ~5× slower than real time

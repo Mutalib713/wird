@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -72,6 +73,7 @@ import com.mosman.wird.domain.AwayPeriod
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
+import com.mosman.wird.domain.PrivacyPledge
 import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.Surah
@@ -111,6 +113,7 @@ private enum class SettingsDialog {
     RECITATION_CHECKER_MODEL,
     BATTERY_OPT,
     REMINDER_DIAGNOSTIC,
+    PRIVACY_PLEDGE,
 }
 
 data class DialogOption<T>(
@@ -715,9 +718,15 @@ fun SettingsScreen(
                             }
 
                             ClaySettingRow(
+                                title = PrivacyPledge.TITLE,
+                                subtitle = PrivacyPledge.SUBTITLE,
+                                onClick = { activeDialog = SettingsDialog.PRIVACY_PLEDGE },
+                            )
+
+                            ClaySettingRow(
                                 title = "About Wird",
-                                subtitle = "v1.0 · Zero guilt · Chat on WhatsApp",
-                                onClick = {},
+                                subtitle = "v1.0 · 100% offline & private · Zero guilt",
+                                onClick = { activeDialog = SettingsDialog.PRIVACY_PLEDGE },
                                 showDivider = false,
                             )
                         }
@@ -1778,6 +1787,137 @@ fun SettingsScreen(
                                             )
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            SettingsDialog.PRIVACY_PLEDGE -> {
+                Dialog(
+                    onDismissRequest = { activeDialog = null },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .clickable { activeDialog = null }
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clayCard(
+                                    shape = RoundedCornerShape(28.dp),
+                                    backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
+                                    highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.95f),
+                                    shadowColor = Color.Black.copy(alpha = 0.35f),
+                                    elevation = 16.dp,
+                                )
+                                .clickable(enabled = false) {}
+                                .padding(22.dp),
+                        ) {
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = PrivacyPledge.TITLE,
+                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = (-0.3).sp,
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            text = PrivacyPledge.PROMISE,
+                                            color = if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clayPill(
+                                                backgroundColor = if (isDark) Color(0xFF1A3828) else Color(0xFFE2F0E6),
+                                                elevation = 1.dp,
+                                            )
+                                            .padding(horizontal = 9.dp, vertical = 4.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "100% ON-DEVICE",
+                                            color = if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp,
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(14.dp))
+
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 420.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    PrivacyPledge.ITEMS.forEach { item ->
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clayCard(
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    backgroundColor = if (isDark) Color(0xFF192C23) else Color(0xFFF3EFE6),
+                                                    elevation = 1.dp,
+                                                )
+                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        ) {
+                                            Text(
+                                                text = item.title,
+                                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                            Spacer(Modifier.height(3.dp))
+                                            Text(
+                                                text = item.description,
+                                                color = if (isDark) Color(0xFFB0C4B8) else Color(0xFF4A6054),
+                                                fontSize = 11.5.sp,
+                                                lineHeight = 16.5.sp,
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.height(18.dp))
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clayPill(
+                                            backgroundColor = Color(0xFF2D6B52),
+                                            elevation = 3.dp,
+                                        )
+                                        .clickable { activeDialog = null }
+                                        .padding(vertical = 11.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "I UNDERSTAND",
+                                        color = Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.5.sp,
+                                    )
                                 }
                             }
                         }

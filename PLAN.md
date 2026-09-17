@@ -576,11 +576,17 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
   One page: what it is, install link, feedback form. `noindex` until launch.
   *Done when:* the live URL loads and a submitted message reaches Mutalib.
 
-- [ ] **18. In-app feedback and the privacy line**
-  Feedback goes to WhatsApp. A plain sentence stating that recordings never leave the
-  phone — because testers are now trusting him with that.
-  *Done when:* a message reaches him from a tester's phone and the privacy line is
-  visible in-app.
+- [x] **18. The Privacy Pledge** — done 2026-09-17, verified in app
+  A prominent, tactile on-device privacy pledge stating that recordings, streaks, and
+  reading history never leave the phone — because testers and users are trusting Wird
+  with their intimate worship.
+  *Scope note 2026-09-17:* In-app feedback to WhatsApp removed from the plan by Mutalib's
+  explicit instruction (*"for the in app feedback remove it from the plan i dont want tat feature"*).
+  *Done when:* the tactile privacy pledge card and modal dialog are visible in Settings under
+  Advanced & Data, guaranteeing 100% on-device data sovereignty.
+  *Evidence:* Built `PrivacyPledge.kt` with tactile clay cards explaining voice isolation,
+  zero telemetry/tracking, local-only storage, and data sovereignty. Check 66 covers pledge
+  integrity and sacred privacy rules. Lint: 0 errors.
 
 - [x] **19. Export everything** — done 2026-08-18, verified by opening the file on this computer
   Everything Wird knows about you in one zip: `days.json`, `chat.json`, `bookmarks.json`,

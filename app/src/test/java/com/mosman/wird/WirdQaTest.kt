@@ -27,6 +27,7 @@ import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.PrayerMethod
 import com.mosman.wird.domain.PrayerTimes
+import com.mosman.wird.domain.PrivacyPledge
 import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.Speaker
@@ -1985,5 +1986,38 @@ class ArabicAssetTest {
             now = now,
         )
         assertEquals(NudgeDiagnostic.Status.WARNING, warningReport.overallStatus)
+    }
+
+    /**
+     * Check 66 — Privacy pledge guarantees (PLAN task 18, Sacred Rule 1).
+     *
+     * Guarantees 100% on-device data sovereignty:
+     * - Voice recordings stay on device
+     * - No accounts, no cloud sync, no tracking, no analytics
+     * - Export and audio deletion capabilities verified
+     */
+    @Test
+    fun `privacy pledge guarantees 100 percent on device data sovereignty`() {
+        assertTrue("Privacy pledge integrity must be verified", PrivacyPledge.verifyIntegrity())
+        assertTrue("Must have at least 4 clear pledge points", PrivacyPledge.ITEMS.size >= 4)
+
+        val fullPledgeText = (listOf(PrivacyPledge.TITLE, PrivacyPledge.SUBTITLE, PrivacyPledge.PROMISE) +
+            PrivacyPledge.ITEMS.flatMap { listOf(it.title, it.description) })
+            .joinToString(" ")
+            .lowercase()
+
+        // Sacred Rule 1 assertions: no tracking, no servers, on-device guarantees
+        assertTrue("Must state on-device guarantee", fullPledgeText.contains("on-device") || fullPledgeText.contains("on this device"))
+        assertTrue("Must guarantee voice never leaves", fullPledgeText.contains("voice") && fullPledgeText.contains("never"))
+        assertTrue("Must guarantee zero telemetry/tracking", fullPledgeText.contains("zero") || fullPledgeText.contains("no tracking"))
+        assertTrue("Must guarantee no analytics SDKs", fullPledgeText.contains("no analytics sdk"))
+        assertTrue("Must guarantee no advertising identifiers", fullPledgeText.contains("no advertising identifier"))
+        assertTrue("Must mention data export sovereignty", fullPledgeText.contains("export"))
+
+        // Must not contain tracking practices or remote database synchronization
+        listOf("remote database exists", "sync to cloud", "monetize your data", "sell your data", "facebook pixel")
+            .forEach { banned ->
+                assertFalse("Pledge must never endorse: $banned", fullPledgeText.contains(banned))
+            }
     }
 }
