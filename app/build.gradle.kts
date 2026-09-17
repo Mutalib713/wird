@@ -114,10 +114,6 @@ android {
             // installed on this machine, and 36 is what Thrum builds against. Revisit
             // before the first public build, not on a random Tuesday.
             "OldTargetApi",
-            // No app icon yet, on purpose. The icon comes out of the design-studio
-            // pass, where the palette is Mutalib's to choose — picking a placeholder
-            // here is how a default quietly becomes the brand. Tracked in PLAN task 16.
-            "MissingApplicationIcon",
             // ⚠ **The fourth disable, and the rule says write down why.**
             //
             // "Missing x86_64 ABI support for ChromeOS." Wird ships arm64-v8a because that is

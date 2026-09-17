@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Wooden Rihal Stand -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M24,80 L32,81 L78,54 L72,51 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M84,80 L76,81 L30,54 L36,51 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M26,79 L34,80 L54,58 L48,55 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M82,79 L74,80 L54,58 L60,55 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M23,78 L42,78 L40,82 L21,82 Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M85,78 L66,78 L68,82 L87,82 Z" />
+
+    <!-- Book Cover Base -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M19,59 L54,54 L89,59 L88,63 L54,57 L20,63 Z" />
+
+    <!-- Open Qur'an Leaves: Left Page -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M20,58 C32,61 45,58 53,56 L53,30 C45,33 32,31 20,29 Z" />
+
+    <!-- Open Qur'an Leaves: Right Page -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M88,58 C76,61 63,58 55,56 L55,30 C63,33 76,31 88,29 Z" />
+
+    <!-- Bookmark Ribbon -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M52.5,30 L55.5,30 L56,68 L54,65 L52,68 Z" />
+
+</vector>

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Ground Drop Shadow -->
+    <path
+        android:fillColor="#38000000"
+        android:pathData="M26,82 C38,85 70,85 82,82 C75,87 33,87 26,82 Z" />
+
+    <!-- Wooden Rihal Stand (Rear crossing leg) -->
+    <path
+        android:fillColor="#FF5A391F"
+        android:pathData="M24,80 L32,81 L78,54 L72,51 Z" />
+    <path
+        android:fillColor="#FF7A4E2B"
+        android:pathData="M84,80 L76,81 L30,54 L36,51 Z" />
+
+    <!-- Wooden Rihal Stand (Front crossing leg) -->
+    <path
+        android:fillColor="#FF8E5D34"
+        android:pathData="M26,79 L34,80 L54,58 L48,55 Z" />
+    <path
+        android:fillColor="#FF9E6941"
+        android:pathData="M82,79 L74,80 L54,58 L60,55 Z" />
+
+    <!-- Feet Cross-slats -->
+    <path
+        android:fillColor="#FF6E4828"
+        android:pathData="M23,78 L42,78 L40,82 L21,82 Z" />
+    <path
+        android:fillColor="#FF7D522E"
+        android:pathData="M85,78 L66,78 L68,82 L87,82 Z" />
+
+    <!-- Book Cover Base (Gold Trim) -->
+    <path
+        android:fillColor="#FFD4AF37"
+        android:pathData="M19,59 L54,54 L89,59 L88,63 L54,57 L20,63 Z" />
+
+    <!-- Open Qur'an Leaves: Left Page (Parchment Cream) -->
+    <path
+        android:fillColor="#FFFDFBF5"
+        android:pathData="M20,58 C32,61 45,58 53,56 L53,30 C45,33 32,31 20,29 Z" />
+
+    <!-- Left Page Shading towards Gutter -->
+    <path
+        android:fillColor="#FFECE4D2"
+        android:pathData="M43,58 C47,57 51,57 53,56 L53,30 C51,31 47,31 43,32 Z" />
+
+    <!-- Open Qur'an Leaves: Right Page (Warm Parchment) -->
+    <path
+        android:fillColor="#FFF5F0E2"
+        android:pathData="M88,58 C76,61 63,58 55,56 L55,30 C63,33 76,31 88,29 Z" />
+
+    <!-- Right Page Shading towards Gutter -->
+    <path
+        android:fillColor="#FFE6DDC7"
+        android:pathData="M65,58 C61,57 57,57 55,56 L55,30 C57,31 61,31 65,32 Z" />
+
+    <!-- Page Top Edge Gold Gilding -->
+    <path
+        android:strokeColor="#CCD4AF37"
+        android:strokeWidth="1.2"
+        android:pathData="M20,29 C32,31 45,33 53,30" />
+    <path
+        android:strokeColor="#CCD4AF37"
+        android:strokeWidth="1.2"
+        android:pathData="M88,29 C76,31 63,33 55,30" />
+
+    <!-- Subtle Text Line Impressions -->
+    <path
+        android:strokeColor="#70B0A494"
+        android:strokeWidth="0.9"
+        android:pathData="M26,37 C34,39 42,39 47,38 M26,42 C34,44 42,44 47,43 M26,47 C34,49 42,49 47,48 M26,52 C34,54 42,54 47,53" />
+    <path
+        android:strokeColor="#70A89C8C"
+        android:strokeWidth="0.9"
+        android:pathData="M61,38 C66,39 74,39 82,37 M61,43 C66,44 74,44 82,42 M61,48 C66,49 74,49 82,47 M61,53 C66,54 74,54 82,52" />
+
+    <!-- Central Gutter Seam -->
+    <path
+        android:strokeColor="#D0A8947E"
+        android:strokeWidth="1.2"
+        android:pathData="M54,29 L54,57" />
+
+    <!-- Bookmark Ribbon (Emerald Green) -->
+    <path
+        android:fillColor="#FF2D6B52"
+        android:pathData="M52.5,30 L55.5,30 L56,68 L54,65 L52,68 Z" />
+    <!-- Ribbon Highlight -->
+    <path
+        android:strokeColor="#FF4BA27C"
+        android:strokeWidth="0.8"
+        android:pathData="M53.5,31 L53.5,66" />
+
+</vector>

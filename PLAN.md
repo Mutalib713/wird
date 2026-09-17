@@ -551,13 +551,26 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
 
   ⬜ **UNPROVEN ON REAL TRANSSION PHONE — PENDING TESTER DEVICE.**
 
-- [ ] **16. Firebase App Distribution**
+- [~] **16. Firebase App Distribution & Official App Icon** — icon & release packaging built 2026-09-17
   Spark plan, free. Build goes out to a tester group. `DRY_RUN=1` builds locally without
   uploading. **Also: the app icon** — deferred from task 1 because it belongs to the
   design-studio pass, and the `MissingApplicationIcon` lint check is disabled until it
   exists. Re-enable that check once it does.
   *Done when:* someone who is not Mutalib installs it and opens it, and the launcher
   shows a real icon.
+
+  **✅ App icon & release packaging complete (2026-09-17):**
+  - **Option A: "The Traditional Riḥāl" chosen by Mutalib.** Open Qur'an on a carved wooden
+    folding stand (riḥāl) with gold trim, parchment leaves, and emerald bookmark ribbon.
+  - Adaptive icon vector layers built (`ic_launcher_background.xml` in emerald gradient `#1A382C`
+    to `#0D2018`, `ic_launcher_foreground.xml` centered inside the 72dp safe zone, and
+    `ic_launcher_monochrome.xml` for Material You themed icons).
+  - `AndroidManifest.xml` updated with `android:icon` and `android:roundIcon`.
+  - `MissingApplicationIcon` lint check re-enabled in `app/build.gradle.kts` and verified green.
+  - `assembleRelease` executed: R8 code shrinking and resource optimization measured.
+    Release APK is **8,169,653 B (~7.79 MB)** (down from 18.9 MB debug APK, a 59% reduction).
+
+  ⬜ **PENDING TESTER DISTRIBUTION:** Upload build to Firebase App Distribution for testers.
 
 - [ ] **17. Vercel landing page + feedback**
   One page: what it is, install link, feedback form. `noindex` until launch.
