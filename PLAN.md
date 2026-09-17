@@ -530,12 +530,26 @@ we learn the real answer and write it down. Never fake a ⚠ task green.
 
 ## Milestone 4 — Testers
 
-- [ ] **15. ⚠ OEM notification survival**
+- [~] **15. ⚠ OEM notification survival** — built 2026-09-17, on-device Transsion test pending
   Detect the manufacturer. Show the exact steps for that phone (Tecno/Infinix: Battery
   Lab → disable power saving for this app; Phone Master → auto-start management). Add a
   "did the last nudge arrive?" self-check.
   *Risky because:* it can only be proven on a real Transsion phone.
   *Done when:* verified on an actual Tecno or Infinix, not on the Pixel.
+
+  **✅ The buildable half shipped (2026-09-17):**
+  - `OemAdvice.kt` enhanced with exact vendor detection for Transsion (Tecno HiOS, Infinix XOS,
+    itel), Samsung (One UI), Xiaomi (MIUI/HyperOS), Huawei (EMUI), Oppo/Realme/Vivo, and stock Android.
+    Provides step-by-step guidance tailored to each brand with direct intent launching of vendor auto-start
+    activities with fallback to system battery saver settings.
+  - `NudgeDiagnostic.kt` built: evaluates notification permissions, exact alarms, battery optimization
+    status, scheduled alarm state, and answers "did the last reminder arrive?" by comparing `lastArmedFor`
+    vs `lastNudgeFiredAt` (>20m grace window detects killed alarms).
+  - Tactile clay UI added to Settings under Reminders: dynamic status badge, vendor guidance modal,
+    and self-check report with actionable fix shortcuts.
+  - QA checks 64 and 65 pass; lint 0 errors.
+
+  ⬜ **UNPROVEN ON REAL TRANSSION PHONE — PENDING TESTER DEVICE.**
 
 - [ ] **16. Firebase App Distribution**
   Spark plan, free. Build goes out to a tester group. `DRY_RUN=1` builds locally without

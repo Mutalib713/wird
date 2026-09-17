@@ -80,6 +80,8 @@ import com.mosman.wird.domain.dayLabel
 import com.mosman.wird.domain.label
 import com.mosman.wird.domain.listLabel
 import com.mosman.wird.nudge.Armed
+import com.mosman.wird.nudge.NudgeDiagnostic
+import com.mosman.wird.nudge.OemAdvice
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.arabicNumerals
 import com.mosman.wird.ui.theme.clayCard
@@ -108,6 +110,7 @@ private enum class SettingsDialog {
     RECITER_PICKER,
     RECITATION_CHECKER_MODEL,
     BATTERY_OPT,
+    REMINDER_DIAGNOSTIC,
 }
 
 data class DialogOption<T>(
@@ -645,10 +648,52 @@ fun SettingsScreen(
                                 )
                             }
 
+                            val advice = remember { OemAdvice.forThisPhone() }
+                            val diagnosticReport = remember(activeDialog) { NudgeDiagnostic.evaluate(context, store) }
+
                             ClaySettingRow(
-                                title = "Battery optimization",
-                                subtitle = "Protections against reminder & prayer-time delays",
+                                title = "Battery & background survival",
+                                subtitle = "${advice.vendor} (${advice.systemSkin ?: "Android"}) · Step-by-step setup",
                                 onClick = { activeDialog = SettingsDialog.BATTERY_OPT },
+                            )
+
+                            ClaySettingRow(
+                                title = "Did your last reminder ring?",
+                                subtitle = diagnosticReport.headline,
+                                trailing = {
+                                    val (badgeBg, badgeFg, badgeText) = when (diagnosticReport.overallStatus) {
+                                        NudgeDiagnostic.Status.OK -> Triple(
+                                            if (isDark) Color(0xFF1A3828) else Color(0xFFE2F0E6),
+                                            if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52),
+                                            "OK",
+                                        )
+                                        NudgeDiagnostic.Status.WARNING -> Triple(
+                                            if (isDark) Color(0xFF382E18) else Color(0xFFFBF0D8),
+                                            if (isDark) Color(0xFFFFD166) else Color(0xFF8F6300),
+                                            "CHECK",
+                                        )
+                                        NudgeDiagnostic.Status.ERROR -> Triple(
+                                            if (isDark) Color(0xFF3A1C1C) else Color(0xFFFCE8E8),
+                                            if (isDark) Color(0xFFFF8B8B) else Color(0xFFB52A2A),
+                                            "ALERT",
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clayPill(backgroundColor = badgeBg, elevation = 1.dp)
+                                            .padding(horizontal = 9.dp, vertical = 4.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = badgeText,
+                                            color = badgeFg,
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp,
+                                        )
+                                    }
+                                },
+                                onClick = { activeDialog = SettingsDialog.REMINDER_DIAGNOSTIC },
                                 showDivider = false,
                             )
                         }
@@ -1388,6 +1433,7 @@ fun SettingsScreen(
             }
 
             SettingsDialog.BATTERY_OPT -> {
+                val advice = remember { OemAdvice.forThisPhone() }
                 Dialog(
                     onDismissRequest = { activeDialog = null },
                     properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -1395,9 +1441,9 @@ fun SettingsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f))
+                            .background(Color.Black.copy(alpha = 0.55f))
                             .clickable { activeDialog = null }
-                            .padding(24.dp),
+                            .padding(20.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Box(
@@ -1414,69 +1460,323 @@ fun SettingsScreen(
                                 .padding(22.dp),
                         ) {
                             Column {
-                                Text(
-                                    text = "Battery Optimization",
-                                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = (-0.3).sp,
-                                    modifier = Modifier.padding(bottom = 12.dp),
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Background Survival",
+                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = (-0.3).sp,
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            text = "${advice.vendor} · ${advice.systemSkin ?: "Android"}",
+                                            color = Color(0xFF2D6B52),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clayPill(
+                                                backgroundColor = if (advice.known) {
+                                                    if (isDark) Color(0xFF382E18) else Color(0xFFFBF0D8)
+                                                } else {
+                                                    if (isDark) Color(0xFF1A3828) else Color(0xFFE2F0E6)
+                                                },
+                                                elevation = 1.dp,
+                                            )
+                                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                                    ) {
+                                        Text(
+                                            text = if (advice.known) "STRICT OEM" else "STANDARD",
+                                            color = if (advice.known) {
+                                                if (isDark) Color(0xFFFFD166) else Color(0xFF8F6300)
+                                            } else {
+                                                if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52)
+                                            },
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp,
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(14.dp))
 
                                 Text(
-                                    text = "To make sure daily reminders and prayer-time nudges arrive on time, Android needs permission to run in the background without being put to sleep by battery saver.\n\nOn devices with strict battery management (Tecno, Infinix, Samsung, Xiaomi), setting Wird to \"Unrestricted\" prevents alarm delays.",
+                                    text = if (advice.known) {
+                                        "Phones from ${advice.vendor} aggressively freeze background apps to save battery. Follow these steps so your daily reminder and prayer-time alarms ring on time:"
+                                    } else {
+                                        "Your phone usually allows background alarms. If your reminder ever misses, set Wird's battery usage to 'Unrestricted':"
+                                    },
                                     color = if (isDark) Color(0xFFB0C4B8) else Color(0xFF4A6054),
-                                    fontSize = 13.5.sp,
-                                    lineHeight = 20.sp,
-                                    modifier = Modifier.padding(bottom = 20.dp),
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.5.sp,
                                 )
+
+                                Spacer(Modifier.height(14.dp))
+
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    advice.steps.forEachIndexed { index, step ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clayCard(
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    backgroundColor = if (isDark) Color(0xFF192C23) else Color(0xFFF3EFE6),
+                                                    elevation = 1.dp,
+                                                )
+                                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.Top,
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .clayPill(backgroundColor = Color(0xFF2D6B52), elevation = 1.dp),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Text(
+                                                    text = "${index + 1}",
+                                                    color = Color.White,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                )
+                                            }
+                                            Spacer(Modifier.width(10.dp))
+                                            Text(
+                                                text = step,
+                                                color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF1E3F32),
+                                                fontSize = 12.5.sp,
+                                                lineHeight = 17.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                modifier = Modifier.weight(1f),
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.height(20.dp))
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     Box(
                                         modifier = Modifier
+                                            .weight(1f)
                                             .clayPill(
                                                 backgroundColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFEDE8DD),
                                                 elevation = 2.dp,
                                             )
-                                            .clickable { activeDialog = null }
-                                            .padding(horizontal = 18.dp, vertical = 9.dp),
+                                            .clickable {
+                                                activeDialog = null
+                                                context.startActivity(OemAdvice.createAppDetailsIntent(context))
+                                            }
+                                            .padding(vertical = 10.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
-                                            text = "CANCEL",
+                                            text = "APP INFO",
                                             color = if (isDark) Color(0xFFB0C4B8) else Color(0xFF556C60),
-                                            fontSize = 13.sp,
+                                            fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                         )
                                     }
 
-                                    Spacer(Modifier.width(10.dp))
-
                                     Box(
                                         modifier = Modifier
+                                            .weight(1.3f)
                                             .clayPill(
                                                 backgroundColor = Color(0xFF2D6B52),
                                                 elevation = 3.dp,
                                             )
                                             .clickable {
                                                 activeDialog = null
-                                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                                    data = Uri.fromParts("package", context.packageName, null)
-                                                }
-                                                context.startActivity(intent)
+                                                context.startActivity(OemAdvice.createBatterySettingsIntent(context))
                                             }
-                                            .padding(horizontal = 18.dp, vertical = 9.dp),
+                                            .padding(vertical = 10.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
-                                            text = "OPEN APP SETTINGS",
+                                            text = "OPEN SETTINGS",
                                             color = Color.White,
-                                            fontSize = 13.sp,
+                                            fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold,
                                         )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            SettingsDialog.REMINDER_DIAGNOSTIC -> {
+                val report = remember { NudgeDiagnostic.evaluate(context, store) }
+                Dialog(
+                    onDismissRequest = { activeDialog = null },
+                    properties = DialogProperties(usePlatformDefaultWidth = false),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .clickable { activeDialog = null }
+                            .padding(20.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clayCard(
+                                    shape = RoundedCornerShape(28.dp),
+                                    backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
+                                    highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.95f),
+                                    shadowColor = Color.Black.copy(alpha = 0.35f),
+                                    elevation = 16.dp,
+                                )
+                                .clickable(enabled = false) {}
+                                .padding(22.dp),
+                        ) {
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Reminder Diagnostics",
+                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = (-0.3).sp,
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            text = report.headline,
+                                            color = when (report.overallStatus) {
+                                                NudgeDiagnostic.Status.OK -> if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52)
+                                                NudgeDiagnostic.Status.WARNING -> if (isDark) Color(0xFFFFD166) else Color(0xFF8F6300)
+                                                NudgeDiagnostic.Status.ERROR -> if (isDark) Color(0xFFFF8B8B) else Color(0xFFB52A2A)
+                                            },
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                }
+
+                                Spacer(Modifier.height(12.dp))
+
+                                Text(
+                                    text = report.explanation,
+                                    color = if (isDark) Color(0xFFB0C4B8) else Color(0xFF4A6054),
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp,
+                                )
+
+                                Spacer(Modifier.height(14.dp))
+
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    report.checks.forEach { item ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clayCard(
+                                                    shape = RoundedCornerShape(14.dp),
+                                                    backgroundColor = if (isDark) Color(0xFF192C23) else Color(0xFFF3EFE6),
+                                                    elevation = 1.dp,
+                                                )
+                                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            val dotColor = when (item.status) {
+                                                NudgeDiagnostic.Status.OK -> Color(0xFF2D6B52)
+                                                NudgeDiagnostic.Status.WARNING -> Color(0xFFD48B00)
+                                                NudgeDiagnostic.Status.ERROR -> Color(0xFFC0392B)
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(dotColor),
+                                            )
+                                            Spacer(Modifier.width(10.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = item.name,
+                                                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                                    fontSize = 12.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                )
+                                                Text(
+                                                    text = item.detail,
+                                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                                    fontSize = 11.5.sp,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(Modifier.height(20.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clayPill(
+                                                backgroundColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFEDE8DD),
+                                                elevation = 2.dp,
+                                            )
+                                            .clickable { activeDialog = null }
+                                            .padding(vertical = 10.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "CLOSE",
+                                            color = if (isDark) Color(0xFFB0C4B8) else Color(0xFF556C60),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+
+                                    if (report.overallStatus != NudgeDiagnostic.Status.OK) {
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1.3f)
+                                                .clayPill(
+                                                    backgroundColor = Color(0xFF2D6B52),
+                                                    elevation = 3.dp,
+                                                )
+                                                .clickable {
+                                                    activeDialog = SettingsDialog.BATTERY_OPT
+                                                }
+                                                .padding(vertical = 10.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                text = "FIX SETTINGS",
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
                                     }
                                 }
                             }

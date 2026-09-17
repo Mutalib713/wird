@@ -47,6 +47,8 @@ import com.mosman.wird.domain.unitsLabel
 import com.mosman.wird.mushaf.Glyph
 import com.mosman.wird.mushaf.MushafPage
 import com.mosman.wird.ui.reciteLabel
+import com.mosman.wird.nudge.NudgeDiagnostic
+import com.mosman.wird.nudge.OemAdvice
 import com.mosman.wird.ui.tapLabel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -58,6 +60,7 @@ import org.json.JSONArray
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -1878,5 +1881,109 @@ class ArabicAssetTest {
             setOf(expected[target].first),
             verdict.versesToReview,
         )
+    }
+
+    /**
+     * Check 64 — OEM notification survival detection (PLAN task 15).
+     *
+     * Identifies Transsion (Tecno, Infinix, itel), Samsung, Xiaomi, Huawei, Oppo,
+     * and generic Android, delivering manufacturer-tailored survival steps.
+     */
+    @Test
+    fun `OEM advice identifies Transsion and major phone vendors with actionable steps`() {
+        // 1. Transsion brands
+        val tecno = OemAdvice.forThisPhone(manufacturer = "TECNO", brand = "TECNO MOBILE LIMITED")
+        assertTrue("Tecno must be recognized as known strict OEM", tecno.known)
+        assertEquals("Tecno", tecno.vendor)
+        assertEquals("HiOS", tecno.systemSkin)
+        assertTrue("Tecno steps must mention Phone Master", tecno.steps.any { it.contains("Phone Master") })
+
+        val infinix = OemAdvice.forThisPhone(manufacturer = "Infinix", brand = "Infinix mobility")
+        assertTrue(infinix.known)
+        assertEquals("XOS", infinix.systemSkin)
+
+        val itel = OemAdvice.forThisPhone(manufacturer = "itel", brand = "itel")
+        assertTrue(itel.known)
+
+        // 2. Samsung One UI
+        val samsung = OemAdvice.forThisPhone(manufacturer = "samsung", brand = "samsung")
+        assertTrue(samsung.known)
+        assertEquals("Samsung", samsung.vendor)
+        assertEquals("One UI", samsung.systemSkin)
+        assertTrue("Samsung steps must mention Never sleeping apps", samsung.steps.any { it.contains("Never sleeping apps") })
+
+        // 3. Xiaomi MIUI / HyperOS
+        val xiaomi = OemAdvice.forThisPhone(manufacturer = "Xiaomi", brand = "Redmi")
+        assertTrue(xiaomi.known)
+        assertEquals("MIUI / HyperOS", xiaomi.systemSkin)
+        assertTrue("Xiaomi steps must mention Autostart", xiaomi.steps.any { it.contains("Autostart") })
+
+        // 4. Stock Android (Pixel, etc.)
+        val pixel = OemAdvice.forThisPhone(manufacturer = "Google", brand = "google")
+        assertFalse("Stock Android is not a known strict OEM", pixel.known)
+        assertEquals("Google", pixel.vendor)
+    }
+
+    /**
+     * Check 65 — Reminder self-check diagnostics (PLAN task 15).
+     *
+     * Answers "did the last nudge arrive?" by comparing lastArmedFor vs lastNudgeFiredAt,
+     * notification permissions, exact alarms, and battery optimizations.
+     */
+    @Test
+    fun `reminder diagnostic catches killed alarms and healthy deliveries`() {
+        val now = LocalDateTime.of(2026, 8, 20, 19, 30)
+
+        // Case 1: Healthy delivery — alarm was set for 19:00, and fired at 19:01
+        val healthyReport = NudgeDiagnostic.evaluate(
+            notificationsEnabled = true,
+            exactAlarmsAllowed = true,
+            isBatteryOptimized = false, // unrestricted
+            isScheduleOff = false,
+            lastArmedFor = LocalDateTime.of(2026, 8, 20, 19, 0),
+            lastNudgeFiredAt = LocalDateTime.of(2026, 8, 20, 19, 1),
+            now = now,
+        )
+        assertEquals(NudgeDiagnostic.Status.OK, healthyReport.overallStatus)
+        assertTrue(healthyReport.explanation.contains("woke the app on schedule"))
+
+        // Case 2: Killed alarm — alarm was set for 18:30 (>20 min ago) and never fired
+        val killedReport = NudgeDiagnostic.evaluate(
+            notificationsEnabled = true,
+            exactAlarmsAllowed = true,
+            isBatteryOptimized = true, // phone is optimizing
+            isScheduleOff = false,
+            lastArmedFor = LocalDateTime.of(2026, 8, 20, 18, 30),
+            lastNudgeFiredAt = null,
+            now = now,
+        )
+        assertEquals(NudgeDiagnostic.Status.ERROR, killedReport.overallStatus)
+        assertTrue(killedReport.explanation.contains("killed Wird in the background"))
+        assertTrue(killedReport.checks.any { it.name == "Last Reminder Arrival" && it.status == NudgeDiagnostic.Status.ERROR })
+
+        // Case 3: Blocked notifications
+        val blockedNotifReport = NudgeDiagnostic.evaluate(
+            notificationsEnabled = false,
+            exactAlarmsAllowed = true,
+            isBatteryOptimized = false,
+            isScheduleOff = false,
+            lastArmedFor = LocalDateTime.of(2026, 8, 20, 20, 0),
+            lastNudgeFiredAt = null,
+            now = now,
+        )
+        assertEquals(NudgeDiagnostic.Status.ERROR, blockedNotifReport.overallStatus)
+        assertTrue(blockedNotifReport.checks.any { it.name == "Notifications" && it.status == NudgeDiagnostic.Status.ERROR })
+
+        // Case 4: Warnings only — battery optimized + inexact alarms, but upcoming alarm
+        val warningReport = NudgeDiagnostic.evaluate(
+            notificationsEnabled = true,
+            exactAlarmsAllowed = false,
+            isBatteryOptimized = true,
+            isScheduleOff = false,
+            lastArmedFor = LocalDateTime.of(2026, 8, 20, 21, 0),
+            lastNudgeFiredAt = null,
+            now = now,
+        )
+        assertEquals(NudgeDiagnostic.Status.WARNING, warningReport.overallStatus)
     }
 }
