@@ -9,7 +9,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
@@ -29,7 +32,19 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.mosman.wird.ui.theme.clayCard
+import com.mosman.wird.ui.theme.clayPill
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
@@ -391,6 +406,25 @@ fun TodayScreen(
                 .zIndex(2f),
         )
 
+        // Floating audio player dock when chrome is shown and audio is idle
+        AnimatedVisibility(
+            visible = chromeShown && !recording && (audio is AudioState.Idle || audio is AudioState.Failed),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .safeDrawingPadding()
+                .padding(bottom = if (selectedVerse != null) 76.dp else 16.dp, start = 16.dp, end = 16.dp)
+                .zIndex(2f),
+            enter = fadeIn() + slideInVertically { it },
+            exit = fadeOut() + slideOutVertically { it },
+        ) {
+            AudioDockIdle(
+                surah = pageInfo[current]?.first.orEmpty(),
+                quality = audioQuality,
+                onPlay = { listen() },
+            )
+        }
+
+
         // **Two ways to read the same page, and the mushaf is the default every time.**
         // section 5z: the translation is a separate mode rather than English poured between
         // the mushaf's lines, because those lines are a per-page font's typesetting and an
@@ -453,10 +487,11 @@ fun TodayScreen(
                         onUndo = onUndo,
                         audio = audio,
                         onListen = { listen() },
+                        page = page.page,
+                        ayahCount = page.ayahCount(litFor(page)),
+                        surahName = surahLabelFor(page, litFor(page)),
+                        progress = progress,
                     )
-                    // Under the done control, where you land having finished. Two numbers
-                    // that never appear apart. Sacred Rules 4 and 6.
-                    progress?.let { ProgressLine(it) }
                 }
             },
         )
@@ -504,6 +539,10 @@ fun TodayScreen(
             enter = fadeIn() + slideInVertically { -it },
             exit = fadeOut() + slideOutVertically { -it },
         ) {
+            val pageVerseKey = remember(current) {
+                val s = com.mosman.wird.domain.SurahIndex.on(current).firstOrNull()?.number ?: 1
+                "$s:1"
+            }
             ChromeBar(
                 surah = pageInfo[current]?.first.orEmpty(),
                 page = current,
@@ -527,6 +566,11 @@ fun TodayScreen(
                 onBack = onBack,
                 translation = translationMode,
                 onToggleTranslation = { translationMode = !translationMode },
+                bookmarked = remember(pageVerseKey, bookmarkTick) { isBookmarked(pageVerseKey) },
+                onToggleBookmark = {
+                    onToggleBookmark(pageVerseKey)
+                    bookmarkTick++
+                },
             )
         }
     }
@@ -628,8 +672,12 @@ private fun ChromeBar(
     onBack: () -> Unit,
     translation: Boolean,
     onToggleTranslation: () -> Unit,
+    bookmarked: Boolean,
+    onToggleBookmark: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
+    var menuOpen by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -639,10 +687,7 @@ private fun ChromeBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // **The way back, and it was missing.** Moving the tabs to the top (§ 5t) meant the
-        // bar hides while the page is open, and the bottom bar it replaced is gone — so
-        // between those two changes there was no route out of the mushaf at all. The
-        // reference has an arrow in exactly this position.
+        // Back arrow
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = "Back",
@@ -655,21 +700,38 @@ private fun ChromeBar(
         )
         Spacer(Modifier.width(Scale.space2))
 
+        // Center: Surah title, page & juz, progress streak
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = surah,
+                text = if (surah.isNotEmpty()) "Surah $surah" else "Surah",
                 color = colors.onSurfaceRaised,
-                style = TextStyle(fontSize = Scale.body),
+                style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
             )
             Text(
-                text = if (juz > 0) "Page $page, Juz' $juz" else "Page $page",
-                color = colors.onSurfaceRaised,
-                style = TextStyle(fontSize = Scale.caption),
+                text = if (offToday) {
+                    if (juz > 0) "Page $page, Juz' $juz" else "Page $page"
+                } else {
+                    if (juz > 0) "Today's Wird · Page $page, Juz' $juz" else "Today's Wird · Page $page"
+                },
+                color = colors.onSurfaceRaised.copy(alpha = 0.75f),
+                style = TextStyle(fontSize = 12.sp),
             )
-            // How it is going, reachable from anywhere with one tap rather than only at
-            // the foot of the page. Mutalib could not find it: it existed, but it lived
-            // somewhere you only reach by finishing, which is the wrong place for the
-            // number that is supposed to keep you going.
+            if (offToday) {
+                Spacer(Modifier.height(3.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(colors.accent.copy(alpha = 0.18f))
+                        .clickable(onClick = onBackToToday)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        text = "← Back to Today's Wird",
+                        color = colors.accent,
+                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                    )
+                }
+            }
             progress?.takeIf { it.totalDaysRead > 0 }?.let { p ->
                 Text(
                     text = streakLine(p),
@@ -677,8 +739,6 @@ private fun ChromeBar(
                     style = TextStyle(fontSize = Scale.caption),
                 )
             }
-            // Downloading or playing replaces the streak line rather than adding a fourth,
-            // because the bar is already three lines deep and this is temporary.
             audioLine(audio)?.let {
                 Text(
                     text = it,
@@ -688,78 +748,238 @@ private fun ChromeBar(
             }
         }
 
-        if (offToday) {
-            TextButton(
-                onClick = onBackToToday,
-                modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
+        // Right side: 1) Bookmark ribbon, 2) Translation globe, 3) 3-lines menu
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            // Bookmark Ribbon Icon
+            IconButton(
+                onClick = onToggleBookmark,
+                modifier = Modifier.size(40.dp),
             ) {
-                Text(
-                    text = "Today's portion",
-                    color = colors.onSurfaceRaised,
-                    style = TextStyle(fontSize = Scale.caption),
+                BookmarkRibbonIcon(
+                    filled = bookmarked,
+                    tint = if (bookmarked) Color(0xFFC9A24B) else colors.onSurfaceRaised,
                 )
             }
-        }
 
-        // Turns into a stop while it is running, in place, so the control that started it
-        // is the control that ends it.
-        val playing = audio !is AudioState.Idle && audio !is AudioState.Failed
-        BarIcon(
-            icon = if (playing) Icons.Filled.Close else Icons.Filled.PlayArrow,
-            label = if (playing) "Stop the recitation" else "Listen to today's portion",
-            onClick = onListen,
-        )
-        // **The overflow, where the reference puts it.** Quran for Android's reading page
-        // carries Search / Night mode / Go to page / Settings behind one ⋮, and Mutalib
-        // pointed at that screenshot specifically for the night toggle: *"the pages, you can
-        // toggle dark mode easily there."*
-        //
-        // Two bare icons became one, which the bar needed anyway — it is already three lines
-        // of text deep, and this sits over the Qur'an.
-        var menuOpen by remember { mutableStateOf(false) }
-        Box {
-            BarIcon(Icons.Filled.MoreVert, "More", { menuOpen = true })
-            DropdownMenu(
-                expanded = menuOpen,
-                onDismissRequest = { menuOpen = false },
-                containerColor = colors.surfaceRaised,
+            // Translation Globe Icon
+            IconButton(
+                onClick = onToggleTranslation,
+                modifier = Modifier.size(40.dp),
             ) {
-                DropdownMenuItem(
-                    text = { Text("Night mode", color = colors.onSurfaceRaised) },
-                    trailingIcon = {
-                        Checkbox(
-                            checked = dark,
-                            onCheckedChange = { menuOpen = false; onNightMode() },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = colors.accent,
-                                uncheckedColor = colors.textSecondary,
-                                checkmarkColor = colors.surface,
-                            ),
-                        )
-                    },
-                    onClick = { menuOpen = false; onNightMode() },
+                GlobeIcon(
+                    tint = if (translation) Color(0xFFC9A24B) else colors.onSurfaceRaised,
                 )
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            if (translation) "Mushaf" else "Translation",
-                            color = colors.onSurfaceRaised,
-                        )
-                    },
-                    onClick = { menuOpen = false; onToggleTranslation() },
-                )
-                DropdownMenuItem(
-                    text = { Text("Read something else", color = colors.onSurfaceRaised) },
-                    onClick = { menuOpen = false; onJump() },
-                )
-                DropdownMenuItem(
-                    text = { Text("Settings", color = colors.onSurfaceRaised) },
-                    onClick = { menuOpen = false; onSettings() },
+            }
+
+            // 3-lines menu icon
+            Box {
+                IconButton(
+                    onClick = { menuOpen = true },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    HamburgerIcon(tint = colors.onSurfaceRaised)
+                }
+
+                DropdownMenu(
+                    expanded = menuOpen,
+                    onDismissRequest = { menuOpen = false },
+                    containerColor = colors.surfaceRaised,
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Night mode", color = colors.onSurfaceRaised) },
+                        trailingIcon = {
+                            Checkbox(
+                                checked = dark,
+                                onCheckedChange = { menuOpen = false; onNightMode() },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = colors.accent,
+                                    uncheckedColor = colors.textSecondary,
+                                    checkmarkColor = colors.surface,
+                                ),
+                            )
+                        },
+                        onClick = { menuOpen = false; onNightMode() },
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                if (translation) "Mushaf" else "Translation",
+                                color = colors.onSurfaceRaised,
+                            )
+                        },
+                        onClick = { menuOpen = false; onToggleTranslation() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Read something else", color = colors.onSurfaceRaised) },
+                        onClick = { menuOpen = false; onJump() },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Settings", color = colors.onSurfaceRaised) },
+                        onClick = { menuOpen = false; onSettings() },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Floating Audio Dock shown when chrome is open and audio is idle.
+ */
+@Composable
+private fun AudioDockIdle(
+    surah: String,
+    quality: AudioQuality,
+    onPlay: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(16.dp),
+                backgroundColor = if (isDark) Color(0xFF1F2026) else Color(0xFFF9F6EE),
+                elevation = 4.dp,
+                highlightColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.6f),
+                shadowColor = Color.Black.copy(alpha = 0.25f),
+                strokeWidth = 1.dp,
+            )
+            .clickable(onClick = onPlay)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                // Play circular button
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clayPill(
+                            shape = CircleShape,
+                            backgroundColor = colors.accent,
+                            elevation = 2.dp,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PlayArrow,
+                        contentDescription = "Play recitation",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = "Abu Bakr al-Shatri",
+                        color = colors.textPrimary,
+                        style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
+                    )
+                    Text(
+                        text = if (surah.isNotEmpty()) "Reciting Surah $surah" else "Reciting Today's Wird",
+                        color = colors.textSecondary,
+                        style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF282932) else Color(0xFFEDE7DA),
+                        elevation = 1.dp,
+                    )
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+            ) {
+                Text(
+                    text = if (quality == AudioQuality.LIGHT) "32 kbps" else "Standard",
+                    color = colors.textSecondary,
+                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
                 )
             }
         }
     }
 }
+
+@Composable
+private fun BookmarkRibbonIcon(
+    filled: Boolean,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.Canvas(modifier = modifier.size(22.dp)) {
+        val path = Path().apply {
+            moveTo(size.width * 0.28f, size.height * 0.12f)
+            lineTo(size.width * 0.72f, size.height * 0.12f)
+            lineTo(size.width * 0.72f, size.height * 0.88f)
+            lineTo(size.width * 0.50f, size.height * 0.68f)
+            lineTo(size.width * 0.28f, size.height * 0.88f)
+            close()
+        }
+        if (filled) {
+            drawPath(path, color = tint, style = Fill)
+        } else {
+            drawPath(
+                path,
+                color = tint,
+                style = Stroke(
+                    width = 2.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun GlobeIcon(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.Canvas(modifier = modifier.size(22.dp)) {
+        val stroke = 1.8.dp.toPx()
+        val r = size.minDimension * 0.40f
+        val center = center
+        drawCircle(color = tint, radius = r, center = center, style = Stroke(stroke))
+        drawLine(color = tint, start = Offset(center.x - r, center.y), end = Offset(center.x + r, center.y), strokeWidth = stroke)
+        val oval = Path().apply {
+            addOval(Rect(center.x - r * 0.50f, center.y - r, center.x + r * 0.50f, center.y + r))
+        }
+        drawPath(oval, color = tint, style = Stroke(stroke))
+    }
+}
+
+@Composable
+private fun HamburgerIcon(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.Canvas(modifier = modifier.size(22.dp)) {
+        val stroke = 2.dp.toPx()
+        val w = size.width
+        val h = size.height
+        val startX = w * 0.20f
+        val endX = w * 0.80f
+        drawLine(tint, Offset(startX, h * 0.28f), Offset(endX, h * 0.28f), strokeWidth = stroke, cap = StrokeCap.Round)
+        drawLine(tint, Offset(startX, h * 0.50f), Offset(endX, h * 0.50f), strokeWidth = stroke, cap = StrokeCap.Round)
+        drawLine(tint, Offset(startX, h * 0.72f), Offset(endX, h * 0.72f), strokeWidth = stroke, cap = StrokeCap.Round)
+    }
+}
+
 
 /** Same rules as the foot of the page: never the streak alone, never a nought. */
 private fun streakLine(p: com.mosman.wird.domain.Progress): String {

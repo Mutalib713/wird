@@ -51,12 +51,24 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.mosman.wird.domain.RevealedIn
+import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.SurahIndex
+import com.mosman.wird.domain.arabicName
+import com.mosman.wird.domain.toArabicDigits
 import com.mosman.wird.mushaf.Glyph
 import com.mosman.wird.mushaf.MushafPage
 import com.mosman.wird.mushaf.PageState
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.clayCard
+import com.mosman.wird.ui.theme.clayPill
 
 /**
  * One mushaf page, drawn.
@@ -168,6 +180,16 @@ private fun DrawnPage(
     val family = remember(typeface) { FontFamily(typeface) }
     val lines = page.lines
 
+    val surahsStartingBeforeLine = remember(page) {
+        page.surahStarts.keys.mapNotNull { key ->
+            val s = key.substringBefore(':').toIntOrNull() ?: return@mapNotNull null
+            val a = key.substringAfter(':').toIntOrNull() ?: 1
+            val line = page.lineOf(s, a) ?: page.lines.firstOrNull() ?: 1
+            val surah = SurahIndex.byNumber(s) ?: return@mapNotNull null
+            line to surah
+        }.groupBy({ it.first }, { it.second })
+    }
+
     // Where a surah begins on this page, so the bismillah is drawn in front of it rather
     // than at the top of the sheet. Page 440's words jump from line 3 to line 6, and that
     // gap is the surah banner and the bismillah.
@@ -183,6 +205,7 @@ private fun DrawnPage(
     }
 
     val surahLabel = remember(lit, page) { surahLabelFor(page, lit) }
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
 
     Column(
         modifier = Modifier
@@ -190,55 +213,113 @@ private fun DrawnPage(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Scale.space4, vertical = Scale.space6),
     ) {
-        // What to read, sized like the most important thing on the screen — because it is.
-        //
-        // Three attempts to get here. First a titled block with an accent bar and a rule
-        // beside every line, which Mutalib called furniture and was right about. Then the
-        // range tucked into a corner at caption size next to the juz, which he could not
-        // see at all — I had styled the whole point of the app like a footnote.
-        //
-        // This is the middle: no new structure, no decoration, just the right size and
-        // weight, with a quiet line under it saying what it is. The juz moved to the
-        // chrome bar, which frees the corner and stops navigation competing with the task.
-        if (lit.isNotEmpty()) {
+        // Quiet corner headers (Surah left, Juz' right)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = Scale.space2),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                text = portionHeadline(page, lit, surahLabel),
-                color = colors.textPrimary,
-                style = TextStyle(fontSize = Scale.title),
-            )
-            Text(
-                text = portionSubline(page, lit),
+                text = "Surah $surahLabel",
                 color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption),
+                style = TextStyle(
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 0.5.sp,
+                ),
             )
-        } else {
-            Text(
-                text = surahLabel,
-                color = colors.textPrimary,
-                style = TextStyle(fontSize = Scale.title),
-            )
+            if (page.juz > 0) {
+                Text(
+                    text = "Juz' ${page.juz}",
+                    color = colors.textSecondary,
+                    style = TextStyle(
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.5.sp,
+                    ),
+                )
+            }
         }
 
-        Spacer(Modifier.height(Scale.space6))
-
-        lines.forEach { line ->
-            val inPortion = lit.isEmpty() || line in lit
-            if (line == bismillahBeforeLine && page.bismillahCodes != null && bismillahTypeface != null) {
-                Spacer(Modifier.height(Scale.space4))
-                Bismillah(page.bismillahCodes, bismillahTypeface, inPortion)
-                Spacer(Modifier.height(Scale.space4))
+        // Today's Wird portion indicator (only when this page contains today's reading)
+        if (lit.isNotEmpty()) {
+            val headline = portionHeadline(page, lit, surahLabel)
+            val subline = portionSubline(page, lit)
+            Row(
+                modifier = Modifier
+                    .padding(bottom = Scale.space3)
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF162620) else Color(0xFFF1EDE1),
+                        elevation = 1.dp,
+                    )
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if (isDark) Color(0xFF8ED676) else Color(0xFF245847))
+                )
+                Text(
+                    text = "$subline · $headline",
+                    color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                    style = TextStyle(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                    ),
+                )
             }
-            MushafLine(
-                glyphs = page.glyphsOn(line),
-                reciting = reciting,
-                review = review,
-                selected = selected,
-                family = family,
-                inPortion = inPortion,
-                onWordTap = onWordTap,
-                onWordLongPress = onWordLongPress,
-                onBackgroundTap = onBackgroundTap,
-            )
+        }
+
+        Spacer(Modifier.height(Scale.space2))
+
+        Column(
+            modifier = Modifier
+                .then(
+                    if (page.page <= 2) {
+                        Modifier.widthIn(max = 330.dp).align(Alignment.CenterHorizontally)
+                    } else {
+                        Modifier.fillMaxWidth()
+                    }
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            lines.forEach { line ->
+                val inPortion = lit.isEmpty() || line in lit
+                val surahsHere = surahsStartingBeforeLine[line]
+                if (!surahsHere.isNullOrEmpty()) {
+                    surahsHere.forEach { surah ->
+                        Spacer(Modifier.height(Scale.space2))
+                        SurahBannerClay(surah = surah)
+                        Spacer(Modifier.height(Scale.space2))
+                        if (surah.number != 9 && page.bismillahCodes != null && bismillahTypeface != null) {
+                            Bismillah(page.bismillahCodes, bismillahTypeface, inPortion)
+                            Spacer(Modifier.height(Scale.space3))
+                        }
+                    }
+                } else if (line == bismillahBeforeLine && surahsStartingBeforeLine.isEmpty() && page.bismillahCodes != null && bismillahTypeface != null) {
+                    Spacer(Modifier.height(Scale.space4))
+                    Bismillah(page.bismillahCodes, bismillahTypeface, inPortion)
+                    Spacer(Modifier.height(Scale.space4))
+                }
+                MushafLine(
+                    glyphs = page.glyphsOn(line),
+                    reciting = reciting,
+                    review = review,
+                    selected = selected,
+                    family = family,
+                    inPortion = inPortion,
+                    onWordTap = onWordTap,
+                    onWordLongPress = onWordLongPress,
+                    onBackgroundTap = onBackgroundTap,
+                )
+            }
         }
 
         Spacer(Modifier.height(Scale.space6))
@@ -300,9 +381,9 @@ private fun portionHeadline(page: MushafPage, lit: Set<Int>, surahLabel: String)
 private fun portionSubline(page: MushafPage, lit: Set<Int>): String {
     val n = page.ayahCount(lit)
     return when (n) {
-        0 -> "Today's portion"
-        1 -> "Today's portion, 1 ayah"
-        else -> "Today's portion, $n ayahs"
+        0 -> "Today's Wird"
+        1 -> "Today's Wird, 1 ayah"
+        else -> "Today's Wird, $n ayahs"
     }
 }
 
@@ -439,10 +520,21 @@ private fun MushafLine(
             else -> Color.Transparent
         }
 
+        val maxGapPx = with(density) { 18.dp.toPx() }
+        val count = glyphs.size
+        val spreadGap = if (count > 1) (available - natural) / (count - 1) else 0f
+        val isWideSpacing = count > 1 && spreadGap > maxGapPx
+
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .then(
+                        if (isWideSpacing || count == 1) {
+                            Modifier.wrapContentWidth().align(Alignment.Center)
+                        } else {
+                            Modifier.fillMaxWidth()
+                        }
+                    )
                     .drawBehind {
                         val b = band ?: return@drawBehind
                         val pad = 4.dp.toPx()
@@ -456,7 +548,11 @@ private fun MushafLine(
                             cornerRadius = CornerRadius(3.dp.toPx()),
                         )
                     },
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = when {
+                    isWideSpacing -> Arrangement.spacedBy(10.dp)
+                    count == 1 -> Arrangement.Center
+                    else -> Arrangement.SpaceBetween
+                },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 glyphs.forEach { g ->
@@ -577,3 +673,103 @@ private fun PageProblem(state: PageState.Failed, onRetry: () -> Unit) {
         }
     }
 }
+
+/**
+ * Tactile Surah Header Banner.
+ *
+ * Drawn at the start of a Surah (e.g. Page 1 for Al-Fatihah, Page 2 for Al-Baqarah).
+ * Displays chapter calligraphy, chapter number seal, and revelation info in a tactile clay card.
+ */
+@Composable
+fun SurahBannerClay(
+    surah: Surah,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = Scale.space2)
+            .clayCard(
+                shape = RoundedCornerShape(14.dp),
+                backgroundColor = if (isDark) Color(0xFF1F2026) else Color(0xFFF9F6EE),
+                elevation = 2.dp,
+                highlightColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.6f),
+                shadowColor = Color.Black.copy(alpha = if (isDark) 0.35f else 0.12f),
+                strokeWidth = 1.dp,
+            )
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Left column: English revelation & verse count
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.Start,
+            ) {
+                Text(
+                    text = if (surah.revealedIn == RevealedIn.MADANI) "MADANIYYAH" else "MAKKIYYAH",
+                    style = TextStyle(
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.1.sp,
+                        color = gold,
+                    ),
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "${surah.verses} Verses · Surah ${surah.number}",
+                    style = TextStyle(
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textSecondary,
+                    ),
+                )
+            }
+
+            // Right row: Arabic Calligraphic Name + Number Seal
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                    Text(
+                        text = "سُورَةُ ${surah.arabicName}",
+                        style = TextStyle(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary,
+                        ),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clayPill(
+                            shape = CircleShape,
+                            backgroundColor = if (isDark) Color(0xFF2A2824) else Color(0xFFF4EDE0),
+                            elevation = 1.dp,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = toArabicDigits(surah.number),
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = gold,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
+

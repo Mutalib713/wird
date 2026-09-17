@@ -112,7 +112,7 @@ fun MushafPager(
     // nothing. Jumping has to be an explicit instruction.
     LaunchedEffect(jump) {
         val target = jump ?: return@LaunchedEffect
-        pagerState.animateScrollToPage((target.page - 1).coerceIn(0, Mushaf.PAGES - 1))
+        pagerState.scrollToPage((target.page - 1).coerceIn(0, Mushaf.PAGES - 1))
     }
 
     // Swiping right turns towards page 2, the way a mushaf opens.

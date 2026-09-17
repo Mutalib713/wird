@@ -26,11 +26,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.core.content.ContextCompat
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.mosman.wird.audio.AudioState
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Method
+import com.mosman.wird.domain.Progress
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.clayCard
+import com.mosman.wird.ui.theme.clayPill
+
 
 /**
  * Marking the day done, at the foot of the page.
@@ -49,14 +59,6 @@ import com.mosman.wird.ui.theme.Scale
 @Composable
 fun DoneControl(
     doneMethod: Method?,
-    /**
-     * Changes what the two controls are called, and nothing else.
-     *
-     * PROFILE.md § 5r. A memoriser pressing "Recite it out loud" while deliberately not
-     * looking at the page is being described wrongly by their own app. The mechanic is
-     * untouched: a recording is still a recitation, a tap is still a tap, and Sacred Rule 6
-     * still keeps them apart.
-     */
     mode: ReadingMode = ReadingMode.READING,
     hasRecording: Boolean,
     recording: Boolean,
@@ -66,15 +68,14 @@ fun DoneControl(
     onTap: () -> Unit,
     onPlay: () -> Unit,
     onUndo: () -> Unit,
-    /**
-     * Runs the recitation check. **Null when this phone cannot** — no model downloaded, or no
-     * native library — and then no button appears at all rather than one that does nothing.
-     */
     onCheck: (() -> Unit)? = null,
-    /** What the check is doing or found. PLAN task 14. */
     checkState: CheckState = CheckState.Idle,
     audio: AudioState = AudioState.Idle,
     onListen: () -> Unit = {},
+    page: Int = 0,
+    ayahCount: Int = 0,
+    surahName: String = "",
+    progress: Progress? = null,
 ) {
     val colors = LocalWirdColors.current
     val context = LocalContext.current
@@ -92,10 +93,21 @@ fun DoneControl(
             )
 
             doneMethod != null ->
-                AlreadyDone(doneMethod, hasRecording, onPlay, onUndo, onCheck, checkState)
+                AlreadyDone(
+                    method = doneMethod,
+                    hasRecording = hasRecording,
+                    surahName = surahName,
+                    onPlay = onPlay,
+                    onUndo = onUndo,
+                    onCheck = onCheck,
+                    checkState = checkState,
+                )
 
             else -> NotYet(
                 mode = mode,
+                page = page,
+                ayahCount = ayahCount,
+                progress = progress,
                 onRecite = {
                     val granted = ContextCompat.checkSelfPermission(
                         context, Manifest.permission.RECORD_AUDIO,
@@ -118,62 +130,212 @@ fun DoneControl(
 @Composable
 private fun NotYet(
     mode: ReadingMode,
+    page: Int,
+    ayahCount: Int,
+    progress: Progress?,
     onRecite: () -> Unit,
     onTap: () -> Unit,
     audio: AudioState,
     onListen: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Button(
-            onClick = onRecite,
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colors.accent,
-                contentColor = colors.surface,
-            ),
-        ) {
-            Text(reciteLabel(mode), style = TextStyle(fontSize = Scale.body))
-        }
-        TextButton(
-            onClick = onTap,
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
-        ) {
-            // Quieter, and honest about what it is. Not "done" — read.
-            Text(tapLabel(mode), color = colors.textSecondary, style = TextStyle(fontSize = Scale.body))
-        }
-        // Quietest of the three, and deliberately not a way of finishing.
-        //
-        // PROFILE.md § 4 wants the ask to be able to drop to "just listen" on a bad day,
-        // which is why it is here at all. But hearing someone else recite is not the same
-        // as reading, and Sacred Rule 6 turns on the app never blurring that — so this
-        // plays, and you still choose one of the two above afterwards.
-        TextButton(
-            onClick = onListen,
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
-        ) {
-            Text(
-                // ⚠ **It stopped saying "Stop" on 2026-08-19**, and the compiler is what
-                // asked the question: adding a Paused state made this `when` inexhaustive and
-                // forced a decision here. Stopping now belongs to the ListenBar, which has a
-                // real control for it, so one button no longer means two things depending on
-                // what it is already doing.
-                text = when (audio) {
-                    is AudioState.Idle, is AudioState.Failed -> "Listen to it instead"
-                    is AudioState.Fetching -> "Getting the recitation…"
-                    is AudioState.Playing -> "Playing"
-                    is AudioState.Paused -> "Paused"
-                },
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption),
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(18.dp),
+                backgroundColor = if (isDark) Color(0xFF1C1D22) else Color(0xFFFAF7F0),
+                elevation = 3.dp,
+                highlightColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.6f),
+                shadowColor = Color.Black.copy(alpha = if (isDark) 0.35f else 0.12f),
+                strokeWidth = 1.dp,
             )
-        }
-        if (audio is AudioState.Failed) {
-            Text(
-                text = audio.reason,
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption),
-            )
+            .padding(16.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            // Header kicker row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = if (ayahCount > 0) "TODAY'S WIRD · $ayahCount VERSES" else "TODAY'S WIRD",
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.1.sp,
+                        color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                    ),
+                )
+                if (page > 0) {
+                    Box(
+                        modifier = Modifier
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = if (isDark) Color(0xFF26272E) else Color(0xFFEDE8DC),
+                                elevation = 1.dp,
+                            )
+                            .padding(horizontal = 9.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            text = "Page $page of 604",
+                            style = TextStyle(
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textSecondary,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            // Primary CTA: Tactile deep forest green button
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 48.dp)
+                    .clayCard(
+                        shape = RoundedCornerShape(12.dp),
+                        backgroundColor = if (isDark) Color(0xFF1D3B30) else Color(0xFF245847),
+                        elevation = 3.dp,
+                        highlightColor = Color(0xFF48826D).copy(alpha = 0.5f),
+                        shadowColor = Color.Black.copy(alpha = 0.35f),
+                    )
+                    .clickable(onClick = onRecite)
+                    .padding(vertical = 12.dp, horizontal = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = "🎙",
+                        style = TextStyle(fontSize = 16.sp),
+                    )
+                    Text(
+                        text = reciteLabel(mode),
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        ),
+                    )
+                }
+            }
+
+            // Secondary Row: Two tactile clay pills
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // Mark Read
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 40.dp)
+                        .clayCard(
+                            shape = RoundedCornerShape(10.dp),
+                            backgroundColor = if (isDark) Color(0xFF24262E) else Color(0xFFEFE9DC),
+                            elevation = 1.5.dp,
+                            highlightColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.5f),
+                            shadowColor = Color.Black.copy(alpha = 0.15f),
+                        )
+                        .clickable(onClick = onTap)
+                        .padding(vertical = 9.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = "✓",
+                            style = TextStyle(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textPrimary,
+                            ),
+                        )
+                        Text(
+                            text = tapLabel(mode),
+                            style = TextStyle(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textPrimary,
+                            ),
+                        )
+                    }
+                }
+
+                // Listen
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 40.dp)
+                        .clayCard(
+                            shape = RoundedCornerShape(10.dp),
+                            backgroundColor = if (isDark) Color(0xFF24262E) else Color(0xFFEFE9DC),
+                            elevation = 1.5.dp,
+                            highlightColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.5f),
+                            shadowColor = Color.Black.copy(alpha = 0.15f),
+                        )
+                        .clickable(onClick = onListen)
+                        .padding(vertical = 9.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = "🎧",
+                            style = TextStyle(fontSize = 13.sp),
+                        )
+                        Text(
+                            text = when (audio) {
+                                is AudioState.Idle, is AudioState.Failed -> "Listen"
+                                is AudioState.Fetching -> "Loading…"
+                                is AudioState.Playing -> "Playing"
+                                is AudioState.Paused -> "Paused"
+                            },
+                            style = TextStyle(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textPrimary,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            // Streak & reading info line
+            progress?.takeIf { it.totalDaysRead > 0 }?.let { p ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = if (p.currentStreak > 1) {
+                            "🔥 ${p.currentStreak} in a row · ${p.totalDaysRead} days read in total"
+                        } else {
+                            "📖 ${p.totalDaysRead} day read"
+                        },
+                        style = TextStyle(
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.textSecondary,
+                        ),
+                    )
+                }
+            }
         }
     }
 }
@@ -182,126 +344,182 @@ private fun NotYet(
 private fun AlreadyDone(
     method: Method,
     hasRecording: Boolean,
+    surahName: String,
     onPlay: () -> Unit,
     onUndo: () -> Unit,
     onCheck: (() -> Unit)?,
     checkState: CheckState,
 ) {
     val colors = LocalWirdColors.current
-    Column(
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val emerald = if (isDark) Color(0xFF1E382D) else Color(0xFFE8F3EE)
+    val emeraldText = if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Scale.radius))
-            .background(colors.done)
-            .padding(Scale.space4),
+            .clayCard(
+                shape = RoundedCornerShape(18.dp),
+                backgroundColor = emerald,
+                elevation = 3.dp,
+                highlightColor = if (isDark) Color(0xFF335E4E).copy(alpha = 0.5f) else Color.White.copy(alpha = 0.7f),
+                shadowColor = Color.Black.copy(alpha = 0.2f),
+                strokeWidth = 1.dp,
+            )
+            .padding(16.dp),
     ) {
-        // Says which one. Sacred Rule 6 — the app never lets you believe you recited when
-        // you tapped.
-        Text(
-            text = if (method == Method.RECITED) "Recited today" else "Marked as read today",
-            color = colors.onSurfaceRaised,
-            style = TextStyle(fontSize = Scale.body),
-        )
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Scale.space2),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            if (hasRecording) {
-                TextButton(
-                    onClick = onPlay,
-                    modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
-                ) {
-                    Text("Hear it back", color = colors.onSurfaceRaised)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column {
+                    Text(
+                        text = "✓ Today's Wird Completed!",
+                        style = TextStyle(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = emeraldText,
+                        ),
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = if (method == Method.RECITED) {
+                            if (surahName.isNotEmpty()) "Recited aloud · $surahName" else "Recited aloud today"
+                        } else {
+                            if (surahName.isNotEmpty()) "Marked as read · $surahName" else "Marked as read today"
+                        },
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = emeraldText.copy(alpha = 0.85f),
+                        ),
+                    )
                 }
+
+                Text(
+                    text = "🏆",
+                    style = TextStyle(fontSize = 20.sp),
+                )
             }
-            // **His report, 2026-08-20: "I recorded but I didn't see anything."** He was right.
-            // The transcription existed, ran in the background and wrote to the log, where a
-            // reader has no way of ever seeing it. A feature nobody can observe is one nobody
-            // can trust, and it also meant the measurement PLAN task 14 needs could only be
-            // taken by plugging the phone into a laptop.
-            if (hasRecording && onCheck != null && checkState !is CheckState.Working) {
-                TextButton(
-                    onClick = onCheck,
-                    modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
+
+            // Action row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (hasRecording) {
+                    Box(
+                        modifier = Modifier
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = if (isDark) Color(0xFF294E3E) else Color(0xFFD6EAE0),
+                                elevation = 1.5.dp,
+                            )
+                            .clickable(onClick = onPlay)
+                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                    ) {
+                        Text(
+                            text = "▶ Hear back",
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = emeraldText,
+                            ),
+                        )
+                    }
+                }
+
+                if (hasRecording && onCheck != null && checkState !is CheckState.Working) {
+                    Box(
+                        modifier = Modifier
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = if (isDark) Color(0xFF294E3E) else Color(0xFFD6EAE0),
+                                elevation = 1.5.dp,
+                            )
+                            .clickable(onClick = onCheck)
+                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                    ) {
+                        Text(
+                            text = if (checkState is CheckState.Idle) "✦ AI Check" else "✦ Check again",
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = emeraldText,
+                            ),
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clayPill(
+                            shape = RoundedCornerShape(999.dp),
+                            backgroundColor = if (isDark) Color(0xFF26272E) else Color(0xFFEDE8DC),
+                            elevation = 1.dp,
+                        )
+                        .clickable(onClick = onUndo)
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
                 ) {
                     Text(
-                        text = if (checkState is CheckState.Idle) "Check it" else "Check again",
-                        color = colors.onSurfaceRaised,
+                        text = "Undo",
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textSecondary,
+                        ),
                     )
                 }
             }
-            TextButton(
-                onClick = onUndo,
-                modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
-            ) {
-                Text("Undo", color = colors.onSurfaceRaised)
-            }
-        }
 
-        // ---- what it heard ----
-        //
-        // ⚠ **Shown as "what the phone heard", never as a mark.** Sacred Rule 6: the recording
-        // is what makes the day recited, and this is evidence about the recording. Nothing here
-        // can change the day, and the wording must never imply it did.
-        when (checkState) {
-            is CheckState.Idle -> Unit
-
-            is CheckState.Working -> {
-                Spacer(Modifier.height(Scale.space2))
-                Text(
-                    // ⚠ **"A few seconds" was a lie and it cost him the feature.** Whisper on a
-                    // phone runs at roughly real time: a forty-second recitation takes tens of
-                    // seconds, and he reasonably read a still screen as a hung one. The count
-                    // is the whole fix — a number that moves is the difference between working
-                    // and broken, and it costs one line.
-                    text = "Listening back… ${checkState.seconds}s. It runs about as long as " +
-                        "the recording, and it works offline.",
-                    color = colors.onSurfaceRaised,
-                    style = TextStyle(fontSize = Scale.caption),
-                )
-            }
-
-            is CheckState.Heard -> {
-                Spacer(Modifier.height(Scale.space3))
-                Text(
-                    // **The verdict, not the transcript.** His instruction: *"I don't need what
-                    // it hears."* The transcript is still logged, because it is what makes a
-                    // wrong verdict diagnosable, but it is no longer what he is shown.
-                    text = checkState.summary.ifEmpty { checkState.text },
-                    color = colors.onSurfaceRaised,
-                    style = TextStyle(fontSize = 16.sp, lineHeight = 24.sp),
-                )
-                if (checkState.marked > 0) {
-                    Spacer(Modifier.height(Scale.space1))
+            // Recitation check state display
+            when (checkState) {
+                is CheckState.Idle -> Unit
+                is CheckState.Working -> {
+                    Spacer(Modifier.height(2.dp))
                     Text(
-                        // ⚠ Says where to look, and never says "wrong". The mark on the page is
-                        // amber for the same reason - a colour is read before any word is.
-                        text = if (checkState.marked == 1) {
-                            "One ayah is marked on the page above."
-                        } else {
-                            "${checkState.marked} ayahs are marked on the page above."
-                        },
-                        color = colors.onSurfaceRaised,
+                        text = "Listening back… ${checkState.seconds}s. It runs offline on this phone.",
+                        color = emeraldText,
                         style = TextStyle(fontSize = Scale.caption),
                     )
                 }
-                Spacer(Modifier.height(Scale.space2))
-                Text(
-                    text = "${checkState.seconds}s of audio, checked in ${checkState.took}s. " +
-                        "It compares words, not tajweed.",
-                    color = colors.onSurfaceRaised,
-                    style = TextStyle(fontSize = Scale.caption),
-                )
-            }
-
-            is CheckState.Nothing -> {
-                Spacer(Modifier.height(Scale.space2))
-                Text(
-                    text = checkState.why,
-                    color = colors.onSurfaceRaised,
-                    style = TextStyle(fontSize = Scale.caption),
-                )
+                is CheckState.Heard -> {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = checkState.summary.ifEmpty { checkState.text },
+                        color = emeraldText,
+                        style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium),
+                    )
+                    if (checkState.marked > 0) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = if (checkState.marked == 1) "One ayah is marked on the page above."
+                            else "${checkState.marked} ayahs are marked on the page above.",
+                            color = emeraldText,
+                            style = TextStyle(fontSize = Scale.caption),
+                        )
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = "${checkState.seconds}s of audio, checked in ${checkState.took}s. It compares words, not tajweed.",
+                        color = emeraldText.copy(alpha = 0.8f),
+                        style = TextStyle(fontSize = Scale.caption),
+                    )
+                }
+                is CheckState.Nothing -> {
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = checkState.why,
+                        color = emeraldText,
+                        style = TextStyle(fontSize = Scale.caption),
+                    )
+                }
             }
         }
     }

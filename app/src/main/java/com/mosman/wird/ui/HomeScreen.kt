@@ -286,7 +286,7 @@ private fun PortionCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = if (doneMethod == null) "TODAY'S PORTION" else "TODAY, DONE",
+                text = if (doneMethod == null) "TODAY'S WIRD" else "TODAY, DONE",
                 color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp),
             )
