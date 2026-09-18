@@ -451,7 +451,7 @@ class MainActivity : ComponentActivity() {
                         commitment = if (doneMethod == null) commitment else null,
                         checkingBackAt = (armed as? Armed.At)?.time?.let(::clockLabel)
                             ?: (armed as? Armed.AtFallback)?.time?.let(::clockLabel),
-                        shortcuts = listOf("After Isha", "In an hour", "Not today", "Already did it"),
+                        shortcuts = listOf("Tafsir of verse", "How am I doing?", "Where am I?", "Already recited today", "Remind in 1 hour", "Not today"),
                         surahName = assignment.surahs.firstOrNull()?.name,
                         pageNumber = assignment.pages.firstOrNull(),
                         doneMethod = doneMethod,
@@ -459,6 +459,13 @@ class MainActivity : ComponentActivity() {
                         pagesLeft = (Mushaf.PAGES - Mushaf.pageOf(position)).coerceAtLeast(0),
                         onSend = { said(it) },
                         onBack = { onChat = false },
+                        onNewChat = {
+                            chat.clear()
+                            val surah = assignment.surahs.firstOrNull()?.name ?: "your daily portion"
+                            val page = assignment.pages.firstOrNull() ?: Mushaf.pageOf(position)
+                            val greeting = "Assalamu Alaikum! Fresh reflection started for Page $page ($surah). How did your recitation go today, and what would you like to reflect on?"
+                            turns = chat.say(Speaker.WIRD, greeting)
+                        },
                     )
                 } else if (screen == Screen.SETUP) {
                     SetupScreen(

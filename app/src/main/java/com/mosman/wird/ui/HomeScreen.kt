@@ -154,16 +154,24 @@ fun HomeScreen(
                 PortionCard(assignment, doneMethod, onOpenPage, onMarkRead, mode, onOpenInQuran)
             }
 
-            // Companion is always visible on the Home Screen
+            // Today's Habit Clarity Card + Reflection Capsule (Option A)
             Spacer(Modifier.height(Scale.space4))
             StaggeredEnter(index = cardIndex++) {
-                Companion(
-                    question = companionQuestion(doneMethod != null),
+                HomeHabitClarityCard(
+                    assignment = assignment,
+                    doneMethod = doneMethod,
+                    progress = progress,
                     turns = turns,
-                    shortcuts = listOf("After 'Isha", "In an hour", "Not today"),
-                    onReply = onSaid,
+                    onYesRecited = {
+                        onSaid("Already did it")
+                    },
+                    onRemindInHour = {
+                        onSaid("In an hour")
+                    },
+                    onNotToday = {
+                        onSaid("Not today")
+                    },
                     onOpenChat = onOpenChat,
-                    isDone = doneMethod != null,
                 )
             }
 
