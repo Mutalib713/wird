@@ -119,7 +119,7 @@ fun HomeHabitClarityCard(
                 style = TextStyle(fontSize = 11.sp, letterSpacing = 1.1.sp, fontWeight = FontWeight.ExtraBold),
             )
 
-            // Streak badge (Sacred Rule 6: FlameVectorIcon)
+            // Streak badge (Matches YOUR JOURNEY flame)
             Row(
                 modifier = Modifier
                     .clip(CircleShape)
@@ -129,7 +129,10 @@ fun HomeHabitClarityCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                FlameVectorIcon(tint = gold, modifier = Modifier.size(13.dp))
+                Text(
+                    text = "🔥",
+                    fontSize = 12.sp,
+                )
                 Text(
                     text = if (streak > 0) "$streak Day Streak" else "Start Streak",
                     color = if (isDark) Color(0xFFF0D590) else Color(0xFF8A6418),

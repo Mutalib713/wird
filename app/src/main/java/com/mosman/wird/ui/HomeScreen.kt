@@ -63,6 +63,7 @@ import com.mosman.wird.domain.Turn
 import com.mosman.wird.domain.surahs
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 import com.mosman.wird.ui.theme.arabicNumerals
@@ -122,6 +123,8 @@ fun HomeScreen(
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
+
+    SetStatusBarAppearance(isLightBackground = false)
 
     Column(
         modifier = modifier
@@ -836,7 +839,7 @@ private fun NumbersCard(p: Progress) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "YOUR NUMBERS",
+                text = "YOUR JOURNEY",
                 color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp),
             )

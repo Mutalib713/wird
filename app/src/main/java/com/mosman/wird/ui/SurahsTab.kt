@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.mosman.wird.domain.Bookmark
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.ui.theme.LocalWirdColors
+import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.clayCard
 
 /**
@@ -76,6 +77,8 @@ fun SurahsTab(
             focusRequester.requestFocus()
         }
     }
+
+    SetStatusBarAppearance(isLightBackground = !isDark)
 
     Column(
         modifier = Modifier

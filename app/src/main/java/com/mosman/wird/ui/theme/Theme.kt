@@ -1,8 +1,12 @@
 package com.mosman.wird.ui.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import com.mosman.wird.data.ThemeMode
 
 /**
@@ -30,3 +34,23 @@ fun WirdTheme(
         content = content,
     )
 }
+
+/**
+ * Adjusts Android status bar icon appearance dynamically.
+ *
+ * When [isLightBackground] is true, Android draws dark icons (time, battery, Wi-Fi, notifications)
+ * so they are crisp and easily readable against light surfaces (paper, cream, white).
+ * When [isLightBackground] is false, Android draws white icons for high contrast against dark surfaces
+ * (atmospheric dark emerald header, dark mode).
+ */
+@Composable
+fun SetStatusBarAppearance(isLightBackground: Boolean) {
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = isLightBackground
+        }
+    }
+}
+

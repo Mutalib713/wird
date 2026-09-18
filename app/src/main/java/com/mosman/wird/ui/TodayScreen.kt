@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 import androidx.compose.material3.Checkbox
@@ -364,6 +365,8 @@ fun TodayScreen(
     // page's theme rather than the app's, so the chrome can follow the phone while the mushaf
     // stays a printed object. The toolbar and the verse sheet come with it, because a dark bar
     // over a light page is two surfaces arguing.
+    SetStatusBarAppearance(isLightBackground = !dark)
+
     WirdTheme(mode = if (dark) ThemeMode.DARK else ThemeMode.LIGHT) {
     Box(modifier = Modifier.fillMaxSize()) {
         // **The controls sit over the page while something is playing, and vanish when it

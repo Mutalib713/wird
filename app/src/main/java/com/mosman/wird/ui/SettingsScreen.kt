@@ -85,6 +85,7 @@ import com.mosman.wird.nudge.Armed
 import com.mosman.wird.nudge.NudgeDiagnostic
 import com.mosman.wird.nudge.OemAdvice
 import com.mosman.wird.ui.theme.LocalWirdColors
+import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.arabicNumerals
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
@@ -221,6 +222,8 @@ fun SettingsScreen(
             subScreen = SettingsSubScreen.MAIN
         }
     }
+
+    SetStatusBarAppearance(isLightBackground = !isDark)
 
     Box(
         modifier = Modifier

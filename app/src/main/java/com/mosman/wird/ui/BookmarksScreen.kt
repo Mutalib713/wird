@@ -47,6 +47,7 @@ import com.mosman.wird.domain.JuzIndex
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.arabicName
 import com.mosman.wird.ui.theme.LocalWirdColors
+import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 import java.time.format.DateTimeFormatter
@@ -76,6 +77,8 @@ fun BookmarksScreen(
 
     // 0 = Recent pages, 1 = Ayah bookmarks
     var selectedTab by remember { mutableIntStateOf(0) }
+
+    SetStatusBarAppearance(isLightBackground = !isDark)
 
     Column(
         modifier = Modifier

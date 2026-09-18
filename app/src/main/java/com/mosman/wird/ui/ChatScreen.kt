@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +60,7 @@ import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.Turn
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 import java.time.LocalDateTime
@@ -110,6 +112,8 @@ fun ChatScreen(
     LaunchedEffect(turns.size) {
         if (turns.isNotEmpty()) listState.animateScrollToItem(turns.size)
     }
+
+    SetStatusBarAppearance(isLightBackground = !isDark)
 
     Column(
         modifier = Modifier
@@ -343,53 +347,61 @@ fun ChatScreen(
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                        if (typed.isEmpty()) {
-                            Text(
-                                text = "Type your reflection or ask a question...",
-                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF8B9E93),
-                                style = TextStyle(fontSize = 13.sp),
-                            )
-                        }
-                        BasicTextField(
-                            value = typed,
-                            onValueChange = { typed = it },
-                            textStyle = TextStyle(
-                                fontSize = 13.5.sp,
-                                color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
-                            ),
-                            cursorBrush = SolidColor(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
-                            modifier = Modifier.fillMaxWidth(),
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                    if (typed.isEmpty()) {
+                        Text(
+                            text = "Type your reflection or ask a question...",
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF8B9E93),
+                            style = TextStyle(fontSize = 13.sp),
                         )
                     }
-                    Spacer(Modifier.width(6.dp))
-                    MicVectorIcon(
-                        tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
-                        modifier = Modifier.size(18.dp),
+                    BasicTextField(
+                        value = typed,
+                        onValueChange = { typed = it },
+                        textStyle = TextStyle(
+                            fontSize = 13.5.sp,
+                            color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                        ),
+                        cursorBrush = SolidColor(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
 
             // Circular emerald send button
+            val canSend = typed.isNotBlank()
+            val sendBg = if (canSend) {
+                if (isDark) Color(0xFF2A6350) else Color(0xFF245847)
+            } else {
+                if (isDark) Color(0xFF13251D) else Color(0xFFE2E7DE)
+            }
+            val sendBorder = if (canSend) {
+                if (isDark) Color(0xFF3E836A) else Color(0xFF1C4336)
+            } else {
+                if (isDark) Color(0xFF1D352A) else Color(0xFFCAD4CD)
+            }
+            val sendIconTint = if (canSend) {
+                Color.White
+            } else {
+                if (isDark) Color(0xFF486B5A) else Color(0xFF8A9D93)
+            }
+
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clayPill(
-                        shape = CircleShape,
-                        backgroundColor = if (isDark) Color(0xFF2A6350) else Color(0xFF245847),
-                        elevation = 3.dp,
-                    )
-                    .alpha(if (typed.isBlank()) 0.45f else 1f)
-                    .clickable(enabled = typed.isNotBlank()) { send(typed) }
+                    .clip(CircleShape)
+                    .background(sendBg)
+                    .border(1.dp, sendBorder, CircleShape)
+                    .clickable(
+                        enabled = canSend,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { send(typed) }
                     .semantics { contentDescription = "Send" },
                 contentAlignment = Alignment.Center,
             ) {
                 SendVectorIcon(
-                    tint = Color.White,
+                    tint = sendIconTint,
                     modifier = Modifier.size(18.dp),
                 )
             }
