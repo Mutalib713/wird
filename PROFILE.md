@@ -278,6 +278,11 @@ Decisions no future session may reopen without Mutalib's explicit approval.
 4. **The streak is always shown next to total days read**, which never resets. The day
    after a streak breaks is when people delete habit apps.
 5. **This is a habit tool, not a Qur'an reader.** Reading features link out.
+6. **Iconography Standard — Google Material & Lucide Vector Icons Only.**
+   Strictly NO raw or informal emojis in UI components, dialogs, buttons, empty states, or
+   indicators (e.g. no 📖, 🧭, ✨, 📍). Use authentic Google Material Icons (`androidx.compose.material.icons`)
+   or Lucide-style vector drawables exclusively. Added 2026-09-18 by Mutalib's explicit instruction.
+
 
    **Refined 2026-08-15, with Mutalib's explicit approval.** He asked for full browsing
    and a home screen; we settled on the smaller version and he chose it knowingly:

@@ -27,11 +27,14 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -45,16 +48,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mosman.wird.domain.Commitment
+import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.Turn
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.clayCard
+import com.mosman.wird.ui.theme.clayPill
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -90,6 +101,11 @@ fun ChatScreen(
     /** When it will check back — the real armed time, not a guess. */
     checkingBackAt: String?,
     shortcuts: List<String>,
+    surahName: String? = null,
+    pageNumber: Int? = null,
+    doneMethod: Method? = null,
+    streak: Int = 0,
+    pagesLeft: Int = 0,
     onSend: (String) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -153,6 +169,21 @@ fun ChatScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(Scale.space4),
             verticalArrangement = Arrangement.spacedBy(Scale.space3),
         ) {
+            item {
+                HabitClarityCard(
+                    surahName = surahName,
+                    pageNumber = pageNumber,
+                    doneMethod = doneMethod,
+                    streak = streak,
+                    pagesLeft = pagesLeft,
+                    checkingBackAt = checkingBackAt,
+                    onYesRecited = { send("Already did it") },
+                    onRemindInHour = { send("In an hour") },
+                    onNotToday = { send("Not today") },
+                )
+                Spacer(Modifier.height(Scale.space2))
+            }
+
             commitment?.let { c ->
                 item {
                     CommitmentCard(c, checkingBackAt)
@@ -160,9 +191,7 @@ fun ChatScreen(
                 }
             }
 
-            if (turns.isEmpty()) {
-                item { Empty() }
-            } else {
+            if (turns.isNotEmpty()) {
                 items(turns) { turn -> Bubble(turn) }
             }
         }
@@ -442,3 +471,313 @@ private fun Hairline() {
 /** "6:12 pm". Lower case, because "6:12 PM" shouts in the middle of a sentence. */
 internal fun clockOf(at: LocalDateTime): String =
     at.format(DateTimeFormatter.ofPattern("h:mm a")).lowercase()
+
+/**
+ * Habit Clarity Decision Card (Concept A)
+ *
+ * Placed at the top of Today's Check-in screen.
+ * Replaces typing friction with high-contrast, tactile decision buttons:
+ * - "Yes, I recited it" (Marks portion read, updates streak)
+ * - "Remind me in 1 hour" (Arms 1-hour snooze reminder)
+ * - "Not today" (Postpones portion without guilt per Sacred Rule 3)
+ *
+ * When today is completed (doneMethod != null), displays a celebratory reflection card.
+ */
+@Composable
+private fun HabitClarityCard(
+    surahName: String?,
+    pageNumber: Int?,
+    doneMethod: Method?,
+    streak: Int,
+    pagesLeft: Int,
+    checkingBackAt: String?,
+    onYesRecited: () -> Unit,
+    onRemindInHour: () -> Unit,
+    onNotToday: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+
+    val cardBg = if (isDark) Color(0xFF14221B) else Color(0xFFF7F4EC)
+    val cardHighlight = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.85f)
+    val cardShadow = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0xFF8C7D5F).copy(alpha = 0.2f)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = cardBg,
+                highlightColor = cardHighlight,
+                shadowColor = cardShadow,
+                elevation = 4.dp,
+            )
+            .padding(18.dp),
+    ) {
+        // Tag + time
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (doneMethod == null) "TODAY'S CHECK-IN" else "TODAY'S CHECK-IN · COMPLETED",
+                color = gold,
+                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp),
+            )
+            checkingBackAt?.let { at ->
+                Text(
+                    text = "Checking back at $at",
+                    color = colors.textSecondary,
+                    style = TextStyle(fontSize = 11.sp),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        if (doneMethod == null) {
+            // Question
+            val portionLabel = if (surahName != null && pageNumber != null) {
+                "$surahName (Page $pageNumber)"
+            } else surahName ?: pageNumber?.let { "Page $it" } ?: "today's portion"
+
+            Text(
+                text = "Have you completed your portion of $portionLabel today?",
+                color = colors.textPrimary,
+                style = TextStyle(fontSize = 16.5.sp, fontWeight = FontWeight.Bold, lineHeight = 23.sp),
+            )
+
+            Spacer(Modifier.height(14.dp))
+
+            // Action 1: Yes, I recited it
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(14.dp),
+                        backgroundColor = Color(0xFF245847),
+                        highlightColor = Color.White.copy(alpha = 0.25f),
+                        shadowColor = Color.Black.copy(alpha = 0.4f),
+                        elevation = 4.dp,
+                    )
+                    .clickable(onClick = onYesRecited)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clayPill(shape = CircleShape, backgroundColor = Color.White.copy(alpha = 0.2f), elevation = 0.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(15.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "Yes, I recited it",
+                        color = Color.White,
+                        style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                    )
+                }
+                Text(
+                    text = "Streak +1",
+                    color = Color(0xFFF3D993),
+                    style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold),
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Action 2: Remind me in 1 hour
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(14.dp),
+                        backgroundColor = if (isDark) Color(0xFF1B2E24) else Color.White,
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.9f),
+                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0xFF8C7D6B).copy(alpha = 0.15f),
+                        elevation = 2.dp,
+                    )
+                    .clickable(onClick = onRemindInHour)
+                    .padding(horizontal = 14.dp, vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ClockVectorIcon(tint = if (isDark) gold else Color(0xFF245847))
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "Remind me in 1 hour",
+                        color = colors.textPrimary,
+                        style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold),
+                    )
+                }
+                Text(
+                    text = "Snooze",
+                    color = colors.textSecondary,
+                    style = TextStyle(fontSize = 11.5.sp),
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Action 3: Not today
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(14.dp),
+                        backgroundColor = if (isDark) Color(0xFF221A1A) else Color(0xFFFAF3F3),
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.8f),
+                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.35f) else Color(0xFF9E7E7E).copy(alpha = 0.15f),
+                        elevation = 2.dp,
+                    )
+                    .clickable(onClick = onNotToday)
+                    .padding(horizontal = 14.dp, vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
+                        tint = if (isDark) Color(0xFFE29F9F) else Color(0xFF9C4A4A),
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        text = "Not today",
+                        color = colors.textPrimary,
+                        style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold),
+                    )
+                }
+                Text(
+                    text = "Keep page for tomorrow",
+                    color = colors.textSecondary,
+                    style = TextStyle(fontSize = 11.sp),
+                )
+            }
+        } else {
+            // Already Completed State
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clayPill(shape = CircleShape, backgroundColor = Color(0xFF245847), elevation = 2.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Alhamdulillah! Portion complete.",
+                        color = colors.textPrimary,
+                        style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+                    )
+                    Text(
+                        text = if (doneMethod == Method.RECITED) "Recited aloud · Streak protected" else "Marked as read · Streak protected",
+                        color = colors.textSecondary,
+                        style = TextStyle(fontSize = 12.sp),
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        // Footer Progress
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(width = 0.5.dp, color = colors.ornament.copy(alpha = 0.2f), shape = RoundedCornerShape(10.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                FlameVectorIcon(tint = gold)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = if (streak > 0) "$streak days unbroken" else "Start your streak today",
+                    color = gold,
+                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                )
+            }
+            if (pagesLeft > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BookVectorIcon(tint = colors.textSecondary)
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "$pagesLeft pages left",
+                        color = colors.textSecondary,
+                        style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Vector clock icon matching Sacred Rule 6 (Google Material / Lucide style). */
+@Composable
+private fun ClockVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(18.dp)) {
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        val r = size.minDimension * 0.42f
+        drawCircle(color = tint, radius = r, center = center, style = stroke)
+        drawLine(color = tint, start = center, end = Offset(center.x, center.y - r * 0.55f), strokeWidth = stroke.width, cap = stroke.cap)
+        drawLine(color = tint, start = center, end = Offset(center.x + r * 0.45f, center.y), strokeWidth = stroke.width, cap = stroke.cap)
+    }
+}
+
+/** Vector flame / streak icon matching Sacred Rule 6. */
+@Composable
+private fun FlameVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        val path = Path().apply {
+            moveTo(w * 0.5f, h * 0.05f)
+            cubicTo(w * 0.75f, h * 0.25f, w * 0.95f, h * 0.55f, w * 0.8f, h * 0.85f)
+            cubicTo(w * 0.65f, h * 1.0f, w * 0.35f, h * 1.0f, w * 0.2f, h * 0.85f)
+            cubicTo(w * 0.05f, h * 0.65f, w * 0.25f, h * 0.4f, w * 0.45f, h * 0.45f)
+            cubicTo(w * 0.4f, h * 0.3f, w * 0.45f, h * 0.15f, w * 0.5f, h * 0.05f)
+            close()
+        }
+        drawPath(path, color = tint)
+    }
+}
+
+/** Vector book icon matching Sacred Rule 6. */
+@Composable
+private fun BookVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
+        listOf(-1f, 1f).forEach { side ->
+            val outer = Offset(w * (0.5f + side * 0.42f), h * 0.22f)
+            val inner = Offset(w * 0.5f, h * 0.32f)
+            drawLine(tint, outer, inner, stroke.width, stroke.cap)
+            drawLine(tint, outer, Offset(outer.x, h * 0.80f), stroke.width, stroke.cap)
+            drawLine(tint, Offset(outer.x, h * 0.80f), Offset(w * 0.5f, h * 0.86f), stroke.width, stroke.cap)
+        }
+        drawLine(tint, Offset(w * 0.5f, h * 0.32f), Offset(w * 0.5f, h * 0.86f), stroke.width, stroke.cap)
+    }
+}

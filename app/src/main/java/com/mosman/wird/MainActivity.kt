@@ -451,6 +451,11 @@ class MainActivity : ComponentActivity() {
                         checkingBackAt = (armed as? Armed.At)?.time?.let(::clockLabel)
                             ?: (armed as? Armed.AtFallback)?.time?.let(::clockLabel),
                         shortcuts = listOf("After Isha", "In an hour", "Not today", "Already did it"),
+                        surahName = assignment.surahs.firstOrNull()?.name,
+                        pageNumber = assignment.pages.firstOrNull(),
+                        doneMethod = doneMethod,
+                        streak = progress.currentStreak,
+                        pagesLeft = (Mushaf.PAGES - Mushaf.pageOf(position)).coerceAtLeast(0),
                         onSend = { said(it) },
                         onBack = { onChat = false },
                     )

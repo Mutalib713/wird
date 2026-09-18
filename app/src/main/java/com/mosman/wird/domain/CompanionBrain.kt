@@ -178,7 +178,7 @@ object CompanionBrain {
         t.has(
             "already did", "already read", "already done", "i've read", "ive read",
             "i have read", "just read", "just finished", "finished it", "i read it",
-            "i did it",
+            "i did it", "recited", "i recited", "recited it", "i recited it", "yes, i recited it",
         ) -> CompanionAction.MarkDone
         t == "done" || t == "finished" -> CompanionAction.MarkDone
         else -> null
