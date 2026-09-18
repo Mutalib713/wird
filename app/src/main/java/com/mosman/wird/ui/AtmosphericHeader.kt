@@ -78,8 +78,8 @@ fun AtmosphericHeader(
             val w = size.width
             val h = size.height
 
-            // Glowing crescent moon
-            val moonCenter = Offset(w * 0.85f, h * 0.28f)
+            // Glowing crescent moon (positioned in upper sky clear of top-right buttons)
+            val moonCenter = Offset(w * 0.58f, h * 0.22f)
             val moonRadius = 14.dp.toPx()
             drawCircle(
                 color = Color(0xFFFFF6DC).copy(alpha = 0.95f),
@@ -99,17 +99,17 @@ fun AtmosphericHeader(
             
             // Bird 1
             val bird1 = Path().apply {
-                moveTo(w * 0.62f, h * 0.35f)
-                quadraticTo(w * 0.64f, h * 0.32f, w * 0.66f, h * 0.35f)
-                quadraticTo(w * 0.68f, h * 0.32f, w * 0.70f, h * 0.35f)
+                moveTo(w * 0.68f, h * 0.28f)
+                quadraticTo(w * 0.70f, h * 0.25f, w * 0.72f, h * 0.28f)
+                quadraticTo(w * 0.74f, h * 0.25f, w * 0.76f, h * 0.28f)
             }
             drawPath(bird1, color = birdColor, style = birdStroke)
 
             // Bird 2
             val bird2 = Path().apply {
-                moveTo(w * 0.72f, h * 0.30f)
-                quadraticTo(w * 0.735f, h * 0.27f, w * 0.75f, h * 0.30f)
-                quadraticTo(w * 0.765f, h * 0.27f, w * 0.78f, h * 0.30f)
+                moveTo(w * 0.76f, h * 0.24f)
+                quadraticTo(w * 0.775f, h * 0.21f, w * 0.79f, h * 0.24f)
+                quadraticTo(w * 0.805f, h * 0.21f, w * 0.82f, h * 0.24f)
             }
             drawPath(bird2, color = birdColor, style = birdStroke)
 

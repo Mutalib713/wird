@@ -372,23 +372,59 @@ private fun Shortcut(label: String, onClick: () -> Unit) {
             .padding(horizontal = 13.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ShortcutGlyph(label)
+        val glyphTint = if (isDark) Color(0xFFBAD3C5) else Color(0xFF204C3D)
+        ShortcutGlyph(label, glyphTint)
         Text(
             text = label,
-            color = if (isDark) Color(0xFFBAD3C5) else Color(0xFF204C3D),
+            color = glyphTint,
             style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
         )
     }
 }
 
 @Composable
-private fun ShortcutGlyph(label: String) {
+private fun ShortcutGlyph(label: String, tint: Color) {
     val l = label.lowercase()
     when {
-        l.contains("isha") || l.contains("night") -> Text(text = "🌙", fontSize = 11.sp)
-        l.contains("hour") || l.contains("minute") -> Text(text = "⏰", fontSize = 11.sp)
-        l.contains("not") || l.startsWith("no") -> Text(text = "✕", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-        else -> Text(text = "·", fontSize = 11.sp)
+        l.contains("isha") || l.contains("night") -> {
+            Canvas(modifier = Modifier.size(12.dp)) {
+                val w = size.width
+                val h = size.height
+                val path = Path().apply {
+                    moveTo(w * 0.75f, h * 0.12f)
+                    cubicTo(w * 0.35f, h * 0.15f, w * 0.18f, h * 0.48f, w * 0.28f, h * 0.82f)
+                    cubicTo(w * 0.38f, h * 0.95f, w * 0.58f, h * 1.0f, w * 0.78f, h * 0.90f)
+                    cubicTo(w * 0.52f, h * 0.82f, w * 0.44f, h * 0.45f, w * 0.75f, h * 0.12f)
+                    close()
+                }
+                drawPath(path, color = tint)
+            }
+        }
+        l.contains("hour") || l.contains("minute") -> {
+            Canvas(modifier = Modifier.size(12.dp)) {
+                val stroke = Stroke(width = 1.4.dp.toPx(), cap = StrokeCap.Round)
+                val r = size.minDimension * 0.42f
+                drawCircle(color = tint, radius = r, center = center, style = stroke)
+                drawLine(color = tint, start = center, end = Offset(center.x, center.y - r * 0.55f), strokeWidth = stroke.width, cap = stroke.cap)
+                drawLine(color = tint, start = center, end = Offset(center.x + r * 0.45f, center.y), strokeWidth = stroke.width, cap = stroke.cap)
+            }
+        }
+        l.contains("not") || l.startsWith("no") -> {
+            Canvas(modifier = Modifier.size(11.dp)) {
+                val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
+                val pad = size.width * 0.18f
+                drawLine(color = tint, start = Offset(pad, pad), end = Offset(size.width - pad, size.height - pad), strokeWidth = stroke.width, cap = stroke.cap)
+                drawLine(color = tint, start = Offset(size.width - pad, pad), end = Offset(pad, size.height - pad), strokeWidth = stroke.width, cap = stroke.cap)
+            }
+        }
+        else -> {
+            Box(
+                modifier = Modifier
+                    .size(4.dp)
+                    .clip(CircleShape)
+                    .background(tint)
+            )
+        }
     }
     Spacer(Modifier.width(5.dp))
 }
