@@ -138,6 +138,7 @@ fun TodayScreen(
     /** Whether a given ayah is saved. Asked per selection, not held as a list. */
     isBookmarked: (String) -> Boolean = { false },
     onToggleBookmark: (String) -> Unit = {},
+    onPageVisited: (Int) -> Unit = {},
     onDone: (com.mosman.wird.domain.Method, java.io.File?) -> Unit = { _, _ -> },
     onUndo: () -> Unit = {},
 ) {
@@ -439,7 +440,10 @@ fun TodayScreen(
             initialPage = todaysPages.first(),
             jump = jump,
             modifier = Modifier.safeDrawingPadding(),
-            onPageChanged = { current = it },
+            onPageChanged = {
+                current = it
+                onPageVisited(it)
+            },
             onBackgroundTap = { chromeShown = !chromeShown },
             // Name the page the same way the page names itself. Using page.surahName
             // here is what put "Fatir" in the bar while the page said "Ya-Sin 4-12".
@@ -813,7 +817,7 @@ private fun ChromeBar(
                         onClick = { menuOpen = false; onToggleTranslation() },
                     )
                     DropdownMenuItem(
-                        text = { Text("Read something else", color = colors.onSurfaceRaised) },
+                        text = { Text("Browse Sūrahs & Juz'", color = colors.onSurfaceRaised) },
                         onClick = { menuOpen = false; onJump() },
                     )
                     DropdownMenuItem(

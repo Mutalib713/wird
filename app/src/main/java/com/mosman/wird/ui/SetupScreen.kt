@@ -1,11 +1,14 @@
 package com.mosman.wird.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -14,10 +17,23 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,39 +43,44 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mosman.wird.data.ReadingMode
-import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.Mushaf
+import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.clayCard
+import com.mosman.wird.ui.theme.clayPill
 
 /**
- * First run, in three steps.
+ * First-run Onboarding flow redesigned into a cohesive 5-step journey:
+ * - Step 1: What should I call you? (Greeting name, skippable)
+ * - Step 2: Reading method ("From the mushaf" vs "From memory", matching Settings)
+ * - Step 3: Reading direction ("Towards An-Nas" vs "Towards Al-Fatihah", matching Settings)
+ * - Step 4: Reading position (Searchable Sūrah selection)
+ * - Step 5: Starting Ayah & Daily Target (Open in Qur'an picker, Ayah number input, Custom daily verses)
  *
- * Asks the question a person can answer. Nobody knows they are on page 453; most people
- * do not know the ayah number either. But everybody recognises the place when they see
- * it — so the mushaf step shows the page and you tap where you are.
- *
- * The ayah number box stays alongside, at Mutalib's request: typing is faster on the days
- * you do happen to know it.
- *
- * **The name comes first, and it is skippable** — PROFILE.md § 5j. It is first because the
- * greeting is the first thing Home renders, so asking later would mean one launch that
- * greets you as nobody. It is skippable because Sacred Rule 1 means this app has no
- * accounts and never should feel like it does; the Skip is as prominent as the answer.
+ * Implements Sacred Rule 6: Google Material / Lucide style vector drawables exclusively. Zero raw emojis.
  */
 @Composable
 fun SetupScreen(
@@ -72,450 +93,1189 @@ fun SetupScreen(
         direction: ReadingDirection,
     ) -> Unit,
 ) {
-    var name by remember { mutableStateOf<String?>(null) }
-    var askedName by remember { mutableStateOf(false) }
-    var mode by remember { mutableStateOf<ReadingMode?>(null) }
-    var direction by remember { mutableStateOf<ReadingDirection?>(null) }
-    var chosen by remember { mutableStateOf<Surah?>(null) }
-    val surah = chosen
-    val picked = mode
-    val way = direction
-
-    when {
-        !askedName -> YourName(
-            onContinue = {
-                name = it
-                askedName = true
-            },
-        )
-
-        picked == null -> HowYouRead { mode = it }
-
-        // **Asked immediately after how you read, at his instruction, 2026-08-19.** He is right
-        // that they are one decision from two angles: memorisers overwhelmingly work back
-        // towards Al-Baqarah, readers overwhelmingly go front to back. Asking them together is
-        // also the only way a memoriser's *first* day starts them going the right way — before
-        // this, direction lived only in Settings and a new memoriser had to discover it.
-        way == null -> WhichWay(picked) { direction = it }
-
-        surah == null -> ChooseSurah { chosen = it }
-
-        else -> FindYourPlace(
-            surah = surah,
-            onBack = { chosen = null },
-            onDone = { page, units, verse -> onDone(page, units, verse, name, picked, way) },
-        )
-    }
-}
-
-/**
- * "Which way do you go through the mushaf?"
- *
- * **His instruction, 2026-08-19**, in his own words: *"for me I memorise upwards, but some start
- * from Baqarah downwards, and reading too is the same, so the app must know."*
- *
- * ⚠ **It is asked, never assumed, but the suggestion follows the previous answer.** A memoriser
- * is far likelier to be working back from the short sūrahs, so that card is offered first when
- * they said memorise — the order carries the hint, and neither is preselected. Getting this
- * wrong does not merely annoy: it sends every day's portion the opposite way through the book.
- *
- * The wording is his. "Upwards" and "downwards" mean opposite things to different people, so
- * each card names the destination underneath, which cannot be misread.
- */
-@Composable
-private fun WhichWay(mode: ReadingMode, onPick: (ReadingDirection) -> Unit) {
-    val colors = LocalWirdColors.current
-    val memorising = mode == ReadingMode.MEMORISING
-
-    val up: @Composable () -> Unit = {
-        ModeCard(
-            title = "Upwards",
-            detail = "Towards Al-Fatihah. Finish Ya-Sin and the next portion is Fatir. " +
-                "The usual way when you are memorising.",
-            onClick = { onPick(ReadingDirection.TOWARDS_FATIHAH) },
-        )
-    }
-    val down: @Composable () -> Unit = {
-        ModeCard(
-            title = "Downwards",
-            detail = "Towards An-Nas. Finish Ya-Sin and the next portion is As-Saffat. " +
-                "The usual way when you are reading front to back.",
-            onClick = { onPick(ReadingDirection.TOWARDS_NAS) },
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
-            .safeDrawingPadding()
-            .padding(horizontal = Scale.space4),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = "Which way do you go?",
-            color = colors.textPrimary,
-            style = TextStyle(fontSize = Scale.display),
-        )
-        Spacer(Modifier.height(Scale.space2))
-        Text(
-            text = "When you finish a portion, this is where the next one comes from.",
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
-        )
-        Spacer(Modifier.height(Scale.space6))
-
-        // The likelier answer first, given what they just said. Neither is preselected.
-        if (memorising) {
-            up(); Spacer(Modifier.height(Scale.space3)); down()
-        } else {
-            down(); Spacer(Modifier.height(Scale.space3)); up()
-        }
-
-        Spacer(Modifier.height(Scale.space4))
-        Text(
-            text = "You can change this later in More.",
-            color = colors.textOutsidePortion,
-            style = TextStyle(fontSize = Scale.caption),
-        )
-    }
-}
-
-/**
- * "How do you read?"
- *
- * **PROFILE.md § 5l.** Mutalib's ask, in his words: *"we ask if u are memorizing the quran or
- * u are reading, cos some people memorize and some to look in the mushaf to read."*
- *
- * Two cards rather than a toggle, because a toggle needs a label that names one side as the
- * default and this question has no default worth implying. Each card says what the app will
- * do differently, so the choice is answerable without having used the app yet.
- *
- * ⚠ **It is honest about being small today.** The line underneath says the setting can be
- * changed later, which is true and is the right thing to say when the larger consequence —
- * checking a recitation against memory rather than against the page, PLAN task 14 — has not
- * been built. Overselling it here would be a promise the app cannot keep.
- */
-@Composable
-private fun HowYouRead(onPick: (ReadingMode) -> Unit) {
-    val colors = LocalWirdColors.current
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
-            .safeDrawingPadding()
-            .padding(horizontal = Scale.space6, vertical = Scale.space4),
-    ) {
-        Spacer(Modifier.height(Scale.space8))
-        Text(
-            "How do you read?",
-            color = colors.textPrimary,
-            style = TextStyle(fontSize = Scale.display),
-        )
-        Spacer(Modifier.height(Scale.space2))
-        Text(
-            text = "So Wird uses the right words for what you're doing.",
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
-        )
-
-        Spacer(Modifier.height(Scale.space6))
-        ModeCard(
-            title = "From the mushaf",
-            detail = "You read the page in front of you.",
-            onClick = { onPick(ReadingMode.READING) },
-        )
-        Spacer(Modifier.height(Scale.space3))
-        ModeCard(
-            title = "From memory",
-            detail = "You're memorising, and the page is there to check yourself.",
-            onClick = { onPick(ReadingMode.MEMORISING) },
-        )
-
-        Spacer(Modifier.height(Scale.space4))
-        Text(
-            text = "You can change this later in More.",
-            color = colors.textOutsidePortion,
-            style = TextStyle(fontSize = Scale.caption),
-        )
-    }
-}
-
-@Composable
-private fun ModeCard(title: String, detail: String, onClick: () -> Unit) {
-    val colors = LocalWirdColors.current
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Scale.radius))
-            .border(1.dp, colors.ornament.copy(alpha = 0.45f), RoundedCornerShape(Scale.radius))
-            .clickable(onClick = onClick)
-            .defaultMinSize(minHeight = Scale.minTarget)
-            .padding(Scale.space4),
-    ) {
-        Text(title, color = colors.textPrimary, style = TextStyle(fontSize = Scale.title))
-        Spacer(Modifier.height(Scale.space1))
-        Text(detail, color = colors.textSecondary, style = TextStyle(fontSize = Scale.caption))
-    }
-}
-
-/**
- * "What should I call you?"
- *
- * One field, one reassurance, and two ways out that both work. The reassurance is not
- * decoration — a text box asking for your name is the shape of a signup form, and this app
- * has no accounts at all, so the sentence has to say so before someone assumes otherwise.
- *
- * Skip is a full-width control rather than a grey word in a corner, because a Skip nobody
- * can find is not a choice.
- */
-@Composable
-private fun YourName(onContinue: (String?) -> Unit) {
-    val colors = LocalWirdColors.current
-    var typed by remember { mutableStateOf("") }
-    val name = typed.trim().takeIf { it.isNotEmpty() }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
-            .safeDrawingPadding()
-            .padding(horizontal = Scale.space6, vertical = Scale.space4),
-    ) {
-        Spacer(Modifier.height(Scale.space8))
-        Text(
-            "What should I call you?",
-            color = colors.textPrimary,
-            style = TextStyle(fontSize = Scale.display),
-        )
-        Spacer(Modifier.height(Scale.space2))
-        Text(
-            // True, and the reason the field is safe to show at all. Sacred Rule 1.
-            text = "Only to greet you. It stays on this phone.",
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
-        )
-
-        Spacer(Modifier.height(Scale.space6))
-        OutlinedTextField(
-            value = typed,
-            // A name, not a form field: no validation, no minimum, nothing rejected. The
-            // cap is there so a pasted paragraph cannot break the greeting's layout.
-            onValueChange = { typed = it.take(24) },
-            label = { Text("Your name") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-            modifier = Modifier.fillMaxWidth(),
-            colors = wirdFieldColors(),
-        )
-
-        Spacer(Modifier.height(Scale.space6))
-        Button(
-            onClick = { onContinue(name) },
-            enabled = name != null,
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = colors.accent,
-                contentColor = colors.surface,
-            ),
-        ) {
-            Text("Continue")
-        }
-
-        Spacer(Modifier.height(Scale.space2))
-        TextButton(
-            onClick = { onContinue(null) },
-            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
-        ) {
-            Text("Skip", color = colors.textSecondary, style = TextStyle(fontSize = Scale.body))
-        }
-    }
-}
-
-@Composable
-private fun ChooseSurah(onPick: (Surah) -> Unit) {
-    val colors = LocalWirdColors.current
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.surface)
-            .safeDrawingPadding()
-            .padding(vertical = Scale.space4),
-    ) {
-        Text(
-            "Where are you?",
-            color = colors.textPrimary,
-            style = TextStyle(fontSize = Scale.display),
-            modifier = Modifier.padding(horizontal = Scale.space4),
-        )
-        Spacer(Modifier.height(Scale.space2))
-        Text(
-            text = "The surah you're reading now.",
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
-            modifier = Modifier.padding(horizontal = Scale.space4),
-        )
-        Spacer(Modifier.height(Scale.space3))
-        SurahList(onPick = onPick)
-    }
-}
-
-@Composable
-private fun FindYourPlace(
-    surah: Surah,
-    onBack: () -> Unit,
-    onDone: (page: Int, unitsPerDay: Int, startVerse: Pair<Int, Int>?) -> Unit,
-) {
     val colors = LocalWirdColors.current
     val context = LocalContext.current
     val repo = remember { MushafRepository(context) }
+    val coroutineScope = rememberCoroutineScope()
 
-    var currentPage by remember { mutableIntStateOf(surah.firstPage) }
-    var picked by remember { mutableStateOf<Pair<Int, Int>?>(null) }
-    var pickedPage by remember { mutableIntStateOf(surah.firstPage) }
-    var ayahText by remember { mutableStateOf("") }
-    var units by remember { mutableIntStateOf(Mushaf.UNITS_PER_PAGE) }
-    var ayahCount by remember { mutableStateOf<Int?>(null) }
+    var currentStep by remember { mutableIntStateOf(1) }
 
-    LaunchedEffect(surah) { ayahCount = repo.ayahCount(surah.number) }
+    // State collected across steps
+    var readerName by remember { mutableStateOf<String?>(null) }
+    var readingMode by remember { mutableStateOf(ReadingMode.READING) }
+    var readingDirection by remember { mutableStateOf(ReadingDirection.TOWARDS_NAS) }
+    var chosenSurah by remember { mutableStateOf<Surah?>(SurahIndex.byNumber(1)) }
+    var startAyah by remember { mutableIntStateOf(1) }
+    var startAyahText by remember { mutableStateOf("1") }
+    var startPage by remember { mutableIntStateOf(1) }
+    var dailyUnits by remember { mutableIntStateOf(2) } // 1 page (2 units)
+    var isCustomTarget by remember { mutableStateOf(false) }
+    var customVersesText by remember { mutableStateOf("10") }
 
-    // Typing a number is the other route to the same answer.
-    val typed = ayahText.toIntOrNull()
-    val typedOutOfRange = typed != null && ayahCount != null && typed !in 1..ayahCount!!
-    LaunchedEffect(typed) {
-        if (typed != null && !typedOutOfRange) {
-            repo.pageOfVerse(surah.number, typed)?.let { page ->
-                picked = surah.number to typed
-                pickedPage = page
+    // Full-screen Mushaf Page Picker modal
+    var viewingMushafPage by remember { mutableStateOf(false) }
+
+    // Handle back button across steps
+    BackHandler(enabled = viewingMushafPage || currentStep > 1) {
+        if (viewingMushafPage) {
+            viewingMushafPage = false
+        } else if (currentStep > 1) {
+            currentStep--
+        }
+    }
+
+    if (viewingMushafPage) {
+        // Full screen "Open in Qur'an" page viewer
+        FullMushafPagePicker(
+            initialPage = startPage,
+            onAyahPicked = { s, a, p ->
+                val surah = SurahIndex.byNumber(s)
+                if (surah != null) {
+                    chosenSurah = surah
+                }
+                startAyah = a
+                startAyahText = a.toString()
+                startPage = p
+                viewingMushafPage = false
+            },
+            onClose = { viewingMushafPage = false },
+        )
+        return
+    }
+
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(groundColor)
+            .statusBarsPadding()
+            .safeDrawingPadding()
+            .padding(horizontal = 20.dp),
+    ) {
+        Spacer(Modifier.height(10.dp))
+
+        // Top Stepper Navigation Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFECE5D8),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = "STEP $currentStep OF 5",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.8.sp,
+                    color = Color(0xFFC9A24B),
+                )
+            }
+
+            if (currentStep == 1) {
+                TextButton(onClick = { currentStep = 2 }) {
+                    Text(
+                        text = "Skip",
+                        color = colors.textSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            } else {
+                TextButton(onClick = { currentStep-- }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "Back",
+                            color = colors.textSecondary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // 5-Capsule Progress Bar
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            for (stepIndex in 1..5) {
+                val filled = stepIndex < currentStep
+                val current = stepIndex == currentStep
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            when {
+                                current -> Color(0xFFC9A24B)
+                                filled -> if (isDark) Color(0xFF245847) else Color(0xFF2D6B52)
+                                else -> if (isDark) Color(0xFF182820) else Color(0xFFDDD7C8)
+                            }
+                        ),
+                )
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Step Content Body
+        Box(modifier = Modifier.weight(1f)) {
+            when (currentStep) {
+                1 -> Step1Name(
+                    initialName = readerName,
+                    onNext = {
+                        readerName = it
+                        currentStep = 2
+                    },
+                )
+                2 -> Step2ReadingMethod(
+                    selectedMode = readingMode,
+                    onSelectMode = { readingMode = it },
+                    onNext = { currentStep = 3 },
+                )
+                3 -> Step3ReadingDirection(
+                    selectedDirection = readingDirection,
+                    onSelectDirection = { readingDirection = it },
+                    onNext = { currentStep = 4 },
+                )
+                4 -> Step4ReadingPosition(
+                    onSurahPicked = { surah ->
+                        chosenSurah = surah
+                        startPage = surah.firstPage
+                        startAyah = 1
+                        startAyahText = "1"
+                        currentStep = 5
+                    },
+                )
+                5 -> Step5AyahAndTarget(
+                    surah = chosenSurah ?: SurahIndex.byNumber(1)!!,
+                    startAyah = startAyah,
+                    startAyahText = startAyahText,
+                    onAyahTextChange = { text ->
+                        startAyahText = text
+                        val a = text.toIntOrNull()
+                        val max = chosenSurah?.verses ?: 7
+                        if (a != null && a in 1..max) {
+                            startAyah = a
+                            coroutineScope.launch {
+                                repo.pageOfVerse(chosenSurah?.number ?: 1, a)?.let { p ->
+                                    startPage = p
+                                }
+                            }
+                        }
+                    },
+                    dailyUnits = dailyUnits,
+                    onDailyUnitsChange = {
+                        dailyUnits = it
+                        isCustomTarget = false
+                    },
+                    isCustomTarget = isCustomTarget,
+                    customVerses = customVersesText,
+                    onCustomVersesChange = { text ->
+                        customVersesText = text
+                        isCustomTarget = true
+                        val count = text.toIntOrNull() ?: 10
+                        dailyUnits = when {
+                            count <= 5 -> 1
+                            count <= 10 -> 2
+                            count <= 20 -> 4
+                            else -> ((count / 10) * 2).coerceIn(1, 40)
+                        }
+                    },
+                    onOpenMushaf = { viewingMushafPage = true },
+                    onFinish = {
+                        val versePair = chosenSurah?.number?.let { s -> s to startAyah }
+                        onDone(startPage, dailyUnits, versePair, readerName, readingMode, readingDirection)
+                    },
+                )
             }
         }
     }
+}
+
+// ============================================================================
+// STEP 1: WHAT SHOULD I CALL YOU?
+// ============================================================================
+@Composable
+private fun Step1Name(
+    initialName: String?,
+    onNext: (String?) -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    var typed by remember { mutableStateOf(initialName ?: "") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            HeroHeader(
+                icon = { UserVectorIcon(tint = Color(0xFFC9A24B)) },
+                title = "What should I call you?",
+                subtitle = "Only to greet you in your daily reflection. No account is required and your name stays strictly on this phone.",
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            OutlinedTextField(
+                value = typed,
+                onValueChange = { typed = it.take(24) },
+                label = { Text("Your name") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                modifier = Modifier.fillMaxWidth(),
+                colors = wirdFieldColors(),
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Sacred Rule 1 reassurance card
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(14.dp),
+                        backgroundColor = if (isDark) Color(0xFF14221B) else Color(0xFFF1EDE4),
+                        elevation = 1.dp,
+                    )
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                LockVectorIcon(tint = Color(0xFFC9A24B))
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "Sacred Rule 1: 100% offline & private. Never synced anywhere.",
+                    fontSize = 11.5.sp,
+                    color = colors.textSecondary,
+                )
+            }
+        }
+
+        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+            Button(
+                onClick = { onNext(typed.trim().takeIf { it.isNotEmpty() }) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Continue", fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// STEP 2: READING METHOD (Matches Settings: Reading method)
+// ============================================================================
+@Composable
+private fun Step2ReadingMethod(
+    selectedMode: ReadingMode,
+    onSelectMode: (ReadingMode) -> Unit,
+    onNext: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            HeroHeader(
+                icon = { BookVectorIcon(tint = Color(0xFFC9A24B)) },
+                title = "Reading method",
+                subtitle = "Choose how you approach your daily recitation.",
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            // Option 1: From the mushaf
+            SelectionCard(
+                title = "From the mushaf",
+                description = "Reading with printed text open in front of you.",
+                tag = "TILĀWAH & KHATM",
+                selected = selectedMode == ReadingMode.READING,
+                onClick = { onSelectMode(ReadingMode.READING) },
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Option 2: From memory
+            SelectionCard(
+                title = "From memory",
+                description = "Reciting by heart; page is for self-check and Murāja'ah.",
+                tag = "HIFDH REVISION",
+                selected = selectedMode == ReadingMode.MEMORISING,
+                onClick = { onSelectMode(ReadingMode.MEMORISING) },
+            )
+
+            Spacer(Modifier.height(14.dp))
+            Text(
+                text = "Matches Settings → Reading Preferences. Can be changed anytime.",
+                fontSize = 11.5.sp,
+                color = colors.textSecondary.copy(alpha = 0.8f),
+            )
+        }
+
+        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+            Button(
+                onClick = onNext,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Next: Reading direction", fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// STEP 3: READING DIRECTION (Matches Settings: Reading direction)
+// ============================================================================
+@Composable
+private fun Step3ReadingDirection(
+    selectedDirection: ReadingDirection,
+    onSelectDirection: (ReadingDirection) -> Unit,
+    onNext: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            HeroHeader(
+                icon = { CompassVectorIcon(tint = Color(0xFFC9A24B)) },
+                title = "Reading direction",
+                subtitle = "When you finish a portion, which direction does tomorrow's portion come from?",
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            // Option 1: Towards An-Nas (Downwards)
+            SelectionCard(
+                title = "Towards An-Nas (Downwards)",
+                description = "Front to back. Finish Ya-Sin and the next portion is As-Saffat.",
+                tag = "STANDARD READING",
+                selected = selectedDirection == ReadingDirection.TOWARDS_NAS,
+                onClick = { onSelectDirection(ReadingDirection.TOWARDS_NAS) },
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            // Option 2: Towards Al-Fatihah (Upwards)
+            SelectionCard(
+                title = "Towards Al-Fatihah (Upwards)",
+                description = "Back to front. Finish Ya-Sin and the next portion is Fatir.",
+                tag = "STANDARD REVISION",
+                selected = selectedDirection == ReadingDirection.TOWARDS_FATIHAH,
+                onClick = { onSelectDirection(ReadingDirection.TOWARDS_FATIHAH) },
+            )
+
+            Spacer(Modifier.height(14.dp))
+            Text(
+                text = "Matches Settings → Reading Preferences. Keeps your revision in order.",
+                fontSize = 11.5.sp,
+                color = colors.textSecondary.copy(alpha = 0.8f),
+            )
+        }
+
+        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+            Button(
+                onClick = onNext,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Next: Reading position", fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// STEP 4: READING POSITION (Searchable Sūrah Selection)
+// ============================================================================
+@Composable
+private fun Step4ReadingPosition(
+    onSurahPicked: (Surah) -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    var searchQuery by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        HeroHeader(
+            icon = { QuranVectorIcon(tint = Color(0xFFC9A24B)) },
+            title = "Reading position",
+            subtitle = "Select any Sūrah to start from.",
+        )
+
+        Spacer(Modifier.height(14.dp))
+
+        // Search Input
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clayCard(
+                    shape = RoundedCornerShape(12.dp),
+                    backgroundColor = if (isDark) Color(0xFF13221A) else Color(0xFFFFFFFF),
+                    elevation = 1.dp,
+                )
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = colors.textSecondary,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Box(modifier = Modifier.weight(1f)) {
+                if (searchQuery.isEmpty()) {
+                    Text(
+                        text = "Search by name or number (e.g. Ya-Sin or 36)...",
+                        color = colors.textSecondary.copy(alpha = 0.6f),
+                        fontSize = 13.sp,
+                    )
+                }
+                androidx.compose.foundation.text.BasicTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    textStyle = TextStyle(
+                        color = colors.textPrimary,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Medium,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                )
+            }
+            if (searchQuery.isNotEmpty()) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Clear",
+                    tint = colors.textSecondary,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clickable { searchQuery = "" },
+                )
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // Surah List
+        Box(modifier = Modifier.weight(1f)) {
+            SurahList(
+                onPick = onSurahPicked,
+                searchQuery = searchQuery,
+                contentPadding = PaddingValues(bottom = 24.dp),
+            )
+        }
+    }
+}
+
+// ============================================================================
+// STEP 5: STARTING AYAH & DAILY TARGET (Open in Quran + Custom Verses)
+// ============================================================================
+@Composable
+private fun Step5AyahAndTarget(
+    surah: Surah,
+    startAyah: Int,
+    startAyahText: String,
+    onAyahTextChange: (String) -> Unit,
+    dailyUnits: Int,
+    onDailyUnitsChange: (Int) -> Unit,
+    isCustomTarget: Boolean,
+    customVerses: String,
+    onCustomVersesChange: (String) -> Unit,
+    onOpenMushaf: () -> Unit,
+    onFinish: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            HeroHeader(
+                icon = { TargetVectorIcon(tint = gold) },
+                title = "Starting Ayah & Daily Target",
+                subtitle = "${surah.name} (${surah.verses} verses) · Choose your starting point and daily goal.",
+            )
+
+            Spacer(Modifier.height(18.dp))
+
+            // Option 1: Open in Qur'an full mushaf picker
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(16.dp),
+                        backgroundColor = if (isDark) Color(0xFF172D22) else Color(0xFFFFFFFF),
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.9f),
+                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
+                        elevation = 2.dp,
+                    )
+                    .clickable(onClick = onOpenMushaf)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clayCard(
+                                shape = RoundedCornerShape(10.dp),
+                                backgroundColor = if (isDark) Color(0xFF102018) else Color(0xFFEDE4D4),
+                                elevation = 1.dp,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        QuranVectorIcon(tint = gold)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Open in Qur'an",
+                            color = colors.textPrimary,
+                            fontSize = 14.5.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = "View Mushaf page and tap your ayah",
+                            color = colors.textSecondary,
+                            fontSize = 11.5.sp,
+                        )
+                    }
+                }
+                Text(
+                    text = "Open →",
+                    color = if (isDark) Color(0xFF93DB7A) else Color(0xFF245847),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            // Divider or
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Box(modifier = Modifier.weight(1f).height(0.5.dp).background(colors.ornament.copy(alpha = 0.3f)))
+                Text(
+                    text = "  OR TYPE AYAH NUMBER  ",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textSecondary.copy(alpha = 0.7f),
+                    letterSpacing = 0.8.sp,
+                )
+                Box(modifier = Modifier.weight(1f).height(0.5.dp).background(colors.ornament.copy(alpha = 0.3f)))
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            // Option 2: Type Ayah number field
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(14.dp),
+                        backgroundColor = if (isDark) Color(0xFF13221A) else Color(0xFFFFFFFF),
+                        elevation = 1.dp,
+                    )
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column {
+                    Text(
+                        text = "Ayah number in ${surah.name}:",
+                        color = colors.textSecondary,
+                        fontSize = 12.sp,
+                    )
+                    Text(
+                        text = "Verse $startAyah of ${surah.verses}",
+                        color = gold,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .width(70.dp)
+                        .clayCard(
+                            shape = RoundedCornerShape(8.dp),
+                            backgroundColor = if (isDark) Color(0xFF0F1A14) else Color(0xFFF3ECE0),
+                            elevation = 1.dp,
+                        )
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    androidx.compose.foundation.text.BasicTextField(
+                        value = startAyahText,
+                        onValueChange = { onAyahTextChange(it.filter(Char::isDigit).take(3)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = TextStyle(
+                            color = colors.textPrimary,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        ),
+                        singleLine = true,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // Section: Daily Reading Target
+            Text(
+                text = "DAILY READING TARGET",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = gold,
+                letterSpacing = 0.8.sp,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // Presets grid
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                TargetPresetPill(
+                    label = "Half a page",
+                    selected = !isCustomTarget && dailyUnits == 1,
+                    onClick = { onDailyUnitsChange(1) },
+                    modifier = Modifier.weight(1f),
+                )
+                TargetPresetPill(
+                    label = "1 page",
+                    selected = !isCustomTarget && dailyUnits == 2,
+                    onClick = { onDailyUnitsChange(2) },
+                    modifier = Modifier.weight(1f),
+                )
+                TargetPresetPill(
+                    label = "2 pages",
+                    selected = !isCustomTarget && dailyUnits == 4,
+                    onClick = { onDailyUnitsChange(4) },
+                    modifier = Modifier.weight(1f),
+                )
+                TargetPresetPill(
+                    label = "Custom",
+                    selected = isCustomTarget,
+                    onClick = { onCustomVersesChange(customVerses) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            // Custom Verses input row
+            if (isCustomTarget) {
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clayCard(
+                            shape = RoundedCornerShape(12.dp),
+                            backgroundColor = if (isDark) Color(0xFF14241B) else Color(0xFFF5EFE3),
+                            elevation = 1.dp,
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = "How many verses per day?",
+                        fontSize = 12.5.sp,
+                        color = colors.textPrimary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .width(56.dp)
+                                .clayCard(
+                                    shape = RoundedCornerShape(6.dp),
+                                    backgroundColor = if (isDark) Color(0xFF0F1A14) else Color(0xFFFFFFFF),
+                                    elevation = 1.dp,
+                                )
+                                .padding(horizontal = 6.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            androidx.compose.foundation.text.BasicTextField(
+                                value = customVerses,
+                                onValueChange = onCustomVersesChange,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                textStyle = TextStyle(
+                                    color = gold,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                ),
+                                singleLine = true,
+                            )
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "verses",
+                            fontSize = 11.5.sp,
+                            color = colors.textSecondary,
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+            Button(
+                onClick = onFinish,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Start Your Wird", fontWeight = FontWeight.Bold)
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Full Mushaf Page Picker allowing user to view the page and tap any ayah. */
+@Composable
+private fun FullMushafPagePicker(
+    initialPage: Int,
+    onAyahPicked: (surahNumber: Int, ayahNumber: Int, page: Int) -> Unit,
+    onClose: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    var currentPage by remember { mutableIntStateOf(initialPage) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.surface)
-            .safeDrawingPadding(),
+            .statusBarsPadding(),
     ) {
+        // Header
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = Scale.space4),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
-                Text(surah.name, color = colors.textPrimary, style = TextStyle(fontSize = Scale.title))
-                Text(
-                    text = "Tap the ayah you're on",
-                    color = colors.textSecondary,
-                    style = TextStyle(fontSize = Scale.caption),
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clayPill(shape = CircleShape, backgroundColor = colors.surface)
+                        .clickable(onClick = onClose),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = colors.textPrimary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = "Tap your starting ayah",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary,
+                    )
+                    Text(
+                        text = "Page $currentPage · Swipe left/right to browse",
+                        fontSize = 11.5.sp,
+                        color = colors.textSecondary,
+                    )
+                }
             }
-            TextButton(onClick = onBack, modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget)) {
-                Text("Change surah", color = colors.textSecondary)
+
+            TextButton(onClick = onClose) {
+                Text("Cancel", color = colors.textSecondary)
             }
         }
 
         Box(modifier = Modifier.weight(1f)) {
             MushafPager(
-                initialPage = pickedPage,
+                initialPage = initialPage,
                 onPageChanged = { currentPage = it },
-                // Nothing is dimmed here: you are looking for a place, not reading a
-                // portion, and half a greyed-out page would just be harder to search.
                 lit = { it.lines.toSet() },
                 onWordTap = { verseKey ->
                     val s = verseKey.substringBefore(':').toIntOrNull()
                     val a = verseKey.substringAfter(':').toIntOrNull()
                     if (s != null && a != null) {
-                        picked = s to a
-                        pickedPage = currentPage
-                        ayahText = if (s == surah.number) a.toString() else ""
+                        onAyahPicked(s, a, currentPage)
                     }
                 },
             )
         }
+    }
+}
 
-        Column(modifier = Modifier.padding(horizontal = Scale.space4, vertical = Scale.space3)) {
-            val p = picked
-            Text(
-                text = when {
-                    typedOutOfRange -> "${surah.name} has $ayahCount ayahs."
-                    p != null -> "Starting at ${SurahIndex.byNumber(p.first)?.name ?: ""} ${p.second}, page $pickedPage."
-                    else -> "Swipe to find your place, then tap the ayah."
-                },
-                color = if (typedOutOfRange) colors.textPrimary else colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption),
-            )
+// ============================================================================
+// REUSABLE COMPONENTS & VECTOR DRAWABLES (Sacred Rule 6)
+// ============================================================================
 
-            Spacer(Modifier.height(Scale.space2))
-            OutlinedTextField(
-                value = ayahText,
-                onValueChange = { ayahText = it.filter(Char::isDigit).take(3) },
-                label = { Text("Or type the ayah number") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = typedOutOfRange,
-                modifier = Modifier.fillMaxWidth(),
-                colors = wirdFieldColors(),
-            )
-
-            Spacer(Modifier.height(Scale.space3))
-            Text("How much a day?", color = colors.textPrimary, style = TextStyle(fontSize = Scale.body))
-            Row(horizontalArrangement = Arrangement.spacedBy(Scale.space2)) {
-                AmountChoice("Half a page", 1, units) { units = it }
-                AmountChoice("One page", 2, units) { units = it }
-                AmountChoice("Two pages", 4, units) { units = it }
-            }
-
-            Spacer(Modifier.height(Scale.space3))
-            Button(
-                onClick = { p?.let { onDone(pickedPage, units, it) } },
-                enabled = p != null,
-                modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = Scale.minTarget),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colors.accent,
-                    contentColor = colors.surface,
+@Composable
+private fun HeroHeader(
+    icon: @Composable () -> Unit,
+    title: String,
+    subtitle: String,
+) {
+    val colors = LocalWirdColors.current
+    Column {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clayCard(
+                    shape = RoundedCornerShape(14.dp),
+                    backgroundColor = Color(0xFF1B2F25),
+                    elevation = 2.dp,
                 ),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon()
+        }
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = title,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = colors.textPrimary,
+            letterSpacing = (-0.3).sp,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = subtitle,
+            fontSize = 12.5.sp,
+            color = colors.textSecondary,
+            lineHeight = 17.sp,
+        )
+    }
+}
+
+@Composable
+private fun SelectionCard(
+    title: String,
+    description: String,
+    tag: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(16.dp),
+                backgroundColor = if (selected) {
+                    if (isDark) Color(0xFF1A3326) else Color(0xFFE5EFE8)
+                } else {
+                    if (isDark) Color(0xFF14241B) else Color(0xFFFFFFFF)
+                },
+                highlightColor = Color.White.copy(alpha = if (selected) 0.18f else 0.08f),
+                shadowColor = if (selected) Color(0xFF245847).copy(alpha = 0.3f) else Color.Black.copy(alpha = 0.2f),
+                elevation = if (selected) 3.dp else 1.dp,
+                strokeWidth = if (selected) 1.5.dp else 0.5.dp,
+            )
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        // Radio circle indicator
+        Box(
+            modifier = Modifier
+                .size(20.dp)
+                .border(
+                    width = 2.dp,
+                    color = if (selected) (if (isDark) Color(0xFF93DB7A) else Color(0xFF245847)) else colors.textSecondary.copy(alpha = 0.5f),
+                    shape = CircleShape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .background(
+                            color = if (isDark) Color(0xFF93DB7A) else Color(0xFF245847),
+                            shape = CircleShape,
+                        ),
+                )
+            }
+        }
+
+        Spacer(Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 14.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = description,
+                fontSize = 11.5.sp,
+                color = colors.textSecondary,
+                lineHeight = 15.sp,
+            )
+            Spacer(Modifier.height(6.dp))
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (selected) gold.copy(alpha = 0.15f) else colors.ornament.copy(alpha = 0.1f),
+                    )
+                    .padding(horizontal = 7.dp, vertical = 2.dp),
             ) {
                 Text(
-                    if (p == null) {
-                        "Pick where you are"
-                    } else {
-                        "Start here"
-                    }
+                    text = tag,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = if (selected) gold else colors.textSecondary,
+                    letterSpacing = 0.6.sp,
                 )
             }
         }
     }
 }
 
-/**
- * Selection is shown by a filled ground, not by colour alone.
- *
- * The first version dimmed the unselected labels to slate — 3.72:1 on paper, under the
- * 4.5:1 floor for text this size, so the options you had not picked were the hard ones to
- * read. Colouring the selected one differently does not work either: this palette is a
- * value ramp, so ink and deep teal sit 1.78:1 apart and read as the same colour.
- *
- * So both labels stay legible — deep teal at 9.37:1 unselected, ink on sage at 9.90:1
- * selected — and the *ground* carries the state. Which is the better pattern regardless:
- * colour should never be the only signal.
- */
 @Composable
-private fun AmountChoice(label: String, value: Int, current: Int, onPick: (Int) -> Unit) {
+private fun TargetPresetPill(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val colors = LocalWirdColors.current
-    val isOn = value == current
-    TextButton(
-        onClick = { onPick(value) },
-        modifier = Modifier
-            .defaultMinSize(minHeight = Scale.minTarget)
-            .clip(RoundedCornerShape(Scale.radius))
-            .background(if (isOn) colors.done else Color.Transparent)
-            .padding(horizontal = 4.dp),
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Box(
+        modifier = modifier
+            .clayCard(
+                shape = RoundedCornerShape(10.dp),
+                backgroundColor = if (selected) {
+                    if (isDark) Color(0xFF245847) else Color(0xFF2D6B52)
+                } else {
+                    if (isDark) Color(0xFF13221A) else Color(0xFFEDE6D8)
+                },
+                elevation = if (selected) 2.dp else 1.dp,
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = label,
-            color = if (isOn) colors.onSurfaceRaised else colors.textSecondary,
-            style = TextStyle(fontSize = Scale.body),
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) Color.White else colors.textSecondary,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+    }
+}
+
+// ---- Vector Canvas Drawables (Strictly Google Material / Lucide style) ------
+
+/** Vector User Icon (Lucide User). */
+@Composable
+private fun UserVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        // Head circle
+        drawCircle(color = tint, radius = w * 0.22f, center = Offset(w * 0.5f, h * 0.32f), style = stroke)
+        // Torso arc
+        val torso = Path().apply {
+            moveTo(w * 0.15f, h * 0.88f)
+            cubicTo(w * 0.18f, h * 0.65f, w * 0.82f, h * 0.65f, w * 0.85f, h * 0.88f)
+        }
+        drawPath(torso, color = tint, style = stroke)
+    }
+}
+
+/** Vector Book Icon (Lucide Book-Open). */
+@Composable
+private fun BookVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        listOf(-1f, 1f).forEach { side ->
+            val outer = Offset(w * (0.5f + side * 0.42f), h * 0.22f)
+            val inner = Offset(w * 0.5f, h * 0.32f)
+            drawLine(tint, outer, inner, stroke.width, stroke.cap)
+            drawLine(tint, outer, Offset(outer.x, h * 0.80f), stroke.width, stroke.cap)
+            drawLine(tint, Offset(outer.x, h * 0.80f), Offset(w * 0.5f, h * 0.86f), stroke.width, stroke.cap)
+        }
+        drawLine(tint, Offset(w * 0.5f, h * 0.32f), Offset(w * 0.5f, h * 0.86f), stroke.width, stroke.cap)
+    }
+}
+
+/** Vector Compass/Navigation Icon (Lucide Navigation). */
+@Composable
+private fun CompassVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        val path = Path().apply {
+            moveTo(w * 0.12f, h * 0.48f)
+            lineTo(w * 0.88f, h * 0.12f)
+            lineTo(w * 0.52f, h * 0.88f)
+            lineTo(w * 0.44f, h * 0.56f)
+            close()
+        }
+        drawPath(path, color = tint, style = stroke)
+    }
+}
+
+/** Vector Quran Book with Ribbon Icon. */
+@Composable
+private fun QuranVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        // Book cover rect
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(w * 0.18f, h * 0.15f),
+            size = androidx.compose.ui.geometry.Size(w * 0.64f, h * 0.70f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()),
+            style = stroke,
+        )
+        // Central bookmark ribbon
+        drawLine(tint, Offset(w * 0.5f, h * 0.15f), Offset(w * 0.5f, h * 0.55f), stroke.width, stroke.cap)
+    }
+}
+
+/** Vector Target Bullseye Icon. */
+@Composable
+private fun TargetVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        drawCircle(color = tint, radius = size.minDimension * 0.42f, style = stroke)
+        drawCircle(color = tint, radius = size.minDimension * 0.20f, style = stroke)
+        drawCircle(color = tint, radius = size.minDimension * 0.08f)
+    }
+}
+
+/** Vector Lock Icon. */
+@Composable
+private fun LockVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
+        // Shackle
+        val shackle = Path().apply {
+            moveTo(w * 0.30f, h * 0.45f)
+            cubicTo(w * 0.30f, h * 0.18f, w * 0.70f, h * 0.18f, w * 0.70f, h * 0.45f)
+        }
+        drawPath(shackle, color = tint, style = stroke)
+        // Body
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(w * 0.20f, h * 0.45f),
+            size = androidx.compose.ui.geometry.Size(w * 0.60f, h * 0.45f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()),
+            style = stroke,
         )
     }
 }

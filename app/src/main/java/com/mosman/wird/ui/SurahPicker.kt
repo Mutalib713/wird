@@ -159,7 +159,7 @@ fun SurahJumpSheet(onDismiss: () -> Unit, onPick: (Surah) -> Unit) {
     ) {
         Column(modifier = Modifier.padding(vertical = Scale.space2)) {
             Text(
-                text = "Read something else",
+                text = "Browse Sūrahs & Juz'",
                 modifier = Modifier.padding(horizontal = Scale.space4),
                 color = colors.textPrimary,
                 style = TextStyle(fontSize = Scale.title),

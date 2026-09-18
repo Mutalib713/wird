@@ -412,6 +412,25 @@ class WirdStore(context: Context) {
         get() = prefs.getInt(KEY_NIGHT_BG_BRIGHTNESS, 0)
         set(value) = prefs.edit { putInt(KEY_NIGHT_BG_BRIGHTNESS, value) }
 
+    /** Recent pages opened or read, newest first. Keeps up to 20 pages. */
+    var recentPages: List<Int>
+        get() {
+            val raw = prefs.getString(KEY_RECENT_PAGES, null) ?: return emptyList()
+            return raw.split(",")
+                .mapNotNull { it.trim().toIntOrNull() }
+                .filter { it in 1..Mushaf.PAGES }
+                .distinct()
+        }
+        private set(value) {
+            prefs.edit { putString(KEY_RECENT_PAGES, value.distinct().take(20).joinToString(",")) }
+        }
+
+    fun recordRecentPage(page: Int) {
+        if (page !in 1..Mushaf.PAGES) return
+        val current = recentPages.filter { it != page }
+        recentPages = listOf(page) + current
+    }
+
     private companion object {
         const val PREFS = "wird_position"
         const val KEY_UNIT = "position_unit"
@@ -443,6 +462,7 @@ class WirdStore(context: Context) {
         const val KEY_SELECTED_RECITER = "selected_reciter"
         const val KEY_NIGHT_TEXT_BRIGHTNESS = "night_text_brightness"
         const val KEY_NIGHT_BG_BRIGHTNESS = "night_bg_brightness"
+        const val KEY_RECENT_PAGES = "recent_pages"
         const val FIELD = " | "
         const val AWAY_SEP = ".."
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"

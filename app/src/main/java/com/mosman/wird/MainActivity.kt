@@ -67,6 +67,7 @@ import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.SurahIndex
+import com.mosman.wird.ui.BookmarksScreen
 import com.mosman.wird.ui.ChatScreen
 import com.mosman.wird.ui.HomeScreen
 import com.mosman.wird.ui.CheckState
@@ -88,7 +89,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** Where the app can be. There is no home screen; today's portion is the front door. */
-private enum class Screen { SETUP, TODAY, SETTINGS }
+private enum class Screen { SETUP, TODAY, SETTINGS, BOOKMARKS }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -497,7 +498,7 @@ class MainActivity : ComponentActivity() {
                           positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
                           readerName = readerName,
                           mode = readingMode,
-                          onOpenBookmarks = { tab = WirdTab.SURAHS },
+                          onOpenBookmarks = { screen = Screen.BOOKMARKS },
                           onMenu = { menuOpen = true },
                           menu = {
                               if (menuOpen) {
@@ -646,6 +647,7 @@ class MainActivity : ComponentActivity() {
                             bookmarks.toggle(key)
                             saved = bookmarks.all()
                         },
+                        onPageVisited = { p -> store.recordRecentPage(p) },
                         onNightMode = {
                             // Flips the PAGE, not the app. Before 2026-08-19 this line set
                             // store.themeMode and took Home and the menus with it.
@@ -885,6 +887,43 @@ class MainActivity : ComponentActivity() {
                         },
                         onBack = { screen = Screen.TODAY },
                     )
+                }
+
+                // Dedicated Bookmarks & Recents screen
+                if (screen == Screen.BOOKMARKS) {
+                    val allRecents = remember(store.recentPages, position) {
+                        val list = store.recentPages
+                        if (list.isEmpty()) listOf(Mushaf.pageOf(position)) else list
+                    }
+                    BookmarksScreen(
+                        bookmarks = saved,
+                        recentPages = allRecents,
+                        onOpenPage = { p ->
+                            store.recordRecentPage(p)
+                            openPage = p
+                            onPage = true
+                            screen = Screen.TODAY
+                            tab = WirdTab.HOME
+                        },
+                        onOpenBookmark = { b ->
+                            val surahNum = b.verseKey.substringBefore(':').toIntOrNull() ?: 1
+                            val targetPage = SurahIndex.byNumber(surahNum)?.firstPage ?: 1
+                            store.recordRecentPage(targetPage)
+                            openPage = targetPage
+                            onPage = true
+                            screen = Screen.TODAY
+                            tab = WirdTab.HOME
+                        },
+                        onRemoveBookmark = { key ->
+                            bookmarks.toggle(key)
+                            saved = bookmarks.all()
+                        },
+                        onBack = { screen = Screen.TODAY },
+                    )
+                }
+
+                BackHandler(enabled = screen == Screen.SETTINGS || screen == Screen.BOOKMARKS) {
+                    screen = Screen.TODAY
                 }
             }
         }

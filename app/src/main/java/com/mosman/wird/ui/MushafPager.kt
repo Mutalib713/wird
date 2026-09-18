@@ -151,6 +151,7 @@ fun MushafPager(
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 MushafPageView(
                     state = state,
+                    pageNumber = pageNumber,
                     lit = lit,
             reciting = reciting,
             review = review,

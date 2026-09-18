@@ -17,10 +17,13 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,6 +43,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.contentDescription
@@ -57,6 +64,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.mosman.wird.domain.JuzIndex
 import com.mosman.wird.domain.RevealedIn
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.SurahIndex
@@ -84,6 +92,7 @@ fun MushafPageView(
     state: PageState,
     lit: (MushafPage) -> Set<Int>,
     modifier: Modifier = Modifier,
+    pageNumber: Int = 1,
     /**
      * Whether a wait on this page should be dressed as a skeleton.
      *
@@ -141,7 +150,7 @@ fun MushafPageView(
         when (state) {
             // Nothing at all the second time. Plain paper, then the page arrives.
             is PageState.Loading -> if (showSkeleton) PageSkeleton()
-            is PageState.Failed -> PageProblem(state, onRetry)
+            is PageState.Failed -> PageProblemCapsule(pageNumber, state, onRetry)
             is PageState.Ready -> {
                 LaunchedEffect(state.page.page) { onPageShown(state.page) }
                 DrawnPage(
@@ -648,29 +657,219 @@ private fun PageSkeleton() {
 }
 
 @Composable
-private fun PageProblem(state: PageState.Failed, onRetry: () -> Unit) {
+private fun PageProblemCapsule(
+    pageNumber: Int,
+    state: PageState.Failed,
+    onRetry: () -> Unit,
+) {
+    val context = LocalContext.current
+    val store = remember(context) { com.mosman.wird.data.WirdStore(context) }
     val colors = LocalWirdColors.current
-    Column(
-        modifier = Modifier.fillMaxSize().padding(Scale.space6),
-        verticalArrangement = Arrangement.spacedBy(Scale.space3, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(state.reason, color = colors.textPrimary, style = TextStyle(fontSize = Scale.body))
-        // Sacred Rule 2, stated to the reader rather than only in a comment.
-        Text(
-            text = "The page needs its own font to be shown correctly, so Wird won't " +
-                "guess at it with another one.",
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = Scale.caption),
-        )
-        if (state.retryable) {
-            TextButton(
-                onClick = onRetry,
-                modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+
+    val onWifi = remember {
+        val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+        val network = cm?.activeNetwork
+        val caps = network?.let { cm.getNetworkCapabilities(it) }
+        caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) == true
+    }
+
+    // Dynamic scope based on Settings store.downloadAmount: "Page", "Surah", "Juz"
+    val downloadAmount = store.downloadAmount
+    val surah = remember(pageNumber) {
+        SurahIndex.all.firstOrNull { pageNumber in it.firstPage..it.lastPage } ?: SurahIndex.byNumber(1)!!
+    }
+    val juz = remember(pageNumber) {
+        JuzIndex.all.lastOrNull { it.firstPage <= pageNumber }?.number ?: 1
+    }
+
+    val (scopeTitle, sizeLabel, descLabel) = when (downloadAmount) {
+        "Surah" -> {
+            val pageCount = (surah.lastPage - surah.firstPage + 1).coerceAtLeast(1)
+            val mb = String.format(java.util.Locale.US, "%.1f MB", pageCount * 1.1f)
+            Triple(
+                "Sūrah ${surah.name}",
+                "$mb · $pageCount pages",
+                "Downloads font & layout for the entire chapter."
+            )
+        }
+        "Juz" -> {
+            Triple(
+                "Juz' $juz",
+                "~22 MB · 20 pages",
+                "Downloads font & layout for this full 20-page section."
+            )
+        }
+        else -> {
+            Triple(
+                "Page $pageNumber",
+                "1.1 MB",
+                "Downloads font & layout for this single page."
+            )
+        }
+    }
+
+    var waitingForWifi by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Ghost skeleton page in background
+        PageSkeleton()
+
+        if (!waitingForWifi) {
+            // Floating Concept B Capsule at bottom
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 24.dp)
+                    .clayCard(
+                        shape = RoundedCornerShape(22.dp),
+                        backgroundColor = if (isDark) Color(0xFF13231B) else Color(0xFFFFFFFF),
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.55f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                        elevation = 4.dp,
+                    )
+                    .padding(16.dp),
             ) {
-                Text("Fetch the page again", color = colors.accent)
+                Column {
+                    // Top row: Headline & Size Badge
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f, fill = false),
+                        ) {
+                            DataSignalVectorIcon(tint = gold)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = if (onWifi) "Connection timed out" else "Not on Wi-Fi. Download with mobile data?",
+                                color = colors.textPrimary,
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+
+                        Spacer(Modifier.width(8.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .clayPill(
+                                    shape = RoundedCornerShape(6.dp),
+                                    backgroundColor = if (isDark) Color(0xFF0C1712) else Color(0xFFF1EADE),
+                                    elevation = 1.dp,
+                                )
+                                .padding(horizontal = 7.dp, vertical = 3.dp),
+                        ) {
+                            Text(
+                                text = sizeLabel,
+                                color = gold,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = "$scopeTitle · $descLabel",
+                        color = colors.textSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                    )
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // Wait for Wi-Fi
+                        TextButton(
+                            onClick = { waitingForWifi = true },
+                            modifier = Modifier.weight(1f).defaultMinSize(minHeight = 44.dp),
+                        ) {
+                            Text(
+                                text = "Wait for Wi-Fi",
+                                color = colors.textSecondary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+
+                        // Primary Download Button
+                        Button(
+                            onClick = onRetry,
+                            modifier = Modifier.weight(1.3f).defaultMinSize(minHeight = 44.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                                contentColor = Color.White,
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            DownloadVectorIcon(tint = Color.White)
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = if (onWifi) "Retry" else "Download with data",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+/** Vector cellular data icon matching Sacred Rule 6. */
+@Composable
+private fun DataSignalVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(18.dp)) {
+        val w = size.width
+        val h = size.height
+        val barWidth = w * 0.16f
+        val gap = w * 0.08f
+        val heights = listOf(0.35f, 0.55f, 0.75f, 0.95f)
+        heights.forEachIndexed { i, frac ->
+            val left = i * (barWidth + gap)
+            val barH = h * frac
+            drawRoundRect(
+                color = tint,
+                topLeft = Offset(left, h - barH),
+                size = Size(barWidth, barH),
+                cornerRadius = CornerRadius(1.5.dp.toPx()),
+            )
+        }
+    }
+}
+
+/** Vector download icon matching Sacred Rule 6. */
+@Composable
+private fun DownloadVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(16.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        // Arrow line
+        drawLine(tint, Offset(w * 0.5f, h * 0.15f), Offset(w * 0.5f, h * 0.65f), stroke.width, stroke.cap)
+        // Arrow head
+        drawLine(tint, Offset(w * 0.28f, h * 0.45f), Offset(w * 0.5f, h * 0.65f), stroke.width, stroke.cap)
+        drawLine(tint, Offset(w * 0.72f, h * 0.45f), Offset(w * 0.5f, h * 0.65f), stroke.width, stroke.cap)
+        // Tray
+        val tray = Path().apply {
+            moveTo(w * 0.20f, h * 0.75f)
+            lineTo(w * 0.20f, h * 0.88f)
+            lineTo(w * 0.80f, h * 0.88f)
+            lineTo(w * 0.80f, h * 0.75f)
+        }
+        drawPath(tray, color = tint, style = stroke)
     }
 }
 
