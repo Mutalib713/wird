@@ -128,6 +128,15 @@ android {
             // check would otherwise be untestable anywhere but his own phone. Lint reads the
             // literal defaultConfig line rather than the merged variant, so it flags it anyway.
             "ChromeOsAbiSupport",
+            // ⚠ **The fifth disable: AAPT2 vs Lint on adaptive icon folder qualifier.**
+            //
+            // AAPT2 requires `mipmap-anydpi-v26` so that adaptive XML icons take precedence
+            // over density-specific raster drawables (e.g. `mipmap-xxhdpi/ic_launcher.png`).
+            // When named `mipmap-anydpi` without `-v26`, AAPT2 selects raster PNGs instead,
+            // which causes Pixel Launcher to wrap the legacy icon inside an unwanted white circular plate.
+            // Lint flags `-v26` under ObsoleteSdkInt because minSdk is 26, but removing it breaks
+            // the launcher icon on real devices.
+            "ObsoleteSdkInt",
         )
     }
 }
