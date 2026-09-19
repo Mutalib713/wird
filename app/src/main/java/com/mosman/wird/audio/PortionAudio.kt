@@ -41,13 +41,30 @@ enum class AudioQuality(val label: String, val perPageMb: String) {
     BETTER("Better audio", "~2.3 MB a page");
 
     /** everyayah and Quran.com agree on the filename: three digits of each. */
-    fun urlFor(surah: Int, ayah: Int): String {
+    fun urlFor(reciter: String = "Abu Bakr al-Shatri", surah: Int, ayah: Int): String {
         val file = "%03d%03d.mp3".format(surah, ayah)
-        return when (this) {
-            LIGHT -> "https://everyayah.com/data/Abu_Bakr_Ash-Shaatree_64kbps/$file"
-            BETTER -> "https://verses.quran.com/Shatri/mp3/$file"
+        return when (reciter) {
+            "Mishary Rashid Alafasy" -> when (this) {
+                LIGHT -> "https://everyayah.com/data/Alafasy_64kbps/$file"
+                BETTER -> "https://everyayah.com/data/Alafasy_128kbps/$file"
+            }
+            "Mahmoud Khalil Al-Husary" -> when (this) {
+                LIGHT -> "https://everyayah.com/data/Husary_64kbps/$file"
+                BETTER -> "https://everyayah.com/data/Husary_128kbps/$file"
+            }
+            "Abdul Basit Abdul Samad" -> when (this) {
+                LIGHT -> "https://everyayah.com/data/Abdul_Basit_Murattal_64kbps/$file"
+                BETTER -> "https://verses.quran.com/AbdulBaset/Murattal/mp3/$file"
+            }
+            else -> when (this) { // "Abu Bakr al-Shatri" default
+                LIGHT -> "https://everyayah.com/data/Abu_Bakr_Ash-Shaatree_64kbps/$file"
+                BETTER -> "https://verses.quran.com/Shatri/mp3/$file"
+            }
         }
     }
+
+    /** Overload for callers specifying only surah and ayah. Defaults to Abu Bakr al-Shatri. */
+    fun urlFor(surah: Int, ayah: Int): String = urlFor("Abu Bakr al-Shatri", surah, ayah)
 }
 
 /** What the listen control is doing. Built as a set rather than discovered later. */
@@ -118,10 +135,11 @@ class PortionAudio(private val context: Context) {
     suspend fun ensureCached(
         verses: List<String>,
         quality: AudioQuality,
+        reciter: String = "Abu Bakr al-Shatri",
         onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
     ): List<File>? = withContext(Dispatchers.IO) {
         val mine = ++run
-        val dir = dirFor(quality)
+        val dir = dirFor(reciter, quality)
         val files = mutableListOf<File>()
 
         verses.forEachIndexed { i, key ->
@@ -133,7 +151,7 @@ class PortionAudio(private val context: Context) {
             val f = File(dir, "%03d%03d.mp3".format(surah, ayah))
             if (!f.exists() || f.length() < MIN_PLAUSIBLE_BYTES) {
                 if (f.exists()) f.delete()
-                val bytes = getBytes(quality.urlFor(surah, ayah)) ?: return@withContext null
+                val bytes = getBytes(quality.urlFor(reciter, surah, ayah)) ?: return@withContext null
                 // A 678-byte HTML error page arrives with a 200 from these CDNs — the same
                 // trap the fonts had. Trust the byte count, never the status line.
                 if (bytes.size < MIN_PLAUSIBLE_BYTES) {
@@ -311,8 +329,10 @@ class PortionAudio(private val context: Context) {
 
     // ---- disk ----
 
-    private fun dirFor(quality: AudioQuality) =
-        File(File(context.filesDir, "recitation-audio"), quality.name).apply { mkdirs() }
+    private fun dirFor(reciter: String, quality: AudioQuality): File {
+        val safe = reciter.lowercase().replace("[^a-z0-9]".toRegex(), "_")
+        return File(File(File(context.filesDir, "recitation-audio"), safe), quality.name).apply { mkdirs() }
+    }
 
     /**
      * Keep the cache from growing without limit.

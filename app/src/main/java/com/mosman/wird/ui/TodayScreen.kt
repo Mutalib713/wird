@@ -29,9 +29,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
@@ -279,6 +281,9 @@ fun TodayScreen(
     val portionAudio = remember { PortionAudio(context) }
     var audio by remember { mutableStateOf<AudioState>(AudioState.Idle) }
     val scope = rememberCoroutineScope()
+    val store = remember(context) { com.mosman.wird.data.WirdStore(context) }
+    var selectedReciter by remember { mutableStateOf(store.selectedReciter) }
+    var showReciterPicker by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) { onDispose { portionAudio.release() } }
 
@@ -319,13 +324,21 @@ fun TodayScreen(
             audio = AudioState.Fetching(0, 0)
             val repo = MushafRepository(context)
 
-            // Only the ayahs actually lit. A half-page portion must not fetch — or recite
-            // — the half you were not asked to read.
-            val verses = todaysPages.flatMap { p ->
-                val layout = repo.layoutOnly(p) ?: return@flatMap emptyList()
-                val lit = litFor(layout)
-                layout.glyphs.filter { it.line in lit }.map { it.verseKey }
-            }.distinct()
+            // When viewing a page outside today's wird (e.g. browsing a Sūrah),
+            // play the ayahs on the currently-viewed page instead of jumping to today's wird.
+            val isToday = current in todaysPages
+            val verses = if (isToday) {
+                // Only the ayahs actually lit. A half-page portion must not fetch — or recite
+                // — the half you were not asked to read.
+                todaysPages.flatMap { p ->
+                    val layout = repo.layoutOnly(p) ?: return@flatMap emptyList()
+                    val lit = litFor(layout)
+                    layout.glyphs.filter { it.line in lit }.map { it.verseKey }
+                }.distinct()
+            } else {
+                val layout = repo.layoutOnly(current)
+                layout?.glyphs?.map { it.verseKey }?.distinct() ?: emptyList()
+            }
 
             if (verses.isEmpty()) {
                 audio = AudioState.Failed("Couldn't work out which ayahs to play.")
@@ -338,7 +351,7 @@ fun TodayScreen(
             val begin = if (startAt != null) list.indexOf(startAt).coerceAtLeast(0) else 0
             loaded = list
 
-            val files = portionAudio.ensureCached(list, audioQuality) { done, total ->
+            val files = portionAudio.ensureCached(list, audioQuality, reciter = selectedReciter) { done, total ->
                 audio = AudioState.Fetching(done, total)
             }
             if (files == null) {
@@ -376,6 +389,8 @@ fun TodayScreen(
         ListenBar(
             audio = audio,
             repeatEach = repeatEach,
+            reciter = selectedReciter,
+            onChangeReciter = { showReciterPicker = true },
             onPlayPause = {
                 when (audio) {
                     is AudioState.Playing -> {
@@ -411,6 +426,10 @@ fun TodayScreen(
         )
 
         // Floating audio player dock when chrome is shown and audio is idle
+        val currentSurah = remember(current, pageInfo[current]) {
+            pageInfo[current]?.first?.takeIf { it.isNotEmpty() }
+                ?: com.mosman.wird.domain.SurahIndex.on(current).firstOrNull()?.name.orEmpty()
+        }
         AnimatedVisibility(
             visible = chromeShown && !recording && (audio is AudioState.Idle || audio is AudioState.Failed),
             modifier = Modifier
@@ -422,9 +441,13 @@ fun TodayScreen(
             exit = fadeOut() + slideOutVertically { it },
         ) {
             AudioDockIdle(
-                surah = pageInfo[current]?.first.orEmpty(),
+                surah = currentSurah,
+                page = current,
+                offToday = current !in todaysPages,
+                reciter = selectedReciter,
                 quality = audioQuality,
                 onPlay = { listen() },
+                onChangeReciter = { showReciterPicker = true },
             )
         }
 
@@ -568,6 +591,8 @@ fun TodayScreen(
                 // stop button that vanishes the moment you use it is how you end up
                 // tapping the page trying to find it again.
                 onListen = { listen() },
+                reciter = selectedReciter,
+                onChangeReciter = { showReciterPicker = true },
                 dark = dark,
                 onNightMode = onNightMode,
                 onBack = onBack,
@@ -647,6 +672,28 @@ fun TodayScreen(
             },
         )
     }
+
+    if (showReciterPicker) {
+        ClayOptionDialog(
+            title = "Select Reciter",
+            options = listOf(
+                DialogOption("Abu Bakr al-Shatri", "Abu Bakr al-Shatri", "Murattal · Hafs an Asim (Default)"),
+                DialogOption("Mishary Rashid Alafasy", "Mishary Rashid Alafasy", "Murattal · Melodic & Clear"),
+                DialogOption("Mahmoud Khalil Al-Husary", "Mahmoud Khalil Al-Husary", "Murattal · Classical Master of Tajweed"),
+                DialogOption("Abdul Basit Abdul Samad", "Abdul Basit Abdul Samad", "Murattal · Celebrated Egyptian Reciter"),
+            ),
+            selected = selectedReciter,
+            onSelect = { chosen ->
+                selectedReciter = chosen
+                store.selectedReciter = chosen
+                showReciterPicker = false
+                if (audio is AudioState.Playing || audio is AudioState.Paused) {
+                    stopListening()
+                }
+            },
+            onDismiss = { showReciterPicker = false },
+        )
+    }
     }
 }
 
@@ -674,6 +721,8 @@ private fun ChromeBar(
     onSettings: () -> Unit,
     audio: AudioState,
     onListen: () -> Unit,
+    reciter: String = "",
+    onChangeReciter: () -> Unit = {},
     dark: Boolean,
     onNightMode: () -> Unit,
     onBack: () -> Unit,
@@ -823,6 +872,12 @@ private fun ChromeBar(
                         text = { Text("Browse Sūrahs & Juz'", color = colors.onSurfaceRaised) },
                         onClick = { menuOpen = false; onJump() },
                     )
+                    if (reciter.isNotEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text("Reciter: $reciter", color = colors.onSurfaceRaised) },
+                            onClick = { menuOpen = false; onChangeReciter() },
+                        )
+                    }
                     DropdownMenuItem(
                         text = { Text("Settings", color = colors.onSurfaceRaised) },
                         onClick = { menuOpen = false; onSettings() },
@@ -841,7 +896,11 @@ private fun AudioDockIdle(
     surah: String,
     quality: AudioQuality,
     onPlay: () -> Unit,
+    onChangeReciter: () -> Unit,
     modifier: Modifier = Modifier,
+    page: Int = 1,
+    offToday: Boolean = false,
+    reciter: String = "Abu Bakr al-Shatri",
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -857,7 +916,6 @@ private fun AudioDockIdle(
                 shadowColor = Color.Black.copy(alpha = 0.25f),
                 strokeWidth = 1.dp,
             )
-            .clickable(onClick = onPlay)
             .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Row(
@@ -868,6 +926,7 @@ private fun AudioDockIdle(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f),
             ) {
                 // Play circular button
                 Box(
@@ -877,7 +936,8 @@ private fun AudioDockIdle(
                             shape = CircleShape,
                             backgroundColor = colors.accent,
                             elevation = 2.dp,
-                        ),
+                        )
+                        .clickable(onClick = onPlay),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -888,19 +948,42 @@ private fun AudioDockIdle(
                     )
                 }
 
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = onChangeReciter),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = reciter,
+                            color = colors.textPrimary,
+                            style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Change reciter",
+                            tint = colors.accent,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
                     Text(
-                        text = "Abu Bakr al-Shatri",
-                        color = colors.textPrimary,
-                        style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
-                    )
-                    Text(
-                        text = if (surah.isNotEmpty()) "Reciting Surah $surah" else "Reciting Today's Wird",
+                        text = if (offToday) {
+                            if (surah.isNotEmpty()) "Reciting Surah $surah · Page $page" else "Reciting Page $page"
+                        } else {
+                            if (surah.isNotEmpty()) "Reciting Surah $surah (Today's Wird)" else "Reciting Today's Wird"
+                        },
                         color = colors.textSecondary,
                         style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
+
+            Spacer(Modifier.width(8.dp))
 
             Box(
                 modifier = Modifier
@@ -909,10 +992,11 @@ private fun AudioDockIdle(
                         backgroundColor = if (isDark) Color(0xFF282932) else Color(0xFFEDE7DA),
                         elevation = 1.dp,
                     )
+                    .clickable(onClick = onChangeReciter)
                     .padding(horizontal = 8.dp, vertical = 3.dp),
             ) {
                 Text(
-                    text = if (quality == AudioQuality.LIGHT) "32 kbps" else "Standard",
+                    text = if (quality == AudioQuality.LIGHT) "64 kbps" else "Standard",
                     color = colors.textSecondary,
                     style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
                 )

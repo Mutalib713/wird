@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -78,6 +79,8 @@ fun ListenBar(
     onRepeat: () -> Unit,
     onStop: () -> Unit,
     modifier: Modifier = Modifier,
+    reciter: String = "",
+    onChangeReciter: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val playing = audio as? AudioState.Playing
@@ -94,12 +97,34 @@ fun ListenBar(
     ) {
         // ---- what you are hearing ----
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = ayahLabel(verseKey),
-                color = colors.onSurfaceRaised,
-                style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-                modifier = Modifier.weight(1f),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = ayahLabel(verseKey),
+                    color = colors.onSurfaceRaised,
+                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                )
+                if (reciter.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable(onClick = onChangeReciter),
+                    ) {
+                        Text(
+                            text = reciter,
+                            color = colors.accent,
+                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
+                        )
+                        Spacer(Modifier.width(2.dp))
+                        Icon(
+                            imageVector = Icons.Default.KeyboardArrowDown,
+                            contentDescription = "Change reciter",
+                            tint = colors.accent,
+                            modifier = Modifier.size(14.dp),
+                        )
+                    }
+                }
+            }
             Text(
                 text = "${index + 1} of $total",
                 color = colors.textSecondary,

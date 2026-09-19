@@ -103,6 +103,7 @@ fun MushafPageView(
      */
     showSkeleton: Boolean = true,
     onRetry: () -> Unit = {},
+    onDownloadWithData: (() -> Unit)? = null,
     onWordTap: ((verseKey: String) -> Unit)? = null,
     /** Tapping the page itself, used to show and hide the chrome. */
     onBackgroundTap: (() -> Unit)? = null,
@@ -150,7 +151,7 @@ fun MushafPageView(
         when (state) {
             // Nothing at all the second time. Plain paper, then the page arrives.
             is PageState.Loading -> if (showSkeleton) PageSkeleton()
-            is PageState.Failed -> PageProblemCapsule(pageNumber, state, onRetry)
+            is PageState.Failed -> PageProblemCapsule(pageNumber, state, onRetry, onDownloadWithData)
             is PageState.Ready -> {
                 LaunchedEffect(state.page.page) { onPageShown(state.page) }
                 DrawnPage(
@@ -661,6 +662,7 @@ private fun PageProblemCapsule(
     pageNumber: Int,
     state: PageState.Failed,
     onRetry: () -> Unit,
+    onDownloadWithData: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val store = remember(context) { com.mosman.wird.data.WirdStore(context) }
@@ -805,7 +807,10 @@ private fun PageProblemCapsule(
 
                         // Primary Download Button
                         Button(
-                            onClick = onRetry,
+                            onClick = {
+                                onDownloadWithData?.invoke()
+                                onRetry()
+                            },
                             modifier = Modifier.weight(1.3f).defaultMinSize(minHeight = 44.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),

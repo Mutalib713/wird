@@ -1,5 +1,8 @@
 package com.mosman.wird.ui
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
@@ -17,10 +20,20 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import kotlinx.coroutines.delay
+import com.mosman.wird.domain.JuzIndex
+import com.mosman.wird.domain.SurahIndex
+import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.mushaf.MushafPage
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.mushaf.PageState
+
+private fun isWifi(context: Context): Boolean {
+    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+    val network = cm.activeNetwork ?: return false
+    val caps = cm.getNetworkCapabilities(network) ?: return false
+    return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+}
 
 /**
  * The mushaf, swipeable.
@@ -89,6 +102,7 @@ fun MushafPager(
     val repo = remember { MushafRepository(context) }
     val states = remember { mutableStateMapOf<Int, PageState>() }
     var retryTick by remember { mutableIntStateOf(0) }
+    var authorizedMobilePages by remember { mutableStateOf(emptySet<Int>()) }
 
     // The skeleton is shown once per visit to the app, then never again.
     //
@@ -142,6 +156,10 @@ fun MushafPager(
                     // this elapses, which cancels them. Five fast swipes fetched nothing.
                     skeletonSpent = true
                     delay(SETTLE_BEFORE_FETCH_MS)
+                    if (!isWifi(context) && pageNumber !in authorizedMobilePages) {
+                        states[pageNumber] = PageState.Failed("Not on Wi-Fi. Download with mobile data?", retryable = true)
+                        return@LaunchedEffect
+                    }
                 }
                 states[pageNumber] = repo.load(pageNumber)
             }
@@ -153,14 +171,32 @@ fun MushafPager(
                     state = state,
                     pageNumber = pageNumber,
                     lit = lit,
-            reciting = reciting,
-            review = review,
-            selected = selected,
-            onWordLongPress = onWordLongPress,
+                    reciting = reciting,
+                    review = review,
+                    selected = selected,
+                    onWordLongPress = onWordLongPress,
                     showSkeleton = dressAsSkeleton,
                     onBackgroundTap = onBackgroundTap,
                     onPageShown = onPageShown,
                     onRetry = { states.remove(pageNumber); retryTick++ },
+                    onDownloadWithData = {
+                        val store = WirdStore(context)
+                        val toAuth = when (store.downloadAmount) {
+                            "Surah" -> {
+                                val s = SurahIndex.all.firstOrNull { pageNumber in it.firstPage..it.lastPage }
+                                if (s != null) (s.firstPage..s.lastPage).toSet() else setOf(pageNumber)
+                            }
+                            "Juz" -> {
+                                val j = JuzIndex.all.lastOrNull { it.firstPage <= pageNumber }
+                                val nextJuz = JuzIndex.all.firstOrNull { it.number == (j?.number ?: 1) + 1 }
+                                val end = (nextJuz?.firstPage?.minus(1) ?: 604).coerceAtLeast(pageNumber)
+                                val start = j?.firstPage ?: 1
+                                (start..end).toSet()
+                            }
+                            else -> setOf(pageNumber)
+                        }
+                        authorizedMobilePages = authorizedMobilePages + toAuth
+                    },
                     onWordTap = onWordTap,
                     footer = footer,
                 )
