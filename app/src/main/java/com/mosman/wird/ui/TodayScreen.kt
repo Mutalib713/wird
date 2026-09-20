@@ -1,10 +1,17 @@
 package com.mosman.wird.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Spacer
@@ -48,12 +55,19 @@ import androidx.compose.ui.unit.sp
 import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
@@ -312,6 +326,50 @@ fun TodayScreen(
      *     ayah and the surrounding ones were never today's reading.
      *  3. Otherwise — fetch the portion and begin at that ayah.
      */
+    var pendingListenAyahs by remember { mutableStateOf<List<String>?>(null) }
+    var pendingListenStartAt by remember { mutableStateOf<String?>(null) }
+    var showMobileAudioPrompt by remember { mutableStateOf(false) }
+    var uncachedAudioMb by remember { mutableFloatStateOf(0f) }
+
+    fun startRecitation(list: List<String>, begin: Int) {
+        scope.launch {
+            val uncachedEst = portionAudio.uncachedBytesEstimate(list, audioQuality, selectedReciter)
+            audio = AudioState.Fetching(0, list.size, 0L, uncachedEst)
+            val files = portionAudio.ensureCached(list, audioQuality, reciter = selectedReciter) { done, total, bytesDone, totalBytes ->
+                audio = AudioState.Fetching(done, total, bytesDone, totalBytes)
+            }
+            if (files == null) {
+                // Null also means "you pressed stop while this was downloading", and that
+                // is not an error to report back at someone. stopListening() has already
+                // set Idle, so only a fetch still believing it is running gets to fail.
+                if (audio is AudioState.Fetching) {
+                    audio = AudioState.Failed("Couldn't get the recitation. Check your connection.")
+                }
+                return@launch
+            }
+            portionAudio.play(
+                files = files,
+                verses = list,
+                onVerse = { i -> audio = AudioState.Playing(list[i], i, list.size) },
+                onFinished = { audio = AudioState.Idle },
+                startIndex = begin,
+            )
+        }
+    }
+
+    /**
+     * Start listening, optionally **at a particular ayah**.
+     *
+     * ⚠ **[startAt] exists because tapping Play on an ayah started the whole portion from the
+     * top** — his report, 2026-08-19, and he is right that it is the opposite of what tapping
+     * *that* ayah means.
+     *
+     * Three cases, in the order they are cheap:
+     *  1. Already playing and the ayah is loaded — jump, no network, no delay.
+     *  2. An ayah outside today's portion — play **just that one**, because he asked for that
+     *     ayah and the surrounding ones were never today's reading.
+     *  3. Otherwise — fetch the portion and begin at that ayah.
+     */
     fun listen(startAt: String? = null) {
         // Already going: point it at the ayah instead of starting over.
         if (audio is AudioState.Playing || audio is AudioState.Paused) {
@@ -321,7 +379,6 @@ fun TodayScreen(
         }
         if (audio !is AudioState.Idle) { stopListening(); return }
         scope.launch {
-            audio = AudioState.Fetching(0, 0)
             val repo = MushafRepository(context)
 
             // When viewing a page outside today's wird (e.g. browsing a Sūrah),
@@ -351,25 +408,17 @@ fun TodayScreen(
             val begin = if (startAt != null) list.indexOf(startAt).coerceAtLeast(0) else 0
             loaded = list
 
-            val files = portionAudio.ensureCached(list, audioQuality, reciter = selectedReciter) { done, total ->
-                audio = AudioState.Fetching(done, total)
-            }
-            if (files == null) {
-                // Null also means "you pressed stop while this was downloading", and that
-                // is not an error to report back at someone. stopListening() has already
-                // set Idle, so only a fetch still believing it is running gets to fail.
-                if (audio is AudioState.Fetching) {
-                    audio = AudioState.Failed("Couldn't get the recitation. Check your connection.")
-                }
+            val cached = portionAudio.isCached(list, audioQuality, selectedReciter)
+            if (!cached && !com.mosman.wird.audio.isWifi(context)) {
+                val bytes = portionAudio.uncachedBytesEstimate(list, audioQuality, selectedReciter)
+                uncachedAudioMb = (bytes.toFloat() / (1024 * 1024)).coerceAtLeast(0.5f)
+                pendingListenAyahs = list
+                pendingListenStartAt = startAt
+                showMobileAudioPrompt = true
                 return@launch
             }
-            portionAudio.play(
-                files = files,
-                verses = list,
-                onVerse = { i -> audio = AudioState.Playing(list[i], i, list.size) },
-                onFinished = { audio = AudioState.Idle },
-                startIndex = begin,
-            )
+
+            startRecitation(list, begin)
         }
     }
 
@@ -445,9 +494,66 @@ fun TodayScreen(
                 page = current,
                 offToday = current !in todaysPages,
                 reciter = selectedReciter,
-                quality = audioQuality,
+                isMenuOpen = showReciterPicker,
                 onPlay = { listen() },
-                onChangeReciter = { showReciterPicker = true },
+                onChangeReciter = { showReciterPicker = !showReciterPicker },
+            )
+        }
+
+        // Floating audio player dock when downloading recitation
+        AnimatedVisibility(
+            visible = !recording && audio is AudioState.Fetching,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .safeDrawingPadding()
+                .padding(bottom = if (selectedVerse != null) 76.dp else 16.dp, start = 16.dp, end = 16.dp)
+                .zIndex(3f),
+            enter = fadeIn() + slideInVertically { it },
+            exit = fadeOut() + slideOutVertically { it },
+        ) {
+            (audio as? AudioState.Fetching)?.let { fetching ->
+                AudioDockDownloading(
+                    audio = fetching,
+                    onCancel = { stopListening() },
+                )
+            }
+        }
+
+        // Anchored Reciter Pop-Down Menu above audio dock
+        AnimatedVisibility(
+            visible = showReciterPicker,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .safeDrawingPadding()
+                .padding(bottom = if (selectedVerse != null) 140.dp else 80.dp, start = 16.dp, end = 16.dp)
+                .zIndex(10f),
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut() + slideOutVertically { it / 2 },
+        ) {
+            ReciterPopDownMenu(
+                selected = selectedReciter,
+                onSelect = { chosen ->
+                    selectedReciter = chosen
+                    store.selectedReciter = chosen
+                    showReciterPicker = false
+                    if (audio is AudioState.Playing || audio is AudioState.Paused) {
+                        stopListening()
+                    }
+                },
+                onDismiss = { showReciterPicker = false },
+            )
+        }
+
+        if (showReciterPicker) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(9f)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { showReciterPicker = false },
+                    ),
             )
         }
 
@@ -673,25 +779,28 @@ fun TodayScreen(
         )
     }
 
-    if (showReciterPicker) {
-        ClayOptionDialog(
-            title = "Select Reciter",
-            options = listOf(
-                DialogOption("Abu Bakr al-Shatri", "Abu Bakr al-Shatri", "Murattal · Hafs an Asim (Default)"),
-                DialogOption("Mishary Rashid Alafasy", "Mishary Rashid Alafasy", "Murattal · Melodic & Clear"),
-                DialogOption("Mahmoud Khalil Al-Husary", "Mahmoud Khalil Al-Husary", "Murattal · Classical Master of Tajweed"),
-                DialogOption("Abdul Basit Abdul Samad", "Abdul Basit Abdul Samad", "Murattal · Celebrated Egyptian Reciter"),
-            ),
-            selected = selectedReciter,
-            onSelect = { chosen ->
-                selectedReciter = chosen
-                store.selectedReciter = chosen
-                showReciterPicker = false
-                if (audio is AudioState.Playing || audio is AudioState.Paused) {
-                    stopListening()
+    if (showMobileAudioPrompt) {
+        ClayConfirmDialog(
+            title = "Download Reciter Audio?",
+            message = "You are on mobile data. Download recitation (~${String.format(java.util.Locale.US, "%.1f", uncachedAudioMb)} MB) by $selectedReciter?",
+            confirmLabel = "Download with data",
+            cancelLabel = "Wait for Wi-Fi",
+            onConfirm = {
+                showMobileAudioPrompt = false
+                val toPlay = pendingListenAyahs
+                val start = pendingListenStartAt
+                pendingListenAyahs = null
+                pendingListenStartAt = null
+                if (toPlay != null) {
+                    val begin = if (start != null) toPlay.indexOf(start).coerceAtLeast(0) else 0
+                    startRecitation(toPlay, begin)
                 }
             },
-            onDismiss = { showReciterPicker = false },
+            onDismiss = {
+                showMobileAudioPrompt = false
+                pendingListenAyahs = null
+                pendingListenStartAt = null
+            },
         )
     }
     }
@@ -894,16 +1003,29 @@ private fun ChromeBar(
 @Composable
 private fun AudioDockIdle(
     surah: String,
-    quality: AudioQuality,
     onPlay: () -> Unit,
     onChangeReciter: () -> Unit,
     modifier: Modifier = Modifier,
     page: Int = 1,
     offToday: Boolean = false,
     reciter: String = "Abu Bakr al-Shatri",
+    isMenuOpen: Boolean = false,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    // Smoothly animate arrow rotation (0° = pointing down, 180° = pointing upwards)
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (isMenuOpen) 180f else 0f,
+        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+        label = "reciterArrowRotation",
+    )
+    // Smoothly animate arrow moving upwards when menu opens
+    val arrowOffsetY by animateDpAsState(
+        targetValue = if (isMenuOpen) (-2.5).dp else 0.dp,
+        animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
+        label = "reciterArrowOffsetY",
+    )
 
     Box(
         modifier = modifier
@@ -953,22 +1075,13 @@ private fun AudioDockIdle(
                         .weight(1f)
                         .clickable(onClick = onChangeReciter),
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = reciter,
-                            color = colors.textPrimary,
-                            style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Change reciter",
-                            tint = colors.accent,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
+                    Text(
+                        text = reciter,
+                        color = colors.textPrimary,
+                        style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                     Text(
                         text = if (offToday) {
                             if (surah.isNotEmpty()) "Reciting Surah $surah · Page $page" else "Reciting Page $page"
@@ -985,21 +1098,348 @@ private fun AudioDockIdle(
 
             Spacer(Modifier.width(8.dp))
 
+            // Dropdown chevron arrow on the right with smooth flip and upward animation
             Box(
                 modifier = Modifier
+                    .size(36.dp)
                     .clayPill(
-                        shape = RoundedCornerShape(999.dp),
+                        shape = CircleShape,
                         backgroundColor = if (isDark) Color(0xFF282932) else Color(0xFFEDE7DA),
                         elevation = 1.dp,
                     )
-                    .clickable(onClick = onChangeReciter)
-                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                    .clickable(onClick = onChangeReciter),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isMenuOpen) "Close reciter menu" else "Select reciter",
+                    tint = colors.accent,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .offset { IntOffset(0, arrowOffsetY.roundToPx()) }
+                        .rotate(arrowRotation),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Modern downloading dock showing real-time megabytes progress and cancel button.
+ */
+@Composable
+private fun AudioDockDownloading(
+    audio: AudioState.Fetching,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    val progress = if (audio.totalBytes > 0) {
+        (audio.bytesDownloaded.toFloat() / audio.totalBytes).coerceIn(0.04f, 1f)
+    } else if (audio.total > 0) {
+        (audio.done.toFloat() / audio.total).coerceIn(0.04f, 1f)
+    } else {
+        0.04f
+    }
+
+    val mbDone = String.format(java.util.Locale.US, "%.1f", audio.bytesDownloaded.toFloat() / (1024 * 1024))
+    val mbTotal = String.format(java.util.Locale.US, "%.1f", audio.totalBytes.toFloat() / (1024 * 1024))
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(18.dp),
+                backgroundColor = if (isDark) Color(0xFF1F2026) else Color(0xFFF9F6EE),
+                elevation = 4.dp,
+                highlightColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.6f),
+                shadowColor = Color.Black.copy(alpha = 0.25f),
+                strokeWidth = 1.dp,
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    // "X" Cancel Button
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clayPill(
+                                shape = CircleShape,
+                                backgroundColor = if (isDark) Color(0xFF282932) else Color(0xFFEDE7DA),
+                                elevation = 1.dp,
+                            )
+                            .clickable(onClick = onCancel),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Cancel download",
+                            tint = colors.textPrimary,
+                            modifier = Modifier.size(17.dp),
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Downloading recitation…",
+                            color = colors.textPrimary,
+                            style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                        )
+                        Text(
+                            text = if (audio.totalBytes > 0) "$mbDone MB / $mbTotal MB" else "$mbDone MB",
+                            color = colors.textSecondary,
+                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Determinate Progress Bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(if (isDark) Color(0xFF282932) else Color(0xFFE2DDD2)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(fraction = progress)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(colors.accent),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Anchored Pop-Down Reciter Menu card.
+ */
+@Composable
+private fun ReciterPopDownMenu(
+    selected: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val reciters = listOf(
+        DialogOption("Abu Bakr al-Shatri", "Abu Bakr al-Shatri", "Murattal · Hafs an Asim (Default)"),
+        DialogOption("Mishary Rashid Alafasy", "Mishary Rashid Alafasy", "Murattal · Melodic & Clear"),
+        DialogOption("Mahmoud Khalil Al-Husary", "Mahmoud Khalil Al-Husary", "Murattal · Master of Tajweed"),
+        DialogOption("Abdul Basit Abdul Samad", "Abdul Basit Abdul Samad", "Murattal · Celebrated Egyptian Reciter"),
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = if (isDark) Color(0xFF1F2026) else Color(0xFFFFFFFF),
+                elevation = 8.dp,
+                highlightColor = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.85f),
+                shadowColor = Color.Black.copy(alpha = 0.35f),
+                strokeWidth = 1.dp,
+            )
+            .padding(12.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = if (quality == AudioQuality.LIGHT) "64 kbps" else "Standard",
+                    text = "SELECT RECITER",
                     color = colors.textSecondary,
-                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp,
                 )
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(24.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = colors.textSecondary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            reciters.forEach { option ->
+                val isSelected = option.value == selected
+                val itemBg = if (isSelected) {
+                    if (isDark) Color(0xFF1A3828) else Color(0xFFEDF5F0)
+                } else {
+                    Color.Transparent
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(itemBg)
+                        .clickable { onSelect(option.value) }
+                        .padding(horizontal = 10.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = option.title,
+                            color = if (isSelected) colors.accent else colors.textPrimary,
+                            fontSize = 13.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        )
+                        option.description.let {
+                            Text(
+                                text = it,
+                                color = colors.textSecondary,
+                                fontSize = 11.sp,
+                            )
+                        }
+                    }
+
+                    if (isSelected) {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint = colors.accent,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Tactile Clay Confirmation Dialog for mobile data audio download prompt.
+ */
+@Composable
+private fun ClayConfirmDialog(
+    title: String,
+    message: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+    confirmLabel: String = "Download with data",
+    cancelLabel: String = "Wait for Wi-Fi",
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(onClick = onDismiss)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(26.dp),
+                        backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.95f),
+                        shadowColor = Color.Black.copy(alpha = 0.35f),
+                        elevation = 16.dp,
+                    )
+                    .clickable(enabled = false) {}
+                    .padding(22.dp),
+            ) {
+                Column {
+                    Text(
+                        text = title,
+                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.3).sp,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+
+                    Text(
+                        text = message,
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF556C60),
+                        fontSize = 13.5.sp,
+                        lineHeight = 19.sp,
+                        modifier = Modifier.padding(bottom = 20.dp),
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clayPill(
+                                    shape = RoundedCornerShape(14.dp),
+                                    backgroundColor = if (isDark) Color(0xFF1A2A20) else Color(0xFFEDE8DD),
+                                    elevation = 2.dp,
+                                )
+                                .clickable(onClick = onDismiss)
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = cancelLabel,
+                                color = colors.textSecondary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+
+                        Button(
+                            onClick = onConfirm,
+                            modifier = Modifier.weight(1.3f).defaultMinSize(minHeight = 44.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                                contentColor = Color.White,
+                            ),
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Text(
+                                text = confirmLabel,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -1090,9 +1530,7 @@ private fun audioLine(audio: AudioState): String? = when (audio) {
     // The bar names the ayah and says which of how many, so a second line saying the same
     // thing under the page would be the same fact twice in two shapes.
     is AudioState.Paused -> null
-    is AudioState.Fetching ->
-        if (audio.total == 0) "Getting the recitation…"
-        else "Getting the recitation, ${audio.done} of ${audio.total}"
+    is AudioState.Fetching -> null
     is AudioState.Playing -> {
         // "Ya-Sin 28", not "36:28". The reader knows the surah by name — that is the
         // question setup asks them, and it is how the header names the portion.

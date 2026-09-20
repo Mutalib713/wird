@@ -3,12 +3,22 @@ package com.mosman.wird.audio
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+
+fun isWifi(context: Context): Boolean {
+    val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return false
+    val network = cm.activeNetwork ?: return false
+    val caps = cm.getNetworkCapabilities(network) ?: return false
+    return caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+}
 
 /**
  * How good the recitation audio should sound, against what it costs to fetch.
@@ -71,8 +81,13 @@ enum class AudioQuality(val label: String, val perPageMb: String) {
 sealed interface AudioState {
     data object Idle : AudioState
 
-    /** Downloading. [done] of [total] ayahs are on disk. */
-    data class Fetching(val done: Int, val total: Int) : AudioState
+    /** Downloading. [done] of [total] ayahs are on disk, tracking [bytesDownloaded] and [totalBytes]. */
+    data class Fetching(
+        val done: Int,
+        val total: Int,
+        val bytesDownloaded: Long = 0L,
+        val totalBytes: Long = 0L,
+    ) : AudioState
 
     /** [index] is 0-based, so the screen can say "3 of 13". */
     data class Playing(val verseKey: String, val index: Int, val total: Int) : AudioState
@@ -132,15 +147,69 @@ class PortionAudio(private val context: Context) {
      * nothing on purpose: a portion with a hole in the middle would stop halfway through
      * and look like a crash.
      */
+    fun isCached(verses: List<String>, quality: AudioQuality, reciter: String = "Abu Bakr al-Shatri"): Boolean {
+        val dir = dirFor(reciter, quality)
+        return verses.all { key ->
+            val surah = key.substringBefore(':').toIntOrNull() ?: return@all false
+            val ayah = key.substringAfter(':').toIntOrNull() ?: return@all false
+            val f = File(dir, "%03d%03d.mp3".format(surah, ayah))
+            f.exists() && f.length() >= MIN_PLAUSIBLE_BYTES
+        }
+    }
+
+    fun uncachedBytesEstimate(verses: List<String>, quality: AudioQuality, reciter: String = "Abu Bakr al-Shatri"): Long {
+        val dir = dirFor(reciter, quality)
+        val count = verses.count { key ->
+            val surah = key.substringBefore(':').toIntOrNull() ?: return@count false
+            val ayah = key.substringAfter(':').toIntOrNull() ?: return@count false
+            val f = File(dir, "%03d%03d.mp3".format(surah, ayah))
+            !f.exists() || f.length() < MIN_PLAUSIBLE_BYTES
+        }
+        val perAyah = if (quality == AudioQuality.LIGHT) 85_000L else 135_000L
+        return (count * perAyah).coerceAtLeast(0L)
+    }
+
+    /**
+     * Make sure every ayah in [verses] is on disk, reporting progress as it goes.
+     *
+     * Already-cached ayahs cost nothing, so this is free from the second listen onward —
+     * which is what makes the airplane-mode promise true.
+     *
+     * @param verses verse keys, "36:28" style, in reading order.
+     * @return the files in the same order, or null if any could not be fetched. All or
+     * nothing on purpose: a portion with a hole in the middle would stop halfway through
+     * and look like a crash.
+     */
     suspend fun ensureCached(
         verses: List<String>,
         quality: AudioQuality,
         reciter: String = "Abu Bakr al-Shatri",
-        onProgress: (done: Int, total: Int) -> Unit = { _, _ -> },
+        onProgress: (done: Int, total: Int, bytesDownloaded: Long, totalBytes: Long) -> Unit = { _, _, _, _ -> },
     ): List<File>? = withContext(Dispatchers.IO) {
         val mine = ++run
         val dir = dirFor(reciter, quality)
         val files = mutableListOf<File>()
+
+        var existingBytes = 0L
+        var uncachedCount = 0
+        verses.forEach { key ->
+            val surah = key.substringBefore(':').toIntOrNull()
+            val ayah = key.substringAfter(':').toIntOrNull()
+            if (surah != null && ayah != null) {
+                val f = File(dir, "%03d%03d.mp3".format(surah, ayah))
+                if (f.exists() && f.length() >= MIN_PLAUSIBLE_BYTES) {
+                    existingBytes += f.length()
+                } else {
+                    uncachedCount++
+                }
+            }
+        }
+
+        val perAyah = if (quality == AudioQuality.LIGHT) 85_000L else 135_000L
+        var totalBytesEstimate = existingBytes + (uncachedCount * perAyah).coerceAtLeast(100_000L)
+        var bytesDownloaded = existingBytes
+
+        onProgress(0, verses.size, bytesDownloaded, totalBytesEstimate)
 
         verses.forEachIndexed { i, key ->
             // Superseded by a later listen, or stopped. Not a failure — just not ours.
@@ -151,7 +220,14 @@ class PortionAudio(private val context: Context) {
             val f = File(dir, "%03d%03d.mp3".format(surah, ayah))
             if (!f.exists() || f.length() < MIN_PLAUSIBLE_BYTES) {
                 if (f.exists()) f.delete()
-                val bytes = getBytes(quality.urlFor(reciter, surah, ayah)) ?: return@withContext null
+                val bytes = getBytes(quality.urlFor(reciter, surah, ayah)) { chunk ->
+                    bytesDownloaded += chunk
+                    if (bytesDownloaded > totalBytesEstimate) {
+                        totalBytesEstimate = bytesDownloaded + 50_000L
+                    }
+                    onProgress(i, verses.size, bytesDownloaded, totalBytesEstimate)
+                } ?: return@withContext null
+
                 // A 678-byte HTML error page arrives with a 200 from these CDNs — the same
                 // trap the fonts had. Trust the byte count, never the status line.
                 if (bytes.size < MIN_PLAUSIBLE_BYTES) {
@@ -161,7 +237,7 @@ class PortionAudio(private val context: Context) {
                 f.writeBytes(bytes)
             }
             files += f
-            onProgress(i + 1, verses.size)
+            onProgress(i + 1, verses.size, bytesDownloaded, totalBytesEstimate)
         }
 
         Log.i(TAG, "portion cached: ${files.size} ayahs, ${files.sumOf { it.length() } / 1024} KB")
@@ -358,7 +434,7 @@ class PortionAudio(private val context: Context) {
         Log.i(TAG, "pruned audio cache to ${total / 1024} KB")
     }
 
-    private fun getBytes(url: String): ByteArray? {
+    private fun getBytes(url: String, onChunk: ((Int) -> Unit)? = null): ByteArray? {
         var conn: HttpURLConnection? = null
         return try {
             conn = (URL(url).openConnection() as HttpURLConnection).apply {
@@ -371,7 +447,16 @@ class PortionAudio(private val context: Context) {
                 Log.w(TAG, "HTTP ${conn.responseCode} for $url")
                 return null
             }
-            conn.inputStream.use { it.readBytes() }
+            val buffer = ByteArray(8192)
+            val out = ByteArrayOutputStream()
+            conn.inputStream.use { input ->
+                var read: Int
+                while (input.read(buffer).also { read = it } != -1) {
+                    out.write(buffer, 0, read)
+                    onChunk?.invoke(read)
+                }
+            }
+            out.toByteArray()
         } catch (e: Exception) {
             Log.w(TAG, "audio fetch failed: $url", e)
             null
