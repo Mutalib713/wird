@@ -2,6 +2,7 @@ package com.mosman.wird.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,11 +35,13 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -55,17 +58,20 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mosman.wird.R
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.SurahIndex
+import com.mosman.wird.mushaf.MushafDownloadService
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
@@ -98,7 +104,7 @@ fun SetupScreen(
     val repo = remember { MushafRepository(context) }
     val coroutineScope = rememberCoroutineScope()
 
-    var currentStep by remember { mutableIntStateOf(1) }
+    var currentStep by remember { mutableIntStateOf(0) }
 
     // State collected across steps
     var readerName by remember { mutableStateOf<String?>(null) }
@@ -116,10 +122,10 @@ fun SetupScreen(
     var viewingMushafPage by remember { mutableStateOf(false) }
 
     // Handle back button across steps
-    BackHandler(enabled = viewingMushafPage || currentStep > 1) {
+    BackHandler(enabled = viewingMushafPage || currentStep > 0) {
         if (viewingMushafPage) {
             viewingMushafPage = false
-        } else if (currentStep > 1) {
+        } else if (currentStep > 0) {
             currentStep--
         }
     }
@@ -154,160 +160,387 @@ fun SetupScreen(
             .safeDrawingPadding()
             .padding(horizontal = 20.dp),
     ) {
-        Spacer(Modifier.height(10.dp))
+        if (currentStep == 0) {
+            Step0Welcome(
+                onStart = { currentStep = 1 },
+            )
+        } else {
+            Spacer(Modifier.height(10.dp))
 
-        // Top Stepper Navigation Row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .clayPill(
-                        shape = RoundedCornerShape(999.dp),
-                        backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFECE5D8),
-                    )
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            // Top Stepper Navigation Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "STEP $currentStep OF 5",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 0.8.sp,
-                    color = Color(0xFFC9A24B),
-                )
-            }
-
-            if (currentStep == 1) {
-                TextButton(onClick = { currentStep = 2 }) {
+                Box(
+                    modifier = Modifier
+                        .clayPill(
+                            shape = RoundedCornerShape(999.dp),
+                            backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFECE5D8),
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
                     Text(
-                        text = "Skip",
-                        color = colors.textSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        text = "STEP $currentStep OF 6",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.8.sp,
+                        color = Color(0xFFC9A24B),
                     )
                 }
-            } else {
-                TextButton(onClick = { currentStep-- }) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(14.dp),
-                        )
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (currentStep == 1) {
+                        TextButton(onClick = { currentStep = 2 }) {
+                            Text(
+                                text = "Skip",
+                                color = colors.textSecondary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                         Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "Back",
-                            color = colors.textSecondary,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                    }
+                    TextButton(onClick = { currentStep-- }) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = colors.textSecondary,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = "Back",
+                                color = colors.textSecondary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
-        // 5-Capsule Progress Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            for (stepIndex in 1..5) {
-                val filled = stepIndex < currentStep
-                val current = stepIndex == currentStep
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(
-                            when {
-                                current -> Color(0xFFC9A24B)
-                                filled -> if (isDark) Color(0xFF245847) else Color(0xFF2D6B52)
-                                else -> if (isDark) Color(0xFF182820) else Color(0xFFDDD7C8)
-                            }
-                        ),
-                )
+            // 6-Capsule Progress Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                for (stepIndex in 1..6) {
+                    val filled = stepIndex < currentStep
+                    val current = stepIndex == currentStep
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(
+                                when {
+                                    current -> Color(0xFFC9A24B)
+                                    filled -> if (isDark) Color(0xFF245847) else Color(0xFF2D6B52)
+                                    else -> if (isDark) Color(0xFF182820) else Color(0xFFDDD7C8)
+                                }
+                            ),
+                    )
+                }
             }
-        }
 
-        Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(16.dp))
 
-        // Step Content Body
-        Box(modifier = Modifier.weight(1f)) {
-            when (currentStep) {
-                1 -> Step1Name(
-                    initialName = readerName,
-                    onNext = {
-                        readerName = it
-                        currentStep = 2
-                    },
-                )
-                2 -> Step2ReadingMethod(
-                    selectedMode = readingMode,
-                    onSelectMode = { readingMode = it },
-                    onNext = { currentStep = 3 },
-                )
-                3 -> Step3ReadingDirection(
-                    selectedDirection = readingDirection,
-                    onSelectDirection = { readingDirection = it },
-                    onNext = { currentStep = 4 },
-                )
-                4 -> Step4ReadingPosition(
-                    onSurahPicked = { surah ->
-                        chosenSurah = surah
-                        startPage = surah.firstPage
-                        startAyah = 1
-                        startAyahText = "1"
-                        currentStep = 5
-                    },
-                )
-                5 -> Step5AyahAndTarget(
-                    surah = chosenSurah ?: SurahIndex.byNumber(1)!!,
-                    startAyah = startAyah,
-                    startAyahText = startAyahText,
-                    onAyahTextChange = { text ->
-                        startAyahText = text
-                        val a = text.toIntOrNull()
-                        val max = chosenSurah?.verses ?: 7
-                        if (a != null && a in 1..max) {
-                            startAyah = a
-                            coroutineScope.launch {
-                                repo.pageOfVerse(chosenSurah?.number ?: 1, a)?.let { p ->
-                                    startPage = p
+            // Step Content Body
+            Box(modifier = Modifier.weight(1f)) {
+                when (currentStep) {
+                    1 -> Step1Name(
+                        initialName = readerName,
+                        onNext = {
+                            readerName = it
+                            currentStep = 2
+                        },
+                    )
+                    2 -> Step2ReadingMethod(
+                        selectedMode = readingMode,
+                        onSelectMode = { readingMode = it },
+                        onNext = { currentStep = 3 },
+                    )
+                    3 -> Step3ReadingDirection(
+                        selectedDirection = readingDirection,
+                        onSelectDirection = { readingDirection = it },
+                        onNext = { currentStep = 4 },
+                    )
+                    4 -> Step4ReadingPosition(
+                        onSurahPicked = { surah ->
+                            chosenSurah = surah
+                            startPage = surah.firstPage
+                            startAyah = 1
+                            startAyahText = "1"
+                            currentStep = 5
+                        },
+                    )
+                    5 -> Step5AyahAndTarget(
+                        surah = chosenSurah ?: SurahIndex.byNumber(1)!!,
+                        startAyah = startAyah,
+                        startAyahText = startAyahText,
+                        onAyahTextChange = { text ->
+                            startAyahText = text
+                            val a = text.toIntOrNull()
+                            val max = chosenSurah?.verses ?: 7
+                            if (a != null && a in 1..max) {
+                                startAyah = a
+                                coroutineScope.launch {
+                                    repo.pageOfVerse(chosenSurah?.number ?: 1, a)?.let { p ->
+                                        startPage = p
+                                    }
                                 }
                             }
-                        }
-                    },
-                    dailyUnits = dailyUnits,
-                    onDailyUnitsChange = {
-                        dailyUnits = it
-                        isCustomTarget = false
-                    },
-                    isCustomTarget = isCustomTarget,
-                    customVerses = customVersesText,
-                    onCustomVersesChange = { text ->
-                        customVersesText = text
-                        isCustomTarget = true
-                        val count = text.toIntOrNull() ?: 10
-                        dailyUnits = when {
-                            count <= 5 -> 1
-                            count <= 10 -> 2
-                            count <= 20 -> 4
-                            else -> ((count / 10) * 2).coerceIn(1, 40)
-                        }
-                    },
-                    onOpenMushaf = { viewingMushafPage = true },
-                    onFinish = {
-                        val versePair = chosenSurah?.number?.let { s -> s to startAyah }
-                        onDone(startPage, dailyUnits, versePair, readerName, readingMode, readingDirection)
-                    },
+                        },
+                        dailyUnits = dailyUnits,
+                        onDailyUnitsChange = {
+                            dailyUnits = it
+                            isCustomTarget = false
+                        },
+                        isCustomTarget = isCustomTarget,
+                        customVerses = customVersesText,
+                        onCustomVersesChange = { text ->
+                            customVersesText = text
+                            isCustomTarget = true
+                            val count = text.toIntOrNull() ?: 10
+                            dailyUnits = when {
+                                count <= 5 -> 1
+                                count <= 10 -> 2
+                                count <= 20 -> 4
+                                else -> ((count / 10) * 2).coerceIn(1, 40)
+                            }
+                        },
+                        onOpenMushaf = { viewingMushafPage = true },
+                        onFinish = {
+                            currentStep = 6
+                        },
+                    )
+                    6 -> Step6DownloadPages(
+                        onDone = {
+                            val versePair = chosenSurah?.number?.let { s -> s to startAyah }
+                            onDone(startPage, dailyUnits, versePair, readerName, readingMode, readingDirection)
+                        },
+                        onBack = { currentStep = 5 },
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// STEP 0: WELCOME & WHAT IS A WIRD?
+// ============================================================================
+@Composable
+private fun Step0Welcome(
+    onStart: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Spacer(Modifier.height(16.dp))
+
+            // App Logo Badge
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clayCard(
+                        shape = CircleShape,
+                        backgroundColor = if (isDark) Color(0xFF132D20) else Color(0xFF1E6A46),
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.4f),
+                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF123B26).copy(alpha = 0.3f),
+                        elevation = 4.dp,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                    contentDescription = "Wird Logo",
+                    modifier = Modifier.size(76.dp),
                 )
             }
+
+            Spacer(Modifier.height(16.dp))
+
+            // App Name & Subtitle
+            Text(
+                text = "Wird",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp,
+                color = colors.textPrimary,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = "وِرْد · Daily Qur'an Companion",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = gold,
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // "WHAT IS A WIRD?" Definition Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(20.dp),
+                        backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.9f),
+                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
+                        elevation = 2.dp,
+                    )
+                    .padding(18.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clayPill(
+                            shape = RoundedCornerShape(999.dp),
+                            backgroundColor = if (isDark) Color(0xFF1B2E24) else Color(0xFFF3ECE0),
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = "WHAT IS A WIRD?",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.8.sp,
+                        color = gold,
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    text = "“A Wird is the dedicated daily portion of the Holy Qur'an that you commit to reading every day — a quiet, lifelong habit.”",
+                    fontSize = 13.5.sp,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    lineHeight = 20.sp,
+                    color = colors.textPrimary,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            // 3 Core Pillars: Why Wird?
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(20.dp),
+                        backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.9f),
+                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
+                        elevation = 2.dp,
+                    )
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                WelcomeFeatureRow(
+                    icon = { RhythmVectorIcon(tint = gold) },
+                    title = "Consistent Daily Pace",
+                    description = "Small, manageable portions tailored to your speed and schedule.",
+                    isDark = isDark,
+                )
+                Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(colors.ornament.copy(alpha = 0.25f)))
+                WelcomeFeatureRow(
+                    icon = { LockVectorIcon(tint = gold) },
+                    title = "100% Offline & Private",
+                    description = "No accounts, no ads, no tracking. Stays entirely on your device.",
+                    isDark = isDark,
+                )
+                Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(colors.ornament.copy(alpha = 0.25f)))
+                WelcomeFeatureRow(
+                    icon = { QuranVectorIcon(tint = gold) },
+                    title = "Authentic Mushaf",
+                    description = "Original Madinah pages, tap-to-ayah selection, and verse-by-verse audio.",
+                    isDark = isDark,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        // Get Started Button
+        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+            Button(
+                onClick = onStart,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Get Started", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WelcomeFeatureRow(
+    icon: @Composable () -> Unit,
+    title: String,
+    description: String,
+    isDark: Boolean,
+) {
+    val colors = LocalWirdColors.current
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clayCard(
+                    shape = RoundedCornerShape(12.dp),
+                    backgroundColor = if (isDark) Color(0xFF102018) else Color(0xFFEDE4D4),
+                    elevation = 1.dp,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon()
+        }
+        Spacer(Modifier.width(14.dp))
+        Column {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.5.sp,
+                color = colors.textPrimary,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = description,
+                fontSize = 11.5.sp,
+                color = colors.textSecondary,
+                lineHeight = 15.sp,
+            )
         }
     }
 }
@@ -912,7 +1145,7 @@ private fun Step5AyahAndTarget(
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Start Your Wird", fontWeight = FontWeight.Bold)
+                Text("Next: Qur'an Pages", fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -921,6 +1154,303 @@ private fun Step5AyahAndTarget(
                 )
             }
         }
+    }
+}
+
+// ============================================================================
+// STEP 6: DOWNLOAD QUR'AN PAGES (All 604 Pages · Background Enabled)
+// ============================================================================
+@Composable
+private fun Step6DownloadPages(
+    onDone: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val context = LocalContext.current
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+    val liveProgress by MushafDownloadService.mushafProgress.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            HeroHeader(
+                icon = { DownloadVectorIcon(tint = gold) },
+                title = "Qur'an Pages Download",
+                subtitle = "Download all 604 pages once to read completely offline anywhere.",
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            if (liveProgress != null) {
+                val progress = liveProgress!!
+                val done = progress.done
+                val total = progress.total
+                val fraction = if (total > 0) done.toFloat() / total.toFloat() else 0f
+                val mbDone = String.format(java.util.Locale.US, "%.1f", progress.bytesDownloaded.toFloat() / (1024 * 1024))
+                val mbTotal = String.format(java.util.Locale.US, "%.1f", progress.totalBytes.toFloat() / (1024 * 1024))
+
+                // Active Download Card
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clayCard(
+                            shape = RoundedCornerShape(20.dp),
+                            backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
+                            highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.9f),
+                            shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
+                            elevation = 2.dp,
+                        )
+                        .padding(20.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "Downloading Mushaf...",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = colors.textPrimary,
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clayPill(
+                                    shape = RoundedCornerShape(999.dp),
+                                    backgroundColor = if (isDark) Color(0xFF102018) else Color(0xFFE8F3EE),
+                                )
+                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                        ) {
+                            Text(
+                                text = "${(fraction * 100).toInt()}%",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isDark) Color(0xFF93DB7A) else Color(0xFF245847),
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    LinearProgressIndicator(
+                        progress = { fraction },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = gold,
+                        trackColor = if (isDark) Color(0xFF0F1A14) else Color(0xFFDDD7C8),
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = "$done of $total pages",
+                            fontSize = 12.sp,
+                            color = colors.textSecondary,
+                        )
+                        Text(
+                            text = "$mbDone / $mbTotal MB",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.textPrimary,
+                        )
+                    }
+
+                    Spacer(Modifier.height(14.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = if (isDark) Color(0xFF0F1C15) else Color(0xFFF3EFE6),
+                                shape = RoundedCornerShape(10.dp),
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = "Downloads smoothly in the background. You can enter the app now — reading is fully functional.",
+                            fontSize = 11.5.sp,
+                            color = colors.textSecondary,
+                            lineHeight = 16.sp,
+                        )
+                    }
+                }
+            } else {
+                // Specs & Benefit Card
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clayCard(
+                            shape = RoundedCornerShape(20.dp),
+                            backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
+                            highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.9f),
+                            shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
+                            elevation = 2.dp,
+                        )
+                        .padding(20.dp),
+                ) {
+                    Text(
+                        text = "PACKAGE SPECIFICATIONS",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 0.8.sp,
+                        color = gold,
+                    )
+                    Spacer(Modifier.height(12.dp))
+
+                    DownloadSpecRow(
+                        label = "Total Pages",
+                        value = "All 604 Pages (Full Qur'an)",
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    DownloadSpecRow(
+                        label = "Download Size",
+                        value = "~86.5 MB",
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    DownloadSpecRow(
+                        label = "Offline Status",
+                        value = "100% Offline forever",
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    DownloadSpecRow(
+                        label = "Background",
+                        value = "Runs while you read",
+                    )
+
+                    Spacer(Modifier.height(14.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = if (isDark) Color(0xFF0F1C15) else Color(0xFFF3EFE6),
+                                shape = RoundedCornerShape(10.dp),
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = "Recommended on Wi-Fi. If you skip or cancel, pages will stream on-demand or can be downloaded in Settings anytime.",
+                            fontSize = 11.5.sp,
+                            color = colors.textSecondary,
+                            lineHeight = 16.sp,
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        // Action Buttons Column
+        Column(
+            modifier = Modifier.padding(bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            if (liveProgress != null) {
+                // While downloading: "Enter App & Start Reading" + "Cancel Download"
+                Button(
+                    onClick = onDone,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = Scale.minTarget),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Text("Enter App & Start Reading", fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                TextButton(
+                    onClick = { MushafDownloadService.stop(context) },
+                    modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
+                ) {
+                    Text(
+                        text = "Cancel Download",
+                        color = colors.textSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            } else {
+                // Idle: "Download & Start Reading" + "Skip for now"
+                Button(
+                    onClick = {
+                        MushafDownloadService.start(context)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = Scale.minTarget),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                        contentColor = Color.White,
+                    ),
+                ) {
+                    Text("Download & Start Reading", fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+
+                TextButton(
+                    onClick = onDone,
+                    modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
+                ) {
+                    Text(
+                        text = "Skip for now (stream on-demand)",
+                        color = colors.textSecondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DownloadSpecRow(label: String, value: String) {
+    val colors = LocalWirdColors.current
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.5.sp,
+            color = colors.textSecondary,
+        )
+        Text(
+            text = value,
+            fontSize = 12.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.textPrimary,
+        )
     }
 }
 
@@ -1279,3 +1809,49 @@ private fun LockVectorIcon(tint: Color, modifier: Modifier = Modifier) {
         )
     }
 }
+
+/** Vector Download into Tray Icon (Lucide Download). */
+@Composable
+private fun DownloadVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        // Downward arrow
+        drawLine(tint, Offset(w * 0.5f, h * 0.15f), Offset(w * 0.5f, h * 0.62f), stroke.width, stroke.cap)
+        drawLine(tint, Offset(w * 0.28f, h * 0.42f), Offset(w * 0.5f, h * 0.62f), stroke.width, stroke.cap)
+        drawLine(tint, Offset(w * 0.72f, h * 0.42f), Offset(w * 0.5f, h * 0.62f), stroke.width, stroke.cap)
+        // Tray
+        val tray = Path().apply {
+            moveTo(w * 0.18f, h * 0.68f)
+            lineTo(w * 0.18f, h * 0.84f)
+            lineTo(w * 0.82f, h * 0.84f)
+            lineTo(w * 0.82f, h * 0.68f)
+        }
+        drawPath(tray, color = tint, style = stroke)
+    }
+}
+
+/** Vector Rhythm / Habit Calendar Icon. */
+@Composable
+private fun RhythmVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        // Calendar outline
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(w * 0.15f, h * 0.22f),
+            size = androidx.compose.ui.geometry.Size(w * 0.70f, h * 0.65f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(3.dp.toPx()),
+            style = stroke,
+        )
+        // Top binder rings
+        drawLine(tint, Offset(w * 0.32f, h * 0.12f), Offset(w * 0.32f, h * 0.26f), stroke.width, stroke.cap)
+        drawLine(tint, Offset(w * 0.68f, h * 0.12f), Offset(w * 0.68f, h * 0.26f), stroke.width, stroke.cap)
+        // Inner header divider
+        drawLine(tint, Offset(w * 0.15f, h * 0.42f), Offset(w * 0.85f, h * 0.42f), stroke.width, stroke.cap)
+    }
+}
+

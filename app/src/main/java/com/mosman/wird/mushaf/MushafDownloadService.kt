@@ -22,6 +22,20 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/**
+ * Progress details for the full mushaf page download.
+ */
+data class MushafProgress(
+    val done: Int,
+    val total: Int,
+    val bytesDownloaded: Long,
+    val totalBytes: Long,
+)
+
 /**
  * Fetching the whole mushaf, in the background, with a notification you can watch.
  *
@@ -62,6 +76,9 @@ class MushafDownloadService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            job?.cancel()
+            _mushafProgress.value = null
+            stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
             return START_NOT_STICKY
         }
@@ -81,25 +98,39 @@ class MushafDownloadService : Service() {
         if (job?.isActive == true) return START_STICKY
 
         createChannel()
-        startForeground(NOTIFICATION_ID, notification(0, Mushaf.PAGES))
+        val repo = MushafRepository(applicationContext)
+        val initialCached = repo.cached()
+        val initialBytes = initialCached.second.coerceAtLeast((initialCached.first.toLong() * ESTIMATED_TOTAL_BYTES) / Mushaf.PAGES)
+        _mushafProgress.value = MushafProgress(initialCached.first, Mushaf.PAGES, initialBytes, ESTIMATED_TOTAL_BYTES)
+        startForeground(NOTIFICATION_ID, notification(initialCached.first, Mushaf.PAGES, initialBytes, ESTIMATED_TOTAL_BYTES))
 
         job = scope.launch {
-            val repo = MushafRepository(applicationContext)
-            var lastShown = 0
+            var lastShown = initialCached.first
             val failed = repo.downloadAll { done, total ->
+                val cached = repo.cached()
+                val currentBytes = cached.second.coerceAtLeast((done.toLong() * ESTIMATED_TOTAL_BYTES) / total)
+                _mushafProgress.value = MushafProgress(done, total, currentBytes, ESTIMATED_TOTAL_BYTES)
+
                 // Repainting a notification 604 times is 604 wakeups of the system UI for a bar
                 // that moves a fifth of a pixel. Every ten pages is often enough to look alive.
                 if (done - lastShown >= 10 || done == total) {
                     lastShown = done
-                    notify(notification(done, total))
+                    notify(notification(done, total, currentBytes, ESTIMATED_TOTAL_BYTES))
                 }
             }
+            _mushafProgress.value = null
             notify(done(failed))
             Log.i(MushafRepository.TAG, "whole-mushaf download finished, $failed missing")
             stopForeground(STOP_FOREGROUND_DETACH)
             stopSelf()
         }
         return START_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _mushafProgress.value = null
+        scope.cancel()
     }
 
     /** A recitation model, with its own progress and its own finishing line. */
@@ -159,12 +190,7 @@ class MushafDownloadService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
-    override fun onDestroy() {
-        scope.cancel()
-        super.onDestroy()
-    }
-
-    private fun notification(done: Int, total: Int): Notification {
+    private fun notification(done: Int, total: Int, bytesDone: Long = 0L, totalBytes: Long = ESTIMATED_TOTAL_BYTES): Notification {
         val open = PendingIntent.getActivity(
             this,
             0,
@@ -177,11 +203,15 @@ class MushafDownloadService : Service() {
             Intent(this, MushafDownloadService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val remaining = (total - done).coerceAtLeast(0)
+        val doneMb = String.format(java.util.Locale.US, "%.1f", bytesDone.toFloat() / (1024 * 1024))
+        val totalMb = String.format(java.util.Locale.US, "%.1f", totalBytes.toFloat() / (1024 * 1024))
+        val content = if (bytesDone > 0) "$remaining pages left · $doneMb / $totalMb MB" else "$remaining pages left"
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setContentTitle("Getting the mushaf")
-            // The figure people actually want is how much is left, not how much is done.
-            .setContentText("${total - done} pages to go")
+            .setContentText(content)
             .setProgress(total, done, false)
             .setOngoing(true)
             .setContentIntent(open)
@@ -231,6 +261,16 @@ class MushafDownloadService : Service() {
         private const val NOTIFICATION_ID = 4201
         private const val ACTION_STOP = "com.mosman.wird.STOP_DOWNLOAD"
         private const val EXTRA_MODEL = "com.mosman.wird.MODEL"
+        const val ESTIMATED_TOTAL_BYTES = 86_500_000L // ~86.5 MB
+
+        private val _mushafProgress = MutableStateFlow<MushafProgress?>(null)
+        val mushafProgress: StateFlow<MushafProgress?> = _mushafProgress.asStateFlow()
+
+        fun isDownloading(): Boolean = _mushafProgress.value != null
+
+        fun stop(context: Context) {
+            context.startService(Intent(context, MushafDownloadService::class.java).setAction(ACTION_STOP))
+        }
 
         /** Fetch a recitation model, surviving whatever screen asked for it. */
         fun startModel(context: Context, model: RecitationModel) {
@@ -242,8 +282,6 @@ class MushafDownloadService : Service() {
 
         /** Begin, or do nothing if it is already going. */
         fun start(context: Context) {
-            // minSdk is already above 26, so the pre-Oreo branch lint flagged here was dead
-            // code guarding against a version this app cannot run on.
             context.startForegroundService(Intent(context, MushafDownloadService::class.java))
         }
     }

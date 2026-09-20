@@ -43,6 +43,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -177,6 +178,7 @@ fun SettingsScreen(
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
+    val liveMushafProgress by com.mosman.wird.mushaf.MushafDownloadService.mushafProgress.collectAsState()
 
     // Current sub-screen
     var subScreen by remember { mutableStateOf(SettingsSubScreen.MAIN) }
@@ -621,8 +623,15 @@ fun SettingsScreen(
                             // Mushaf pages
                             val (pages, bytes) = cachedPages
                             val whole = Mushaf.PAGES
-                            val pagesSubtitle = if (downloading != null) {
-                                "Downloading ${downloading.first} of ${downloading.second}…"
+                            val live = liveMushafProgress
+                            val pagesSubtitle = if (downloading != null || live != null) {
+                                val done = live?.done ?: downloading?.first ?: 0
+                                val total = live?.total ?: downloading?.second ?: whole
+                                val mbDone = String.format(java.util.Locale.US, "%.1f", (live?.bytesDownloaded ?: 0L).toFloat() / (1024 * 1024))
+                                val mbTotal = String.format(java.util.Locale.US, "%.1f", (live?.totalBytes ?: com.mosman.wird.mushaf.MushafDownloadService.ESTIMATED_TOTAL_BYTES).toFloat() / (1024 * 1024))
+                                "Downloading $done of $total pages · $mbDone / $mbTotal MB"
+                            } else if (pages >= whole) {
+                                "All 604 pages ready · 100% offline (${megabytes(bytes)})"
                             } else {
                                 "$pages of $whole pages · ${megabytes(bytes)}"
                             }
@@ -630,7 +639,9 @@ fun SettingsScreen(
                                 title = "Mushaf pages",
                                 subtitle = pagesSubtitle,
                                 onClick = {
-                                    if (downloading == null && pages < whole) {
+                                    if (downloading != null || live != null) {
+                                        com.mosman.wird.mushaf.MushafDownloadService.stop(context)
+                                    } else if (pages < whole) {
                                         onDownloadAll()
                                     }
                                 },

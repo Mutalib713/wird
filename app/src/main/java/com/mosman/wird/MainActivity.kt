@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -140,12 +141,12 @@ class MainActivity : ComponentActivity() {
                 notificationsOn = androidx.core.app.NotificationManagerCompat
                     .from(this@MainActivity).areNotificationsEnabled()
             }
-            var downloading by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+            val liveMushafProgress by MushafDownloadService.mushafProgress.collectAsState()
+            val downloading = liveMushafProgress?.let { it.done to it.total }
 
-            // Counted when Settings is opened rather than held live: it is a directory listing,
-            // and doing it on every recomposition would be a file-system walk per frame.
-            LaunchedEffect(screen, downloading) {
-                if (screen == Screen.SETTINGS && downloading == null) {
+            // Counted when Settings is opened or when background download completes
+            LaunchedEffect(screen, liveMushafProgress) {
+                if (screen == Screen.SETTINGS && liveMushafProgress == null) {
                     cachedPages = withContext(Dispatchers.IO) { mushaf.cached() }
                 }
             }
@@ -814,11 +815,7 @@ class MainActivity : ComponentActivity() {
                         cachedPages = cachedPages,
                         downloading = downloading,
                         onDownloadAll = {
-                            // **Handed to a service, not run here.** Owning a 45-minute job in
-                            // a screen's scope meant leaving Settings killed it. The service
-                            // outlives the screen and shows what is left in a notification.
                             MushafDownloadService.start(this@MainActivity)
-                            downloading = 0 to Mushaf.PAGES
                         },
                         onResume = {
                             away = null
