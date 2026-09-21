@@ -62,8 +62,31 @@ data class MushafPage(
             .distinct()
             .size
 
+    @JvmName("ayahCountVerses")
+    fun ayahCount(verses: Set<String>): Int =
+        glyphs.filter { it.verseKey in verses && !it.isEndMarker }
+            .map { it.verseKey }
+            .distinct()
+            .size
+
     fun ayahRange(lines: Set<Int>): Pair<Pair<Int, Int>, Pair<Int, Int>>? {
         val covered = glyphs.filter { it.line in lines && !it.isEndMarker }
+        if (covered.isEmpty()) return null
+        fun parse(key: String): Pair<Int, Int>? {
+            val s = key.substringBefore(':').toIntOrNull() ?: return null
+            val a = key.substringAfter(':').toIntOrNull() ?: return null
+            return s to a
+        }
+        val keys = covered.mapNotNull { parse(it.verseKey) }
+        if (keys.isEmpty()) return null
+        val first = keys.minWith(compareBy({ it.first }, { it.second }))
+        val last = keys.maxWith(compareBy({ it.first }, { it.second }))
+        return first to last
+    }
+
+    @JvmName("ayahRangeVerses")
+    fun ayahRange(verses: Set<String>): Pair<Pair<Int, Int>, Pair<Int, Int>>? {
+        val covered = glyphs.filter { it.verseKey in verses && !it.isEndMarker }
         if (covered.isEmpty()) return null
         fun parse(key: String): Pair<Int, Int>? {
             val s = key.substringBefore(':').toIntOrNull() ?: return null

@@ -32,11 +32,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
@@ -100,6 +102,7 @@ import com.mosman.wird.domain.heardLabel
 import com.mosman.wird.domain.judgeRecitation
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.linesOn
+import com.mosman.wird.domain.versesOn
 import com.mosman.wird.domain.pages
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.ui.theme.LocalWirdColors
@@ -276,15 +279,13 @@ fun TodayScreen(
     }
 
     // The one rule about what is lit, defined once so the bar and the page agree.
-    val litFor: (com.mosman.wird.mushaf.MushafPage) -> Set<Int> = remember(assignment, startVerse, todaysPages) {
+    val litFor: (com.mosman.wird.mushaf.MushafPage) -> Set<String> = remember(assignment, startVerse, todaysPages) {
         { page ->
             // dark means today, pale means not today — on every page, no exceptions.
             if (page.page !in todaysPages) {
                 emptySet()
             } else {
-                val byPage = assignment.linesOn(page.page, page.lines)
-                val startLine = startVerse?.let { (s, a) -> page.lineOf(s, a) }
-                if (startLine == null) byPage else byPage.filter { it >= startLine }.toSet()
+                assignment.versesOn(page, startVerse)
             }
         }
     }
@@ -402,8 +403,7 @@ fun TodayScreen(
                 // — the half you were not asked to read.
                 todaysPages.flatMap { p ->
                     val layout = repo.layoutOnly(p) ?: return@flatMap emptyList()
-                    val lit = litFor(layout)
-                    layout.glyphs.filter { it.line in lit }.map { it.verseKey }
+                    litFor(layout)
                 }.distinct()
             } else {
                 val layout = repo.layoutOnly(current)
@@ -735,6 +735,7 @@ fun TodayScreen(
             exit = fadeOut() + slideOutVertically { -it },
         ) {
             ReturnToWirdTopBanner(
+                currentPage = current,
                 assignedPage = todaysPages.first(),
                 onClick = {
                     jumpCount++
@@ -1019,55 +1020,90 @@ private fun ChromeBar(
 }
 
 /**
- * Option B: Top Ribbon Banner shown when the user has flipped away from today's assigned Wird.
- * Tapping it smoothly returns the reader to today's assigned page.
+ * Option B: Elevated Clay Badge Pill shown when the user has flipped away from today's assigned Wird.
+ * Features a tactile floating capsule, directional arrow badge pointing towards today's wird,
+ * and smooth return jump on tap.
  */
 @Composable
 private fun ReturnToWirdTopBanner(
+    currentPage: Int,
     assignedPage: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalWirdColors.current
+    val isBefore = currentPage < assignedPage
+
     Surface(
         modifier = modifier
-            .fillMaxWidth()
+            .wrapContentWidth()
             .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(999.dp))
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(999.dp),
         color = colors.surfaceRaised,
         border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.35f)),
-        shadowElevation = 4.dp,
+        shadowElevation = 6.dp,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 9.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Return to Today's Wird",
-                    tint = colors.accent,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    text = "Today's Wird",
-                    color = colors.onSurfaceRaised,
-                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-                )
+            if (isBefore) {
+                // When swiped backward (to page before today's wird), in RTL Mushaf today's wird is to the left
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(colors.accent.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Return to Today's Wird",
+                        tint = colors.accent,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
             }
+
+            Text(
+                text = "Return to Today's Wird",
+                color = colors.onSurfaceRaised,
+                style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "·",
+                color = colors.onSurfaceRaised.copy(alpha = 0.45f),
+                style = TextStyle(fontSize = 13.sp),
+            )
+            Spacer(Modifier.width(6.dp))
             Text(
                 text = "Page $assignedPage",
                 color = colors.accent,
-                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold),
             )
+
+            if (!isBefore) {
+                // When swiped forward (to page after today's wird), in RTL Mushaf today's wird is to the right
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(colors.accent.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Return to Today's Wird",
+                        tint = colors.accent,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
         }
     }
 }

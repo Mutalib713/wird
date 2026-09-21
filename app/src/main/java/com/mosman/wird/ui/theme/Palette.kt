@@ -57,7 +57,7 @@ object Q {
     val ink = Color(0xFF212529)         // their `title_color` / Bootstrap gray-900
     val detail = Color(0xFF656E76)      // DARKENED from their #6C757D (4.43 -> 4.90)
     val teal = Color(0xFF00767F)        // DARKENED from their #00838F (4.27 -> 5.09)
-    val recede = Color(0xFF598392)      // Wird's authentic dusty slate-blue from commit 17aa819
+    val recede = Color(0xFF848B93)      // Soft neutral grey for verses outside today's wird
     val raised = Color(0xFFF1F3F5)      // Bootstrap gray-100; their #DEE2E6 fails under text
     val band = Color(0xFFDEE2E6)        // their `header_background` - Juz' section rows
     val quiet = Color(0xFFE9ECEF)       // gray-200, for a filled done state
@@ -67,7 +67,7 @@ object Q {
     val nightPage = Color(0xFF1A1A1A)      // Wird's own - the page, just off the chrome
     val snow = Color(0xFFFFFFFF)           // their `title_color`
     val nightDetail = Color(0xFFB5B5B5)    // their sura_details white@70, flattened
-    val nightRecede = Color(0xFF5C7882)    // Night slate-blue
+    val nightRecede = Color(0xFF6E6E6E)    // Night neutral grey
     val paleTeal = Color(0xFFB2DFDB)       // their `accent_color`
     val nightRaised = Color(0xFF303030)    // their `secondary_dark_background`
     val nightBand = Color(0xFF424242)      // their `header_background`

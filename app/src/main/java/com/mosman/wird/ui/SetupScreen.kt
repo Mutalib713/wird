@@ -1518,7 +1518,7 @@ private fun FullMushafPagePicker(
             MushafPager(
                 initialPage = initialPage,
                 onPageChanged = { currentPage = it },
-                lit = { it.lines.toSet() },
+                lit = { page -> page.glyphs.map { it.verseKey }.toSet() },
                 onWordTap = { verseKey ->
                     val s = verseKey.substringBefore(':').toIntOrNull()
                     val a = verseKey.substringAfter(':').toIntOrNull()

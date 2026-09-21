@@ -35,6 +35,7 @@ import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.assignPortion
 import com.mosman.wird.domain.label
 import com.mosman.wird.domain.linesOn
+import com.mosman.wird.domain.versesOn
 import com.mosman.wird.domain.listLabel
 import com.mosman.wird.domain.nextAfter
 import com.mosman.wird.domain.nextAwake
@@ -261,6 +262,59 @@ class WirdQaTest {
 
         // A page that isn't in today's portion lights nothing.
         assertTrue(assignPortion(page453, 2).linesOn(500, rendered).isEmpty())
+    }
+
+    // ---- 6b. Regression: portion highlighting must be verse-level, not whole-line ----
+
+    @Test
+    fun `a half page target lights exact verses without cutting verses across shared lines`() {
+        val page439Unit = (439 - 1) * Mushaf.UNITS_PER_PAGE
+        // Real shape of page 439: Fatir 39..44 across 15 lines.
+        // Line 8 carries the end of ayah 41 AND the beginning of ayah 42.
+        val page439 = MushafPage(
+            page = 439,
+            glyphs = listOf(
+                glyph("35:39", line = 1),
+                glyph("35:39", line = 2),
+                glyph("35:40", line = 3),
+                glyph("35:40", line = 7),
+                glyph("35:41", line = 7),
+                glyph("35:41", line = 8),
+                glyph("35:42", line = 8), // Start of Ayah 42 on line 8!
+                glyph("35:42", line = 9),
+                glyph("35:43", line = 10),
+                glyph("35:43", line = 12),
+                glyph("35:44", line = 13),
+                glyph("35:44", line = 15),
+            ),
+            surahStarts = emptyMap(),
+            surahName = "Fatir",
+            juz = 22,
+            bismillahCodes = null,
+        )
+
+        val topHalf = assignPortion(page439Unit, units = 1).versesOn(page439)
+        val bottomHalf = assignPortion(page439Unit + 1, units = 1).versesOn(page439)
+        val wholePage = assignPortion(page439Unit, units = 2).versesOn(page439)
+
+        // Top half gets Fatir 39..41
+        assertEquals(setOf("35:39", "35:40", "35:41"), topHalf)
+        // Bottom half gets Fatir 42..44
+        assertEquals(setOf("35:42", "35:43", "35:44"), bottomHalf)
+        // Whole page gets all 6
+        assertEquals(setOf("35:39", "35:40", "35:41", "35:42", "35:43", "35:44"), wholePage)
+
+        // Crucial bug fix: on Line 8, Fatir 42 is in bottomHalf portion, but Fatir 41 is not!
+        val line8Glyphs = page439.glyphsOn(8)
+        val ayah41Glyph = line8Glyphs.first { it.verseKey == "35:41" }
+        val ayah42Glyph = line8Glyphs.first { it.verseKey == "35:42" }
+
+        assertFalse("Ayah 41 on line 8 must be dimmed for bottom half", ayah41Glyph.verseKey in bottomHalf)
+        assertTrue("Ayah 42 on line 8 must be lit for bottom half", ayah42Glyph.verseKey in bottomHalf)
+
+        // Ayah count and range for bottom half
+        assertEquals(3, page439.ayahCount(bottomHalf))
+        assertEquals((35 to 42) to (35 to 44), page439.ayahRange(bottomHalf))
     }
 
     // ---- 7. Regression: a page is not named by its first verse ----

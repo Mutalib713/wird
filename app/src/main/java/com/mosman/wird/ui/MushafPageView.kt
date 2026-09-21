@@ -90,7 +90,7 @@ import com.mosman.wird.ui.theme.clayPill
 @Composable
 fun MushafPageView(
     state: PageState,
-    lit: (MushafPage) -> Set<Int>,
+    lit: (MushafPage) -> Set<String>,
     modifier: Modifier = Modifier,
     pageNumber: Int = 1,
     /**
@@ -178,7 +178,7 @@ private fun DrawnPage(
     page: MushafPage,
     typeface: Typeface,
     bismillahTypeface: Typeface?,
-    lit: Set<Int>,
+    lit: Set<String>,
     highlightPortion: Boolean,
     reciting: String?,
     selected: String?,
@@ -303,7 +303,6 @@ private fun DrawnPage(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             lines.forEach { line ->
-                val inPortion = if (highlightPortion) (line in lit) else true
                 val surahsHere = surahsStartingBeforeLine[line]
                 if (!surahsHere.isNullOrEmpty()) {
                     surahsHere.forEach { surah ->
@@ -311,13 +310,16 @@ private fun DrawnPage(
                         SurahBannerClay(surah = surah)
                         Spacer(Modifier.height(Scale.space2))
                         if (surah.number != 9 && page.bismillahCodes != null && bismillahTypeface != null) {
-                            Bismillah(page.bismillahCodes, bismillahTypeface, inPortion)
+                            val bismillahInPortion = if (highlightPortion) ("${surah.number}:1" in lit) else true
+                            Bismillah(page.bismillahCodes, bismillahTypeface, bismillahInPortion)
                             Spacer(Modifier.height(Scale.space3))
                         }
                     }
                 } else if (line == bismillahBeforeLine && surahsStartingBeforeLine.isEmpty() && page.bismillahCodes != null && bismillahTypeface != null) {
                     Spacer(Modifier.height(Scale.space4))
-                    Bismillah(page.bismillahCodes, bismillahTypeface, inPortion)
+                    val surahNum = page.glyphs.firstOrNull()?.verseKey?.substringBefore(':')?.toIntOrNull() ?: 1
+                    val bismillahInPortion = if (highlightPortion) ("$surahNum:1" in lit) else true
+                    Bismillah(page.bismillahCodes, bismillahTypeface, bismillahInPortion)
                     Spacer(Modifier.height(Scale.space4))
                 }
                 MushafLine(
@@ -326,7 +328,8 @@ private fun DrawnPage(
                     review = review,
                     selected = selected,
                     family = family,
-                    inPortion = inPortion,
+                    litVerses = lit,
+                    highlightPortion = highlightPortion,
                     onWordTap = onWordTap,
                     onWordLongPress = onWordLongPress,
                     onBackgroundTap = onBackgroundTap,
@@ -360,6 +363,13 @@ private fun DrawnPage(
  * reappearing somewhere new because the rule lived in one composable instead of a shared
  * function. It is a shared function now.
  */
+@JvmName("surahLabelForVerses")
+fun surahLabelFor(page: MushafPage, lit: Set<String>): String {
+    val surahNum = lit.firstOrNull()?.substringBefore(':')?.toIntOrNull()
+        ?: page.glyphs.firstOrNull()?.verseKey?.substringBefore(':')?.toIntOrNull()
+    return surahNum?.let { SurahIndex.byNumber(it)?.name } ?: page.surahName
+}
+
 fun surahLabelFor(page: MushafPage, lit: Set<Int>): String {
     val line = lit.minOrNull() ?: page.lines.firstOrNull()
     return line?.let { page.surahNumberOn(it) }
@@ -375,7 +385,7 @@ fun surahLabelFor(page: MushafPage, lit: Set<Int>): String {
  * the same way on every page; the words say *what*, and survive being screenshotted,
  * being colour-blind, or simply not having learned the convention yet.
  */
-private fun portionHeadline(page: MushafPage, lit: Set<Int>, surahLabel: String): String {
+private fun portionHeadline(page: MushafPage, lit: Set<String>, surahLabel: String): String {
     val (first, last) = page.ayahRange(lit) ?: return surahLabel
     val firstName = SurahIndex.byNumber(first.first)?.name ?: surahLabel
     val lastName = SurahIndex.byNumber(last.first)?.name ?: surahLabel
@@ -390,7 +400,7 @@ private fun portionHeadline(page: MushafPage, lit: Set<Int>, surahLabel: String)
  * The quiet line under it. Says *whose* reading this is, and how big — "9 ayahs" answers
  * the question a range does not: is this a lot, or is this nothing?
  */
-private fun portionSubline(page: MushafPage, lit: Set<Int>): String {
+private fun portionSubline(page: MushafPage, lit: Set<String>): String {
     val n = page.ayahCount(lit)
     return when (n) {
         0 -> "Today's Wird"
@@ -453,7 +463,8 @@ private fun Bismillah(codes: String, typeface: Typeface, inPortion: Boolean) {
 private fun MushafLine(
     glyphs: List<Glyph>,
     family: FontFamily,
-    inPortion: Boolean,
+    litVerses: Set<String>,
+    highlightPortion: Boolean,
     reciting: String?,
     selected: String?,
     review: Set<String>,
@@ -462,16 +473,7 @@ private fun MushafLine(
     onBackgroundTap: (() -> Unit)?,
 ) {
     val colors = LocalWirdColors.current
-    // **Changed 2026-08-18 to match the reference.** Task 9 marked the ayah being recited by
-    // dimming every other word in the portion. That worked, but it is the opposite of what
-    // Quran for Android does and what Mutalib asked for: there, the ayah being heard gets a
-    // soft green wash and nothing else moves.
-    //
-    // The reference's way is better here, and not only because he asked. The old mechanic
-    // spent the *same* signal — dimming — that already separates today's portion from the
-    // rest of the page, so during playback the page carried two meanings of "pale" at once.
-    // A wash is a different channel, so the two stop competing.
-    val bodyColor: Color = if (inPortion) colors.textPrimary else colors.textOutsidePortion
+    val lineInPortion = if (highlightPortion) glyphs.any { it.verseKey in litVerses } else true
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
@@ -481,7 +483,7 @@ private fun MushafLine(
             .padding(vertical = Scale.space1)
             .semantics {
                 contentDescription =
-                    if (inPortion) "Line of today's portion" else "Line outside today's portion"
+                    if (lineInPortion) "Line of today's portion" else "Line outside today's portion"
             },
     ) {
         val available = with(density) { maxWidth.toPx() }
@@ -568,6 +570,8 @@ private fun MushafLine(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 glyphs.forEach { g ->
+                    val inPortion = if (highlightPortion) (g.verseKey in litVerses) else true
+                    val bodyColor: Color = if (inPortion) colors.textPrimary else colors.textOutsidePortion
                     val lit = g.verseKey == reciting || g.verseKey == selected ||
                         g.verseKey in review
                     // No accent on the ayah numerals. It was tried and measured: deep

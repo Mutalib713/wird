@@ -72,7 +72,7 @@ data class PageJump(val page: Int, val nonce: Int)
 @Composable
 fun MushafPager(
     initialPage: Int,
-    lit: (MushafPage) -> Set<Int>,
+    lit: (MushafPage) -> Set<String>,
     modifier: Modifier = Modifier,
     highlightPortion: Boolean = true,
     allowedPageRange: IntRange? = null,

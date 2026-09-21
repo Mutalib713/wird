@@ -1,5 +1,6 @@
 package com.mosman.wird.domain
 
+import com.mosman.wird.mushaf.MushafPage
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -92,3 +93,62 @@ fun Assignment.linesOn(page: Int, linesOnPage: List<Int>): Set<Int> {
         else -> emptySet()
     }
 }
+
+/**
+ * Which verses of [page] belong to this portion.
+ *
+ * A page is two half-page units. When only one of them is today's, the portion is half
+ * the verses: the top half for the first unit, the bottom half for the second.
+ * Splitting by verse rather than by line ensures that verses starting or ending mid-line
+ * are not cut in half or dimmed prematurely.
+ */
+fun Assignment.versesOn(page: MushafPage, startVerse: Pair<Int, Int>? = null): Set<String> {
+    if (page.page !in pages) return emptySet()
+
+    val pageVerses = page.glyphs
+        .filter { !it.isEndMarker }
+        .map { it.verseKey }
+        .distinct()
+    if (pageVerses.isEmpty()) return emptySet()
+
+    val firstHalf = (page.page - 1) * Mushaf.UNITS_PER_PAGE
+    val secondHalf = firstHalf + 1
+    val covered = (startUnit until startUnit + units)
+        .map { Math.floorMod(it, Mushaf.TOTAL_UNITS) }
+        .toSet()
+
+    val hasFirst = firstHalf in covered
+    val hasSecond = secondHalf in covered
+
+    if (pageVerses.size <= 1) {
+        return if (hasFirst || hasSecond) pageVerses.toSet() else emptySet()
+    }
+
+    val split = (pageVerses.size + 1) / 2
+    val assigned = when {
+        hasFirst && hasSecond -> pageVerses
+        hasFirst -> pageVerses.take(split)
+        hasSecond -> pageVerses.drop(split)
+        else -> emptyList()
+    }
+
+    if (startVerse == null || page.page != pages.first()) {
+        return assigned.toSet()
+    }
+
+    val (startSurah, startAyah) = startVerse
+    val targetKey = "$startSurah:$startAyah"
+    if (page.glyphs.any { it.verseKey == targetKey }) {
+        val filtered = assigned.filter { vk ->
+            val s = vk.substringBefore(':').toIntOrNull() ?: 0
+            val a = vk.substringAfter(':').toIntOrNull() ?: 0
+            s > startSurah || (s == startSurah && a >= startAyah)
+        }
+        if (filtered.isNotEmpty()) {
+            return filtered.toSet()
+        }
+    }
+
+    return assigned.toSet()
+}
+
