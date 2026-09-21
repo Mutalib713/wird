@@ -78,6 +78,9 @@ import com.mosman.wird.ui.theme.Scale
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 
+val LocalAyahTextSize = androidx.compose.runtime.compositionLocalOf { 24f }
+val LocalCustomAyahSizeEnabled = androidx.compose.runtime.compositionLocalOf { false }
+
 /**
  * One mushaf page, drawn.
  *
@@ -93,38 +96,15 @@ fun MushafPageView(
     lit: (MushafPage) -> Set<String>,
     modifier: Modifier = Modifier,
     pageNumber: Int = 1,
-    /**
-     * Whether a wait on this page should be dressed as a skeleton.
-     *
-     * False after the reader has already seen one. The skeleton's job is to say "this is
-     * loading, not broken" — it only needs saying once. Someone who has swiped past the
-     * prefetched pages has decided to browse, and repeating the placeholder at every page
-     * turn is a flicker, not information.
-     */
     showSkeleton: Boolean = true,
     highlightPortion: Boolean = true,
     onRetry: () -> Unit = {},
     onWordTap: ((verseKey: String) -> Unit)? = null,
-    /** Tapping the page itself, used to show and hide the chrome. */
     onBackgroundTap: (() -> Unit)? = null,
-    /** Fires when a page is drawn, so the chrome can name where you are. */
-    /**
-     * The ayah being recited right now, or null when nothing is playing.
-     *
-     * Sacred Rule 5 says the portion is marked by everything *else* stepping back rather
-     * than by painting a wash over the Qur'an, so this follows the same mechanic one level
-     * down: while audio plays, the ayah you are hearing keeps full ink and the rest of the
-     * portion recedes to the same slate used for text outside today's reading. No new
-     * colour is introduced, and both pairs are already contrast-checked (16.68:1 and
-     * 3.72:1). A tint was not an option regardless — deep teal on ink is 1.78:1 and sage on
-     * paper is 1.69:1, measured when the ayah numerals were tried and rejected.
-     */
     reciting: String? = null,
-    /** The ayah the reader long-pressed, if any. */
     selected: String? = null,
-    /** Ayahs the recitation check could not follow. PLAN task 14. */
+    selectedVerses: Set<String> = emptySet(),
     review: Set<String> = emptySet(),
-    /** Long-press an ayah. Null on screens where selecting means nothing, like setup. */
     onWordLongPress: ((String) -> Unit)? = null,
     onPageShown: (MushafPage) -> Unit = {},
     footer: @Composable (MushafPage) -> Unit = {},
@@ -163,6 +143,7 @@ fun MushafPageView(
                     reciting = reciting,
                     review = review,
                     selected = selected,
+                    selectedVerses = selectedVerses,
                     onWordTap = onWordTap,
                     onWordLongPress = onWordLongPress,
                     onBackgroundTap = onBackgroundTap,
@@ -187,10 +168,16 @@ private fun DrawnPage(
     onWordLongPress: ((String) -> Unit)?,
     onBackgroundTap: (() -> Unit)?,
     footer: @Composable (MushafPage) -> Unit,
+    selectedVerses: Set<String> = emptySet(),
 ) {
     val colors = LocalWirdColors.current
     val family = remember(typeface) { FontFamily(typeface) }
     val lines = page.lines
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val store = remember(context) { com.mosman.wird.data.WirdStore(context) }
+    val customEnabled = LocalCustomAyahSizeEnabled.current || store.customAyahTextSizeEnabled
+    val currentAyahSize = if (LocalCustomAyahSizeEnabled.current) LocalAyahTextSize.current else store.ayahTextSize.toFloat()
+    val verticalPagePad = if (customEnabled && currentAyahSize > 24f) Scale.space4 else 6.dp
 
     val surahsStartingBeforeLine = remember(page) {
         page.surahStarts.keys.mapNotNull { key ->
@@ -223,7 +210,7 @@ private fun DrawnPage(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = Scale.space4, vertical = Scale.space6),
+            .padding(horizontal = Scale.space4, vertical = verticalPagePad),
     ) {
         // Quiet corner headers (Surah left, Juz' right)
         Row(
@@ -327,6 +314,7 @@ private fun DrawnPage(
                     reciting = reciting,
                     review = review,
                     selected = selected,
+                    selectedVerses = selectedVerses,
                     family = family,
                     litVerses = lit,
                     highlightPortion = highlightPortion,
@@ -423,29 +411,34 @@ private fun Bismillah(codes: String, typeface: Typeface, inPortion: Boolean) {
     val density = LocalDensity.current
 
     val context = LocalContext.current
-    val mushafLineSize = remember(context) { com.mosman.wird.data.WirdStore(context).ayahTextSize.sp }
+    val store = remember(context) { com.mosman.wird.data.WirdStore(context) }
+    val customEnabled = LocalCustomAyahSizeEnabled.current || store.customAyahTextSizeEnabled
+    val currentAyahSize = if (LocalCustomAyahSizeEnabled.current) LocalAyahTextSize.current else store.ayahTextSize.toFloat()
+    val scaleMultiplier = if (customEnabled) (currentAyahSize / 24f).coerceIn(0.7f, 1.5f) else 1.0f
+    val baseLineSize = 23.sp
 
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Bismillah" },
         contentAlignment = Alignment.Center,
     ) {
         val available = with(density) { maxWidth.toPx() }
-        val fitted = remember(codes, available, mushafLineSize) {
+        val fitted = remember(codes, available, baseLineSize) {
             val natural = measurer.measure(
                 text = AnnotatedString(codes),
-                style = TextStyle(fontFamily = family, fontSize = mushafLineSize),
+                style = TextStyle(fontFamily = family, fontSize = baseLineSize),
                 softWrap = false,
             ).size.width.toFloat()
             val target = available * 0.72f
-            if (natural > target && natural > 0f) mushafLineSize * (target / natural)
-            else mushafLineSize
+            if (natural > target && natural > 0f) baseLineSize * (target / natural)
+            else baseLineSize
         }
+        val finalFontSize = remember(fitted, scaleMultiplier) { fitted * scaleMultiplier }
         Text(
             text = codes,
             color = if (inPortion) colors.textPrimary else colors.textOutsidePortion,
             maxLines = 1,
             softWrap = false,
-            style = TextStyle(fontFamily = family, fontSize = fitted),
+            style = TextStyle(fontFamily = family, fontSize = finalFontSize),
         )
     }
 }
@@ -474,38 +467,45 @@ private fun MushafLine(
     onWordTap: ((String) -> Unit)?,
     onWordLongPress: ((String) -> Unit)?,
     onBackgroundTap: (() -> Unit)?,
+    selectedVerses: Set<String> = emptySet(),
 ) {
     val colors = LocalWirdColors.current
     val lineInPortion = if (highlightPortion) glyphs.any { it.verseKey in litVerses } else true
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
+    val context = LocalContext.current
+    val store = remember(context) { com.mosman.wird.data.WirdStore(context) }
+    val customEnabled = LocalCustomAyahSizeEnabled.current || store.customAyahTextSizeEnabled
+    val currentAyahSize = if (LocalCustomAyahSizeEnabled.current) LocalAyahTextSize.current else store.ayahTextSize.toFloat()
+    val scaleMultiplier = if (customEnabled) (currentAyahSize / 24f).coerceIn(0.7f, 1.5f) else 1.0f
+    val lineVerticalPad = if (customEnabled && currentAyahSize > 24f) Scale.space1 else 0.5.dp
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = Scale.space1)
+            .padding(vertical = lineVerticalPad)
             .semantics {
                 contentDescription =
                     if (lineInPortion) "Line of today's portion" else "Line outside today's portion"
             },
     ) {
-        val context = LocalContext.current
-        val mushafLineSize = remember(context) { com.mosman.wird.data.WirdStore(context).ayahTextSize.sp }
+        val baseLineSize = 23.sp
         val available = with(density) { maxWidth.toPx() }
         // Measure each glyph individually so natural width reflects exactly what the
         // separate Text composables in the SpaceBetween Row measure, with no kerning
         // or ligature discrepancies from a joined run.
-        val natural = remember(glyphs, family, mushafLineSize) {
+        val natural = remember(glyphs, family, baseLineSize) {
             glyphs.sumOf { g ->
                 measurer.measure(
                     text = AnnotatedString(g.code),
-                    style = TextStyle(fontFamily = family, fontSize = mushafLineSize),
+                    style = TextStyle(fontFamily = family, fontSize = baseLineSize),
                     softWrap = false,
                 ).size.width
             }.toFloat()
         }
 
-        val fitted = remember(natural, available, density, glyphs.size, mushafLineSize) {
+        val baseFitted = remember(natural, available, density, glyphs.size, baseLineSize) {
             val minGap = with(density) { 3.dp.toPx() }
             val count = glyphs.size
             val target = if (count > 1) {
@@ -513,28 +513,18 @@ private fun MushafLine(
             } else {
                 available * 0.85f
             }
-            if (natural > target && natural > 0f) mushafLineSize * (target / natural)
-            else mushafLineSize
+            if (natural > target && natural > 0f) baseLineSize * (target / natural)
+            else baseLineSize
         }
+        val finalFontSize = remember(baseFitted, scaleMultiplier) { baseFitted * scaleMultiplier }
 
         // **One band behind the run, not a patch per word.**
-        //
-        // The first attempt gave every highlighted glyph its own background. It worked, but
-        // the row is laid out with SpaceBetween, so the word-gaps stayed unpainted and the
-        // highlight read as stepping stones rather than the continuous band the reference
-        // has. So the glyphs report where they landed and the row paints once across them.
-        //
-        // Still per-run and not per-line: a mushaf line usually carries the end of one ayah
-        // and the start of the next, and painting the whole row would highlight words nobody
-        // is reciting.
-        var band by remember(glyphs, reciting, selected, review) {
+        var band by remember(glyphs, reciting, selected, review, selectedVerses) {
             mutableStateOf<Pair<Float, Float>?>(null)
         }
-        // Order is precedence, and it is deliberate. What is playing or what you just touched
-        // is about *now*; a review mark is about something already finished, so it yields.
         val washColor = when {
             glyphs.any { it.verseKey == reciting } -> colors.highlightReciting
-            glyphs.any { it.verseKey == selected } -> colors.highlightSelected
+            glyphs.any { it.verseKey == selected || it.verseKey in selectedVerses } -> colors.highlightSelected
             glyphs.any { it.verseKey in review } -> colors.highlightReview
             else -> Color.Transparent
         }
@@ -578,17 +568,13 @@ private fun MushafLine(
                     val inPortion = if (highlightPortion) (g.verseKey in litVerses) else true
                     val bodyColor: Color = if (inPortion) colors.textPrimary else colors.textOutsidePortion
                     val lit = g.verseKey == reciting || g.verseKey == selected ||
-                        g.verseKey in review
-                    // No accent on the ayah numerals. It was tried and measured: deep
-                    // teal against ink is 1.78:1 and sage against paper is 1.69:1, so the
-                    // "marked" numeral was the same colour as the text around it. The
-                    // dimming already says where the portion ends, plainly.
+                        g.verseKey in selectedVerses || g.verseKey in review
                     Text(
                         text = g.code,
                         color = bodyColor,
                         maxLines = 1,
                         softWrap = false,
-                        style = TextStyle(fontFamily = family, fontSize = fitted),
+                        style = TextStyle(fontFamily = family, fontSize = finalFontSize),
                         modifier = Modifier
                             .then(
                                 if (lit) {

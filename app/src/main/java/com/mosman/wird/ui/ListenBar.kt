@@ -2,6 +2,7 @@ package com.mosman.wird.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -81,6 +83,8 @@ fun ListenBar(
     modifier: Modifier = Modifier,
     reciter: String = "",
     onChangeReciter: () -> Unit = {},
+    repeatRange: Int = 1,
+    onRepeatRange: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     val playing = audio as? AudioState.Playing
@@ -88,92 +92,149 @@ fun ListenBar(
     val verseKey = playing?.verseKey ?: paused?.verseKey ?: return
     val index = playing?.index ?: paused?.index ?: 0
     val total = playing?.total ?: paused?.total ?: 0
+    val isBuffering = playing?.isBuffering ?: false
+    val rangeCycle = playing?.rangeCycle ?: paused?.rangeCycle ?: 1
+    val totalCycles = playing?.totalCycles ?: paused?.totalCycles ?: repeatRange
 
-    Column(
+    // Floating card container: elevated with shadow and rounded corners rather than docked edge-to-edge
+    Box(
         modifier = modifier
-            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .shadow(elevation = 10.dp, shape = RoundedCornerShape(24.dp), clip = false)
+            .clip(RoundedCornerShape(24.dp))
             .background(colors.surfaceRaised)
-            .padding(horizontal = Scale.space4, vertical = Scale.space3),
+            .border(1.dp, colors.hairline, RoundedCornerShape(24.dp))
     ) {
-        // ---- what you are hearing ----
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = ayahLabel(verseKey),
-                    color = colors.onSurfaceRaised,
-                    style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-                )
-                if (reciter.isNotEmpty()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .clickable(onClick = onChangeReciter),
-                    ) {
-                        Text(
-                            text = reciter,
-                            color = colors.accent,
-                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
-                        )
-                        Spacer(Modifier.width(2.dp))
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Change reciter",
-                            tint = colors.accent,
-                            modifier = Modifier.size(14.dp),
-                        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+        ) {
+            // ---- what you are hearing ----
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = ayahLabel(verseKey),
+                        color = colors.onSurfaceRaised,
+                        style = TextStyle(fontSize = 14.5.sp, fontWeight = FontWeight.SemiBold),
+                    )
+                    if (reciter.isNotEmpty()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable(onClick = onChangeReciter),
+                        ) {
+                            Text(
+                                text = reciter,
+                                color = colors.accent,
+                                style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold),
+                            )
+                            Spacer(Modifier.width(2.dp))
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Change reciter",
+                                tint = colors.accent,
+                                modifier = Modifier.size(14.dp),
+                            )
+                        }
                     }
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isBuffering) {
+                        Text(
+                            text = "Buffering…",
+                            color = colors.accent,
+                            style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                    }
+                    val cycleInfo = if (totalCycles > 1 || totalCycles == PortionAudio.FOREVER) {
+                        val cTotal = if (totalCycles == PortionAudio.FOREVER) "∞" else totalCycles.toString()
+                        "Cycle $rangeCycle of $cTotal · "
+                    } else ""
+                    Text(
+                        text = "$cycleInfo${index + 1} of $total",
+                        color = colors.textSecondary,
+                        style = TextStyle(fontSize = 12.sp),
+                    )
+                }
             }
-            Text(
-                text = "${index + 1} of $total",
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = 12.sp),
-            )
-        }
 
-        Spacer(Modifier.height(Scale.space3))
+            Spacer(Modifier.height(Scale.space3))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            // **Repeat sits on the left, away from the transport.** It changes what the next
-            // minute sounds like rather than what happens now, and putting it beside "next"
-            // is how someone reaching for skip lands on infinity instead.
-            RepeatControl(repeatEach, onRepeat)
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Tap("Previous ayah", onPrevious) { SkipGlyph(it, forward = false) }
-                Spacer(Modifier.width(Scale.space2))
-
-                // The one filled control, because it is the one you reach for in the dark.
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(colors.accent)
-                        .clickable(onClick = onPlayPause)
-                        .semantics { contentDescription = if (paused != null) "Play" else "Pause" },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (paused != null) PlayGlyph(colors.surface) else PauseGlyph(colors.surface)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                // If a range is playing with range repeat, repeat control toggles range loop; else ayah repeat
+                if (onRepeatRange != null && totalCycles > 1) {
+                    RangeRepeatControl(totalCycles, onRepeatRange)
+                } else {
+                    RepeatControl(repeatEach, onRepeat)
                 }
 
-                Spacer(Modifier.width(Scale.space2))
-                Tap("Next ayah", onNext) { SkipGlyph(it, forward = true) }
-            }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Tap("Previous ayah", onPrevious) { SkipGlyph(it, forward = false) }
+                    Spacer(Modifier.width(Scale.space2))
 
-            Tap("Stop", onStop) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = null,
-                    tint = it,
-                    modifier = Modifier.size(20.dp),
-                )
+                    // The one filled control, because it is the one you reach for in the dark.
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(colors.accent)
+                            .clickable(onClick = onPlayPause)
+                            .semantics { contentDescription = if (paused != null) "Play" else "Pause" },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (paused != null) PlayGlyph(colors.surface) else PauseGlyph(colors.surface)
+                    }
+
+                    Spacer(Modifier.width(Scale.space2))
+                    Tap("Next ayah", onNext) { SkipGlyph(it, forward = true) }
+                }
+
+                Tap("Stop", onStop) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = null,
+                        tint = it,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun RangeRepeatControl(repeatRange: Int, onClick: () -> Unit) {
+    val colors = LocalWirdColors.current
+    val on = repeatRange != 1
+    val tint = if (on) colors.accent else colors.textSecondary
+
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(Scale.radius * 2))
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "Repeat range: ${repeatLabel(repeatRange)}" }
+            .padding(horizontal = Scale.space3, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_repeat),
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(17.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = "Range ${repeatLabel(repeatRange)}",
+            color = tint,
+            style = TextStyle(fontSize = 13.5.sp, fontWeight = FontWeight.Medium),
+        )
     }
 }
 
@@ -218,6 +279,15 @@ fun nextRepeat(current: Int): Int = when (current) {
     1 -> 2
     2 -> 3
     3 -> PortionAudio.FOREVER
+    else -> 1
+}
+
+fun nextRangeRepeat(current: Int): Int = when (current) {
+    1 -> 2
+    2 -> 3
+    3 -> 5
+    5 -> 10
+    10 -> PortionAudio.FOREVER
     else -> 1
 }
 

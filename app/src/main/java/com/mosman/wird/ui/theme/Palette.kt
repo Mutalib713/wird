@@ -203,7 +203,10 @@ data class WirdColors(
 
     /** The ayah to look at again after a recitation check. **§ 6e, PLAN task 14.** */
     val highlightReview: Color,
-)
+) {
+    /** Alias for cardEdge used across UI components for subtle borders and dividers. */
+    val hairline: Color get() = cardEdge
+}
 
 /**
  * Near-white chrome, white page, deep teal.

@@ -384,6 +384,10 @@ class WirdStore(context: Context) {
         get() = prefs.getBoolean(KEY_AYAH_BEFORE_TRANS, true)
         set(value) = prefs.edit { putBoolean(KEY_AYAH_BEFORE_TRANS, value) }
 
+    var customAyahTextSizeEnabled: Boolean
+        get() = prefs.getBoolean(KEY_CUSTOM_AYAH_TEXT_SIZE, false)
+        set(value) = prefs.edit { putBoolean(KEY_CUSTOM_AYAH_TEXT_SIZE, value) }
+
     var ayahTextSize: Int
         get() = prefs.getInt(KEY_AYAH_TEXT_SIZE, 24)
         set(value) = prefs.edit { putInt(KEY_AYAH_TEXT_SIZE, value) }
@@ -459,6 +463,7 @@ class WirdStore(context: Context) {
         const val KEY_KEEP_AWAKE = "keep_screen_awake"
         const val KEY_SURAH_TRANSLATED = "surah_translated_name"
         const val KEY_AYAH_BEFORE_TRANS = "ayah_before_translation"
+        const val KEY_CUSTOM_AYAH_TEXT_SIZE = "custom_ayah_text_size"
         const val KEY_AYAH_TEXT_SIZE = "ayah_text_size"
         const val KEY_TRANS_TEXT_SIZE = "translation_text_size"
         const val KEY_STREAMING_AUDIO = "streaming_audio"

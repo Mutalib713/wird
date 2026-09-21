@@ -122,6 +122,7 @@ private enum class SettingsDialog {
     REMINDER_DIAGNOSTIC,
     PRIVACY_PLEDGE,
     ABOUT_WIRD,
+    PAGE_PREVIEW,
 }
 
 data class DialogOption<T>(
@@ -196,6 +197,7 @@ fun SettingsScreen(
     var keepAwake by remember { mutableStateOf(store.keepScreenAwake) }
     var surahTranslated by remember { mutableStateOf(store.surahTranslatedName) }
     var ayahBeforeTrans by remember { mutableStateOf(store.ayahBeforeTranslation) }
+    var customAyahTextSizeEnabled by remember { mutableStateOf(store.customAyahTextSizeEnabled) }
     var ayahTextSize by remember { mutableIntStateOf(store.ayahTextSize) }
     var streamingAudio by remember { mutableStateOf(store.streamingAudio) }
     var downloadAmount by remember { mutableStateOf(store.downloadAmount) }
@@ -489,8 +491,108 @@ fun SettingsScreen(
                                 title = "Weekly reading schedule",
                                 subtitle = weeklyScheduleLabel(plan),
                                 onClick = { activeDialog = SettingsDialog.WEEKLY_SCHEDULE },
-                                showDivider = false,
                             )
+
+                            ClaySettingRow(
+                                title = "Adjust ayah font size",
+                                subtitle = if (customAyahTextSizeEnabled) "Custom ($ayahTextSize sp)" else "Default (fits full 15 lines on screen)",
+                                trailing = {
+                                    ClaySwitch(
+                                        checked = customAyahTextSizeEnabled,
+                                        onCheckedChange = {
+                                            customAyahTextSizeEnabled = it
+                                            store.customAyahTextSizeEnabled = it
+                                        },
+                                    )
+                                },
+                                showDivider = !customAyahTextSizeEnabled,
+                            )
+
+                            if (customAyahTextSizeEnabled) {
+                                SliderSubBox {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                    ) {
+                                        Text(
+                                            text = "Ayah font size",
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                        Text(
+                                            text = "$ayahTextSize sp",
+                                            color = Color(0xFF2D6B52),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+                                    Slider(
+                                        value = ayahTextSize.toFloat(),
+                                        onValueChange = {
+                                            ayahTextSize = it.toInt()
+                                            store.ayahTextSize = ayahTextSize
+                                        },
+                                        valueRange = 18f..32f,
+                                        steps = 13,
+                                        colors = SliderDefaults.colors(
+                                            thumbColor = Color.White,
+                                            activeTrackColor = Color(0xFF2D6B52),
+                                            inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
+                                        ),
+                                    )
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = if (ayahTextSize <= 24) "18–24 sp fits full 15-line page on one screen without scrolling (like Quran for Android)." else "Larger Arabic text (scroll to read full page).",
+                                        color = if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52),
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                    Spacer(Modifier.height(10.dp))
+                                    // Live Arabic preview box
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(if (isDark) Color(0xFF16271F) else Color(0xFFEAE5D8))
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+                                            fontSize = ayahTextSize.sp,
+                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    }
+                                    Spacer(Modifier.height(10.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(if (isDark) Color(0xFF1A3326) else Color(0xFFDCEDE3))
+                                            .clickable { activeDialog = SettingsDialog.PAGE_PREVIEW }
+                                            .padding(vertical = 10.dp, horizontal = 12.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "Preview Sample 15-Line Page",
+                                                color = if (isDark) Color(0xFF93DB7A) else Color(0xFF245847),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.5.sp,
+                                            )
+                                            Spacer(Modifier.width(4.dp))
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                contentDescription = null,
+                                                tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF245847),
+                                                modifier = Modifier.size(16.dp),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         // 3. Translation Preferences
@@ -513,65 +615,8 @@ fun SettingsScreen(
                                         },
                                     )
                                 },
+                                showDivider = false,
                             )
-
-                            SliderSubBox {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Text(
-                                        text = "Ayah text size",
-                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF2D5A46),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Text(
-                                        text = "$ayahTextSize sp",
-                                        color = Color(0xFF2D6B52),
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                                Slider(
-                                    value = ayahTextSize.toFloat(),
-                                    onValueChange = {
-                                        ayahTextSize = it.toInt()
-                                        store.ayahTextSize = ayahTextSize
-                                    },
-                                    valueRange = 18f..32f,
-                                    steps = 13,
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = Color.White,
-                                        activeTrackColor = Color(0xFF2D6B52),
-                                        inactiveTrackColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFE2DDD0),
-                                    ),
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text = if (ayahTextSize <= 24) "Fits full 15-line page on one screen without scrolling" else "Larger Arabic text (scroll to read full page)",
-                                    color = if (isDark) Color(0xFF93DB7A) else Color(0xFF2D6B52),
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                                Spacer(Modifier.height(10.dp))
-                                // Live Arabic preview box
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(if (isDark) Color(0xFF16271F) else Color(0xFFEAE5D8))
-                                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
-                                        fontSize = ayahTextSize.sp,
-                                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                                        textAlign = TextAlign.Center,
-                                    )
-                                }
-                            }
                         }
 
                         // 4. Download Options
@@ -657,7 +702,7 @@ fun SettingsScreen(
                         // 5. Reminders
                         ClaySection(title = "Reminders") {
                             ClaySettingRow(
-                                title = "When it arrives",
+                                title = "Notification schedule",
                                 subtitle = schedule.label(),
                                 onClick = { activeDialog = SettingsDialog.REMINDER },
                             )
@@ -1430,7 +1475,7 @@ fun SettingsScreen(
                     is NudgeSchedule.Off -> 5
                 }
                 ClayOptionDialog(
-                    title = "When it arrives",
+                    title = "Notification schedule",
                     options = listOf(
                         DialogOption(0, "After Maghrib", "15 minutes after sunset"),
                         DialogOption(1, "After 'Isha", "Quiet night reading before sleep"),
@@ -1988,6 +2033,17 @@ fun SettingsScreen(
                 AboutWirdDialog(
                     onOpenPrivacyPledge = { activeDialog = SettingsDialog.PRIVACY_PLEDGE },
                     onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.PAGE_PREVIEW -> {
+                SamplePagePreviewDialog(
+                    initialSize = ayahTextSize,
+                    onApplySize = { size ->
+                        ayahTextSize = size
+                        store.ayahTextSize = size
+                    },
+                    onClose = { activeDialog = null },
                 )
             }
 

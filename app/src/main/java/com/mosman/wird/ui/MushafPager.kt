@@ -96,6 +96,7 @@ fun MushafPager(
     /** Ayahs the recitation check could not follow. PLAN task 14. */
     review: Set<String> = emptySet(),
     selected: String? = null,
+    selectedVerses: Set<String> = emptySet(),
     onWordLongPress: ((String) -> Unit)? = null,
     onPageShown: (MushafPage) -> Unit = {},
     footer: @Composable (MushafPage) -> Unit = {},
@@ -176,6 +177,7 @@ fun MushafPager(
                     reciting = reciting,
                     review = review,
                     selected = selected,
+                    selectedVerses = selectedVerses,
                     onWordLongPress = onWordLongPress,
                     showSkeleton = dressAsSkeleton,
                     onBackgroundTap = onBackgroundTap,

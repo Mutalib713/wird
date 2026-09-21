@@ -54,6 +54,7 @@ fun VerseActions(
     onOpenElsewhere: (() -> Unit)?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onPlayRange: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     Row(
@@ -64,13 +65,6 @@ fun VerseActions(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Scale.space1),
     ) {
-        // Filled when saved, hollow when not. The icon carries the state, so one control does
-        // both jobs and nothing has to be read before it can be used.
-        //
-        // ⚠ **A star rather than the reference's ribbon**, and not by preference: there is no
-        // bookmark glyph in `material-icons-core` — 147 icons, checked — and the build file
-        // rules out `material-icons-extended` because it is several megabytes for a handful of
-        // shapes. A filled-versus-hollow star is the same idea in an icon that is already here.
         ActionIcon(
             icon = if (bookmarked) Icons.Filled.Star else Icons.Outlined.Star,
             label = if (bookmarked) "Remove bookmark" else "Bookmark this ayah",
@@ -78,9 +72,14 @@ fun VerseActions(
             tint = if (bookmarked) colors.accent else colors.onSurfaceRaised,
         )
         ActionIcon(Icons.Filled.PlayArrow, "Play this ayah", onPlay)
+        onPlayRange?.let {
+            ActionPainterIcon(
+                painter = androidx.compose.ui.res.painterResource(com.mosman.wird.R.drawable.ic_repeat),
+                label = "Play & repeat range",
+                onClick = it,
+            )
+        }
         ActionIcon(Icons.Filled.Share, "Share this ayah", onShare)
-        // **PLAN task 12, and it only exists when the other app does.** A button that opened
-        // the Play Store instead would be an advert wearing a feature's clothes.
         onOpenElsewhere?.let {
             ActionIcon(Icons.AutoMirrored.Filled.ExitToApp, "Open in Quran for Android", it)
         }
@@ -106,6 +105,27 @@ private fun ActionIcon(
             .defaultMinSize(minWidth = Scale.minTarget, minHeight = Scale.minTarget)
             .padding(Scale.space3)
             .size(20.dp),
+    )
+}
+
+@Composable
+private fun ActionPainterIcon(
+    painter: androidx.compose.ui.graphics.painter.Painter,
+    label: String,
+    onClick: () -> Unit,
+    tint: androidx.compose.ui.graphics.Color? = null,
+) {
+    val colors = LocalWirdColors.current
+    Icon(
+        painter = painter,
+        contentDescription = label,
+        tint = tint ?: colors.onSurfaceRaised,
+        modifier = Modifier
+            .clip(RoundedCornerShape(Scale.radius))
+            .clickable(onClick = onClick)
+            .defaultMinSize(minWidth = Scale.minTarget, minHeight = Scale.minTarget)
+            .padding(Scale.space3)
+            .size(19.dp),
     )
 }
 

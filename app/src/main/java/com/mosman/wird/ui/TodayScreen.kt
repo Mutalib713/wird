@@ -323,6 +323,9 @@ fun TodayScreen(
     // The repeat count lives here rather than in the player, because the bar has to draw it
     // and Compose only redraws what it can see change.
     var repeatEach by remember { mutableIntStateOf(1) }
+    var rangeRepeat by remember { mutableIntStateOf(1) }
+    var showRangePlayDialog by remember { mutableStateOf(false) }
+    var rangePlayStartVerse by remember { mutableStateOf<String?>(null) }
 
     // What is loaded right now, so tapping a second ayah can jump rather than refetch.
     var loaded by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -345,8 +348,46 @@ fun TodayScreen(
     var showMobileAudioPrompt by remember { mutableStateOf(false) }
     var uncachedAudioMb by remember { mutableFloatStateOf(0f) }
 
-    fun startRecitation(list: List<String>, begin: Int) {
+    fun startRecitation(list: List<String>, begin: Int, rangeRepeatCount: Int = 1) {
         scope.launch {
+            if (store.streamingAudio) {
+                audio = AudioState.Playing(
+                    verseKey = list.getOrElse(begin) { list.first() },
+                    index = begin,
+                    total = list.size,
+                    isBuffering = true,
+                    rangeCycle = 1,
+                    totalCycles = rangeRepeatCount,
+                )
+                portionAudio.repeatEach = repeatEach
+                portionAudio.repeatRange = rangeRepeatCount
+                portionAudio.playStream(
+                    verses = list,
+                    quality = audioQuality,
+                    reciter = selectedReciter,
+                    startIndex = begin,
+                    repeatRange = rangeRepeatCount,
+                    onVerse = { i ->
+                        audio = AudioState.Playing(
+                            verseKey = list[i],
+                            index = i,
+                            total = list.size,
+                            isBuffering = false,
+                            rangeCycle = portionAudio.currentCycle,
+                            totalCycles = rangeRepeatCount,
+                        )
+                    },
+                    onFinished = { audio = AudioState.Idle },
+                    onBuffering = { buffering ->
+                        val cur = audio as? AudioState.Playing
+                        if (cur != null) {
+                            audio = cur.copy(isBuffering = buffering)
+                        }
+                    },
+                )
+                return@launch
+            }
+
             val uncachedEst = portionAudio.uncachedBytesEstimate(list, audioQuality, selectedReciter)
             audio = AudioState.Fetching(0, list.size, 0L, uncachedEst)
             val files = portionAudio.ensureCached(list, audioQuality, reciter = selectedReciter) { done, total, bytesDone, totalBytes ->
@@ -361,32 +402,34 @@ fun TodayScreen(
                 }
                 return@launch
             }
+            portionAudio.repeatEach = repeatEach
+            portionAudio.repeatRange = rangeRepeatCount
             portionAudio.play(
                 files = files,
                 verses = list,
-                onVerse = { i -> audio = AudioState.Playing(list[i], i, list.size) },
+                onVerse = { i ->
+                    audio = AudioState.Playing(
+                        verseKey = list[i],
+                        index = i,
+                        total = list.size,
+                        isBuffering = false,
+                        rangeCycle = portionAudio.currentCycle,
+                        totalCycles = rangeRepeatCount,
+                    )
+                },
                 onFinished = { audio = AudioState.Idle },
                 startIndex = begin,
+                repeatRange = rangeRepeatCount,
             )
         }
     }
 
     /**
      * Start listening, optionally **at a particular ayah**.
-     *
-     * ⚠ **[startAt] exists because tapping Play on an ayah started the whole portion from the
-     * top** — his report, 2026-08-19, and he is right that it is the opposite of what tapping
-     * *that* ayah means.
-     *
-     * Three cases, in the order they are cheap:
-     *  1. Already playing and the ayah is loaded — jump, no network, no delay.
-     *  2. An ayah outside today's portion — play **just that one**, because he asked for that
-     *     ayah and the surrounding ones were never today's reading.
-     *  3. Otherwise — fetch the portion and begin at that ayah.
      */
-    fun listen(startAt: String? = null) {
+    fun listen(startAt: String? = null, customVerses: List<String>? = null, rangeRepeatCount: Int = 1) {
         // Already going: point it at the ayah instead of starting over.
-        if (audio is AudioState.Playing || audio is AudioState.Paused) {
+        if (customVerses == null && (audio is AudioState.Playing || audio is AudioState.Paused)) {
             val at = loaded.indexOf(startAt)
             if (startAt != null && at >= 0) portionAudio.goTo(at)
             return
@@ -399,7 +442,9 @@ fun TodayScreen(
             // play the ayahs on the currently-viewed page instead of jumping to today's wird.
             val isToday = current in todaysPages
             val downloadAmt = store.downloadAmount
-            val verses = when (downloadAmt) {
+            val verses = if (customVerses != null && customVerses.isNotEmpty()) {
+                customVerses
+            } else when (downloadAmt) {
                 "Page" -> {
                     val layout = repo.layoutOnly(current)
                     if (isToday && layout != null) {
@@ -448,21 +493,24 @@ fun TodayScreen(
 
             // An ayah he tapped on some other page is not part of today's portion, so the
             // portion is not what he asked for. Play the one ayah.
-            val list = if (startAt != null && startAt !in verses) listOf(startAt) else verses
+            val list = if (customVerses != null) customVerses else if (startAt != null && startAt !in verses) listOf(startAt) else verses
             val begin = if (startAt != null) list.indexOf(startAt).coerceAtLeast(0) else 0
             loaded = list
+            rangeRepeat = rangeRepeatCount
 
-            val cached = portionAudio.isCached(list, audioQuality, selectedReciter)
-            if (!cached && !com.mosman.wird.audio.isWifi(context)) {
-                val bytes = portionAudio.uncachedBytesEstimate(list, audioQuality, selectedReciter)
-                uncachedAudioMb = (bytes.toFloat() / (1024 * 1024)).coerceAtLeast(0.5f)
-                pendingListenAyahs = list
-                pendingListenStartAt = startAt
-                showMobileAudioPrompt = true
-                return@launch
+            if (!store.streamingAudio) {
+                val cached = portionAudio.isCached(list, audioQuality, selectedReciter)
+                if (!cached && !com.mosman.wird.audio.isWifi(context)) {
+                    val bytes = portionAudio.uncachedBytesEstimate(list, audioQuality, selectedReciter)
+                    uncachedAudioMb = (bytes.toFloat() / (1024 * 1024)).coerceAtLeast(0.5f)
+                    pendingListenAyahs = list
+                    pendingListenStartAt = startAt
+                    showMobileAudioPrompt = true
+                    return@launch
+                }
             }
 
-            startRecitation(list, begin)
+            startRecitation(list, begin, rangeRepeatCount)
         }
     }
 
@@ -482,6 +530,7 @@ fun TodayScreen(
         ListenBar(
             audio = audio,
             repeatEach = repeatEach,
+            repeatRange = rangeRepeat,
             reciter = selectedReciter,
             onChangeReciter = { showReciterPicker = true },
             onPlayPause = {
@@ -489,13 +538,26 @@ fun TodayScreen(
                     is AudioState.Playing -> {
                         portionAudio.pause()
                         (audio as AudioState.Playing).let {
-                            audio = AudioState.Paused(it.verseKey, it.index, it.total)
+                            audio = AudioState.Paused(
+                                verseKey = it.verseKey,
+                                index = it.index,
+                                total = it.total,
+                                rangeCycle = it.rangeCycle,
+                                totalCycles = it.totalCycles,
+                            )
                         }
                     }
                     is AudioState.Paused -> {
                         portionAudio.resume()
                         (audio as AudioState.Paused).let {
-                            audio = AudioState.Playing(it.verseKey, it.index, it.total)
+                            audio = AudioState.Playing(
+                                verseKey = it.verseKey,
+                                index = it.index,
+                                total = it.total,
+                                isBuffering = false,
+                                rangeCycle = it.rangeCycle,
+                                totalCycles = it.totalCycles,
+                            )
                         }
                     }
                     else -> Unit
@@ -507,6 +569,10 @@ fun TodayScreen(
                 repeatEach = nextRepeat(repeatEach)
                 portionAudio.repeatEach = repeatEach
             },
+            onRepeatRange = {
+                rangeRepeat = nextRangeRepeat(rangeRepeat)
+                portionAudio.repeatRange = rangeRepeat
+            },
             onStop = { stopListening() },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -514,7 +580,7 @@ fun TodayScreen(
                 // You can still long-press an ayah while something is playing, and then both
                 // want the same strip of screen. The bar steps up over the toolbar rather
                 // than fighting it for the bottom edge.
-                .padding(bottom = if (selectedVerse != null) 76.dp else 0.dp)
+                .padding(bottom = if (selectedVerse != null) 76.dp else 16.dp, start = 16.dp, end = 16.dp)
                 .zIndex(2f),
         )
 
@@ -634,6 +700,7 @@ fun TodayScreen(
             reciting = (audio as? AudioState.Playing)?.verseKey,
             review = reviewVerses,
             selected = selectedVerse,
+            selectedVerses = if (rangeRepeat > 1 && (audio is AudioState.Playing || audio is AudioState.Paused)) loaded.toSet() else emptySet(),
             // Long-press selects; a plain tap still belongs to the background handler that
             // shows the chrome, so selecting cannot be done by accident while reading.
             onWordLongPress = { key ->
@@ -807,6 +874,11 @@ fun TodayScreen(
                     // share icon. Acting on a selection also finishes with it.
                     selectedVerse = null
                 },
+                onPlayRange = {
+                    rangePlayStartVerse = key
+                    showRangePlayDialog = true
+                    selectedVerse = null
+                },
                 onOpenElsewhere = OpenElsewhere.intentFor(context, key)?.let { i ->
                     {
                         context.startActivity(i)
@@ -856,7 +928,7 @@ fun TodayScreen(
                 pendingListenStartAt = null
                 if (toPlay != null) {
                     val begin = if (start != null) toPlay.indexOf(start).coerceAtLeast(0) else 0
-                    startRecitation(toPlay, begin)
+                    startRecitation(toPlay, begin, rangeRepeat)
                 }
             },
             onDismiss = {
@@ -865,6 +937,30 @@ fun TodayScreen(
                 pendingListenStartAt = null
             },
         )
+    }
+
+    rangePlayStartVerse?.let { startV ->
+        if (showRangePlayDialog) {
+            RangePlayDialog(
+                startVerse = startV,
+                onDismiss = {
+                    showRangePlayDialog = false
+                    rangePlayStartVerse = null
+                },
+                onPlayRange = { verses, repeatRangeCount, repeatEachCount ->
+                    showRangePlayDialog = false
+                    rangePlayStartVerse = null
+                    repeatEach = repeatEachCount
+                    portionAudio.repeatEach = repeatEachCount
+                    rangeRepeat = repeatRangeCount
+                    listen(
+                        startAt = verses.firstOrNull(),
+                        customVerses = verses,
+                        rangeRepeatCount = repeatRangeCount,
+                    )
+                },
+            )
+        }
     }
     }
 }
