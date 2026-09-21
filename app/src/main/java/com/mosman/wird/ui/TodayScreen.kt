@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -92,6 +94,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import com.mosman.wird.domain.Assignment
+import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.HeardResult
 import com.mosman.wird.domain.heardLabel
 import com.mosman.wird.domain.judgeRecitation
@@ -158,13 +161,23 @@ fun TodayScreen(
     onPageVisited: (Int) -> Unit = {},
     onDone: (com.mosman.wird.domain.Method, java.io.File?) -> Unit = { _, _ -> },
     onUndo: () -> Unit = {},
+    /** Whether this is the dedicated Today's Wird reader or the general Sūrah reader. */
+    isWirdSession: Boolean = true,
+    /** Navigates to the Sūrahs tab from the Wird hamburger menu. */
+    onBrowseSurahs: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     val todaysPages = remember(assignment) { assignment.pages }
     var showJump by remember { mutableStateOf(false) }
-    var current by remember { mutableIntStateOf(todaysPages.first()) }
+    val initialP = remember { openPage ?: if (isWirdSession) todaysPages.first() else 1 }
+    var current by remember { mutableIntStateOf(initialP) }
     var jump by remember { mutableStateOf<PageJump?>(null) }
     var jumpCount by remember { mutableIntStateOf(0) }
+    val allowedRange = remember(isWirdSession, todaysPages) {
+        if (isWirdSession) (todaysPages.first() - 2).coerceAtLeast(1) .. (todaysPages.last() + 2).coerceAtMost(Mushaf.PAGES)
+        else null
+    }
+    val offToday = isWirdSession && (current !in todaysPages)
 
     // Keyed by page, not stored as "the current one".
     //
@@ -569,8 +582,10 @@ fun TodayScreen(
             )
         } else {
         MushafPager(
-            initialPage = todaysPages.first(),
+            initialPage = initialP,
             jump = jump,
+            highlightPortion = isWirdSession,
+            allowedPageRange = allowedRange,
             modifier = Modifier.safeDrawingPadding(),
             onPageChanged = {
                 current = it
@@ -597,7 +612,7 @@ fun TodayScreen(
             footer = { page ->
                 // Only under today's reading. On a page you are browsing there is nothing
                 // to finish, and a "done" button there would be marking the wrong thing.
-                if (page.page == todaysPages.last()) {
+                if (isWirdSession && page.page == todaysPages.last()) {
                     DoneControl(
                         doneMethod = doneMethod,
                         mode = readingMode,
@@ -684,13 +699,9 @@ fun TodayScreen(
                 page = current,
                 juz = pageInfo[current]?.second ?: 0,
                 progress = progress,
-                offToday = current !in todaysPages,
-                onBackToToday = {
-                    jumpCount++
-                    jump = PageJump(todaysPages.first(), jumpCount)
-                    chromeShown = false
-                },
-                onJump = { showJump = true; chromeShown = false },
+                offToday = offToday,
+                isWirdSession = isWirdSession,
+                onBrowseSurahs = onBrowseSurahs,
                 onSettings = { chromeShown = false; onSettings() },
                 audio = audio,
                 // The bar stays up while it plays. It is the only stop control, and a
@@ -708,6 +719,26 @@ fun TodayScreen(
                 onToggleBookmark = {
                     onToggleBookmark(pageVerseKey)
                     bookmarkTick++
+                },
+            )
+        }
+
+        // Option B: Top Ribbon Banner for Return to Today's Wird
+        AnimatedVisibility(
+            visible = isWirdSession && offToday,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .safeDrawingPadding()
+                .padding(top = if (chromeShown) 70.dp else 12.dp)
+                .zIndex(10f),
+            enter = fadeIn() + slideInVertically { -it },
+            exit = fadeOut() + slideOutVertically { -it },
+        ) {
+            ReturnToWirdTopBanner(
+                assignedPage = todaysPages.first(),
+                onClick = {
+                    jumpCount++
+                    jump = PageJump(todaysPages.first(), jumpCount)
                 },
             )
         }
@@ -825,8 +856,8 @@ private fun ChromeBar(
     juz: Int,
     progress: com.mosman.wird.domain.Progress?,
     offToday: Boolean,
-    onBackToToday: () -> Unit,
-    onJump: () -> Unit,
+    isWirdSession: Boolean = true,
+    onBrowseSurahs: (() -> Unit)? = null,
     onSettings: () -> Unit,
     audio: AudioState,
     onListen: () -> Unit,
@@ -873,31 +904,19 @@ private fun ChromeBar(
                 style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
             )
             Text(
-                text = if (offToday) {
-                    if (juz > 0) "Page $page, Juz' $juz" else "Page $page"
+                text = if (isWirdSession) {
+                    if (offToday) {
+                        if (juz > 0) "Page $page, Juz' $juz" else "Page $page"
+                    } else {
+                        if (juz > 0) "Today's Wird · Page $page, Juz' $juz" else "Today's Wird · Page $page"
+                    }
                 } else {
-                    if (juz > 0) "Today's Wird · Page $page, Juz' $juz" else "Today's Wird · Page $page"
+                    if (juz > 0) "Page $page, Juz' $juz" else "Page $page"
                 },
                 color = colors.onSurfaceRaised.copy(alpha = 0.75f),
                 style = TextStyle(fontSize = 12.sp),
             )
-            if (offToday) {
-                Spacer(Modifier.height(3.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(colors.accent.copy(alpha = 0.18f))
-                        .clickable(onClick = onBackToToday)
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        text = "← Back to Today's Wird",
-                        color = colors.accent,
-                        style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
-                    )
-                }
-            }
-            progress?.takeIf { it.totalDaysRead > 0 }?.let { p ->
+            progress?.takeIf { isWirdSession && it.totalDaysRead > 0 }?.let { p ->
                 Text(
                     text = streakLine(p),
                     color = colors.onSurfaceRaised,
@@ -977,10 +996,12 @@ private fun ChromeBar(
                         },
                         onClick = { menuOpen = false; onToggleTranslation() },
                     )
-                    DropdownMenuItem(
-                        text = { Text("Browse Sūrahs & Juz'", color = colors.onSurfaceRaised) },
-                        onClick = { menuOpen = false; onJump() },
-                    )
+                    if (onBrowseSurahs != null) {
+                        DropdownMenuItem(
+                            text = { Text("Browse Sūrahs & Juz'", color = colors.onSurfaceRaised) },
+                            onClick = { menuOpen = false; onBrowseSurahs() },
+                        )
+                    }
                     if (reciter.isNotEmpty()) {
                         DropdownMenuItem(
                             text = { Text("Reciter: $reciter", color = colors.onSurfaceRaised) },
@@ -993,6 +1014,60 @@ private fun ChromeBar(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Option B: Top Ribbon Banner shown when the user has flipped away from today's assigned Wird.
+ * Tapping it smoothly returns the reader to today's assigned page.
+ */
+@Composable
+private fun ReturnToWirdTopBanner(
+    assignedPage: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = colors.surfaceRaised,
+        border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.35f)),
+        shadowElevation = 4.dp,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Return to Today's Wird",
+                    tint = colors.accent,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = "Today's Wird",
+                    color = colors.onSurfaceRaised,
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                )
+            }
+            Text(
+                text = "Page $assignedPage",
+                color = colors.accent,
+                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+            )
         }
     }
 }

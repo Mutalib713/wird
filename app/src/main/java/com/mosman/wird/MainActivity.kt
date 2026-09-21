@@ -173,6 +173,8 @@ class MainActivity : ComponentActivity() {
             var openPage by remember { mutableStateOf<Int?>(null) }
             /** Home is a dashboard (PROFILE 5g); the page is one tap behind it. */
             var onPage by remember { mutableStateOf(false) }
+            /** Whether current reader session is Today's Wird or general Sūrah reading. */
+            var isWirdSession by remember { mutableStateOf(true) }
             val playback = remember { Recitation(this@MainActivity) }
 
             /**
@@ -263,7 +265,12 @@ class MainActivity : ComponentActivity() {
             // system so back still leaves the app from where leaving makes sense.
             BackHandler(enabled = onChat) { onChat = false }
             BackHandler(enabled = !onChat && screen == Screen.SETTINGS) { screen = Screen.TODAY }
-            BackHandler(enabled = !onChat && screen == Screen.TODAY && onPage) { onPage = false }
+            BackHandler(enabled = !onChat && screen == Screen.TODAY && onPage) {
+                onPage = false
+                if (!isWirdSession) {
+                    tab = WirdTab.SURAHS
+                }
+            }
             BackHandler(enabled = !onChat && screen == Screen.TODAY && !onPage && tab != WirdTab.HOME) {
                 tab = WirdTab.HOME
             }
@@ -496,273 +503,274 @@ class MainActivity : ComponentActivity() {
                           .fillMaxSize()
                           .navigationBarsPadding(),
                   ) {
-                    when (tab) {
-                      WirdTab.HOME -> if (!onPage) HomeScreen(
-                          assignment = assignment,
-                          progress = progress,
-                          doneMethod = doneMethod,
-                          recent = days.all().sortedByDescending { it.date },
-                          onOpenPage = { onPage = true },
-                          positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
-                          readerName = readerName,
-                          mode = readingMode,
-                          onOpenBookmarks = { screen = Screen.BOOKMARKS },
-                          onMenu = { menuOpen = true },
-                          menu = {
-                              if (menuOpen) {
-                                  val darkNow = isDark(theme)
-                                  HomeMenu(
-                                      dark = darkNow,
-                                      onNightMode = {
-                                          store.themeMode =
-                                              if (darkNow) ThemeMode.LIGHT else ThemeMode.DARK
-                                          theme = store.themeMode
-                                          menuOpen = false
-                                      },
-                                      onSettings = { menuOpen = false; screen = Screen.SETTINGS },
-                                      onDismiss = { menuOpen = false },
-                                  )
-                              }
-                          },
-                            // **The action only exists when the app does.** PLAN task 12:
-                            // asked of the package manager every time rather than cached,
-                            // because an app can be installed while Wird is in the
-                            // background. The ayah is the one the reader named if they named
-                            // one, and the first of the portion's sūrah otherwise — Home
-                            // cannot know a page's opening ayah without loading the page,
-                            // and § 10 says a number is measured rather than guessed.
-                            onOpenInQuran = run {
-                                val key = startVerse?.let { "${it.first}:${it.second}" }
-                                    ?: assignment.surahs.firstOrNull()?.let { "${it.number}:1" }
-                                val intent = key?.let {
-                                    OpenElsewhere.intentFor(this@MainActivity, it)
+                    if (onPage) {
+                        TodayScreen(
+                            assignment = assignment,
+                            startVerse = startVerse,
+                            onSettings = { screen = Screen.SETTINGS },
+                            openPage = openPage,
+                            onOpenPageHandled = { openPage = null },
+                            hasSeenChrome = seenChrome,
+                            onChromeSeen = { store.hasSeenChrome = true; seenChrome = true },
+                            doneMethod = doneMethod,
+                            progress = progress,
+                            hasRecording = hasRecording,
+                            checkState = checkState,
+                            reviewVerses = reviewVerses,
+                            // Null when the phone cannot do it, so no button appears rather than
+                            // one that quietly does nothing.
+                            onCheckRecitation = if (recogniser.ready()) ({
+                                widgetScope.launch {
+                                    val file = days.audioFileFor(today)
+                                    val started = System.currentTimeMillis()
+
+                                    // A ticking clock in its own coroutine. ⚠ **This is the fix for
+                                    // "it never worked":** the transcription was running fine and
+                                    // the screen simply never changed, which is indistinguishable
+                                    // from a hang. A moving number is the whole difference.
+                                    val ticker = launch {
+                                        var n = 0
+                                        while (true) {
+                                            checkState = CheckState.Working(n)
+                                            kotlinx.coroutines.delay(1_000)
+                                            n++
+                                        }
+                                    }
+
+                                    val heard = try {
+                                        // ⚠ Bounded, because native code that never returns would
+                                        // otherwise leave the screen waiting forever. Generous: a
+                                        // long portion on a slow phone is genuinely minutes.
+                                        kotlinx.coroutines.withTimeoutOrNull(6 * 60 * 1000L) {
+                                            recogniser.transcribe(file)
+                                        }
+                                    } finally {
+                                        ticker.cancel()
+                                    }
+
+                                    val took = String.format(
+                                        java.util.Locale.getDefault(),
+                                        "%.1f",
+                                        (System.currentTimeMillis() - started) / 1000.0,
+                                    )
+                                    if (heard.isNullOrBlank()) {
+                                        reviewVerses = emptySet()
+                                        checkState = CheckState.Nothing(
+                                            "It couldn't make out any words after ${took}s. The " +
+                                                "recording may be too quiet, or this model may not " +
+                                                "be good enough."
+                                        )
+                                    } else {
+                                        // ⚠ Compared against the page rather than shown raw. The
+                                        // expected words come from the ayahs today's portion
+                                        // actually covers, so a reader who stopped early is judged
+                                        // against what they set out to read and nothing more.
+                                        val expected = withContext(Dispatchers.IO) {
+                                            arabic.wordsAcross(assignment.pages)
+                                        }
+                                        val verdict = checkRecitation(expected, heard)
+                                        reviewVerses = verdict.versesToReview
+                                        android.util.Log.i(
+                                            "WirdWhisper",
+                                            "verdict: ${verdict.coverage} covered, " +
+                                                "confident=${verdict.confident}, " +
+                                                "marked=${verdict.versesToReview} | heard: $heard",
+                                        )
+                                        checkState = CheckState.Heard(
+                                            text = heard,
+                                            seconds = (file.length() / 8000).toInt(),
+                                            took = took,
+                                            summary = verdict.summary,
+                                            marked = verdict.versesToReview.size,
+                                        )
+                                    }
                                 }
-                                intent?.let { { startActivity(it) } }
+                            }) else null,
+                            audioFile = { days.audioFileFor(today) },
+                            audioQuality = audioQuality,
+                            readingMode = readingMode,
+                            dark = pageDark,
+                            onBack = {
+                                onPage = false
+                                if (!isWirdSession) {
+                                    tab = WirdTab.SURAHS
+                                }
                             },
-                            // The week's page column. Days marked before task 6 began
-                            // storing what they covered have no page, and show none.
-                            pageFor = { date -> days.coveredOn(date)?.first?.let(Mushaf::pageOf) },
-                            // The tap route, from Home. Same path the companion's "already
-                            // did it" takes, and logged as a tap exactly the same way.
-                            onMarkRead = {
+                            isBookmarked = { key -> bookmarks.has(key) },
+                            onToggleBookmark = { key ->
+                                bookmarks.toggle(key)
+                                saved = bookmarks.all()
+                            },
+                            onPageVisited = { p -> store.recordRecentPage(p) },
+                            onNightMode = {
+                                // Flips the PAGE, not the app. Before 2026-08-19 this line set
+                                // store.themeMode and took Home and the menus with it.
+                                pageNight = !pageNight
+                                store.pageNight = pageNight
+                            },
+                            onDone = { method, file ->
                                 days.markDone(
                                     date = today,
-                                    method = Method.TAPPED,
-                                    audio = null,
+                                    method = method,
+                                    audio = file,
                                     startUnit = assignment.startUnit,
                                     units = assignment.units,
                                 )
                                 doneMethod = days.methodFor(today)
                                 nudgeWidget()
+                                hasRecording = days.audioFor(today) != null
                                 progress = progressOf(days.all(), today)
+
+                                // ---- listen back, if this phone can. PLAN task 14 ----
+                                //
+                                // ⚠ **The day is already marked before this runs, and that order
+                                // is deliberate.** Sacred Rule 6 says a recording is what makes a
+                                // day recited; the transcription is *evidence about* that
+                                // recording and never a verdict on it. Nothing here can unmark a
+                                // day, and a phone with no model simply produces no evidence.
+                                //
+                                // It runs after the fact rather than blocking the screen because
+                                // a minute of audio takes real seconds, and the reader has
+                                // finished reciting — they should not be watching a spinner.
+                                if (method == Method.RECITED && file != null && recogniser.ready()) {
+                                    widgetScope.launch {
+                                        val heard = recogniser.transcribe(file)
+                                        // The measurement PLAN task 14 asks for. Logged rather
+                                        // than shown, because until the numbers exist nobody knows
+                                        // whether this is worth putting in front of a reader.
+                                        android.util.Log.i(
+                                            "WirdWhisper",
+                                            if (heard != null) "HEARD: $heard" else "HEARD: nothing usable",
+                                        )
+                                    }
+                                }
+
+                                // **The position moves here and nowhere else.** Opening the
+                                // app, swiping, or browsing must never advance it — only
+                                // finishing does. That is the whole reason the portion is
+                                // stable within a day.
                                 store.positionUnit = assignment.nextStartUnit
                                 position = store.positionUnit
+                                // The start ayah only ever applied to the first page.
                                 store.startVerse = null
                                 startVerse = null
                             },
-                            turns = turns,
-                            onSaid = { said(it) },
-                            onOpenChat = { onChat = true },
-                        ) else TodayScreen(
-                        assignment = assignment,
-                        startVerse = startVerse,
-                        onSettings = { screen = Screen.SETTINGS },
-                            openPage = openPage,
-                            onOpenPageHandled = { openPage = null },
-                        hasSeenChrome = seenChrome,
-                        onChromeSeen = { store.hasSeenChrome = true; seenChrome = true },
-                        doneMethod = doneMethod,
-                        progress = progress,
-                        hasRecording = hasRecording,
-                        checkState = checkState,
-                        reviewVerses = reviewVerses,
-                        // Null when the phone cannot do it, so no button appears rather than
-                        // one that quietly does nothing.
-                        onCheckRecitation = if (recogniser.ready()) ({
-                            widgetScope.launch {
-                                val file = days.audioFileFor(today)
-                                val started = System.currentTimeMillis()
-
-                                // A ticking clock in its own coroutine. ⚠ **This is the fix for
-                                // "it never worked":** the transcription was running fine and
-                                // the screen simply never changed, which is indistinguishable
-                                // from a hang. A moving number is the whole difference.
-                                val ticker = launch {
-                                    var n = 0
-                                    while (true) {
-                                        checkState = CheckState.Working(n)
-                                        kotlinx.coroutines.delay(1_000)
-                                        n++
-                                    }
-                                }
-
-                                val heard = try {
-                                    // ⚠ Bounded, because native code that never returns would
-                                    // otherwise leave the screen waiting forever. Generous: a
-                                    // long portion on a slow phone is genuinely minutes.
-                                    kotlinx.coroutines.withTimeoutOrNull(6 * 60 * 1000L) {
-                                        recogniser.transcribe(file)
-                                    }
-                                } finally {
-                                    ticker.cancel()
-                                }
-
-                                val took = String.format(
-                                    java.util.Locale.getDefault(),
-                                    "%.1f",
-                                    (System.currentTimeMillis() - started) / 1000.0,
+                            onUndo = {
+                                days.clear(today)
+                                doneMethod = null
+                                // Undo sets doneMethod directly rather than re-reading it, so it
+                                // misses the refresh the other three paths get. Left alone, the
+                                // widget would go on saying a day was done after you undid it.
+                                nudgeWidget()
+                                hasRecording = false
+                                progress = progressOf(days.all(), today)
+                                // Put the position back exactly as far as marking it moved it.
+                                store.positionUnit = Math.floorMod(
+                                    store.positionUnit - assignment.units,
+                                    Mushaf.TOTAL_UNITS,
                                 )
-                                if (heard.isNullOrBlank()) {
-                                    reviewVerses = emptySet()
-                                    checkState = CheckState.Nothing(
-                                        "It couldn't make out any words after ${took}s. The " +
-                                            "recording may be too quiet, or this model may not " +
-                                            "be good enough."
-                                    )
-                                } else {
-                                    // ⚠ Compared against the page rather than shown raw. The
-                                    // expected words come from the ayahs today's portion
-                                    // actually covers, so a reader who stopped early is judged
-                                    // against what they set out to read and nothing more.
-                                    val expected = withContext(Dispatchers.IO) {
-                                        arabic.wordsAcross(assignment.pages)
+                                position = store.positionUnit
+                            },
+                            isWirdSession = isWirdSession,
+                            onBrowseSurahs = if (isWirdSession) ({
+                                onPage = false
+                                tab = WirdTab.SURAHS
+                            }) else null,
+                        )
+                    } else {
+                        when (tab) {
+                            WirdTab.HOME -> HomeScreen(
+                                assignment = assignment,
+                                progress = progress,
+                                doneMethod = doneMethod,
+                                recent = days.all().sortedByDescending { it.date },
+                                onOpenPage = {
+                                    onPage = true
+                                    isWirdSession = true
+                                    openPage = null
+                                },
+                                positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
+                                readerName = readerName,
+                                mode = readingMode,
+                                onOpenBookmarks = { screen = Screen.BOOKMARKS },
+                                onMenu = { menuOpen = true },
+                                menu = {
+                                    if (menuOpen) {
+                                        val darkNow = isDark(theme)
+                                        HomeMenu(
+                                            dark = darkNow,
+                                            onNightMode = {
+                                                store.themeMode =
+                                                    if (darkNow) ThemeMode.LIGHT else ThemeMode.DARK
+                                                theme = store.themeMode
+                                                menuOpen = false
+                                            },
+                                            onSettings = { menuOpen = false; screen = Screen.SETTINGS },
+                                            onDismiss = { menuOpen = false },
+                                        )
                                     }
-                                    val verdict = checkRecitation(expected, heard)
-                                    reviewVerses = verdict.versesToReview
-                                    android.util.Log.i(
-                                        "WirdWhisper",
-                                        "verdict: ${verdict.coverage} covered, " +
-                                            "confident=${verdict.confident}, " +
-                                            "marked=${verdict.versesToReview} | heard: $heard",
+                                },
+                                onOpenInQuran = run {
+                                    val key = startVerse?.let { "${it.first}:${it.second}" }
+                                        ?: assignment.surahs.firstOrNull()?.let { "${it.number}:1" }
+                                    val intent = key?.let {
+                                        OpenElsewhere.intentFor(this@MainActivity, it)
+                                    }
+                                    intent?.let { { startActivity(it) } }
+                                },
+                                pageFor = { date -> days.coveredOn(date)?.first?.let(Mushaf::pageOf) },
+                                onMarkRead = {
+                                    days.markDone(
+                                        date = today,
+                                        method = Method.TAPPED,
+                                        audio = null,
+                                        startUnit = assignment.startUnit,
+                                        units = assignment.units,
                                     )
-                                    checkState = CheckState.Heard(
-                                        text = heard,
-                                        seconds = (file.length() / 8000).toInt(),
-                                        took = took,
-                                        summary = verdict.summary,
-                                        marked = verdict.versesToReview.size,
-                                    )
-                                }
-                            }
-                        }) else null,
-                        audioFile = { days.audioFileFor(today) },
-                        audioQuality = audioQuality,
-                        readingMode = readingMode,
-                        dark = pageDark,
-                        onBack = { onPage = false },
-                        isBookmarked = { key -> bookmarks.has(key) },
-                        onToggleBookmark = { key ->
-                            bookmarks.toggle(key)
-                            saved = bookmarks.all()
-                        },
-                        onPageVisited = { p -> store.recordRecentPage(p) },
-                        onNightMode = {
-                            // Flips the PAGE, not the app. Before 2026-08-19 this line set
-                            // store.themeMode and took Home and the menus with it.
-                            pageNight = !pageNight
-                            store.pageNight = pageNight
-                        },
-                        onDone = { method, file ->
-                            days.markDone(
-                                date = today,
-                                method = method,
-                                audio = file,
-                                startUnit = assignment.startUnit,
-                                units = assignment.units,
+                                    doneMethod = days.methodFor(today)
+                                    nudgeWidget()
+                                    progress = progressOf(days.all(), today)
+                                    store.positionUnit = assignment.nextStartUnit
+                                    position = store.positionUnit
+                                    store.startVerse = null
+                                    startVerse = null
+                                },
+                                turns = turns,
+                                onSaid = { said(it) },
+                                onOpenChat = { onChat = true },
                             )
-                            doneMethod = days.methodFor(today)
-                            nudgeWidget()
-                            hasRecording = days.audioFor(today) != null
-                            progress = progressOf(days.all(), today)
 
-                            // ---- listen back, if this phone can. PLAN task 14 ----
-                            //
-                            // ⚠ **The day is already marked before this runs, and that order
-                            // is deliberate.** Sacred Rule 6 says a recording is what makes a
-                            // day recited; the transcription is *evidence about* that
-                            // recording and never a verdict on it. Nothing here can unmark a
-                            // day, and a phone with no model simply produces no evidence.
-                            //
-                            // It runs after the fact rather than blocking the screen because
-                            // a minute of audio takes real seconds, and the reader has
-                            // finished reciting — they should not be watching a spinner.
-                            if (method == Method.RECITED && file != null && recogniser.ready()) {
-                                widgetScope.launch {
-                                    val heard = recogniser.transcribe(file)
-                                    // The measurement PLAN task 14 asks for. Logged rather
-                                    // than shown, because until the numbers exist nobody knows
-                                    // whether this is worth putting in front of a reader.
-                                    android.util.Log.i(
-                                        "WirdWhisper",
-                                        if (heard != null) "HEARD: $heard" else "HEARD: nothing usable",
-                                    )
-                                }
-                            }
-
-                            // **The position moves here and nowhere else.** Opening the
-                            // app, swiping, or browsing must never advance it — only
-                            // finishing does. That is the whole reason the portion is
-                            // stable within a day.
-                            store.positionUnit = assignment.nextStartUnit
-                            position = store.positionUnit
-                            // The start ayah only ever applied to the first page.
-                            store.startVerse = null
-                            startVerse = null
-                        },
-                        onUndo = {
-                            days.clear(today)
-                            doneMethod = null
-                            // Undo sets doneMethod directly rather than re-reading it, so it
-                            // misses the refresh the other three paths get. Left alone, the
-                            // widget would go on saying a day was done after you undid it.
-                            nudgeWidget()
-                            hasRecording = false
-                            progress = progressOf(days.all(), today)
-                            // Put the position back exactly as far as marking it moved it.
-                            store.positionUnit = Math.floorMod(
-                                store.positionUnit - assignment.units,
-                                Mushaf.TOTAL_UNITS,
+                            WirdTab.SURAHS -> SurahsTab(
+                                bookmarks = saved,
+                                onOpenPage = { p ->
+                                    openPage = p
+                                    onPage = true
+                                    isWirdSession = false
+                                },
+                                onOpenBookmark = { b ->
+                                    openPage = com.mosman.wird.domain.SurahIndex
+                                        .byNumber(b.verseKey.substringBefore(':').toIntOrNull() ?: 0)
+                                        ?.firstPage
+                                    onPage = true
+                                    isWirdSession = false
+                                },
+                                onPick = { surah ->
+                                    openPage = surah.firstPage
+                                    onPage = true
+                                    isWirdSession = false
+                                },
                             )
-                            position = store.positionUnit
-                        },
-                    )
 
-                        WirdTab.SURAHS -> SurahsTab(
-                            bookmarks = saved,
-                            onOpenPage = { p ->
-                                openPage = p
-                                onPage = true
-                                tab = WirdTab.HOME
-                            },
-                            onOpenBookmark = { b ->
-                                // The page for the ayah itself, resolved once here rather
-                                // than per row in the list.
-                                openPage = com.mosman.wird.domain.SurahIndex
-                                    .byNumber(b.verseKey.substringBefore(':').toIntOrNull() ?: 0)
-                                    ?.firstPage
-                                onPage = true
-                                tab = WirdTab.HOME
-                            },
-                            onPick = { surah ->
-                                // Picking a surah is a reading action, so it lands you on
-                                // the page rather than leaving you in a list admiring it.
-                                openPage = surah.firstPage
-                                onPage = true
-                                tab = WirdTab.HOME
-                            },
-                        )
+                            WirdTab.HISTORY -> RecitationsScreen(
+                                logs = days.all(),
+                                audioFor = { d -> days.audioFor(d) },
+                                coveredFor = { d -> days.coveredOn(d) },
+                                onPlay = { f -> playback.play(f) },
+                                onStop = { playback.stopPlaying() },
+                            )
+                        }
 
-                        WirdTab.HISTORY -> RecitationsScreen(
-                            logs = days.all(),
-                            audioFor = { d -> days.audioFor(d) },
-                            coveredFor = { d -> days.coveredOn(d) },
-                            onPlay = { f -> playback.play(f) },
-                            onStop = { playback.stopPlaying() },
-                        )
-                      }
-
-                    // Option C Floating Island Capsule Dock at bottom
-                    if (!onPage) {
+                        // Option C Floating Island Capsule Dock at bottom
                         FloatingIslandDock(
                             current = tab,
                             onPick = { tab = it },

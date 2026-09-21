@@ -102,6 +102,7 @@ fun MushafPageView(
      * turn is a flicker, not information.
      */
     showSkeleton: Boolean = true,
+    highlightPortion: Boolean = true,
     onRetry: () -> Unit = {},
     onWordTap: ((verseKey: String) -> Unit)? = null,
     /** Tapping the page itself, used to show and hide the chrome. */
@@ -158,6 +159,7 @@ fun MushafPageView(
                     typeface = state.typeface,
                     bismillahTypeface = state.bismillahTypeface,
                     lit = lit(state.page),
+                    highlightPortion = highlightPortion,
                     reciting = reciting,
                     review = review,
                     selected = selected,
@@ -177,6 +179,7 @@ private fun DrawnPage(
     typeface: Typeface,
     bismillahTypeface: Typeface?,
     lit: Set<Int>,
+    highlightPortion: Boolean,
     reciting: String?,
     selected: String?,
     review: Set<String>,
@@ -300,7 +303,7 @@ private fun DrawnPage(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             lines.forEach { line ->
-                val inPortion = lit.isEmpty() || line in lit
+                val inPortion = if (highlightPortion) (line in lit) else true
                 val surahsHere = surahsStartingBeforeLine[line]
                 if (!surahsHere.isNullOrEmpty()) {
                     surahsHere.forEach { surah ->

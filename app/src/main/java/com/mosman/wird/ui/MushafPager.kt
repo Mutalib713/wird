@@ -74,6 +74,8 @@ fun MushafPager(
     initialPage: Int,
     lit: (MushafPage) -> Set<Int>,
     modifier: Modifier = Modifier,
+    highlightPortion: Boolean = true,
+    allowedPageRange: IntRange? = null,
     /** Set to move the pager after it has been composed. */
     jump: PageJump? = null,
     onPageChanged: (Int) -> Unit = {},
@@ -112,20 +114,24 @@ fun MushafPager(
     // which is what Mutalib asked for.
     var skeletonSpent by remember { mutableStateOf(false) }
 
+    val minPage = allowedPageRange?.first?.coerceIn(1, Mushaf.PAGES) ?: 1
+    val maxPage = allowedPageRange?.last?.coerceIn(minPage, Mushaf.PAGES) ?: Mushaf.PAGES
+    val totalPages = maxPage - minPage + 1
+
     val pagerState = rememberPagerState(
-        initialPage = (initialPage - 1).coerceIn(0, Mushaf.PAGES - 1),
-        pageCount = { Mushaf.PAGES },
+        initialPage = (initialPage - minPage).coerceIn(0, totalPages - 1),
+        pageCount = { totalPages },
     )
 
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }.collect { onPageChanged(it + 1) }
+    LaunchedEffect(pagerState, minPage) {
+        snapshotFlow { pagerState.currentPage }.collect { onPageChanged(minPage + it) }
     }
 
     // `rememberPagerState` reads initialPage exactly once, so changing it later moves
     // nothing. Jumping has to be an explicit instruction.
     LaunchedEffect(jump) {
         val target = jump ?: return@LaunchedEffect
-        pagerState.scrollToPage((target.page - 1).coerceIn(0, Mushaf.PAGES - 1))
+        pagerState.scrollToPage((target.page - minPage).coerceIn(0, totalPages - 1))
     }
 
     // Swiping right turns towards page 2, the way a mushaf opens.
@@ -135,7 +141,7 @@ fun MushafPager(
             modifier = modifier,
             beyondViewportPageCount = 0,
         ) { index ->
-            val pageNumber = index + 1
+            val pageNumber = minPage + index
             val state = states[pageNumber] ?: PageState.Loading
 
             // Captured when this page first composes, before the effect below spends it.
@@ -166,6 +172,7 @@ fun MushafPager(
                     state = state,
                     pageNumber = pageNumber,
                     lit = lit,
+                    highlightPortion = highlightPortion,
                     reciting = reciting,
                     review = review,
                     selected = selected,
