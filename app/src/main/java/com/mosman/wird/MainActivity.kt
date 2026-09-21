@@ -141,6 +141,26 @@ class MainActivity : ComponentActivity() {
                 notificationsOn = androidx.core.app.NotificationManagerCompat
                     .from(this@MainActivity).areNotificationsEnabled()
             }
+
+            // Orientation and screen wake settings
+            val lockOrientation = store.lockOrientation
+            val landscapeOrientation = store.landscapeOrientation
+            LaunchedEffect(lockOrientation, landscapeOrientation, screen) {
+                requestedOrientation = when {
+                    !store.lockOrientation -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    store.landscapeOrientation -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    else -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                }
+            }
+            val keepScreenAwake = store.keepScreenAwake
+            LaunchedEffect(keepScreenAwake, screen) {
+                if (store.keepScreenAwake) {
+                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+
             val liveMushafProgress by MushafDownloadService.mushafProgress.collectAsState()
             val downloading = liveMushafProgress?.let { it.done to it.total }
 
@@ -664,11 +684,8 @@ class MainActivity : ComponentActivity() {
                                 nudgeWidget()
                                 hasRecording = false
                                 progress = progressOf(days.all(), today)
-                                // Put the position back exactly as far as marking it moved it.
-                                store.positionUnit = Math.floorMod(
-                                    store.positionUnit - assignment.units,
-                                    Mushaf.TOTAL_UNITS,
-                                )
+                                // Put the position back to where this portion started.
+                                store.positionUnit = assignment.startUnit
                                 position = store.positionUnit
                             },
                             isWirdSession = isWirdSession,

@@ -422,20 +422,23 @@ private fun Bismillah(codes: String, typeface: Typeface, inPortion: Boolean) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
+    val context = LocalContext.current
+    val mushafLineSize = remember(context) { com.mosman.wird.data.WirdStore(context).ayahTextSize.sp }
+
     BoxWithConstraints(
         modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Bismillah" },
         contentAlignment = Alignment.Center,
     ) {
         val available = with(density) { maxWidth.toPx() }
-        val fitted = remember(codes, available) {
+        val fitted = remember(codes, available, mushafLineSize) {
             val natural = measurer.measure(
                 text = AnnotatedString(codes),
-                style = TextStyle(fontFamily = family, fontSize = Scale.mushafLine),
+                style = TextStyle(fontFamily = family, fontSize = mushafLineSize),
                 softWrap = false,
             ).size.width.toFloat()
             val target = available * 0.72f
-            if (natural > target && natural > 0f) Scale.mushafLine * (target / natural)
-            else Scale.mushafLine
+            if (natural > target && natural > 0f) mushafLineSize * (target / natural)
+            else mushafLineSize
         }
         Text(
             text = codes,
@@ -486,21 +489,23 @@ private fun MushafLine(
                     if (lineInPortion) "Line of today's portion" else "Line outside today's portion"
             },
     ) {
+        val context = LocalContext.current
+        val mushafLineSize = remember(context) { com.mosman.wird.data.WirdStore(context).ayahTextSize.sp }
         val available = with(density) { maxWidth.toPx() }
         // Measure each glyph individually so natural width reflects exactly what the
         // separate Text composables in the SpaceBetween Row measure, with no kerning
         // or ligature discrepancies from a joined run.
-        val natural = remember(glyphs, family) {
+        val natural = remember(glyphs, family, mushafLineSize) {
             glyphs.sumOf { g ->
                 measurer.measure(
                     text = AnnotatedString(g.code),
-                    style = TextStyle(fontFamily = family, fontSize = Scale.mushafLine),
+                    style = TextStyle(fontFamily = family, fontSize = mushafLineSize),
                     softWrap = false,
                 ).size.width
             }.toFloat()
         }
 
-        val fitted = remember(natural, available, density, glyphs.size) {
+        val fitted = remember(natural, available, density, glyphs.size, mushafLineSize) {
             val minGap = with(density) { 3.dp.toPx() }
             val count = glyphs.size
             val target = if (count > 1) {
@@ -508,8 +513,8 @@ private fun MushafLine(
             } else {
                 available * 0.85f
             }
-            if (natural > target && natural > 0f) Scale.mushafLine * (target / natural)
-            else Scale.mushafLine
+            if (natural > target && natural > 0f) mushafLineSize * (target / natural)
+            else mushafLineSize
         }
 
         // **One band behind the run, not a patch per word.**

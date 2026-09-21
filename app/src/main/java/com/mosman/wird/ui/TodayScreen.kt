@@ -398,16 +398,47 @@ fun TodayScreen(
             // When viewing a page outside today's wird (e.g. browsing a Sūrah),
             // play the ayahs on the currently-viewed page instead of jumping to today's wird.
             val isToday = current in todaysPages
-            val verses = if (isToday) {
-                // Only the ayahs actually lit. A half-page portion must not fetch — or recite
-                // — the half you were not asked to read.
-                todaysPages.flatMap { p ->
-                    val layout = repo.layoutOnly(p) ?: return@flatMap emptyList()
-                    litFor(layout)
-                }.distinct()
-            } else {
-                val layout = repo.layoutOnly(current)
-                layout?.glyphs?.map { it.verseKey }?.distinct() ?: emptyList()
+            val downloadAmt = store.downloadAmount
+            val verses = when (downloadAmt) {
+                "Page" -> {
+                    val layout = repo.layoutOnly(current)
+                    if (isToday && layout != null) {
+                        litFor(layout).toList()
+                    } else {
+                        layout?.glyphs?.map { it.verseKey }?.distinct() ?: emptyList()
+                    }
+                }
+                "Surah" -> {
+                    val layout = repo.layoutOnly(current)
+                    val sNum = layout?.glyphs?.firstOrNull()?.verseKey?.substringBefore(':')?.toIntOrNull()
+                        ?: com.mosman.wird.domain.SurahIndex.on(current).firstOrNull()?.number ?: 1
+                    val surah = com.mosman.wird.domain.SurahIndex.byNumber(sNum)
+                    if (surah != null) {
+                        (1..surah.verses).map { "$sNum:$it" }
+                    } else {
+                        layout?.glyphs?.map { it.verseKey }?.distinct() ?: emptyList()
+                    }
+                }
+                "Juz" -> {
+                    val jNum = repo.layoutOnly(current)?.juz ?: com.mosman.wird.domain.JuzIndex.of(current).number
+                    val juz = com.mosman.wird.domain.JuzIndex.all.firstOrNull { it.number == jNum }
+                    val nextPage = com.mosman.wird.domain.JuzIndex.all.getOrNull(jNum)?.firstPage ?: 605
+                    val startP = juz?.firstPage ?: current
+                    (startP until nextPage).flatMap { p ->
+                        repo.layoutOnly(p)?.glyphs?.map { it.verseKey } ?: emptyList()
+                    }.distinct()
+                }
+                else -> {
+                    if (isToday) {
+                        todaysPages.flatMap { p ->
+                            val layout = repo.layoutOnly(p) ?: return@flatMap emptyList()
+                            litFor(layout)
+                        }.distinct()
+                    } else {
+                        val layout = repo.layoutOnly(current)
+                        layout?.glyphs?.map { it.verseKey }?.distinct() ?: emptyList()
+                    }
+                }
             }
 
             if (verses.isEmpty()) {

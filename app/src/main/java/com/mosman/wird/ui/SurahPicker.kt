@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -69,8 +70,13 @@ fun SurahList(
      */
     onOpenPage: ((Int) -> Unit)? = null,
     searchQuery: String? = null,
+    showTranslatedName: Boolean? = null,
     contentPadding: PaddingValues = PaddingValues(bottom = 100.dp),
 ) {
+    val context = LocalContext.current
+    val effectiveShowTranslatedName = showTranslatedName ?: remember(context) {
+        com.mosman.wird.data.WirdStore(context).surahTranslatedName
+    }
     val colors = LocalWirdColors.current
     var internalQuery by remember { mutableStateOf("") }
     val effectiveQuery = searchQuery ?: internalQuery
@@ -134,14 +140,14 @@ fun SurahList(
                             }
                         } else {
                             items(surahs, key = { it.number }) { surah ->
-                                SurahRow(surah, onPick)
+                                SurahRow(surah, onPick, effectiveShowTranslatedName)
                             }
                         }
                     }
                 } else {
                     // Searching: bands would be noise. Four results scattered under four
                     // headings is harder to read than four results.
-                    items(matches, key = { it.number }) { surah -> SurahRow(surah, onPick) }
+                    items(matches, key = { it.number }) { surah -> SurahRow(surah, onPick, effectiveShowTranslatedName) }
                 }
             }
         }
@@ -217,7 +223,11 @@ private fun JuzBand(juz: Juz) {
  * Right: Bare start page number - "1", "2", "50"
  */
 @Composable
-private fun SurahRow(surah: Surah, onPick: (Surah) -> Unit) {
+private fun SurahRow(
+    surah: Surah,
+    onPick: (Surah) -> Unit,
+    showTranslatedName: Boolean = true,
+) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val bg = if (isDark) Color(0xFF13201A) else Color(0xFFFFFFFF)
@@ -269,7 +279,7 @@ private fun SurahRow(surah: Surah, onPick: (Surah) -> Unit) {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = surah.listLabel(),
+                    text = surah.listLabel(includeMeaning = showTranslatedName),
                     color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
                     style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
                 )

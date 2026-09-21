@@ -368,6 +368,10 @@ class WirdStore(context: Context) {
         get() = prefs.getBoolean(KEY_LOCK_ORIENTATION, false)
         set(value) = prefs.edit { putBoolean(KEY_LOCK_ORIENTATION, value) }
 
+    var landscapeOrientation: Boolean
+        get() = prefs.getBoolean(KEY_LANDSCAPE_ORIENTATION, false)
+        set(value) = prefs.edit { putBoolean(KEY_LANDSCAPE_ORIENTATION, value) }
+
     var keepScreenAwake: Boolean
         get() = prefs.getBoolean(KEY_KEEP_AWAKE, true)
         set(value) = prefs.edit { putBoolean(KEY_KEEP_AWAKE, value) }
@@ -381,7 +385,7 @@ class WirdStore(context: Context) {
         set(value) = prefs.edit { putBoolean(KEY_AYAH_BEFORE_TRANS, value) }
 
     var ayahTextSize: Int
-        get() = prefs.getInt(KEY_AYAH_TEXT_SIZE, 15)
+        get() = prefs.getInt(KEY_AYAH_TEXT_SIZE, 24)
         set(value) = prefs.edit { putInt(KEY_AYAH_TEXT_SIZE, value) }
 
     var translationTextSize: Int
@@ -451,6 +455,7 @@ class WirdStore(context: Context) {
         const val KEY_DIRECTION = "reading_direction"
         const val KEY_MODEL = "recitation_model"
         const val KEY_LOCK_ORIENTATION = "lock_orientation"
+        const val KEY_LANDSCAPE_ORIENTATION = "landscape_orientation"
         const val KEY_KEEP_AWAKE = "keep_screen_awake"
         const val KEY_SURAH_TRANSLATED = "surah_translated_name"
         const val KEY_AYAH_BEFORE_TRANS = "ayah_before_translation"

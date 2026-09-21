@@ -228,8 +228,8 @@ object SurahIndex {
  * changes. Comparison folds away case, spacing, hyphens and diacritics, which is what makes
  * "Ya-Sin" match "Ya Sin" and "Taha" match "Ta-Ha".
  */
-fun Surah.listLabel(): String =
-    if (fold(name) == fold(meaning)) name else "$name ($meaning)"
+fun Surah.listLabel(includeMeaning: Boolean = true): String =
+    if (!includeMeaning || fold(name) == fold(meaning)) name else "$name ($meaning)"
 
 private fun fold(text: String): String =
     java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFKD)

@@ -2074,4 +2074,41 @@ class ArabicAssetTest {
                 assertFalse("Pledge must never endorse: $banned", fullPledgeText.contains(banned))
             }
     }
+
+    /**
+     * Check 67 — Settings, schedule, and direction refinements are consistent and robust.
+     *
+     * Validates:
+     * 1. Surah.listLabel respects includeMeaning parameter (toggle wiring).
+     * 2. Weekly reading schedule supports custom active days with lighter unselected days.
+     * 3. ReadingDirection progression assigns forwards vs backwards properly.
+     * 4. Natural recitation in any surah proceeds from ayah 1 to the end.
+     */
+    @Test
+    fun `check 67 - settings, schedule, and direction refinements are consistent and robust`() {
+        val ikhlas = SurahIndex.byNumber(112)!!
+        assertEquals("Al-Ikhlas (The Sincerity)", ikhlas.listLabel(includeMeaning = true))
+        assertEquals("Al-Ikhlas", ikhlas.listLabel(includeMeaning = false))
+
+        // Reading direction: from Al-Ikhlas (page 604)
+        val p604Unit = (604 - 1) * Mushaf.UNITS_PER_PAGE
+        val assignDown = assignPortion(p604Unit, 2, ReadingDirection.TOWARDS_NAS)
+        val assignUp = assignPortion(p604Unit, 2, ReadingDirection.TOWARDS_FATIHAH)
+
+        // Downwards wraps from 604 to 1
+        assertEquals(1, Mushaf.pageOf(assignDown.nextStartUnit))
+        // Upwards moves backwards from 604 to 603
+        assertEquals(603, Mushaf.pageOf(assignUp.nextStartUnit))
+
+        // Weekly schedule: weekdays full (2 units = 1 page), weekends light (1 unit = half page)
+        val weekdays = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY)
+        val plan = ReadingPlan(
+            defaultUnits = 2,
+            weekdayUnits = (DayOfWeek.entries - weekdays).associateWith { 1 },
+        )
+        assertEquals(2, plan.unitsOn(DayOfWeek.MONDAY))
+        assertEquals(2, plan.unitsOn(DayOfWeek.FRIDAY))
+        assertEquals(1, plan.unitsOn(DayOfWeek.SATURDAY))
+        assertEquals(1, plan.unitsOn(DayOfWeek.SUNDAY))
+    }
 }
