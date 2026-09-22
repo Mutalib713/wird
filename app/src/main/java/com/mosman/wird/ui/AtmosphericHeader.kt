@@ -36,6 +36,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.chrono.HijrahDate
+import java.time.temporal.ChronoField
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.StrokeJoin
 import com.mosman.wird.R
 import com.mosman.wird.ui.theme.clayPill
 
@@ -71,7 +77,7 @@ fun AtmosphericHeader(
                 )
             )
             .statusBarsPadding()
-            .padding(top = 10.dp, bottom = 28.dp, start = 18.dp, end = 18.dp)
+            .padding(top = 8.dp, bottom = 20.dp, start = 18.dp, end = 18.dp)
     ) {
         // Atmospheric artwork canvas: Crescent, birds, and mosque silhouette
         Canvas(modifier = Modifier.matchParentSize()) {
@@ -238,12 +244,12 @@ fun AtmosphericHeader(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Bookmark icon button in clay circle
+                    // Bookmark icon button in tactile squircle pill
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(40.dp)
                             .clayPill(
-                                shape = CircleShape,
+                                shape = RoundedCornerShape(12.dp),
                                 backgroundColor = Color(0xFF16382D).copy(alpha = 0.85f),
                                 highlightColor = Color.White.copy(alpha = 0.35f),
                                 shadowColor = Color.Black.copy(alpha = 0.4f),
@@ -253,7 +259,7 @@ fun AtmosphericHeader(
                     ) {
                         BookmarkGlyph(
                             tint = Color(0xFFE4E9E5),
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(19.dp),
                         )
                     }
 
@@ -262,9 +268,9 @@ fun AtmosphericHeader(
                         Box {
                             Box(
                                 modifier = Modifier
-                                    .size(38.dp)
+                                    .size(40.dp)
                                     .clayPill(
-                                        shape = CircleShape,
+                                        shape = RoundedCornerShape(12.dp),
                                         backgroundColor = Color(0xFF16382D).copy(alpha = 0.85f),
                                         highlightColor = Color.White.copy(alpha = 0.35f),
                                         shadowColor = Color.Black.copy(alpha = 0.4f),
@@ -285,45 +291,192 @@ fun AtmosphericHeader(
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
-            // Greeting row (Sun icon + "Good morning, Mutalib" + Date)
+            val currentHour = remember { LocalTime.now().hour }
+            val greeting = remember(currentHour) {
+                when (currentHour) {
+                    in 5..11 -> "Good morning"
+                    in 12..16 -> "Good afternoon"
+                    else -> "Good evening"
+                }
+            }
+            val isDaytime = currentHour in 6..17
+
+            val hijriDate = remember {
+                runCatching {
+                    val today = LocalDate.now()
+                    val h = HijrahDate.from(today)
+                    val monthNames = listOf(
+                        "Muḥarram", "Ṣafar", "Rabīʿ al-Awwal", "Rabīʿ al-Thānī",
+                        "Jumādā al-Ūlā", "Jumādā al-Ākhirah", "Rajab", "Shaʿbān",
+                        "Ramaḍān", "Shawwāl", "Dhū al-Qaʿdah", "Dhū al-Ḥijjah"
+                    )
+                    val mIndex = (h.get(ChronoField.MONTH_OF_YEAR) - 1).coerceIn(0, 11)
+                    val d = h.get(ChronoField.DAY_OF_MONTH)
+                    val y = h.get(ChronoField.YEAR)
+                    "$d ${monthNames[mIndex]} $y"
+                }.getOrDefault("5 Rabī‘ al-Awwal 1448")
+            }
+
+            // Greeting row (Sun/Moon icon + "$greeting, $readerName" + Calendar icon + Date)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_sun),
-                        contentDescription = null,
-                        tint = Color(0xFFF9C86A),
-                        modifier = Modifier.size(22.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
+                    if (isDaytime) {
+                        SunriseGlyph(
+                            tint = Color(0xFFF9C86A),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    } else {
+                        EveningMoonGlyph(
+                            tint = Color(0xFFFFF6DC),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(9.dp))
                     Column {
                         Text(
-                            text = "Good morning, $readerName",
-                            fontSize = 13.5.sp,
+                            text = "$greeting, $readerName",
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFFFFFFF),
                         )
                         Text(
                             text = "May Allah make your Qur'an a light for your heart.",
-                            fontSize = 10.sp,
+                            fontSize = 10.5.sp,
                             color = Color(0xFFA5BAAF),
                         )
                     }
                 }
 
-                Text(
-                    text = "5 Rabī‘ al-Awwal 1448",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFFCBDCD3),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CalendarOutlineGlyph(
+                        tint = Color(0xFFCBDCD3),
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        text = hijriDate,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFFCBDCD3),
+                    )
+                }
             }
         }
+    }
+}
+
+/** Vector sunrise on horizon glyph matching approved reference design */
+@Composable
+private fun SunriseGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
+        // Horizon line
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.10f, h * 0.75f),
+            end = Offset(w * 0.90f, h * 0.75f),
+            strokeWidth = 1.6.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
+        // Rising sun dome
+        drawArc(
+            color = tint,
+            startAngle = 180f,
+            sweepAngle = 180f,
+            useCenter = false,
+            topLeft = Offset(w * 0.30f, h * 0.45f),
+            size = Size(w * 0.40f, h * 0.60f),
+            style = stroke,
+        )
+        // Top ray
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.50f, h * 0.22f),
+            end = Offset(w * 0.50f, h * 0.36f),
+            strokeWidth = 1.6.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
+        // Left diagonal ray
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.24f, h * 0.34f),
+            end = Offset(w * 0.34f, h * 0.44f),
+            strokeWidth = 1.6.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
+        // Right diagonal ray
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.76f, h * 0.34f),
+            end = Offset(w * 0.66f, h * 0.44f),
+            strokeWidth = 1.6.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
+    }
+}
+
+/** Vector crescent moon glyph for evening hours */
+@Composable
+private fun EveningMoonGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val path = Path().apply {
+            moveTo(w * 0.65f, h * 0.15f)
+            cubicTo(w * 0.25f, h * 0.20f, w * 0.25f, h * 0.80f, w * 0.65f, h * 0.85f)
+            cubicTo(w * 0.42f, h * 0.70f, w * 0.42f, h * 0.30f, w * 0.65f, h * 0.15f)
+            close()
+        }
+        drawPath(path, color = tint)
+        drawCircle(color = tint, radius = 1.5.dp.toPx(), center = Offset(w * 0.78f, h * 0.35f))
+    }
+}
+
+/** Clean outline calendar glyph */
+@Composable
+private fun CalendarOutlineGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        // Calendar card body
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(1.dp.toPx(), 2.5.dp.toPx()),
+            size = Size(w - 2.dp.toPx(), h - 3.5.dp.toPx()),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()),
+            style = stroke,
+        )
+        // Top binder rings
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.3f, 0.5.dp.toPx()),
+            end = Offset(w * 0.3f, 3.5.dp.toPx()),
+            strokeWidth = 1.3.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color = tint,
+            start = Offset(w * 0.7f, 0.5.dp.toPx()),
+            end = Offset(w * 0.7f, 3.5.dp.toPx()),
+            strokeWidth = 1.3.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
+        // Binder line
+        drawLine(
+            color = tint,
+            start = Offset(1.dp.toPx(), h * 0.44f),
+            end = Offset(w - 1.dp.toPx(), h * 0.44f),
+            strokeWidth = 1.dp.toPx(),
+        )
     }
 }
 

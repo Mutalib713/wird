@@ -63,6 +63,8 @@ fun SurahsTab(
     onOpenBookmark: (Bookmark) -> Unit = {},
     /** Jump to a bare page, for the "still inside this juz'" rows. */
     onOpenPage: (Int) -> Unit = {},
+    /** Open Bookmarks sheet/screen */
+    onOpenBookmarks: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -121,26 +123,52 @@ fun SurahsTab(
                     )
                 }
 
-                // Tactile Clay Search Button
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clayCard(
-                            shape = CircleShape,
-                            backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFFFFFFF),
-                            highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
-                            shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
-                            elevation = 3.dp,
-                        )
-                        .clickable { searchActive = true },
-                    contentAlignment = Alignment.Center,
+                // Actions: Bookmark Button + Search Button
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Search,
-                        contentDescription = "Search Qur'an",
-                        tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
-                        modifier = Modifier.size(20.dp),
-                    )
+                    // Tactile Bookmark Button
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clayCard(
+                                shape = CircleShape,
+                                backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFFFFFFF),
+                                highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                                shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                                elevation = 3.dp,
+                            )
+                            .clickable { onOpenBookmarks() },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BookmarkGlyph(
+                            tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
+                            modifier = Modifier.size(19.dp),
+                        )
+                    }
+
+                    // Tactile Clay Search Button
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clayCard(
+                                shape = CircleShape,
+                                backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFFFFFFF),
+                                highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                                shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                                elevation = 3.dp,
+                            )
+                            .clickable { searchActive = true },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Search,
+                            contentDescription = "Search Qur'an",
+                            tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
             }
         } else {

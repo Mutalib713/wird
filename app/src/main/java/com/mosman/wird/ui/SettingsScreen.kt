@@ -513,6 +513,7 @@ fun SettingsScreen(
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
                                     ) {
                                         Text(
                                             text = "Ayah font size",
@@ -520,12 +521,36 @@ fun SettingsScreen(
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.SemiBold,
                                         )
-                                        Text(
-                                            text = "$ayahTextSize sp",
-                                            color = Color(0xFF2D6B52),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            if (ayahTextSize != 24) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(if (isDark) Color(0xFF1E382B) else Color(0xFFD6EDE0))
+                                                        .clickable {
+                                                            ayahTextSize = 24
+                                                            store.ayahTextSize = 24
+                                                        }
+                                                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                                                ) {
+                                                    Text(
+                                                        text = "Reset to default",
+                                                        color = if (isDark) Color(0xFF86E39D) else Color(0xFF1E5B42),
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                    )
+                                                }
+                                            }
+                                            Text(
+                                                text = if (ayahTextSize == 24) "$ayahTextSize sp (default)" else "$ayahTextSize sp",
+                                                color = Color(0xFF2D6B52),
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
                                     }
                                     Slider(
                                         value = ayahTextSize.toFloat(),

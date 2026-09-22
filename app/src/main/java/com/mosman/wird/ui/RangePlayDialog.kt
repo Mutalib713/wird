@@ -87,7 +87,7 @@ fun RangePlayDialog(
                 ) {
                     Column {
                         Text(
-                            text = "Memorisation & Loop",
+                            text = "Repeat & Loop",
                             style = TextStyle(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -295,7 +295,7 @@ fun RangePlayDialog(
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            text = "Play $ayahCount ${if (ayahCount == 1) "Ayah" else "Ayahs"}",
+                            text = "Loop $ayahCount ${if (ayahCount == 1) "Ayah" else "Ayahs"}",
                             color = colors.surface,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.5.sp,

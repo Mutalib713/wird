@@ -158,14 +158,32 @@ fun SamplePagePreviewDialog(
                                     fontWeight = FontWeight.SemiBold,
                                     color = colors.textPrimary,
                                 )
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    if (currentSize.toInt() != 24) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(colors.accent.copy(alpha = 0.15f))
+                                                .clickable { currentSize = 24f }
+                                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                                        ) {
+                                            Text(
+                                                text = "Reset",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = colors.accent,
+                                            )
+                                        }
+                                    }
                                     Text(
-                                        text = "${currentSize.toInt()} sp",
+                                        text = if (currentSize.toInt() == 24) "24 sp (default)" else "${currentSize.toInt()} sp",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = colors.accent,
                                     )
-                                    Spacer(Modifier.width(8.dp))
                                     // Status Badge
                                     Box(
                                         modifier = Modifier
@@ -176,7 +194,7 @@ fun SamplePagePreviewDialog(
                                             .padding(horizontal = 6.dp, vertical = 3.dp),
                                     ) {
                                         Text(
-                                            text = if (currentSize <= 24f) "✓ Single-page fit" else "↕ Scroll mode",
+                                            text = if (currentSize <= 24f) "✓ Fit" else "↕ Scroll",
                                             fontSize = 10.5.sp,
                                             fontWeight = FontWeight.Medium,
                                             color = if (currentSize <= 24f) Color(0xFF8ED676) else Color(0xFFE2B768),

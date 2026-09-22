@@ -759,6 +759,7 @@ class MainActivity : ComponentActivity() {
 
                             WirdTab.SURAHS -> SurahsTab(
                                 bookmarks = saved,
+                                onOpenBookmarks = { screen = Screen.BOOKMARKS },
                                 onOpenPage = { p ->
                                     openPage = p
                                     onPage = true

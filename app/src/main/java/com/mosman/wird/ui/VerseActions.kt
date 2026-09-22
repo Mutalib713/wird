@@ -75,7 +75,7 @@ fun VerseActions(
         onPlayRange?.let {
             ActionPainterIcon(
                 painter = androidx.compose.ui.res.painterResource(com.mosman.wird.R.drawable.ic_repeat),
-                label = "Play & repeat range",
+                label = "Repeat & Loop",
                 onClick = it,
             )
         }
