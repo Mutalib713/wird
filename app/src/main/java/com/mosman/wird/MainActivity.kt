@@ -813,6 +813,7 @@ class MainActivity : ComponentActivity() {
                                 scheduleMode = trackScheduleMode,
                                 onSelectTrack = { track ->
                                     store.setActiveTrack(track.id)
+                                    trackScheduleMode = store.trackScheduleMode
                                     activeTrack = store.activeTrack(today)
                                     position = activeTrack.positionUnit
                                     direction = activeTrack.direction

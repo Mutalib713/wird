@@ -447,7 +447,12 @@ class WirdStore(context: Context) {
         get() = runCatching {
             TrackScheduleMode.valueOf(prefs.getString(KEY_TRACK_SCHEDULE_MODE, TrackScheduleMode.AUTOMATIC.name)!!)
         }.getOrDefault(TrackScheduleMode.AUTOMATIC)
-        set(value) = prefs.edit { putString(KEY_TRACK_SCHEDULE_MODE, value.name) }
+        set(value) = prefs.edit {
+            putString(KEY_TRACK_SCHEDULE_MODE, value.name)
+            if (value == TrackScheduleMode.AUTOMATIC) {
+                remove(KEY_ACTIVE_TRACK_ID)
+            }
+        }
 
     var activeSpaceId: String
         get() = prefs.getString(KEY_ACTIVE_SPACE_ID, "home") ?: "home"
@@ -573,6 +578,7 @@ class WirdStore(context: Context) {
 
     fun setActiveTrack(trackId: String) {
         manualActiveTrackId = trackId
+        trackScheduleMode = TrackScheduleMode.MANUAL
         val track = activeTrack()
         positionUnit = track.positionUnit
         readingDirection = track.direction
