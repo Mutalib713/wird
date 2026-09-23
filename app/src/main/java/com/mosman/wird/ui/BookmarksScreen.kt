@@ -81,6 +81,8 @@ fun BookmarksScreen(
 
     SetStatusBarAppearance(isLightBackground = !isDark)
 
+    BackHandler(onBack = onBack)
+
     Column(
         modifier = Modifier
             .fillMaxSize()

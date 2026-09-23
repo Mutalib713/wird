@@ -17,9 +17,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import com.mosman.wird.domain.LifeSpace
+import com.mosman.wird.domain.ReadingTrack
+import com.mosman.wird.domain.TrackScheduleMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -60,6 +64,11 @@ fun AtmosphericHeader(
     onOpenBookmarks: () -> Unit,
     modifier: Modifier = Modifier,
     positionText: String = "Al-Fātihah 1, page 1",
+    activeSpace: LifeSpace? = null,
+    activeTrack: ReadingTrack? = null,
+    scheduleMode: TrackScheduleMode = TrackScheduleMode.AUTOMATIC,
+    onOpenModePicker: () -> Unit = {},
+    onToggleScheduleMode: () -> Unit = {},
     onMenu: (() -> Unit)? = null,
     menu: @Composable () -> Unit = {},
 ) {
@@ -262,31 +271,61 @@ fun AtmosphericHeader(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Bookmark icon button in tactile squircle pill
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clayPill(
-                                shape = RoundedCornerShape(12.dp),
-                                backgroundColor = Color(0xFF16382D).copy(alpha = 0.85f),
-                                highlightColor = Color.White.copy(alpha = 0.35f),
-                                shadowColor = Color.Black.copy(alpha = 0.4f),
-                            )
-                            .clickable(onClick = onOpenBookmarks),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        BookmarkGlyph(
-                            tint = Color(0xFFE4E9E5),
-                            modifier = Modifier.size(19.dp),
-                        )
+                    // Option C: Unified Reading Mode & Track Pill replaces Bookmark icon
+                    if (activeSpace != null && activeTrack != null) {
+                        Box(
+                            modifier = Modifier
+                                .clayPill(
+                                    shape = RoundedCornerShape(999.dp),
+                                    backgroundColor = Color(0xFF16382D).copy(alpha = 0.88f),
+                                    highlightColor = Color.White.copy(alpha = 0.35f),
+                                    shadowColor = Color.Black.copy(alpha = 0.4f),
+                                )
+                                .clickable(onClick = onOpenModePicker)
+                                .padding(horizontal = 11.dp, vertical = 7.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            ) {
+                                LifeSpaceGlyph(
+                                    tint = Color(0xFF8DE0A6),
+                                    modifier = Modifier.size(13.dp),
+                                )
+                                Text(
+                                    text = activeSpace.name,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                                Text(
+                                    text = "·",
+                                    fontSize = 11.sp,
+                                    color = Color.White.copy(alpha = 0.4f),
+                                )
+                                Text(
+                                    text = activeTrack.name.take(12).trimEnd(),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFFC8E8D5),
+                                )
+                                Icon(
+                                    imageVector = Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = "Switch",
+                                    tint = Color(0xFF90A99C),
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
                     }
 
-                    // Optional overflow menu / settings button
+                    // Overflow menu / settings button
                     onMenu?.let { openMenu ->
                         Box {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
+                                    .size(38.dp)
                                     .clayPill(
                                         shape = RoundedCornerShape(12.dp),
                                         backgroundColor = Color(0xFF16382D).copy(alpha = 0.85f),
@@ -309,7 +348,7 @@ fun AtmosphericHeader(
                 }
             }
 
-            Spacer(Modifier.height(58.dp))
+            Spacer(Modifier.height(34.dp))
 
             val currentHour = remember { LocalTime.now().hour }
             val greeting = remember(currentHour) {
@@ -337,7 +376,7 @@ fun AtmosphericHeader(
                 }.getOrDefault("5 Rabī‘ al-Awwal 1448")
             }
 
-            // Greeting & Date (stacked cleanly to leave mosque skyline uncrowded)
+            // Greeting & Date: Hijri Date BEFORE Greeting
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top,
@@ -359,12 +398,7 @@ fun AtmosphericHeader(
                 }
                 Spacer(Modifier.width(10.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(
-                        text = "$greeting, $readerName",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFFFFF),
-                    )
+                    // Date comes FIRST
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -375,16 +409,79 @@ fun AtmosphericHeader(
                         )
                         Text(
                             text = hijriDate,
-                            fontSize = 11.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFFE2EBE5),
                         )
                     }
+                    // Greeting comes SECOND
+                    Text(
+                        text = "$greeting, $readerName",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFFFFF),
+                    )
                     Text(
                         text = "May Allah make your Qur'an a light for your heart.",
                         fontSize = 11.sp,
                         color = Color(0xFFA5BAAF),
                     )
+                }
+            }
+
+            // Sub-mode status row underneath greeting
+            if (activeTrack != null) {
+                Spacer(Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.clickable(onClick = onOpenModePicker),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF4ADE80))
+                        )
+                        val surah = activeTrack.surahName()
+                        val trackLabel = if (surah.isNotEmpty() && !activeTrack.name.contains(surah, ignoreCase = true)) {
+                            "${activeTrack.name} ($surah)"
+                        } else {
+                            activeTrack.name
+                        }
+                        Text(
+                            text = trackLabel,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFD6ECE0),
+                        )
+                    }
+
+                    val schedLabel = if (scheduleMode == TrackScheduleMode.AUTOMATIC) "⏱ Auto" else "Manual"
+                    Box(
+                        modifier = Modifier
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = Color(0xFF142B21).copy(alpha = 0.8f),
+                                elevation = 1.dp,
+                            )
+                            .clickable(onClick = onToggleScheduleMode)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = schedLabel,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFD4AF37),
+                        )
+                    }
                 }
             }
         }

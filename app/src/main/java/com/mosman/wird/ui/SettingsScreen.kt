@@ -478,8 +478,8 @@ fun SettingsScreen(
                             }
                         }
 
-                        // 2. Life Spaces & Reading Tracks
-                        ClaySection(title = "Life Spaces & Reading Tracks") {
+                        // 2. Reading Modes & Tracks
+                        ClaySection(title = "Reading Modes & Tracks") {
                             ClaySettingRow(
                                 title = "Schedule mode",
                                 subtitle = if (trackScheduleMode == TrackScheduleMode.AUTOMATIC) {
@@ -491,7 +491,7 @@ fun SettingsScreen(
                             )
 
                             ClaySettingRow(
-                                title = "Active life space",
+                                title = "Active reading mode",
                                 subtitle = "${activeSpace.name} ${if (activeSpace.isFrozen) "(Paused & Protected)" else "(Active)"} · Tap to switch or pause",
                                 onClick = { activeDialog = SettingsDialog.LIFE_SPACE_MANAGER },
                             )

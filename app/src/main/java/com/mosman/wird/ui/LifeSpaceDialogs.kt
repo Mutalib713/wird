@@ -116,7 +116,7 @@ fun LifeSpaceManagerDialog(
                                 modifier = Modifier.size(20.dp),
                             )
                             Text(
-                                text = "Life Spaces & Routines",
+                                text = "Reading Modes & Tracks",
                                 color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
@@ -140,7 +140,7 @@ fun LifeSpaceManagerDialog(
 
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Life spaces keep different routines separated. For instance, you can keep Home tracks separate from School tracks. When you go to school or travel, freeze Home so your streaks stay protected.",
+                        text = "Reading modes keep different reading routines separated. For instance, you can keep Home tracks separate from School tracks. When you go to school or travel, freeze Home so your streaks stay protected.",
                         color = if (isDark) Color(0xFF9CAFA4) else Color(0xFF6A7C73),
                         fontSize = 12.sp,
                         lineHeight = 16.5.sp,
@@ -311,9 +311,9 @@ fun LifeSpaceManagerDialog(
 
                     Spacer(Modifier.height(10.dp))
 
-                    // Create New Life Space Section
+                    // Create New Reading Mode Section
                     Text(
-                        text = "+ CREATE NEW LIFE SPACE",
+                        text = "+ CREATE NEW READING MODE",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 1.sp,
@@ -373,7 +373,7 @@ fun LifeSpaceManagerDialog(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "Add Space",
+                                text = "Add Mode",
                                 color = Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,

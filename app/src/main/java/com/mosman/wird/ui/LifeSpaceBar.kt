@@ -280,13 +280,15 @@ fun LifeSpaceBar(
 }
 
 /**
- * Modal dialog for switching active life spaces or accessing life space settings.
+ * Modal dialog for switching active Reading Modes and parallel tracks or accessing settings.
  */
 @Composable
 fun LifeSpacePickerDialog(
     currentSpace: LifeSpace,
+    activeTrack: ReadingTrack? = null,
     allSpaces: List<LifeSpace>,
     onSelectSpace: (LifeSpace) -> Unit,
+    onSelectTrack: (ReadingTrack) -> Unit = {},
     onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -306,7 +308,7 @@ fun LifeSpacePickerDialog(
                     elevation = 8.dp,
                 )
                 .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Header
             Row(
@@ -323,8 +325,8 @@ fun LifeSpacePickerDialog(
                         modifier = Modifier.size(20.dp),
                     )
                     Text(
-                        text = "Life Spaces",
-                        fontSize = 18.sp,
+                        text = "Reading Modes & Tracks",
+                        fontSize = 17.5.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
                     )
@@ -346,14 +348,22 @@ fun LifeSpacePickerDialog(
             }
 
             Text(
-                text = "Each life space keeps its own reading tracks and streaks separate. Switch to School when on campus, or Home during vacation.",
-                fontSize = 12.5.sp,
+                text = "Switch between reading modes (Home, School, Ramadan) and your active tracks.",
+                fontSize = 12.sp,
                 color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
-                lineHeight = 17.sp,
+                lineHeight = 16.5.sp,
             )
 
-            // Spaces List
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Section 1: Reading Modes
+            Text(
+                text = "READING MODES",
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.sp,
+                color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+            )
+
+            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 allSpaces.forEach { space ->
                     val isSelected = space.id == currentSpace.id
                     val itemBg = if (isSelected) {
@@ -366,51 +376,43 @@ fun LifeSpacePickerDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clayPill(
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(14.dp),
                                 backgroundColor = itemBg,
                                 elevation = if (isSelected) 3.dp else 1.dp,
                             )
                             .clickable { onSelectSpace(space) }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                            .padding(horizontal = 12.dp, vertical = 9.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Column {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(7.dp),
-                            ) {
-                                Text(
-                                    text = space.name,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                                )
-                                if (space.isFrozen) {
-                                    FreezeGlyph(
-                                        tint = if (isDark) Color(0xFF90CAF9) else Color(0xFF1976D2),
-                                        modifier = Modifier.size(13.dp),
-                                    )
-                                    Text(
-                                        text = "Paused",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = if (isDark) Color(0xFF90CAF9) else Color(0xFF1976D2),
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(2.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(7.dp),
+                        ) {
                             Text(
-                                text = "${space.tracks.size} reading track${if (space.tracks.size != 1) "s" else ""}",
-                                fontSize = 11.5.sp,
-                                color = if (isDark) Color(0xFF7E978B) else Color(0xFF678174),
+                                text = space.name,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
                             )
+                            if (space.isFrozen) {
+                                FreezeGlyph(
+                                    tint = if (isDark) Color(0xFF90CAF9) else Color(0xFF1976D2),
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Text(
+                                    text = "Paused",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isDark) Color(0xFF90CAF9) else Color(0xFF1976D2),
+                                )
+                            }
                         }
 
                         if (isSelected) {
                             Box(
                                 modifier = Modifier
-                                    .size(24.dp)
+                                    .size(20.dp)
                                     .clip(CircleShape)
                                     .background(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
                                 contentAlignment = Alignment.Center,
@@ -419,13 +421,100 @@ fun LifeSpacePickerDialog(
                                     imageVector = Icons.Filled.Check,
                                     contentDescription = "Active",
                                     tint = if (isDark) Color(0xFF0D2720) else Color.White,
-                                    modifier = Modifier.size(15.dp),
+                                    modifier = Modifier.size(13.dp),
                                 )
                             }
                         }
                     }
                 }
             }
+
+            // Section 2: Tracks in current space
+            if (currentSpace.tracks.isNotEmpty()) {
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = "TRACKS IN ${currentSpace.name.uppercase()}",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp,
+                    color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    currentSpace.tracks.forEach { track ->
+                        val isTrackActive = activeTrack?.id == track.id
+                        val trackBg = if (isTrackActive) {
+                            if (isDark) Color(0xFF1D382B) else Color(0xFFDCEDE3)
+                        } else {
+                            if (isDark) Color(0xFF101C16) else Color(0xFFEFECE1)
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clayPill(
+                                    shape = RoundedCornerShape(12.dp),
+                                    backgroundColor = trackBg,
+                                    elevation = if (isTrackActive) 2.dp else 1.dp,
+                                )
+                                .clickable {
+                                    onSelectTrack(track)
+                                    onDismiss()
+                                }
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                TrackTypeGlyph(
+                                    type = track.type,
+                                    tint = if (isTrackActive) {
+                                        if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                                    } else {
+                                        if (isDark) Color(0xFF7E978B) else Color(0xFF678174)
+                                    },
+                                    modifier = Modifier.size(13.dp),
+                                )
+                                Column {
+                                    Text(
+                                        text = track.name,
+                                        fontSize = 13.sp,
+                                        fontWeight = if (isTrackActive) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                    )
+                                    Text(
+                                        text = "${track.type.label} · ${track.scheduleLabel()}",
+                                        fontSize = 10.5.sp,
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                    )
+                                }
+                            }
+
+                            if (isTrackActive) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = "Active Track",
+                                        tint = if (isDark) Color(0xFF0D2720) else Color.White,
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
 
             // Manage in Settings Link
             Box(
@@ -437,7 +526,7 @@ fun LifeSpacePickerDialog(
                         elevation = 1.dp,
                     )
                     .clickable(onClick = onOpenSettings)
-                    .padding(vertical = 12.dp, horizontal = 14.dp),
+                    .padding(vertical = 11.dp, horizontal = 14.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Row(
@@ -445,8 +534,8 @@ fun LifeSpacePickerDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
-                        text = "Manage Spaces & Tracks in Settings",
-                        fontSize = 12.5.sp,
+                        text = "Manage Modes & Tracks in Settings",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
                     )
@@ -454,7 +543,7 @@ fun LifeSpacePickerDialog(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                         contentDescription = null,
                         tint = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                     )
                 }
             }

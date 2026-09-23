@@ -138,13 +138,36 @@ fun HomeScreen(
 
     SetStatusBarAppearance(isLightBackground = false)
 
+    var showModeDialog by remember { mutableStateOf(false) }
+
+    if (showModeDialog && activeSpace != null) {
+        LifeSpacePickerDialog(
+            currentSpace = activeSpace,
+            activeTrack = activeTrack,
+            allSpaces = allSpaces,
+            onSelectSpace = {
+                onSelectSpace(it)
+                showModeDialog = false
+            },
+            onSelectTrack = {
+                onSelectTrack(it)
+                showModeDialog = false
+            },
+            onOpenSettings = {
+                showModeDialog = false
+                onOpenSettings()
+            },
+            onDismiss = { showModeDialog = false },
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(groundColor)
             .verticalScroll(rememberScrollState()),
     ) {
-        // Atmospheric Dawn Mosque Header (reference design)
+        // Atmospheric Dawn Mosque Header (Option C with unified Reading Mode & Track pill)
         AtmosphericHeader(
             readerName = readerName ?: "Mutalib",
             positionText = if (positionLabel.isNotEmpty()) positionLabel else "Al-Fātihah 1, page 1",
@@ -152,6 +175,11 @@ fun HomeScreen(
             onOpenBookmarks = onOpenBookmarks,
             onMenu = onMenu,
             menu = menu,
+            activeSpace = activeSpace,
+            activeTrack = activeTrack,
+            scheduleMode = scheduleMode,
+            onOpenModePicker = { showModeDialog = true },
+            onToggleScheduleMode = onToggleScheduleMode,
         )
 
         // Cards body with soft rounded overlap
@@ -164,21 +192,6 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp, vertical = 6.dp),
         ) {
             var cardIndex = 0
-
-            if (activeSpace != null && activeTrack != null) {
-                StaggeredEnter(index = cardIndex++) {
-                    LifeSpaceBar(
-                        activeSpace = activeSpace,
-                        activeTrack = activeTrack,
-                        allSpaces = allSpaces,
-                        scheduleMode = scheduleMode,
-                        onSelectTrack = onSelectTrack,
-                        onSelectSpace = onSelectSpace,
-                        onToggleScheduleMode = onToggleScheduleMode,
-                        onOpenSettings = onOpenSettings,
-                    )
-                }
-            }
 
             StaggeredEnter(index = cardIndex++) {
                 PortionCard(

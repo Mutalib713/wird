@@ -62,6 +62,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import com.mosman.wird.ui.BookmarkGlyph
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import com.mosman.wird.audio.Recitation
 import com.mosman.wird.data.BookmarkStore
@@ -771,6 +774,10 @@ class MainActivity : ComponentActivity() {
                                                 theme = store.themeMode
                                                 menuOpen = false
                                             },
+                                            onBookmarks = {
+                                                menuOpen = false
+                                                screen = Screen.BOOKMARKS
+                                            },
                                             onSettings = { menuOpen = false; screen = Screen.SETTINGS },
                                             onDismiss = { menuOpen = false },
                                         )
@@ -1108,6 +1115,7 @@ private fun isDark(mode: ThemeMode): Boolean = when (mode) {
 private fun HomeMenu(
     dark: Boolean,
     onNightMode: () -> Unit,
+    onBookmarks: () -> Unit,
     onSettings: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -1117,6 +1125,16 @@ private fun HomeMenu(
         onDismissRequest = onDismiss,
         containerColor = colors.surfaceRaised,
     ) {
+        DropdownMenuItem(
+            text = { Text("Bookmarks & Recents", color = colors.onSurfaceRaised) },
+            leadingIcon = {
+                BookmarkGlyph(
+                    tint = colors.accent,
+                    modifier = Modifier.size(18.dp),
+                )
+            },
+            onClick = onBookmarks,
+        )
         DropdownMenuItem(
             text = { Text("Night mode", color = colors.onSurfaceRaised) },
             trailingIcon = {
