@@ -1,5 +1,6 @@
 package com.mosman.wird.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -78,6 +79,9 @@ fun BookmarksScreen(
     // 0 = Recent pages, 1 = Ayah bookmarks
     var selectedTab by remember { mutableIntStateOf(0) }
 
+    // Handle system back gesture
+    BackHandler(onBack = onBack)
+
     SetStatusBarAppearance(isLightBackground = !isDark)
 
     Column(
@@ -97,7 +101,7 @@ fun BookmarksScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(42.dp)
                         .clayCard(
                             shape = CircleShape,
                             backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFFFFFFF),

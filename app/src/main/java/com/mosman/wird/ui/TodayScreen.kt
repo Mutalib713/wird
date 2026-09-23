@@ -207,6 +207,10 @@ fun TodayScreen(
      * translation mode should not open there tomorrow.
      */
     var translationMode by remember { mutableStateOf(false) }
+    /** Which translation sources to display. Defaults to all bundled translations. */
+    var selectedTranslationSources by remember {
+        mutableStateOf(com.mosman.wird.data.TranslationSource.entries.toList())
+    }
 
     // Recording lives up here, not in the footer control. The record button is at the
     // foot of the page, so the moment you start you scroll up to read — and anything down
@@ -676,6 +680,8 @@ fun TodayScreen(
             TranslationScreen(
                 pageNumber = current,
                 modifier = Modifier.safeDrawingPadding(),
+                showAyah = store.ayahBeforeTranslation,
+                sources = selectedTranslationSources,
             )
         } else {
         MushafPager(
@@ -818,6 +824,8 @@ fun TodayScreen(
                     onToggleBookmark(pageVerseKey)
                     bookmarkTick++
                 },
+                selectedSources = selectedTranslationSources,
+                onSelectSources = { selectedTranslationSources = it },
             )
         }
 
@@ -998,9 +1006,13 @@ private fun ChromeBar(
     onToggleTranslation: () -> Unit,
     bookmarked: Boolean,
     onToggleBookmark: () -> Unit,
+    selectedSources: List<com.mosman.wird.data.TranslationSource> = com.mosman.wird.data.TranslationSource.entries,
+    onSelectSources: (List<com.mosman.wird.data.TranslationSource>) -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     var menuOpen by remember { mutableStateOf(false) }
+    var translationPickerOpen by remember { mutableStateOf(false) }
+
 
     Row(
         modifier = Modifier
@@ -1060,30 +1072,86 @@ private fun ChromeBar(
             }
         }
 
-        // Right side: 1) Bookmark ribbon, 2) Translation globe, 3) 3-lines menu
+        // Right side: 1) Bookmark glyph, 2) Translation globe + picker, 3) 3-lines menu
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            // Bookmark Ribbon Icon
+            // Bookmark Glyph (matches squircle vector style on home screen)
             IconButton(
                 onClick = onToggleBookmark,
                 modifier = Modifier.size(40.dp),
             ) {
-                BookmarkRibbonIcon(
+                BookmarkGlyph(
                     filled = bookmarked,
                     tint = if (bookmarked) Color(0xFFC9A24B) else colors.onSurfaceRaised,
+                    modifier = Modifier.size(20.dp),
                 )
             }
 
-            // Translation Globe Icon
-            IconButton(
-                onClick = onToggleTranslation,
-                modifier = Modifier.size(40.dp),
-            ) {
-                GlobeIcon(
-                    tint = if (translation) Color(0xFFC9A24B) else colors.onSurfaceRaised,
-                )
+            // Translation Globe Icon with picker dropdown when active
+            Box {
+                IconButton(
+                    onClick = {
+                        if (translation) {
+                            translationPickerOpen = !translationPickerOpen
+                        } else {
+                            onToggleTranslation()
+                        }
+                    },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    GlobeIcon(
+                        tint = if (translation) Color(0xFFC9A24B) else colors.onSurfaceRaised,
+                    )
+                }
+
+                // Translation source picker dropdown
+                DropdownMenu(
+                    expanded = translationPickerOpen,
+                    onDismissRequest = { translationPickerOpen = false },
+                    containerColor = colors.surfaceRaised,
+                ) {
+                    // "All translations" option
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                "All Translations",
+                                color = if (selectedSources.size == com.mosman.wird.data.TranslationSource.entries.size) colors.accent else colors.onSurfaceRaised,
+                                fontWeight = if (selectedSources.size == com.mosman.wird.data.TranslationSource.entries.size) FontWeight.Bold else FontWeight.Normal,
+                            )
+                        },
+                        onClick = {
+                            onSelectSources(com.mosman.wird.data.TranslationSource.entries.toList())
+                            translationPickerOpen = false
+                        },
+                    )
+                    // Individual translation sources
+                    com.mosman.wird.data.TranslationSource.entries.forEach { source ->
+                        val isSelected = selectedSources.size == 1 && selectedSources.first() == source
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "${source.label} (${source.by})",
+                                    color = if (isSelected) colors.accent else colors.onSurfaceRaised,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                )
+                            },
+                            onClick = {
+                                onSelectSources(listOf(source))
+                                translationPickerOpen = false
+                            },
+                        )
+                    }
+                    // Toggle off option
+                    DropdownMenuItem(
+                        text = { Text("Hide Translation", color = colors.onSurfaceRaised) },
+                        onClick = {
+                            translationPickerOpen = false
+                            onToggleTranslation()
+                        },
+                    )
+                }
             }
 
             // 3-lines menu icon

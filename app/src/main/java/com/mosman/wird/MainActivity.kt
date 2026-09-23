@@ -92,6 +92,9 @@ import java.time.LocalDateTime
 /** Where the app can be. There is no home screen; today's portion is the front door. */
 private enum class Screen { SETUP, TODAY, SETTINGS, BOOKMARKS }
 
+/** Tracks where the user opened a reading page from, so back returns correctly. */
+private enum class PageSource { HOME, SURAHS, BOOKMARKS }
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -195,6 +198,8 @@ class MainActivity : ComponentActivity() {
             var onPage by remember { mutableStateOf(false) }
             /** Whether current reader session is Today's Wird or general Sūrah reading. */
             var isWirdSession by remember { mutableStateOf(true) }
+            /** Where this reading page was opened from, for correct back navigation. */
+            var pageSource by remember { mutableStateOf(PageSource.HOME) }
             val playback = remember { Recitation(this@MainActivity) }
 
             /**
@@ -285,10 +290,13 @@ class MainActivity : ComponentActivity() {
             // system so back still leaves the app from where leaving makes sense.
             BackHandler(enabled = onChat) { onChat = false }
             BackHandler(enabled = !onChat && screen == Screen.SETTINGS) { screen = Screen.TODAY }
+            BackHandler(enabled = !onChat && screen == Screen.BOOKMARKS) { screen = Screen.TODAY }
             BackHandler(enabled = !onChat && screen == Screen.TODAY && onPage) {
                 onPage = false
-                if (!isWirdSession) {
-                    tab = WirdTab.SURAHS
+                when (pageSource) {
+                    PageSource.SURAHS -> tab = WirdTab.SURAHS
+                    PageSource.BOOKMARKS -> screen = Screen.BOOKMARKS
+                    PageSource.HOME -> { /* stay on HOME tab, which is the default */ }
                 }
             }
             BackHandler(enabled = !onChat && screen == Screen.TODAY && !onPage && tab != WirdTab.HOME) {
@@ -385,10 +393,12 @@ class MainActivity : ComponentActivity() {
                         is CompanionAction.OpenSurah -> {
                             openPage = action.surah.firstPage
                             onPage = true
+                            pageSource = PageSource.HOME
                             onChat = false
                         }
                         is CompanionAction.Listen -> {
                             onPage = true
+                            pageSource = PageSource.HOME
                             onChat = false
                         }
 
@@ -612,8 +622,10 @@ class MainActivity : ComponentActivity() {
                             dark = pageDark,
                             onBack = {
                                 onPage = false
-                                if (!isWirdSession) {
-                                    tab = WirdTab.SURAHS
+                                when (pageSource) {
+                                    PageSource.SURAHS -> tab = WirdTab.SURAHS
+                                    PageSource.BOOKMARKS -> screen = Screen.BOOKMARKS
+                                    PageSource.HOME -> { /* stay on HOME tab */ }
                                 }
                             },
                             isBookmarked = { key -> bookmarks.has(key) },
@@ -704,6 +716,7 @@ class MainActivity : ComponentActivity() {
                                 onOpenPage = {
                                     onPage = true
                                     isWirdSession = true
+                                    pageSource = PageSource.HOME
                                     openPage = null
                                 },
                                 positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
@@ -764,6 +777,7 @@ class MainActivity : ComponentActivity() {
                                     openPage = p
                                     onPage = true
                                     isWirdSession = false
+                                    pageSource = PageSource.SURAHS
                                 },
                                 onOpenBookmark = { b ->
                                     openPage = com.mosman.wird.domain.SurahIndex
@@ -771,12 +785,15 @@ class MainActivity : ComponentActivity() {
                                         ?.firstPage
                                     onPage = true
                                     isWirdSession = false
+                                    pageSource = PageSource.SURAHS
                                 },
                                 onPick = { surah ->
                                     openPage = surah.firstPage
                                     onPage = true
                                     isWirdSession = false
+                                    pageSource = PageSource.SURAHS
                                 },
+                                onBack = { tab = WirdTab.HOME },
                             )
 
                             WirdTab.HISTORY -> RecitationsScreen(
@@ -785,6 +802,7 @@ class MainActivity : ComponentActivity() {
                                 coveredFor = { d -> days.coveredOn(d) },
                                 onPlay = { f -> playback.play(f) },
                                 onStop = { playback.stopPlaying() },
+                                onBack = { tab = WirdTab.HOME },
                             )
                         }
 
@@ -932,8 +950,8 @@ class MainActivity : ComponentActivity() {
                             store.recordRecentPage(p)
                             openPage = p
                             onPage = true
+                            pageSource = PageSource.BOOKMARKS
                             screen = Screen.TODAY
-                            tab = WirdTab.HOME
                         },
                         onOpenBookmark = { b ->
                             val surahNum = b.verseKey.substringBefore(':').toIntOrNull() ?: 1
@@ -941,8 +959,8 @@ class MainActivity : ComponentActivity() {
                             store.recordRecentPage(targetPage)
                             openPage = targetPage
                             onPage = true
+                            pageSource = PageSource.BOOKMARKS
                             screen = Screen.TODAY
-                            tab = WirdTab.HOME
                         },
                         onRemoveBookmark = { key ->
                             bookmarks.toggle(key)
@@ -952,9 +970,8 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                BackHandler(enabled = screen == Screen.SETTINGS || screen == Screen.BOOKMARKS) {
-                    screen = Screen.TODAY
-                }
+                // (Removed: the duplicate BackHandler that overrode Settings sub-screen
+                // and Bookmarks back navigation, jumping straight to TODAY.)
             }
         }
     }

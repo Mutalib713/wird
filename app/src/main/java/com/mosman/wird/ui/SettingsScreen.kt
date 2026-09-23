@@ -224,9 +224,11 @@ fun SettingsScreen(
         }
     }
 
-    // Intercept back button when inside a sub-screen or page picker
-    BackHandler(enabled = subScreen != SettingsSubScreen.MAIN || pickingPageForSurah != null) {
-        if (pickingPageForSurah != null) {
+    // Intercept back button when inside a modal dialog, sub-screen, or page picker
+    BackHandler(enabled = activeDialog != null || subScreen != SettingsSubScreen.MAIN || pickingPageForSurah != null) {
+        if (activeDialog != null) {
+            activeDialog = null
+        } else if (pickingPageForSurah != null) {
             pickingPageForSurah = null
         } else if (subScreen == SettingsSubScreen.POSITION_PICKER && positionSearchActive) {
             positionSearchActive = false

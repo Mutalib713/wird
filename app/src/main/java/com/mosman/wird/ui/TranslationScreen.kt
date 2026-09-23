@@ -61,6 +61,8 @@ fun TranslationScreen(
     modifier: Modifier = Modifier,
     /** Which sources to show, in order. All three are bundled; § 5z. */
     sources: List<TranslationSource> = TranslationSource.entries,
+    /** When false, omit the Arabic ayah glyphs and show only translation text. */
+    showAyah: Boolean = true,
 ) {
     val colors = LocalWirdColors.current
     val context = LocalContext.current
@@ -120,6 +122,7 @@ fun TranslationScreen(
                     lines = sources.mapNotNull { s ->
                         bySource[s]?.get(key)?.let { s to it }
                     },
+                    showAyah = showAyah,
                 )
             }
         }
@@ -140,6 +143,7 @@ private fun VerseBlock(
     glyphs: String,
     family: FontFamily,
     lines: List<Pair<TranslationSource, String>>,
+    showAyah: Boolean = true,
 ) {
     val colors = LocalWirdColors.current
 
@@ -151,15 +155,17 @@ private fun VerseBlock(
         )
         Spacer(Modifier.height(Scale.space3))
 
-        // The ayah, in the page's own font. Right-aligned because it is Arabic; the glyph
-        // codes carry their own shaping, so nothing here needs an RTL layout direction.
-        Text(
-            text = glyphs,
-            color = colors.textPrimary,
-            textAlign = TextAlign.End,
-            style = TextStyle(fontFamily = family, fontSize = Scale.mushafLine, lineHeight = 52.sp),
-            modifier = Modifier.fillMaxWidth(),
-        )
+        // The ayah, in the page's own font. Only shown when the user has
+        // "Show ayah before translation" enabled in Settings.
+        if (showAyah) {
+            Text(
+                text = glyphs,
+                color = colors.textPrimary,
+                textAlign = TextAlign.End,
+                style = TextStyle(fontFamily = family, fontSize = Scale.mushafLine, lineHeight = 52.sp),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
 
         lines.forEach { (source, text) ->
             Spacer(Modifier.height(Scale.space3))

@@ -1,5 +1,6 @@
 package com.mosman.wird.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -65,6 +67,7 @@ fun SurahsTab(
     onOpenPage: (Int) -> Unit = {},
     /** Open Bookmarks sheet/screen */
     onOpenBookmarks: () -> Unit = {},
+    onBack: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -78,6 +81,15 @@ fun SurahsTab(
         if (searchActive) {
             focusRequester.requestFocus()
         }
+    }
+
+    // Intercept back button: dismiss active search first, or return to Home
+    BackHandler(enabled = searchActive) {
+        searchActive = false
+        query = ""
+    }
+    BackHandler(enabled = !searchActive) {
+        onBack()
     }
 
     SetStatusBarAppearance(isLightBackground = !isDark)
@@ -97,30 +109,55 @@ fun SurahsTab(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "Wırd",
-                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                            fontSize = 25.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.5).sp,
-                        )
-                        Spacer(Modifier.width(2.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .offset(y = (-7).dp)
-                                .background(Color(0xFF50A773), CircleShape),
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clayCard(
+                                shape = CircleShape,
+                                backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFFFFFFF),
+                                highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                                shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                                elevation = 3.dp,
+                            )
+                            .clickable(onClick = onBack),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back to Home",
+                            tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = "The 114 Sūrahs",
-                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
+
+                    Spacer(Modifier.width(14.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Wırd",
+                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.5).sp,
+                            )
+                            Spacer(Modifier.width(2.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .offset(y = (-7).dp)
+                                    .background(Color(0xFF50A773), CircleShape),
+                            )
+                        }
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "The 114 Sūrahs",
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
 
                 // Actions: Bookmark Button + Search Button

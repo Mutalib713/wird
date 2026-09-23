@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,7 +41,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.chrono.HijrahDate
 import java.time.temporal.ChronoField
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.StrokeJoin
 import com.mosman.wird.R
 import com.mosman.wird.ui.theme.clayPill
@@ -64,6 +66,7 @@ fun AtmosphericHeader(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 240.dp)
             .background(
                 Brush.linearGradient(
                     colors = listOf(
@@ -77,7 +80,7 @@ fun AtmosphericHeader(
                 )
             )
             .statusBarsPadding()
-            .padding(top = 8.dp, bottom = 20.dp, start = 18.dp, end = 18.dp)
+            .padding(top = 16.dp, bottom = 42.dp, start = 18.dp, end = 18.dp)
     ) {
         // Atmospheric artwork canvas: Crescent, birds, and mosque silhouette
         Canvas(modifier = Modifier.matchParentSize()) {
@@ -85,8 +88,8 @@ fun AtmosphericHeader(
             val h = size.height
 
             // Glowing crescent moon (positioned in upper sky clear of top-right buttons)
-            val moonCenter = Offset(w * 0.58f, h * 0.22f)
-            val moonRadius = 14.dp.toPx()
+            val moonCenter = Offset(w * 0.65f, h * 0.28f)
+            val moonRadius = 13.dp.toPx()
             drawCircle(
                 color = Color(0xFFFFF6DC).copy(alpha = 0.95f),
                 radius = moonRadius,
@@ -105,25 +108,40 @@ fun AtmosphericHeader(
             
             // Bird 1
             val bird1 = Path().apply {
-                moveTo(w * 0.68f, h * 0.28f)
-                quadraticTo(w * 0.70f, h * 0.25f, w * 0.72f, h * 0.28f)
-                quadraticTo(w * 0.74f, h * 0.25f, w * 0.76f, h * 0.28f)
+                moveTo(w * 0.68f, h * 0.38f)
+                quadraticTo(w * 0.70f, h * 0.35f, w * 0.72f, h * 0.38f)
+                quadraticTo(w * 0.74f, h * 0.35f, w * 0.76f, h * 0.38f)
             }
             drawPath(bird1, color = birdColor, style = birdStroke)
 
             // Bird 2
             val bird2 = Path().apply {
-                moveTo(w * 0.76f, h * 0.24f)
-                quadraticTo(w * 0.775f, h * 0.21f, w * 0.79f, h * 0.24f)
-                quadraticTo(w * 0.805f, h * 0.21f, w * 0.82f, h * 0.24f)
+                moveTo(w * 0.76f, h * 0.34f)
+                quadraticTo(w * 0.775f, h * 0.31f, w * 0.79f, h * 0.34f)
+                quadraticTo(w * 0.805f, h * 0.31f, w * 0.82f, h * 0.34f)
             }
             drawPath(bird2, color = birdColor, style = birdStroke)
 
             // Mosque silhouette (Minaret, Domes, Base)
             val mosqueColor = Color(0xFF132D24).copy(alpha = 0.95f)
-            val minaretLeft = w * 0.86f
             
-            // Minaret tower
+            // Slender secondary minaret in the background
+            val secMinaretLeft = w * 0.71f
+            drawRect(
+                color = mosqueColor.copy(alpha = 0.8f),
+                topLeft = Offset(secMinaretLeft - 3.dp.toPx(), h * 0.42f),
+                size = Size(6.dp.toPx(), h * 0.58f),
+            )
+            val secMinaretTip = Path().apply {
+                moveTo(secMinaretLeft, h * 0.36f)
+                lineTo(secMinaretLeft - 3.dp.toPx(), h * 0.42f)
+                lineTo(secMinaretLeft + 3.dp.toPx(), h * 0.42f)
+                close()
+            }
+            drawPath(secMinaretTip, color = mosqueColor.copy(alpha = 0.8f))
+
+            // Main minaret tower
+            val minaretLeft = w * 0.85f
             drawRect(
                 color = mosqueColor,
                 topLeft = Offset(minaretLeft - 4.dp.toPx(), h * 0.35f),
@@ -152,12 +170,12 @@ fun AtmosphericHeader(
 
             // Main central dome
             val domePath = Path().apply {
-                val domeCenterX = w * 0.72f
-                val domeRadius = 38.dp.toPx()
+                val domeCenterX = w * 0.74f
+                val domeRadius = 40.dp.toPx()
                 moveTo(domeCenterX - domeRadius, h)
                 cubicTo(
-                    domeCenterX - domeRadius, h - domeRadius * 1.3f,
-                    domeCenterX + domeRadius, h - domeRadius * 1.3f,
+                    domeCenterX - domeRadius, h - domeRadius * 1.35f,
+                    domeCenterX + domeRadius, h - domeRadius * 1.35f,
                     domeCenterX + domeRadius, h
                 )
                 close()
@@ -167,15 +185,15 @@ fun AtmosphericHeader(
             // Dome finial
             drawLine(
                 color = mosqueColor,
-                start = Offset(w * 0.72f, h - 54.dp.toPx()),
-                end = Offset(w * 0.72f, h - 42.dp.toPx()),
+                start = Offset(w * 0.74f, h - 58.dp.toPx()),
+                end = Offset(w * 0.74f, h - 45.dp.toPx()),
                 strokeWidth = 2.dp.toPx(),
                 cap = StrokeCap.Round,
             )
             drawCircle(
                 color = Color(0xFFE8DCB8),
                 radius = 2.dp.toPx(),
-                center = Offset(w * 0.72f, h - 55.dp.toPx()),
+                center = Offset(w * 0.74f, h - 59.dp.toPx()),
             )
         }
 
@@ -291,7 +309,7 @@ fun AtmosphericHeader(
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(58.dp))
 
             val currentHour = remember { LocalTime.now().hour }
             val greeting = remember(currentHour) {
@@ -480,9 +498,13 @@ private fun CalendarOutlineGlyph(tint: Color, modifier: Modifier = Modifier) {
     }
 }
 
-/** Crisp vector ribbon bookmark glyph */
+/** Crisp vector ribbon bookmark glyph matching the home screen */
 @Composable
-fun BookmarkGlyph(tint: Color, modifier: Modifier = Modifier) {
+fun BookmarkGlyph(
+    tint: Color,
+    modifier: Modifier = Modifier,
+    filled: Boolean = false,
+) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
@@ -494,10 +516,22 @@ fun BookmarkGlyph(tint: Color, modifier: Modifier = Modifier) {
             lineTo(w * 0.22f, h * 0.88f)
             close()
         }
-        drawPath(
-            path = path,
-            color = tint,
-            style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round),
-        )
+        if (filled) {
+            drawPath(
+                path = path,
+                color = tint,
+                style = Fill,
+            )
+        } else {
+            drawPath(
+                path = path,
+                color = tint,
+                style = Stroke(
+                    width = 1.8.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                ),
+            )
+        }
     }
 }
