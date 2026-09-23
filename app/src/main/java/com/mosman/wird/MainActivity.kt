@@ -290,7 +290,10 @@ class MainActivity : ComponentActivity() {
             // system so back still leaves the app from where leaving makes sense.
             BackHandler(enabled = onChat) { onChat = false }
             BackHandler(enabled = !onChat && screen == Screen.SETTINGS) { screen = Screen.TODAY }
-            BackHandler(enabled = !onChat && screen == Screen.BOOKMARKS) { screen = Screen.TODAY }
+            BackHandler(enabled = !onChat && screen == Screen.BOOKMARKS) {
+                tab = WirdTab.HOME
+                screen = Screen.TODAY
+            }
             BackHandler(enabled = !onChat && screen == Screen.TODAY && onPage) {
                 onPage = false
                 when (pageSource) {
@@ -966,7 +969,10 @@ class MainActivity : ComponentActivity() {
                             bookmarks.toggle(key)
                             saved = bookmarks.all()
                         },
-                        onBack = { screen = Screen.TODAY },
+                        onBack = {
+                            tab = WirdTab.HOME
+                            screen = Screen.TODAY
+                        },
                     )
                 }
 

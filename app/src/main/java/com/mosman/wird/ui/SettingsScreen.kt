@@ -1389,14 +1389,8 @@ fun SettingsScreen(
             }
 
             SettingsDialog.DAILY_TARGET -> {
-                ClayOptionDialog(
-                    title = "Daily reading target",
-                    options = listOf(
-                        DialogOption(1, "Half a page", "Light daily portion"),
-                        DialogOption(2, "1 page", "Recommended daily portion"),
-                        DialogOption(4, "2 pages", "Faster completion pace"),
-                    ),
-                    selected = plan.defaultUnits,
+                DailyTargetDialog(
+                    currentUnits = plan.defaultUnits,
                     onSelect = { units ->
                         onPlan(plan.copy(defaultUnits = units))
                     },
@@ -2423,11 +2417,332 @@ fun approxAudioSize(verses: Int): String {
     return String.format(java.util.Locale.getDefault(), "%.1f MB", mb)
 }
 
-private fun amountLabel(units: Int): String = when (units) {
-    1 -> "Half a page"
-    2 -> "One page"
-    4 -> "Two pages"
-    else -> "$units half-pages"
+private fun amountLabel(units: Int): String = when {
+    units == 1 -> "Half a page"
+    units == 2 -> "One page"
+    units == 4 -> "Two pages"
+    units % 2 == 0 -> "${units / 2} pages"
+    else -> "${units / 2}½ pages"
+}
+
+@Composable
+private fun DailyTargetDialog(
+    currentUnits: Int,
+    onSelect: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+
+    val isStandardPreset = currentUnits in listOf(1, 2, 4)
+    var isCustom by remember { mutableStateOf(!isStandardPreset) }
+    var selectedUnits by remember { mutableIntStateOf(currentUnits) }
+    var customMode by remember { mutableStateOf("pages") } // "pages" or "verses"
+    var customInputText by remember {
+        mutableStateOf(
+            if (!isStandardPreset) {
+                if (currentUnits % 2 == 0) "${currentUnits / 2}" else "$currentUnits"
+            } else "3"
+        )
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(onClick = onDismiss)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(28.dp),
+                        backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.95f),
+                        shadowColor = Color.Black.copy(alpha = 0.35f),
+                        elevation = 16.dp,
+                    )
+                    .clickable(enabled = false) {}
+                    .padding(22.dp),
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Daily reading target",
+                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.3).sp,
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
+                    Text(
+                        text = "Choose how much you read each day, or set a custom amount.",
+                        color = colors.textSecondary,
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        modifier = Modifier.padding(bottom = 16.dp),
+                    )
+
+                    // Presets list
+                    val presets = listOf(
+                        1 to ("Half a page" to "Light daily portion"),
+                        2 to ("1 page" to "Recommended daily portion"),
+                        4 to ("2 pages" to "Faster completion pace"),
+                    )
+
+                    presets.forEach { (units, textPair) ->
+                        val (label, desc) = textPair
+                        val isSelected = !isCustom && selectedUnits == units
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clayCard(
+                                    shape = RoundedCornerShape(14.dp),
+                                    backgroundColor = if (isSelected) {
+                                        if (isDark) Color(0xFF1D3528) else Color(0xFFE8F1EC)
+                                    } else {
+                                        if (isDark) Color(0xFF18221D) else Color(0xFFF5F1E8)
+                                    },
+                                    elevation = if (isSelected) 2.dp else 1.dp,
+                                    strokeWidth = if (isSelected) 1.5.dp else 1.dp,
+                                )
+                                .clickable {
+                                    isCustom = false
+                                    selectedUnits = units
+                                    onSelect(units)
+                                    onDismiss()
+                                }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column {
+                                Text(
+                                    text = label,
+                                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                )
+                                Text(
+                                    text = desc,
+                                    color = colors.textSecondary,
+                                    fontSize = 11.5.sp,
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = gold,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    // Custom Option
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clayCard(
+                                shape = RoundedCornerShape(14.dp),
+                                backgroundColor = if (isCustom) {
+                                    if (isDark) Color(0xFF1D3528) else Color(0xFFE8F1EC)
+                                } else {
+                                    if (isDark) Color(0xFF18221D) else Color(0xFFF5F1E8)
+                                } ,
+                                elevation = if (isCustom) 2.dp else 1.dp,
+                                strokeWidth = if (isCustom) 1.5.dp else 1.dp,
+                            )
+                            .clickable {
+                                isCustom = true
+                            }
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column {
+                            Text(
+                                text = "Custom",
+                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                fontSize = 14.sp,
+                                fontWeight = if (isCustom) FontWeight.Bold else FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = "Set your own number of pages or verses",
+                                color = colors.textSecondary,
+                                fontSize = 11.5.sp,
+                            )
+                        }
+                        if (isCustom) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Selected",
+                                tint = gold,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+
+                    // Expanded Custom Input Area
+                    if (isCustom) {
+                        Spacer(Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clayCard(
+                                    shape = RoundedCornerShape(14.dp),
+                                    backgroundColor = if (isDark) Color(0xFF18221D) else Color(0xFFF5EFE3),
+                                    elevation = 1.dp,
+                                )
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(
+                                    modifier = Modifier
+                                        .clayPill(
+                                            backgroundColor = if (customMode == "pages") colors.accent else Color.Transparent,
+                                            elevation = if (customMode == "pages") 2.dp else 0.dp,
+                                        )
+                                        .clickable { customMode = "pages"; customInputText = "3" }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                ) {
+                                    Text(
+                                        text = "Pages",
+                                        color = if (customMode == "pages") Color.White else colors.textSecondary,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clayPill(
+                                            backgroundColor = if (customMode == "verses") colors.accent else Color.Transparent,
+                                            elevation = if (customMode == "verses") 2.dp else 0.dp,
+                                        )
+                                        .clickable { customMode = "verses"; customInputText = "15" }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                ) {
+                                    Text(
+                                        text = "Verses",
+                                        color = if (customMode == "verses") Color.White else colors.textSecondary,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                }
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(60.dp)
+                                        .clayCard(
+                                            shape = RoundedCornerShape(8.dp),
+                                            backgroundColor = if (isDark) Color(0xFF0F1A14) else Color(0xFFFFFFFF),
+                                            elevation = 1.dp,
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    androidx.compose.foundation.text.BasicTextField(
+                                        value = customInputText,
+                                        onValueChange = { customInputText = it.filter { ch -> ch.isDigit() }.take(3) },
+                                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                        ),
+                                        textStyle = TextStyle(
+                                            color = gold,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        ),
+                                        singleLine = true,
+                                    )
+                                }
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text = customMode,
+                                    fontSize = 12.sp,
+                                    color = colors.textSecondary,
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clayPill(
+                                    backgroundColor = if (isDark) Color(0xFF1E2E25) else Color(0xFFEDE8DD),
+                                    elevation = 2.dp,
+                                )
+                                .clickable(onClick = onDismiss)
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Cancel",
+                                color = colors.textSecondary,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+
+                        if (isCustom) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1.2f)
+                                    .clayPill(
+                                        backgroundColor = colors.accent,
+                                        elevation = 3.dp,
+                                    )
+                                    .clickable {
+                                        val num = customInputText.toIntOrNull() ?: 1
+                                        val units = if (customMode == "pages") {
+                                            (num * 2).coerceIn(1, 40)
+                                        } else {
+                                            when {
+                                                num <= 5 -> 1
+                                                num <= 10 -> 2
+                                                num <= 20 -> 4
+                                                else -> ((num / 10) * 2).coerceIn(1, 40)
+                                            }
+                                        }
+                                        onSelect(units)
+                                        onDismiss()
+                                    }
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "Save Custom",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

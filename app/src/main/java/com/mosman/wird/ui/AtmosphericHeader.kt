@@ -337,51 +337,53 @@ fun AtmosphericHeader(
                 }.getOrDefault("5 Rabī‘ al-Awwal 1448")
             }
 
-            // Greeting row (Sun/Moon icon + "$greeting, $readerName" + Calendar icon + Date)
+            // Greeting & Date (stacked cleanly to leave mosque skyline uncrowded)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Top,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (isDaytime) {
-                        SunriseGlyph(
-                            tint = Color(0xFFF9C86A),
-                            modifier = Modifier.size(24.dp),
-                        )
-                    } else {
-                        EveningMoonGlyph(
-                            tint = Color(0xFFFFF6DC),
-                            modifier = Modifier.size(24.dp),
-                        )
-                    }
-                    Spacer(Modifier.width(9.dp))
-                    Column {
-                        Text(
-                            text = "$greeting, $readerName",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFFFFFF),
-                        )
-                        Text(
-                            text = "May Allah make your Qur'an a light for your heart.",
-                            fontSize = 10.5.sp,
-                            color = Color(0xFFA5BAAF),
-                        )
-                    }
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    CalendarOutlineGlyph(
-                        tint = Color(0xFFCBDCD3),
-                        modifier = Modifier.size(13.dp),
+                if (isDaytime) {
+                    SunriseGlyph(
+                        tint = Color(0xFFF9C86A),
+                        modifier = Modifier
+                            .size(24.dp)
+                            .padding(top = 2.dp),
                     )
-                    Spacer(Modifier.width(5.dp))
+                } else {
+                    EveningMoonGlyph(
+                        tint = Color(0xFFFFF6DC),
+                        modifier = Modifier
+                            .size(24.dp)
+                            .padding(top = 2.dp),
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(
-                        text = hijriDate,
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFFCBDCD3),
+                        text = "$greeting, $readerName",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFFFFF),
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        CalendarOutlineGlyph(
+                            tint = Color(0xFFD4AF37),
+                            modifier = Modifier.size(12.dp),
+                        )
+                        Text(
+                            text = hijriDate,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFFE2EBE5),
+                        )
+                    }
+                    Text(
+                        text = "May Allah make your Qur'an a light for your heart.",
+                        fontSize = 11.sp,
+                        color = Color(0xFFA5BAAF),
                     )
                 }
             }

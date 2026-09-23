@@ -211,11 +211,14 @@ fun TodayScreen(
     var selectedTranslationSources by remember {
         mutableStateOf(com.mosman.wird.data.TranslationSource.entries.toList())
     }
+    val context0 = LocalContext.current
+    val store = remember(context0) { com.mosman.wird.data.WirdStore(context0) }
+    var showAyahBeforeTranslation by remember { mutableStateOf(store.ayahBeforeTranslation) }
+    var showTranslationDialog by remember { mutableStateOf(false) }
 
     // Recording lives up here, not in the footer control. The record button is at the
     // foot of the page, so the moment you start you scroll up to read — and anything down
     // there goes out of sight. Mutalib started a recitation and could not tell it was on.
-    val context0 = LocalContext.current
     val recitation = remember { Recitation(context0) }
     var recording by remember { mutableStateOf(false) }
     var seconds by remember { mutableIntStateOf(0) }
@@ -313,7 +316,6 @@ fun TodayScreen(
     val portionAudio = remember { PortionAudio(context) }
     var audio by remember { mutableStateOf<AudioState>(AudioState.Idle) }
     val scope = rememberCoroutineScope()
-    val store = remember(context) { com.mosman.wird.data.WirdStore(context) }
     var selectedReciter by remember { mutableStateOf(store.selectedReciter) }
     var showReciterPicker by remember { mutableStateOf(false) }
 
@@ -495,10 +497,13 @@ fun TodayScreen(
                 return@launch
             }
 
-            // An ayah he tapped on some other page is not part of today's portion, so the
-            // portion is not what he asked for. Play the one ayah.
-            val list = if (customVerses != null) customVerses else if (startAt != null && startAt !in verses) listOf(startAt) else verses
-            val begin = if (startAt != null) list.indexOf(startAt).coerceAtLeast(0) else 0
+            // If startAt was not specified, start at the first verse on the currently viewed page
+            val effectiveStartAt = startAt ?: run {
+                val layout = repo.layoutOnly(current)
+                layout?.glyphs?.firstOrNull { !it.isEndMarker }?.verseKey
+            }
+            val list = if (customVerses != null) customVerses else if (effectiveStartAt != null && effectiveStartAt !in verses) listOf(effectiveStartAt) else verses
+            val begin = if (effectiveStartAt != null) list.indexOf(effectiveStartAt).coerceAtLeast(0) else 0
             loaded = list
             rangeRepeat = rangeRepeatCount
 
@@ -508,7 +513,7 @@ fun TodayScreen(
                     val bytes = portionAudio.uncachedBytesEstimate(list, audioQuality, selectedReciter)
                     uncachedAudioMb = (bytes.toFloat() / (1024 * 1024)).coerceAtLeast(0.5f)
                     pendingListenAyahs = list
-                    pendingListenStartAt = startAt
+                    pendingListenStartAt = effectiveStartAt
                     showMobileAudioPrompt = true
                     return@launch
                 }
@@ -682,6 +687,8 @@ fun TodayScreen(
                 modifier = Modifier.safeDrawingPadding(),
                 showAyah = store.ayahBeforeTranslation,
                 sources = selectedTranslationSources,
+                onSelectSources = { selectedTranslationSources = it },
+                onBackgroundTap = { chromeShown = !chromeShown },
             )
         } else {
         MushafPager(
@@ -819,6 +826,7 @@ fun TodayScreen(
                 onBack = onBack,
                 translation = translationMode,
                 onToggleTranslation = { translationMode = !translationMode },
+                onOpenTranslationDialog = { showTranslationDialog = true },
                 bookmarked = remember(pageVerseKey, bookmarkTick) { isBookmarked(pageVerseKey) },
                 onToggleBookmark = {
                     onToggleBookmark(pageVerseKey)
@@ -826,6 +834,26 @@ fun TodayScreen(
                 },
                 selectedSources = selectedTranslationSources,
                 onSelectSources = { selectedTranslationSources = it },
+            )
+        }
+
+        if (showTranslationDialog) {
+            TranslationDialog(
+                isTranslationActive = translationMode,
+                selectedSources = selectedTranslationSources,
+                showAyahBeforeTranslation = showAyahBeforeTranslation,
+                onToggleActive = { active ->
+                    translationMode = active
+                },
+                onSelectSources = { sources ->
+                    selectedTranslationSources = sources
+                    translationMode = true
+                },
+                onToggleShowAyah = { show ->
+                    showAyahBeforeTranslation = show
+                    store.ayahBeforeTranslation = show
+                },
+                onDismiss = { showTranslationDialog = false },
             )
         }
 
@@ -1008,11 +1036,10 @@ private fun ChromeBar(
     onToggleBookmark: () -> Unit,
     selectedSources: List<com.mosman.wird.data.TranslationSource> = com.mosman.wird.data.TranslationSource.entries,
     onSelectSources: (List<com.mosman.wird.data.TranslationSource>) -> Unit = {},
+    onOpenTranslationDialog: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     var menuOpen by remember { mutableStateOf(false) }
-    var translationPickerOpen by remember { mutableStateOf(false) }
-
 
     Row(
         modifier = Modifier
@@ -1072,7 +1099,7 @@ private fun ChromeBar(
             }
         }
 
-        // Right side: 1) Bookmark glyph, 2) Translation globe + picker, 3) 3-lines menu
+        // Right side: 1) Bookmark glyph, 2) Translation globe (1 tap), 3) 3-lines menu
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -1089,69 +1116,14 @@ private fun ChromeBar(
                 )
             }
 
-            // Translation Globe Icon with picker dropdown when active
-            Box {
-                IconButton(
-                    onClick = {
-                        if (translation) {
-                            translationPickerOpen = !translationPickerOpen
-                        } else {
-                            onToggleTranslation()
-                        }
-                    },
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    GlobeIcon(
-                        tint = if (translation) Color(0xFFC9A24B) else colors.onSurfaceRaised,
-                    )
-                }
-
-                // Translation source picker dropdown
-                DropdownMenu(
-                    expanded = translationPickerOpen,
-                    onDismissRequest = { translationPickerOpen = false },
-                    containerColor = colors.surfaceRaised,
-                ) {
-                    // "All translations" option
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                "All Translations",
-                                color = if (selectedSources.size == com.mosman.wird.data.TranslationSource.entries.size) colors.accent else colors.onSurfaceRaised,
-                                fontWeight = if (selectedSources.size == com.mosman.wird.data.TranslationSource.entries.size) FontWeight.Bold else FontWeight.Normal,
-                            )
-                        },
-                        onClick = {
-                            onSelectSources(com.mosman.wird.data.TranslationSource.entries.toList())
-                            translationPickerOpen = false
-                        },
-                    )
-                    // Individual translation sources
-                    com.mosman.wird.data.TranslationSource.entries.forEach { source ->
-                        val isSelected = selectedSources.size == 1 && selectedSources.first() == source
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "${source.label} (${source.by})",
-                                    color = if (isSelected) colors.accent else colors.onSurfaceRaised,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                )
-                            },
-                            onClick = {
-                                onSelectSources(listOf(source))
-                                translationPickerOpen = false
-                            },
-                        )
-                    }
-                    // Toggle off option
-                    DropdownMenuItem(
-                        text = { Text("Hide Translation", color = colors.onSurfaceRaised) },
-                        onClick = {
-                            translationPickerOpen = false
-                            onToggleTranslation()
-                        },
-                    )
-                }
+            // Translation Globe Icon: 1-tap opens full translation picker dialog
+            IconButton(
+                onClick = onOpenTranslationDialog,
+                modifier = Modifier.size(40.dp),
+            ) {
+                GlobeIcon(
+                    tint = if (translation) Color(0xFFC9A24B) else colors.onSurfaceRaised,
+                )
             }
 
             // 3-lines menu icon
@@ -1866,3 +1838,259 @@ private fun BarIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
 // numbers typed from memory — which is precisely the kind of Qur'anic metadata this
 // project refuses to guess at. The API reports `juz_number` for every page and
 // MushafPage already carries it, so the bar reads the page it is actually showing.
+
+@Composable
+private fun TranslationDialog(
+    isTranslationActive: Boolean,
+    selectedSources: List<com.mosman.wird.data.TranslationSource>,
+    showAyahBeforeTranslation: Boolean,
+    onToggleActive: (Boolean) -> Unit,
+    onSelectSources: (List<com.mosman.wird.data.TranslationSource>) -> Unit,
+    onToggleShowAyah: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val cardBg = if (isDark) Color(0xFF16241E) else Color(0xFFF7F4EB)
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .clayCard(
+                    shape = RoundedCornerShape(24.dp),
+                    backgroundColor = cardBg,
+                    elevation = 8.dp,
+                    strokeWidth = 1.dp,
+                )
+                .padding(20.dp),
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Header Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        GlobeIcon(
+                            tint = colors.accent,
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Text(
+                            text = "Translation & Meaning",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                        )
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // Mode Segmented Buttons: [ Mushaf View ] [ Translation View ]
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clayPill(
+                            shape = RoundedCornerShape(999.dp),
+                            backgroundColor = if (isDark) Color(0xFF0F1A15) else Color(0xFFEAE5D8),
+                            elevation = 1.dp,
+                        )
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    val mushafActive = !isTranslationActive
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = if (mushafActive) colors.accent else Color.Transparent,
+                                elevation = if (mushafActive) 2.dp else 0.dp,
+                            )
+                            .clickable {
+                                onToggleActive(false)
+                                onDismiss()
+                            }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Mushaf View",
+                            fontSize = 12.5.sp,
+                            fontWeight = if (mushafActive) FontWeight.Bold else FontWeight.Medium,
+                            color = if (mushafActive) Color.White else colors.textSecondary,
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = if (isTranslationActive) colors.accent else Color.Transparent,
+                                elevation = if (isTranslationActive) 2.dp else 0.dp,
+                            )
+                            .clickable {
+                                onToggleActive(true)
+                            }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Translation View",
+                            fontSize = 12.5.sp,
+                            fontWeight = if (isTranslationActive) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isTranslationActive) Color.White else colors.textSecondary,
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(18.dp))
+
+                Text(
+                    text = "SELECT TRANSLATION",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = colors.accent,
+                    letterSpacing = 1.sp,
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                // Option: All Translations
+                val allSelected = selectedSources.size == com.mosman.wird.data.TranslationSource.entries.size
+                TranslationOptionRow(
+                    title = "All Translations (Side-by-side)",
+                    subtitle = "Compare Saheeh, Hausa & Transliteration",
+                    selected = allSelected,
+                    onClick = {
+                        onSelectSources(com.mosman.wird.data.TranslationSource.entries.toList())
+                        onDismiss()
+                    },
+                )
+
+                Spacer(Modifier.height(6.dp))
+
+                com.mosman.wird.data.TranslationSource.entries.forEach { source ->
+                    val isSelected = selectedSources.size == 1 && selectedSources.first() == source
+                    val sub = when (source) {
+                        com.mosman.wird.data.TranslationSource.SAHEEH -> "Saheeh International (English)"
+                        com.mosman.wird.data.TranslationSource.HAUSA -> "Abubakar Mahmud Gumi (Hausa)"
+                        com.mosman.wird.data.TranslationSource.TRANSLITERATION -> "Phonetic transliteration by Quran.com"
+                    }
+                    TranslationOptionRow(
+                        title = source.label,
+                        subtitle = sub,
+                        selected = isSelected,
+                        onClick = {
+                            onSelectSources(listOf(source))
+                            onDismiss()
+                        },
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // Toggle: Show Arabic text before translation
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onToggleShowAyah(!showAyahBeforeTranslation) }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Show Arabic Ayah with English",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color(0xFFC7D3CB) else Color(0xFF2C4339),
+                    )
+                    Checkbox(
+                        checked = showAyahBeforeTranslation,
+                        onCheckedChange = { onToggleShowAyah(it) },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = colors.accent,
+                            uncheckedColor = colors.textSecondary,
+                            checkmarkColor = colors.surface,
+                        ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TranslationOptionRow(
+    title: String,
+    subtitle: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val bg = if (selected) {
+        if (isDark) Color(0xFF1F382B) else Color(0xFFE5EFE7)
+    } else {
+        if (isDark) Color(0xFF111E18) else Color(0xFFEFECE2)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(12.dp),
+                backgroundColor = bg,
+                elevation = if (selected) 2.dp else 1.dp,
+                strokeWidth = 1.dp,
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 13.5.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                color = if (selected) colors.accent else if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+            )
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+            )
+        }
+        if (selected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = colors.accent,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+

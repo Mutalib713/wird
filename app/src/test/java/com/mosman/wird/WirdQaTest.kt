@@ -1637,9 +1637,9 @@ class ReadingDirectionTest {
     /** Ya-Sin begins on page 440, so its first half-page unit is (440-1) * 2. */
     private val yaSin = (440 - 1) * Mushaf.UNITS_PER_PAGE
 
-    /** Check 53 — his example, both ways, named by the sūrah you actually land in. */
+    /** Check 53 — within a surah both go forwards; upon completion up reaches Fatir and down reaches As-Saffat. */
     @Test
-    fun `at Ya-Sin, up reaches Fatir and down reaches As-Saffat`() {
+    fun `at Ya-Sin, within surah advances forwards, finishing reaches Fatir or As-Saffat`() {
         val up = assignPortion(yaSin, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_FATIHAH)
         val down = assignPortion(yaSin, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_NAS)
 
@@ -1647,32 +1647,41 @@ class ReadingDirectionTest {
 
         val upNext = Mushaf.pageOf(up.nextStartUnit)
         val downNext = Mushaf.pageOf(down.nextStartUnit)
-        assertEquals("going up, tomorrow is the page before", 439, upNext)
-        assertEquals("going down, tomorrow is the page after", 441, downNext)
+        assertEquals("within surah, both advance to next page", 441, upNext)
+        assertEquals("within surah, both advance to next page", 441, downNext)
+        assertEquals("still Ya-Sin", "Ya-Sin", SurahIndex.across(listOf(upNext)).first().name)
 
-        // Said in sūrah names, because that is how he said it.
-        assertEquals("Fatir", SurahIndex.across(listOf(upNext)).first().name)
+        // Mid-surah check: from page 443, up advances to 444 (never backwards to 442)
+        val midUnit = (443 - 1) * Mushaf.UNITS_PER_PAGE
+        val midPortion = assignPortion(midUnit, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_FATIHAH)
+        assertEquals("from page 443 upwards advances to 444", 444, Mushaf.pageOf(midPortion.nextStartUnit))
 
-        // ⚠ **A page step is not a sūrah step, and this test learned it the hard way.** The
-        // first assertion here expected As-Saffat one page below Ya-Sin's opening and got
-        // Ya-Sin, because Ya-Sin runs about six pages. His example — *"it goes to Sad"* — is
-        // told in sūrahs, while the app advances in pages, and both are right about different
-        // things. Going up landed in Fatir immediately only because Ya-Sin *begins* on 440, so
-        // the page before it belongs to the previous sūrah.
-        assertEquals("one page down is still Ya-Sin", "Ya-Sin", SurahIndex.across(listOf(downNext)).first().name)
-
-        // The sūrah-level version of his example: from Ya-Sin's LAST page, down reaches the
-        // next sūrah.
+        // From Ya-Sin's LAST page (445), down reaches As-Saffat and up reaches Fatir
         val yaSinEnd = SurahIndex.byNumber(36)!!.lastPage
-        val leaving = assignPortion(
+        val leavingDown = assignPortion(
             (yaSinEnd - 1) * Mushaf.UNITS_PER_PAGE,
             Mushaf.UNITS_PER_PAGE,
             ReadingDirection.TOWARDS_NAS,
         )
+        val leavingUp = assignPortion(
+            (yaSinEnd - 1) * Mushaf.UNITS_PER_PAGE,
+            Mushaf.UNITS_PER_PAGE,
+            ReadingDirection.TOWARDS_FATIHAH,
+        )
         assertEquals(
             "finishing Ya-Sin downwards reaches As-Saffat",
             "As-Saffat",
-            SurahIndex.across(listOf(Mushaf.pageOf(leaving.nextStartUnit))).first().name,
+            SurahIndex.across(listOf(Mushaf.pageOf(leavingDown.nextStartUnit))).first().name,
+        )
+        val reachedUp = SurahIndex.on(Mushaf.pageOf(leavingUp.nextStartUnit))
+        assertTrue(
+            "finishing Ya-Sin upwards reaches Fatir",
+            reachedUp.any { it.name == "Fatir" },
+        )
+        assertEquals(
+            "Fatir starts on page 434",
+            434,
+            Mushaf.pageOf(leavingUp.nextStartUnit),
         )
     }
 

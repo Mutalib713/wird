@@ -61,6 +61,7 @@ import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.Progress
 import com.mosman.wird.domain.Turn
 import com.mosman.wird.domain.surahs
+import com.mosman.wird.domain.pages
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 import com.mosman.wird.ui.theme.SetStatusBarAppearance
@@ -280,9 +281,13 @@ private fun PortionCard(
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val context = androidx.compose.ui.platform.LocalContext.current
     val surahs = remember(assignment) { assignment.surahs }
-    val surah = surahs.firstOrNull()
+    val surah = surahs.firstOrNull() ?: com.mosman.wird.domain.SurahIndex.on(assignment.startPage).firstOrNull()
     val name = surah?.name ?: "Page ${assignment.startPage}"
+    val ayahRange = remember(assignment, surah) {
+        if (surah != null) com.mosman.wird.domain.PageVerses.ayahRange(context, assignment.pages, surah.number) else null
+    }
     val page = Mushaf.pageOf(assignment.startUnit)
     val span = surah?.let { (it.lastPage - it.firstPage + 1).coerceAtLeast(1) } ?: 1
     val into = surah?.let { (page - it.firstPage).coerceAtLeast(0) } ?: 0
@@ -351,7 +356,13 @@ private fun PortionCard(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = surah?.let { "${it.name} · Verses 1–${it.lastPage * 15}" } ?: portionDetail(assignment, doneMethod),
+                    text = if (surah != null && ayahRange != null) {
+                        "${surah.name} · $ayahRange · Page ${assignment.startPage}"
+                    } else if (surah != null) {
+                        "${surah.name} · Page ${assignment.startPage}"
+                    } else {
+                        portionDetail(assignment, doneMethod)
+                    },
                     color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
                     style = TextStyle(fontSize = 11.5.sp),
                 )

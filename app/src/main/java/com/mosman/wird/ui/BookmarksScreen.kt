@@ -79,9 +79,6 @@ fun BookmarksScreen(
     // 0 = Recent pages, 1 = Ayah bookmarks
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // Handle system back gesture
-    BackHandler(onBack = onBack)
-
     SetStatusBarAppearance(isLightBackground = !isDark)
 
     Column(

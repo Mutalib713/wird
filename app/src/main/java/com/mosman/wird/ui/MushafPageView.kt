@@ -210,6 +210,11 @@ private fun DrawnPage(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = { onBackgroundTap?.invoke() },
+            )
             .padding(horizontal = Scale.space4, vertical = verticalPagePad),
     ) {
         // Quiet corner headers (Surah left, Juz' right)

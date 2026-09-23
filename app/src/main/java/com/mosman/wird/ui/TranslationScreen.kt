@@ -32,8 +32,12 @@ import com.mosman.wird.data.TranslationSource
 import com.mosman.wird.data.Translations
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.mushaf.PageState
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import com.mosman.wird.ui.theme.clayPill
 
 /**
  * The translation reading mode. **PROFILE.md § 5z.**
@@ -63,8 +67,11 @@ fun TranslationScreen(
     sources: List<TranslationSource> = TranslationSource.entries,
     /** When false, omit the Arabic ayah glyphs and show only translation text. */
     showAyah: Boolean = true,
+    onSelectSources: ((List<TranslationSource>) -> Unit)? = null,
+    onBackgroundTap: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val context = LocalContext.current
     val store = remember { Translations(context) }
     val repo = remember { MushafRepository(context) }
@@ -106,7 +113,67 @@ fun TranslationScreen(
     // Ayahs in the order they appear on the page, which is reading order.
     val verseKeys = remember(page) { page.glyphs.map { it.verseKey }.distinct() }
 
-    Column(modifier = modifier.fillMaxSize().background(colors.page)) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(colors.page)
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null,
+                onClick = { onBackgroundTap?.invoke() },
+            ),
+    ) {
+        // 1-Tap Translation Source Chips Bar
+        if (onSelectSources != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val allSelected = sources.size == TranslationSource.entries.size
+                Box(
+                    modifier = Modifier
+                        .clayPill(
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+                            backgroundColor = if (allSelected) colors.accent else if (isDark) Color(0xFF1E2822) else Color(0xFFEBE6DC),
+                            elevation = if (allSelected) 2.dp else 1.dp,
+                        )
+                        .clickable { onSelectSources(TranslationSource.entries.toList()) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        text = "All",
+                        fontSize = 11.5.sp,
+                        fontWeight = if (allSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (allSelected) Color.White else colors.textPrimary,
+                    )
+                }
+
+                TranslationSource.entries.forEach { source ->
+                    val isSelected = sources.size == 1 && sources.first() == source
+                    Box(
+                        modifier = Modifier
+                            .clayPill(
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+                                backgroundColor = if (isSelected) colors.accent else if (isDark) Color(0xFF1E2822) else Color(0xFFEBE6DC),
+                                elevation = if (isSelected) 2.dp else 1.dp,
+                            )
+                            .clickable { onSelectSources(listOf(source)) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                    ) {
+                        Text(
+                            text = source.label,
+                            fontSize = 11.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) Color.White else colors.textPrimary,
+                        )
+                    }
+                }
+            }
+        }
+
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
@@ -123,6 +190,7 @@ fun TranslationScreen(
                         bySource[s]?.get(key)?.let { s to it }
                     },
                     showAyah = showAyah,
+                    onTap = { onBackgroundTap?.invoke() },
                 )
             }
         }
@@ -144,10 +212,20 @@ private fun VerseBlock(
     family: FontFamily,
     lines: List<Pair<TranslationSource, String>>,
     showAyah: Boolean = true,
+    onTap: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
 
-    Column(modifier = Modifier.fillMaxWidth().padding(bottom = Scale.space6)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null,
+                onClick = { onTap?.invoke() },
+            )
+            .padding(bottom = Scale.space6),
+    ) {
         Text(
             text = verseKey,
             color = colors.accent,

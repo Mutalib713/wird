@@ -46,8 +46,32 @@ data class Assignment(
         get() = when (direction) {
             ReadingDirection.TOWARDS_NAS ->
                 Math.floorMod(startUnit + units, Mushaf.TOTAL_UNITS)
-            ReadingDirection.TOWARDS_FATIHAH ->
-                Math.floorMod(startUnit - units, Mushaf.TOTAL_UNITS)
+            ReadingDirection.TOWARDS_FATIHAH -> {
+                // In recitation, verses and pages within a surah always advance forwards (1 -> end).
+                // TOWARDS_FATIHAH decides which surah comes next AFTER the current surah is finished:
+                // it transitions to the preceding surah (e.g. from Ya-Sin 36 -> Fatir 35).
+                val surahsOnPage = SurahIndex.on(startPage)
+                val continuingSurah = surahsOnPage.firstOrNull { it.lastPage > endPage }
+                if (continuingSurah != null) {
+                    // Still advancing within the current surah
+                    Math.floorMod(startUnit + units, Mushaf.TOTAL_UNITS)
+                } else {
+                    // Current surah(s) completed on this page: jump to the preceding surah
+                    val earliestSurah = surahsOnPage.minByOrNull { it.number }
+                    val prevSurahNum = if (earliestSurah != null && earliestSurah.number > 1) {
+                        earliestSurah.number - 1
+                    } else if (earliestSurah != null && earliestSurah.number == 1) {
+                        114
+                    } else null
+
+                    if (prevSurahNum != null) {
+                        val prevSurah = SurahIndex.byNumber(prevSurahNum)!!
+                        (prevSurah.firstPage - 1) * Mushaf.UNITS_PER_PAGE
+                    } else {
+                        Math.floorMod(startUnit - units, Mushaf.TOTAL_UNITS)
+                    }
+                }
+            }
         }
 }
 

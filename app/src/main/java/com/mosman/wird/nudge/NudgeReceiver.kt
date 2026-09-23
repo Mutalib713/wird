@@ -11,6 +11,7 @@ import com.mosman.wird.MainActivity
 import com.mosman.wird.data.DayLogStore
 import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.todaysAssignment
+import com.mosman.wird.domain.pages
 import java.time.LocalDate
 
 /** Fires when the alarm goes off, and posts the notification. */
@@ -69,10 +70,24 @@ class NudgeReceiver : BroadcastReceiver() {
             plan = store.plan,
             date = today,
         )
-        val portion = if (assignment.startPage == assignment.endPage) {
+        val surahs = com.mosman.wird.domain.SurahIndex.across(assignment.pages)
+        val primarySurah = surahs.firstOrNull() ?: com.mosman.wird.domain.SurahIndex.on(assignment.startPage).firstOrNull()
+        val ayahRange = if (primarySurah != null) {
+            com.mosman.wird.domain.PageVerses.ayahRange(context, assignment.pages, primarySurah.number)
+        } else null
+
+        val pageSpan = if (assignment.startPage == assignment.endPage) {
             "Page ${assignment.startPage}"
         } else {
             "Pages ${assignment.startPage}–${assignment.endPage}"
+        }
+
+        val contentText = if (primarySurah != null && ayahRange != null) {
+            "${primarySurah.name} · $ayahRange ($pageSpan)"
+        } else if (primarySurah != null) {
+            "${primarySurah.name} · $pageSpan"
+        } else {
+            pageSpan
         }
 
         val open = PendingIntent.getActivity(
@@ -84,23 +99,10 @@ class NudgeReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        // **The nudge became a question on 2026-08-18 - PLAN task 21.**
-        //
-        // It used to be a statement: here is today's portion, goodbye. That addresses
-        // forgetting, which section 2 found is the SMALLER half of the problem - about 6 of
-        // 14 missed days against 8 lost to procrastination. A statement gives someone who
-        // has already seen it nothing new to do.
-        //
-        // Asking, and letting the answer be one tap, is the experiment: does naming a time
-        // to something that checks back change anything? Section 5b says that if it does
-        // not, the companion is theatre and gets cut.
-        //
-        // Sacred Rule 3 still governs every word. It asks; it does not push. No streak, no
-        // "don't break it", and "Not today" is a real answer that costs nothing.
         val builder = NotificationCompat.Builder(context, Nudge.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
-            .setContentTitle("Reading today?")
-            .setContentText(portion)
+            .setContentTitle("Your Daily Wırd")
+            .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(open)
@@ -123,7 +125,7 @@ class NudgeReceiver : BroadcastReceiver() {
         context.getSystemService(NotificationManager::class.java)
             .notify(Nudge.NOTIFICATION_ID, notification)
 
-        Log.i(TAG, "notification posted: $portion")
+        Log.i(TAG, "notification posted: $contentText")
     }
 
     companion object {
