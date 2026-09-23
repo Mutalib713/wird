@@ -58,6 +58,9 @@ import com.mosman.wird.domain.Assignment
 import com.mosman.wird.domain.DayLog
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
+import com.mosman.wird.domain.LifeSpace
+import com.mosman.wird.domain.ReadingTrack
+import com.mosman.wird.domain.TrackScheduleMode
 import com.mosman.wird.domain.Progress
 import com.mosman.wird.domain.Turn
 import com.mosman.wird.domain.surahs
@@ -120,6 +123,14 @@ fun HomeScreen(
     onOpenBookmarks: () -> Unit = {},
     onMenu: (() -> Unit)? = null,
     menu: @Composable () -> Unit = {},
+    activeSpace: LifeSpace? = null,
+    activeTrack: ReadingTrack? = null,
+    allSpaces: List<LifeSpace> = emptyList(),
+    scheduleMode: TrackScheduleMode = TrackScheduleMode.AUTOMATIC,
+    onSelectTrack: (ReadingTrack) -> Unit = {},
+    onSelectSpace: (LifeSpace) -> Unit = {},
+    onToggleScheduleMode: () -> Unit = {},
+    onOpenSettings: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -154,8 +165,31 @@ fun HomeScreen(
         ) {
             var cardIndex = 0
 
+            if (activeSpace != null && activeTrack != null) {
+                StaggeredEnter(index = cardIndex++) {
+                    LifeSpaceBar(
+                        activeSpace = activeSpace,
+                        activeTrack = activeTrack,
+                        allSpaces = allSpaces,
+                        scheduleMode = scheduleMode,
+                        onSelectTrack = onSelectTrack,
+                        onSelectSpace = onSelectSpace,
+                        onToggleScheduleMode = onToggleScheduleMode,
+                        onOpenSettings = onOpenSettings,
+                    )
+                }
+            }
+
             StaggeredEnter(index = cardIndex++) {
-                PortionCard(assignment, doneMethod, onOpenPage, onMarkRead, mode, onOpenInQuran)
+                PortionCard(
+                    assignment = assignment,
+                    doneMethod = doneMethod,
+                    onOpenPage = onOpenPage,
+                    onMarkRead = onMarkRead,
+                    mode = mode,
+                    onOpenInQuran = onOpenInQuran,
+                    activeTrack = activeTrack,
+                )
             }
 
             // Today's Habit Clarity Card + Reflection Capsule (Option A)
@@ -278,6 +312,7 @@ private fun PortionCard(
     onMarkRead: () -> Unit,
     mode: ReadingMode,
     onOpenInQuran: (() -> Unit)?,
+    activeTrack: ReadingTrack? = null,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -295,17 +330,37 @@ private fun PortionCard(
     val percent = (fraction * 100).toInt()
 
     Plate {
-        // Card header row with status pill
+        // Card header row with status pill & active track tag
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = if (doneMethod == null) "TODAY'S WIRD" else "TODAY, DONE",
-                color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
-                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = if (doneMethod == null) "TODAY'S WIRD" else "TODAY, DONE",
+                    color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp),
+                )
+                if (activeTrack != null) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (isDark) Color(0xFF1E382B) else Color(0xFFD6EDE0))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "${activeTrack.type.label} · ${activeTrack.name}",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color(0xFF8ED676) else Color(0xFF1E5B42),
+                        )
+                    }
+                }
+            }
             Box(
                 modifier = Modifier
                     .clayPill(
@@ -371,7 +426,7 @@ private fun PortionCard(
 
         Spacer(Modifier.height(14.dp))
 
-        // 3 Clay stat boxes (1 page, start page, % through mushaf)
+        // 3 Clay stat boxes (1 page, start page, % through mushaf or track streak)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -387,8 +442,8 @@ private fun PortionCard(
                 modifier = Modifier.weight(1f),
             )
             ClayStatPill(
-                value = "$percent%",
-                label = "Of mushaf",
+                value = if (activeTrack != null && activeTrack.currentStreak > 0) "${activeTrack.currentStreak}d" else "$percent%",
+                label = if (activeTrack != null && activeTrack.currentStreak > 0) "Track streak" else "Of mushaf",
                 valueColor = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
                 modifier = Modifier.weight(1f),
             )

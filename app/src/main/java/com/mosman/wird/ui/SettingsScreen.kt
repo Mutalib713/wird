@@ -95,6 +95,10 @@ import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.arabicNumerals
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
+import com.mosman.wird.domain.LifeSpace
+import com.mosman.wird.domain.ReadingTrack
+import com.mosman.wird.domain.TrackType
+import com.mosman.wird.domain.TrackScheduleMode
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -123,6 +127,9 @@ private enum class SettingsDialog {
     PRIVACY_PLEDGE,
     ABOUT_WIRD,
     PAGE_PREVIEW,
+    SCHEDULE_MODE,
+    LIFE_SPACE_MANAGER,
+    EDIT_TRACK,
 }
 
 data class DialogOption<T>(
@@ -178,6 +185,7 @@ fun SettingsScreen(
     onUseLocation: () -> Unit,
     onChangePosition: () -> Unit = {},
     onPositionChanged: (Pair<Int, Int>?, Int) -> Unit = { _, _ -> },
+    onLifeSpacesChanged: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -190,6 +198,13 @@ fun SettingsScreen(
     // Current sub-screen
     var subScreen by remember { mutableStateOf(SettingsSubScreen.MAIN) }
     var currentPositionLabel by remember(positionLabel) { mutableStateOf(positionLabel) }
+
+    // Life Spaces state
+    var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
+    var activeSpace by remember { mutableStateOf(store.activeSpace()) }
+    var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
+    var editingTrack by remember { mutableStateOf<ReadingTrack?>(null) }
+    var editingSpaceId by remember { mutableStateOf<String?>(null) }
 
     // Store-backed state
     var lockOrientation by remember { mutableStateOf(store.lockOrientation) }
@@ -463,7 +478,58 @@ fun SettingsScreen(
                             }
                         }
 
-                        // 2. Reading Preferences
+                        // 2. Life Spaces & Reading Tracks
+                        ClaySection(title = "Life Spaces & Reading Tracks") {
+                            ClaySettingRow(
+                                title = "Schedule mode",
+                                subtitle = if (trackScheduleMode == TrackScheduleMode.AUTOMATIC) {
+                                    "Automatic · Switches tracks by day of week"
+                                } else {
+                                    "Manual · You choose the active track"
+                                },
+                                onClick = { activeDialog = SettingsDialog.SCHEDULE_MODE },
+                            )
+
+                            ClaySettingRow(
+                                title = "Active life space",
+                                subtitle = "${activeSpace.name} ${if (activeSpace.isFrozen) "(Paused & Protected)" else "(Active)"} · Tap to switch or pause",
+                                onClick = { activeDialog = SettingsDialog.LIFE_SPACE_MANAGER },
+                            )
+
+                            // List active space's tracks
+                            activeSpace.tracks.forEach { track ->
+                                ClaySettingRow(
+                                    title = track.name,
+                                    subtitle = "${track.type.label} · ${track.scheduleLabel()} · Page ${track.pageNumber} · ${if (track.currentStreak > 0) "${track.currentStreak}d streak" else "0d streak"}",
+                                    onClick = {
+                                        editingSpaceId = activeSpace.id
+                                        editingTrack = track
+                                        activeDialog = SettingsDialog.EDIT_TRACK
+                                    },
+                                )
+                            }
+
+                            ClaySettingRow(
+                                title = "+ Add reading track",
+                                subtitle = "Add a parallel track (e.g. revision or madrasa)",
+                                onClick = {
+                                    editingSpaceId = activeSpace.id
+                                    editingTrack = ReadingTrack(
+                                        id = "track_${System.currentTimeMillis()}",
+                                        name = "New Reading Track",
+                                        type = TrackType.HIFZ,
+                                        activeDays = DayOfWeek.entries.toSet(),
+                                        positionUnit = 0,
+                                        direction = ReadingDirection.TOWARDS_NAS,
+                                        dailyUnits = 2,
+                                    )
+                                    activeDialog = SettingsDialog.EDIT_TRACK
+                                },
+                                showDivider = false,
+                            )
+                        }
+
+                        // 3. Reading Preferences
                         ClaySection(title = "Reading Preferences") {
                             ClaySettingRow(
                                 title = "Reading position",
@@ -2066,6 +2132,98 @@ fun SettingsScreen(
                     },
                     onClose = { activeDialog = null },
                 )
+            }
+
+            SettingsDialog.SCHEDULE_MODE -> {
+                ClayOptionDialog(
+                    title = "Track schedule mode",
+                    options = listOf(
+                        DialogOption(
+                            TrackScheduleMode.AUTOMATIC,
+                            "Automatic (Recommended)",
+                            "Activates tracks automatically based on the day of the week (e.g. Mon–Thu for weekday madrasa, Sat–Sun for weekend madrasa).",
+                        ),
+                        DialogOption(
+                            TrackScheduleMode.MANUAL,
+                            "Manual",
+                            "You select which track is active by tapping its tab on the home screen.",
+                        ),
+                    ),
+                    selected = trackScheduleMode,
+                    onSelect = { mode ->
+                        trackScheduleMode = mode
+                        store.trackScheduleMode = mode
+                        activeSpace = store.activeSpace()
+                        onLifeSpacesChanged()
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.LIFE_SPACE_MANAGER -> {
+                LifeSpaceManagerDialog(
+                    spaces = lifeSpaces,
+                    activeSpaceId = activeSpace.id,
+                    onSetActiveSpace = { spaceId ->
+                        store.setActiveSpace(spaceId)
+                        lifeSpaces = store.getLifeSpaces()
+                        activeSpace = store.activeSpace()
+                        onLifeSpacesChanged()
+                    },
+                    onToggleFreezeSpace = { spaceId, freeze ->
+                        store.setSpaceFrozen(spaceId, freeze)
+                        lifeSpaces = store.getLifeSpaces()
+                        activeSpace = store.activeSpace()
+                        onLifeSpacesChanged()
+                    },
+                    onAddSpace = { name ->
+                        store.addLifeSpace(name)
+                        lifeSpaces = store.getLifeSpaces()
+                        activeSpace = store.activeSpace()
+                        onLifeSpacesChanged()
+                    },
+                    onDeleteSpace = { spaceId ->
+                        store.deleteLifeSpace(spaceId)
+                        lifeSpaces = store.getLifeSpaces()
+                        activeSpace = store.activeSpace()
+                        onLifeSpacesChanged()
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.EDIT_TRACK -> {
+                val trackToEdit = editingTrack
+                val spaceId = editingSpaceId ?: activeSpace.id
+                if (trackToEdit != null) {
+                    val currentSpace = lifeSpaces.firstOrNull { it.id == spaceId } ?: activeSpace
+                    val isExisting = currentSpace.tracks.any { it.id == trackToEdit.id }
+                    EditTrackDialog(
+                        track = trackToEdit,
+                        canDelete = isExisting && currentSpace.tracks.size > 1,
+                        onSaveTrack = { updated ->
+                            if (isExisting) {
+                                store.updateTrack(updated)
+                            } else {
+                                store.addTrackToSpace(spaceId, updated)
+                            }
+                            lifeSpaces = store.getLifeSpaces()
+                            activeSpace = store.activeSpace()
+                            onLifeSpacesChanged()
+                        },
+                        onDeleteTrack = {
+                            store.deleteTrackFromSpace(spaceId, trackToEdit.id)
+                            lifeSpaces = store.getLifeSpaces()
+                            activeSpace = store.activeSpace()
+                            onLifeSpacesChanged()
+                        },
+                        onDismiss = {
+                            editingTrack = null
+                            editingSpaceId = null
+                            activeDialog = null
+                        },
+                    )
+                }
             }
 
             null -> Unit

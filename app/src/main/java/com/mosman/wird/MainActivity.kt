@@ -37,6 +37,10 @@ import com.mosman.wird.domain.assignPortion
 import com.mosman.wird.domain.checkRecitation
 import com.mosman.wird.domain.pages
 import com.mosman.wird.domain.progressOf
+import com.mosman.wird.domain.LifeSpace
+import com.mosman.wird.domain.ReadingTrack
+import com.mosman.wird.domain.TrackType
+import com.mosman.wird.domain.TrackScheduleMode
 import com.mosman.wird.domain.todaysAssignment
 import com.mosman.wird.nudge.Armed
 import com.mosman.wird.nudge.Nudge
@@ -118,6 +122,11 @@ class MainActivity : ComponentActivity() {
             var readerName by remember { mutableStateOf(store.readerName) }
             var readingMode by remember { mutableStateOf(store.readingMode) }
             var direction by remember { mutableStateOf(store.readingDirection) }
+            val today = LocalDate.now()
+            var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
+            var activeSpace by remember { mutableStateOf(store.activeSpace()) }
+            var activeTrack by remember { mutableStateOf(store.activeTrack(today)) }
+            var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
             var turns by remember { mutableStateOf(chat.all()) }
             var saved by remember { mutableStateOf(bookmarks.all()) }
             /** What is on the phone, for the "Your data" row. Refreshed after either action. */
@@ -306,26 +315,21 @@ class MainActivity : ComponentActivity() {
                 tab = WirdTab.HOME
             }
 
-            val today = LocalDate.now()
             var doneMethod by remember { mutableStateOf(days.methodFor(today)) }
             var hasRecording by remember { mutableStateOf(days.audioFor(today) != null) }
             var progress by remember { mutableStateOf(progressOf(days.all(), today)) }
 
-            // **Today's portion does not change when you finish it.**
-            //
-            // The position advances on done, so computing from the live position would
-            // rewrite what today *was* the instant you marked it — the page you had just
-            // read went pale and the confirmation disappeared. A finished day therefore
-            // remembers what it covered, and the screen shows that until tomorrow.
+            val isTrackDoneToday = activeTrack.lastCompletedDate == today.toString()
+            val trackDoneMethod = if (isTrackDoneToday) doneMethod ?: Method.TAPPED else null
             val doneCover = days.coveredOn(today)
-            val assignment = if (doneCover != null) {
-                assignPortion(doneCover.first, doneCover.second, direction)
+            val assignment = if (doneCover != null && isTrackDoneToday) {
+                assignPortion(doneCover.first, doneCover.second, activeTrack.direction)
             } else {
                 todaysAssignment(
-                    startUnit = position,
-                    plan = plan,
+                    startUnit = activeTrack.positionUnit,
+                    plan = ReadingPlan(defaultUnits = activeTrack.dailyUnits),
                     date = today,
-                    direction = direction,
+                    direction = activeTrack.direction,
                 )
             }
 
@@ -384,8 +388,11 @@ class MainActivity : ComponentActivity() {
                             doneMethod = days.methodFor(today)
                             nudgeWidget()
                             progress = progressOf(days.all(), today)
-                            store.positionUnit = assignment.nextStartUnit
-                            position = store.positionUnit
+                            store.recordTrackDone(activeTrack.id, assignment.nextStartUnit, today)
+                            lifeSpaces = store.getLifeSpaces()
+                            activeSpace = store.activeSpace()
+                            activeTrack = store.activeTrack(today)
+                            position = activeTrack.positionUnit
                             store.startVerse = null
                             startVerse = null
                             // The promise is spent. Leaving it pinned would have the app
@@ -523,6 +530,17 @@ class MainActivity : ComponentActivity() {
                             plan = store.plan
                             position = store.positionUnit
                             startVerse = verse
+                            val currentTrack = store.activeTrack()
+                            store.updateTrack(currentTrack.copy(
+                                positionUnit = store.positionUnit,
+                                direction = way,
+                                dailyUnits = unitsPerDay,
+                                startVerseSurah = verse?.first,
+                                startVerseAyah = verse?.second,
+                            ))
+                            lifeSpaces = store.getLifeSpaces()
+                            activeSpace = store.activeSpace()
+                            activeTrack = store.activeTrack(today)
                             screen = Screen.TODAY
                             // They have just said what they want to read and how much.
                             // This is the moment the reminder is worth asking about.
@@ -545,7 +563,7 @@ class MainActivity : ComponentActivity() {
                             onOpenPageHandled = { openPage = null },
                             hasSeenChrome = seenChrome,
                             onChromeSeen = { store.hasSeenChrome = true; seenChrome = true },
-                            doneMethod = doneMethod,
+                            doneMethod = if (isWirdSession) trackDoneMethod else null,
                             progress = progress,
                             hasRecording = hasRecording,
                             checkState = checkState,
@@ -684,8 +702,11 @@ class MainActivity : ComponentActivity() {
                                 // app, swiping, or browsing must never advance it — only
                                 // finishing does. That is the whole reason the portion is
                                 // stable within a day.
-                                store.positionUnit = assignment.nextStartUnit
-                                position = store.positionUnit
+                                store.recordTrackDone(activeTrack.id, assignment.nextStartUnit, today)
+                                lifeSpaces = store.getLifeSpaces()
+                                activeSpace = store.activeSpace()
+                                activeTrack = store.activeTrack(today)
+                                position = activeTrack.positionUnit
                                 // The start ayah only ever applied to the first page.
                                 store.startVerse = null
                                 startVerse = null
@@ -699,9 +720,16 @@ class MainActivity : ComponentActivity() {
                                 nudgeWidget()
                                 hasRecording = false
                                 progress = progressOf(days.all(), today)
-                                // Put the position back to where this portion started.
-                                store.positionUnit = assignment.startUnit
-                                position = store.positionUnit
+                                val revertedTrack = activeTrack.copy(
+                                    positionUnit = assignment.startUnit,
+                                    lastCompletedDate = null,
+                                    currentStreak = (activeTrack.currentStreak - 1).coerceAtLeast(0),
+                                )
+                                store.updateTrack(revertedTrack)
+                                lifeSpaces = store.getLifeSpaces()
+                                activeSpace = store.activeSpace()
+                                activeTrack = store.activeTrack(today)
+                                position = activeTrack.positionUnit
                             },
                             isWirdSession = isWirdSession,
                             onBrowseSurahs = if (isWirdSession) ({
@@ -714,7 +742,7 @@ class MainActivity : ComponentActivity() {
                             WirdTab.HOME -> HomeScreen(
                                 assignment = assignment,
                                 progress = progress,
-                                doneMethod = doneMethod,
+                                doneMethod = trackDoneMethod,
                                 recent = days.all().sortedByDescending { it.date },
                                 onOpenPage = {
                                     onPage = true
@@ -722,7 +750,12 @@ class MainActivity : ComponentActivity() {
                                     pageSource = PageSource.HOME
                                     openPage = null
                                 },
-                                positionLabel = positionLabelFor(startVerse, Mushaf.pageOf(position)),
+                                positionLabel = positionLabelFor(
+                                    startVerse = activeTrack.startVerseSurah?.let { s ->
+                                        activeTrack.startVerseAyah?.let { a -> s to a }
+                                    } ?: startVerse,
+                                    page = Mushaf.pageOf(activeTrack.positionUnit),
+                                ),
                                 readerName = readerName,
                                 mode = readingMode,
                                 onOpenBookmarks = { screen = Screen.BOOKMARKS },
@@ -763,14 +796,49 @@ class MainActivity : ComponentActivity() {
                                     doneMethod = days.methodFor(today)
                                     nudgeWidget()
                                     progress = progressOf(days.all(), today)
-                                    store.positionUnit = assignment.nextStartUnit
-                                    position = store.positionUnit
+                                    store.recordTrackDone(activeTrack.id, assignment.nextStartUnit, today)
+                                    lifeSpaces = store.getLifeSpaces()
+                                    activeSpace = store.activeSpace()
+                                    activeTrack = store.activeTrack(today)
+                                    position = activeTrack.positionUnit
                                     store.startVerse = null
                                     startVerse = null
                                 },
                                 turns = turns,
                                 onSaid = { said(it) },
                                 onOpenChat = { onChat = true },
+                                activeSpace = activeSpace,
+                                activeTrack = activeTrack,
+                                allSpaces = lifeSpaces,
+                                scheduleMode = trackScheduleMode,
+                                onSelectTrack = { track ->
+                                    store.setActiveTrack(track.id)
+                                    activeTrack = store.activeTrack(today)
+                                    position = activeTrack.positionUnit
+                                    direction = activeTrack.direction
+                                },
+                                onSelectSpace = { space ->
+                                    store.setActiveSpace(space.id)
+                                    activeSpace = store.activeSpace()
+                                    activeTrack = store.activeTrack(today)
+                                    position = activeTrack.positionUnit
+                                    direction = activeTrack.direction
+                                },
+                                onToggleScheduleMode = {
+                                    val newMode = if (trackScheduleMode == TrackScheduleMode.AUTOMATIC) {
+                                        TrackScheduleMode.MANUAL
+                                    } else {
+                                        TrackScheduleMode.AUTOMATIC
+                                    }
+                                    store.trackScheduleMode = newMode
+                                    trackScheduleMode = newMode
+                                    activeTrack = store.activeTrack(today)
+                                    position = activeTrack.positionUnit
+                                    direction = activeTrack.direction
+                                },
+                                onOpenSettings = {
+                                    screen = Screen.SETTINGS
+                                },
                             )
 
                             WirdTab.SURAHS -> SurahsTab(
@@ -935,6 +1003,25 @@ class MainActivity : ComponentActivity() {
                             store.startVerse = newVerse
                             position = store.positionUnit
                             startVerse = newVerse
+                            val currentTrack = store.activeTrack()
+                            store.updateTrack(
+                                currentTrack.copy(
+                                    positionUnit = store.positionUnit,
+                                    startVerseSurah = newVerse?.first,
+                                    startVerseAyah = newVerse?.second,
+                                )
+                            )
+                            lifeSpaces = store.getLifeSpaces()
+                            activeSpace = store.activeSpace()
+                            activeTrack = store.activeTrack(today)
+                        },
+                        onLifeSpacesChanged = {
+                            lifeSpaces = store.getLifeSpaces()
+                            activeSpace = store.activeSpace()
+                            activeTrack = store.activeTrack(today)
+                            trackScheduleMode = store.trackScheduleMode
+                            position = activeTrack.positionUnit
+                            direction = activeTrack.direction
                         },
                         onBack = { screen = Screen.TODAY },
                     )

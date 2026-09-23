@@ -10,6 +10,10 @@ import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingPlan
+import com.mosman.wird.domain.LifeSpace
+import com.mosman.wird.domain.ReadingTrack
+import com.mosman.wird.domain.TrackType
+import com.mosman.wird.domain.TrackScheduleMode
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -439,6 +443,249 @@ class WirdStore(context: Context) {
         recentPages = listOf(page) + current
     }
 
+    var trackScheduleMode: TrackScheduleMode
+        get() = runCatching {
+            TrackScheduleMode.valueOf(prefs.getString(KEY_TRACK_SCHEDULE_MODE, TrackScheduleMode.AUTOMATIC.name)!!)
+        }.getOrDefault(TrackScheduleMode.AUTOMATIC)
+        set(value) = prefs.edit { putString(KEY_TRACK_SCHEDULE_MODE, value.name) }
+
+    var activeSpaceId: String
+        get() = prefs.getString(KEY_ACTIVE_SPACE_ID, "home") ?: "home"
+        set(value) = prefs.edit { putString(KEY_ACTIVE_SPACE_ID, value) }
+
+    var manualActiveTrackId: String?
+        get() = prefs.getString(KEY_ACTIVE_TRACK_ID, null)
+        set(value) = prefs.edit { putString(KEY_ACTIVE_TRACK_ID, value) }
+
+    fun getLifeSpaces(): List<LifeSpace> {
+        val raw = prefs.getString(KEY_LIFE_SPACES, null)
+        if (raw.isNullOrBlank()) {
+            val initial = createDefaultLifeSpaces()
+            saveLifeSpaces(initial)
+            return initial
+        }
+        return runCatching {
+            val arr = org.json.JSONArray(raw)
+            val list = mutableListOf<LifeSpace>()
+            for (i in 0 until arr.length()) {
+                arr.optJSONObject(i)?.let { list.add(LifeSpace.fromJson(it)) }
+            }
+            if (list.isEmpty()) createDefaultLifeSpaces() else list
+        }.getOrElse {
+            createDefaultLifeSpaces()
+        }
+    }
+
+    fun saveLifeSpaces(spaces: List<LifeSpace>) {
+        val arr = org.json.JSONArray()
+        spaces.forEach { arr.put(it.toJson()) }
+        prefs.edit { putString(KEY_LIFE_SPACES, arr.toString()) }
+    }
+
+    private fun createDefaultLifeSpaces(): List<LifeSpace> {
+        val currentPos = positionUnit
+        val currentDir = readingDirection
+        val currentUnits = plan.defaultUnits
+
+        val monThu = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY)
+        val satSun = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+
+        val homeSpace = LifeSpace(
+            id = "home",
+            name = "Home",
+            isFrozen = false,
+            tracks = listOf(
+                ReadingTrack(
+                    id = "home_mon_thu",
+                    name = "Evening Madrasa (Ya-Sin)",
+                    type = TrackType.HIFZ,
+                    activeDays = monThu,
+                    positionUnit = if (currentPos > 0) currentPos else (440 - 1) * Mushaf.UNITS_PER_PAGE,
+                    direction = currentDir,
+                    dailyUnits = currentUnits,
+                    startVerseSurah = 36,
+                    startVerseAyah = 1,
+                ),
+                ReadingTrack(
+                    id = "home_weekend",
+                    name = "Weekend Madrasa (Al-Anbiya)",
+                    type = TrackType.TILAWAH,
+                    activeDays = satSun,
+                    positionUnit = (322 - 1) * Mushaf.UNITS_PER_PAGE,
+                    direction = ReadingDirection.TOWARDS_NAS,
+                    dailyUnits = currentUnits,
+                    startVerseSurah = 21,
+                    startVerseAyah = 1,
+                ),
+            ),
+        )
+
+        val schoolSpace = LifeSpace(
+            id = "school",
+            name = "School",
+            isFrozen = true,
+            tracks = listOf(
+                ReadingTrack(
+                    id = "school_daily",
+                    name = "School Quran",
+                    type = TrackType.TILAWAH,
+                    activeDays = DayOfWeek.entries.toSet(),
+                    positionUnit = 0,
+                    direction = ReadingDirection.TOWARDS_NAS,
+                    dailyUnits = currentUnits,
+                ),
+            ),
+        )
+
+        return listOf(homeSpace, schoolSpace)
+    }
+
+    fun activeSpace(): LifeSpace {
+        val spaces = getLifeSpaces()
+        return spaces.firstOrNull { it.id == activeSpaceId } ?: spaces.first()
+    }
+
+    fun activeTrack(date: LocalDate = LocalDate.now()): ReadingTrack {
+        val space = activeSpace()
+        if (trackScheduleMode == TrackScheduleMode.MANUAL && manualActiveTrackId != null) {
+            val manual = space.tracks.firstOrNull { it.id == manualActiveTrackId }
+            if (manual != null) return manual
+        }
+
+        val dow = date.dayOfWeek
+        val matching = space.tracks.firstOrNull { dow in it.activeDays }
+        return matching ?: space.tracks.firstOrNull() ?: ReadingTrack(
+            id = "default",
+            name = "Daily Quran",
+            positionUnit = positionUnit,
+            direction = readingDirection,
+            dailyUnits = plan.defaultUnits,
+        )
+    }
+
+    fun setActiveSpace(spaceId: String) {
+        activeSpaceId = spaceId
+        manualActiveTrackId = null
+        val track = activeTrack()
+        positionUnit = track.positionUnit
+        readingDirection = track.direction
+    }
+
+    fun setActiveTrack(trackId: String) {
+        manualActiveTrackId = trackId
+        val track = activeTrack()
+        positionUnit = track.positionUnit
+        readingDirection = track.direction
+    }
+
+    fun setSpaceFrozen(spaceId: String, frozen: Boolean) {
+        val spaces = getLifeSpaces().map {
+            if (it.id == spaceId) it.copy(isFrozen = frozen) else it
+        }
+        saveLifeSpaces(spaces)
+    }
+
+    fun addLifeSpace(name: String): LifeSpace {
+        val id = "space_" + System.currentTimeMillis()
+        val defaultTrack = ReadingTrack(
+            id = "track_${id}_1",
+            name = "$name Quran",
+            type = TrackType.TILAWAH,
+            activeDays = DayOfWeek.entries.toSet(),
+            positionUnit = 0,
+            direction = ReadingDirection.TOWARDS_NAS,
+            dailyUnits = plan.defaultUnits,
+        )
+        val newSpace = LifeSpace(id = id, name = name, isFrozen = false, tracks = listOf(defaultTrack))
+        saveLifeSpaces(getLifeSpaces() + newSpace)
+        return newSpace
+    }
+
+    fun deleteLifeSpace(spaceId: String): Boolean {
+        val current = getLifeSpaces()
+        if (current.size <= 1) return false
+        val filtered = current.filter { it.id != spaceId }
+        saveLifeSpaces(filtered)
+        if (activeSpaceId == spaceId) {
+            setActiveSpace(filtered.first().id)
+        }
+        return true
+    }
+
+    fun addTrackToSpace(spaceId: String, track: ReadingTrack) {
+        val spaces = getLifeSpaces().map { space ->
+            if (space.id == spaceId) {
+                space.copy(tracks = space.tracks + track)
+            } else space
+        }
+        saveLifeSpaces(spaces)
+    }
+
+    fun deleteTrackFromSpace(spaceId: String, trackId: String): Boolean {
+        val spaces = getLifeSpaces().map { space ->
+            if (space.id == spaceId) {
+                if (space.tracks.size <= 1) return false
+                space.copy(tracks = space.tracks.filter { it.id != trackId })
+            } else space
+        }
+        saveLifeSpaces(spaces)
+        if (manualActiveTrackId == trackId) {
+            manualActiveTrackId = null
+        }
+        return true
+    }
+
+    fun updateTrack(updated: ReadingTrack) {
+        val spaces = getLifeSpaces().map { space ->
+            if (space.tracks.any { it.id == updated.id }) {
+                space.copy(tracks = space.tracks.map { if (it.id == updated.id) updated else it })
+            } else {
+                space
+            }
+        }
+        saveLifeSpaces(spaces)
+    }
+
+    fun recordTrackDone(trackId: String, nextStartUnit: Int, today: LocalDate = LocalDate.now()) {
+        val space = activeSpace()
+        val track = space.tracks.firstOrNull { it.id == trackId } ?: return
+
+        val isAlreadyCompletedToday = track.lastCompletedDate == today.toString()
+        if (isAlreadyCompletedToday) {
+            val updated = track.copy(positionUnit = nextStartUnit)
+            updateTrack(updated)
+            positionUnit = nextStartUnit
+            return
+        }
+
+        // Streak progression respecting active days and freeze state
+        val isConsecutive = if (track.lastCompletedDate == null) {
+            false
+        } else if (space.isFrozen) {
+            true
+        } else if (track.activeDays.isNotEmpty()) {
+            var checkDate = today.minusDays(1)
+            var lookbackLimit = 0
+            while (checkDate.dayOfWeek !in track.activeDays && lookbackLimit < 7) {
+                checkDate = checkDate.minusDays(1)
+                lookbackLimit++
+            }
+            track.lastCompletedDate == checkDate.toString()
+        } else {
+            track.lastCompletedDate == today.minusDays(1).toString()
+        }
+
+        val newStreak = if (isConsecutive) track.currentStreak + 1 else 1
+        val updated = track.copy(
+            positionUnit = nextStartUnit,
+            currentStreak = newStreak,
+            totalDaysRead = track.totalDaysRead + 1,
+            lastCompletedDate = today.toString(),
+        )
+        updateTrack(updated)
+        positionUnit = nextStartUnit
+    }
+
     private companion object {
         const val PREFS = "wird_position"
         const val KEY_UNIT = "position_unit"
@@ -473,6 +720,10 @@ class WirdStore(context: Context) {
         const val KEY_NIGHT_TEXT_BRIGHTNESS = "night_text_brightness"
         const val KEY_NIGHT_BG_BRIGHTNESS = "night_bg_brightness"
         const val KEY_RECENT_PAGES = "recent_pages"
+        const val KEY_LIFE_SPACES = "life_spaces_json"
+        const val KEY_ACTIVE_SPACE_ID = "active_space_id"
+        const val KEY_ACTIVE_TRACK_ID = "active_track_id"
+        const val KEY_TRACK_SCHEDULE_MODE = "track_schedule_mode"
         const val FIELD = " | "
         const val AWAY_SEP = ".."
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"
