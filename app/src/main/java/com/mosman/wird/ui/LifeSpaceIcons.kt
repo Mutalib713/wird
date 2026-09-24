@@ -161,3 +161,25 @@ fun AutoScheduleGlyph(
         drawLine(tint, Offset(w * 0.5f, h * 0.5f), Offset(w * 0.68f, h * 0.5f), strokeWidth = stroke.width, cap = StrokeCap.Round)
     }
 }
+
+/**
+ * Vector indicator for manual track scheduling.
+ */
+@Composable
+fun ManualScheduleGlyph(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier.size(13.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.3.dp.toPx(), cap = StrokeCap.Round)
+
+        // Hand sliders / tuning glyph
+        drawLine(tint, Offset(w * 0.18f, h * 0.35f), Offset(w * 0.82f, h * 0.35f), strokeWidth = stroke.width, cap = StrokeCap.Round)
+        drawCircle(tint, radius = 2.dp.toPx(), center = Offset(w * 0.38f, h * 0.35f))
+
+        drawLine(tint, Offset(w * 0.18f, h * 0.68f), Offset(w * 0.82f, h * 0.68f), strokeWidth = stroke.width, cap = StrokeCap.Round)
+        drawCircle(tint, radius = 2.dp.toPx(), center = Offset(w * 0.64f, h * 0.68f))
+    }
+}

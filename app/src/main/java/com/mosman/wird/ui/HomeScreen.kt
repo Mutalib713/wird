@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mosman.wird.R
@@ -193,16 +195,46 @@ fun HomeScreen(
         ) {
             var cardIndex = 0
 
-            StaggeredEnter(index = cardIndex++) {
-                PortionCard(
-                    assignment = assignment,
-                    doneMethod = doneMethod,
-                    onOpenPage = onOpenPage,
-                    onMarkRead = onMarkRead,
-                    mode = mode,
-                    onOpenInQuran = onOpenInQuran,
-                    activeTrack = activeTrack,
-                )
+            if (allSpaces.isEmpty() || activeSpace == null) {
+                StaggeredEnter(index = cardIndex++) {
+                    EmptyReadingModeGuideCard(
+                        onAddMode = onOpenSettings,
+                    )
+                }
+            } else if (activeSpace.tracks.isEmpty()) {
+                StaggeredEnter(index = cardIndex++) {
+                    EmptyTracksGuideCard(
+                        modeName = activeSpace.name,
+                        onAddTrack = onOpenSettings,
+                    )
+                }
+            } else {
+                StaggeredEnter(index = cardIndex++) {
+                    PortionCard(
+                        assignment = assignment,
+                        doneMethod = doneMethod,
+                        onOpenPage = onOpenPage,
+                        onMarkRead = onMarkRead,
+                        mode = mode,
+                        onOpenInQuran = onOpenInQuran,
+                        activeTrack = activeTrack,
+                    )
+                }
+
+                // If active track is completed today and another track in this mode is due today, show sequential banner
+                val nextDueTrack = if (activeTrack?.isCompletedToday() == true || doneMethod != null) {
+                    activeSpace.tracks.firstOrNull { it.id != activeTrack?.id && it.isDueToday() && !it.isCompletedToday() }
+                } else null
+
+                if (nextDueTrack != null) {
+                    Spacer(Modifier.height(Scale.space3))
+                    StaggeredEnter(index = cardIndex++) {
+                        NextDueTrackBanner(
+                            nextTrack = nextDueTrack,
+                            onContinueTrack = { onSelectTrack(nextDueTrack) },
+                        )
+                    }
+                }
             }
 
             // Today's Habit Clarity Card + Reflection Capsule (Option A)
@@ -1230,4 +1262,235 @@ private fun portionDetail(a: Assignment, doneMethod: Method?): String {
         null -> "not yet marked"
     }
     return listOfNotNull(amount, span, state).joinToString(" · ")
+}
+
+/**
+ * Encouraging sequential banner shown when the active track is completed today
+ * and another recitation track in the same mode is still due today.
+ */
+@Composable
+private fun NextDueTrackBanner(
+    nextTrack: com.mosman.wird.domain.ReadingTrack,
+    onContinueTrack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(18.dp),
+                backgroundColor = if (isDark) Color(0xFF183025) else Color(0xFFE4F1E9),
+                elevation = 3.dp,
+            )
+            .clickable(onClick = onContinueTrack)
+            .padding(14.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clayPill(
+                            shape = CircleShape,
+                            backgroundColor = if (isDark) Color(0xFF204234) else Color(0xFFD2E8DB),
+                            elevation = 1.dp,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    TrackTypeGlyph(
+                        type = nextTrack.type,
+                        tint = if (isDark) Color(0xFF8DE0A6) else Color(0xFF1A5A3C),
+                        modifier = Modifier.size(17.dp),
+                    )
+                }
+                Column {
+                    Text(
+                        text = "Next recitation due today",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color(0xFF8DE0A6) else Color(0xFF245847),
+                        letterSpacing = 0.5.sp,
+                    )
+                    Text(
+                        text = nextTrack.name,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                    )
+                    Text(
+                        text = "${nextTrack.surahName()} · ${nextTrack.scheduleLabel()}",
+                        fontSize = 11.sp,
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF204234) else Color(0xFF1B4E38),
+                        elevation = 2.dp,
+                    )
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = "Continue",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Welcoming guide card shown when no reading modes exist yet.
+ */
+@Composable
+private fun EmptyReadingModeGuideCard(
+    onAddMode: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = if (isDark) Color(0xFF15261F) else Color(0xFFFBF8F1),
+                elevation = 4.dp,
+            )
+            .padding(20.dp),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            LifeSpaceGlyph(
+                tint = if (isDark) Color(0xFF8DE0A6) else Color(0xFF245847),
+                modifier = Modifier.size(36.dp),
+            )
+            Text(
+                text = "Set Up Your Reading Modes",
+                fontSize = 16.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+            )
+            Text(
+                text = "Wird adapts to your real life. Add reading modes (like Ramadan, Madrasa, or Home) with parallel recitation tracks, independent goals, and schedules.",
+                fontSize = 12.5.sp,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                textAlign = TextAlign.Center,
+                lineHeight = 17.sp,
+            )
+            Spacer(Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF1F4837) else Color(0xFF245847),
+                        elevation = 2.dp,
+                    )
+                    .clickable(onClick = onAddMode)
+                    .padding(horizontal = 18.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    text = "+ Add Your First Reading Mode",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Guide card shown when active mode has no recitation tracks yet.
+ */
+@Composable
+private fun EmptyTracksGuideCard(
+    modeName: String,
+    onAddTrack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = if (isDark) Color(0xFF15261F) else Color(0xFFFBF8F1),
+                elevation = 4.dp,
+            )
+            .padding(20.dp),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = "No Tracks in \"$modeName\"",
+                fontSize = 16.5.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+            )
+            Text(
+                text = "Add a recitation track to this mode to track your daily portion, target, and recitation position.",
+                fontSize = 12.5.sp,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                textAlign = TextAlign.Center,
+                lineHeight = 17.sp,
+            )
+            Spacer(Modifier.height(4.dp))
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF1F4837) else Color(0xFF245847),
+                        elevation = 2.dp,
+                    )
+                    .clickable(onClick = onAddTrack)
+                    .padding(horizontal = 18.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    text = "+ Add Recitation Track",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
+            }
+        }
+    }
 }

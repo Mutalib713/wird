@@ -130,6 +130,7 @@ private enum class SettingsDialog {
     SCHEDULE_MODE,
     LIFE_SPACE_MANAGER,
     EDIT_TRACK,
+    MANAGE_TRACKS,
 }
 
 data class DialogOption<T>(
@@ -496,35 +497,15 @@ fun SettingsScreen(
                                 onClick = { activeDialog = SettingsDialog.LIFE_SPACE_MANAGER },
                             )
 
-                            // List active space's tracks
-                            activeSpace.tracks.forEach { track ->
-                                ClaySettingRow(
-                                    title = track.name,
-                                    subtitle = "${track.type.label} · ${track.scheduleLabel()} · Page ${track.pageNumber} · ${if (track.currentStreak > 0) "${track.currentStreak}d streak" else "0d streak"}",
-                                    onClick = {
-                                        editingSpaceId = activeSpace.id
-                                        editingTrack = track
-                                        activeDialog = SettingsDialog.EDIT_TRACK
-                                    },
-                                )
+                            val tracksSummary = if (activeSpace.tracks.isEmpty()) {
+                                "No tracks yet · Tap to add your first track"
+                            } else {
+                                "${activeSpace.tracks.size} track${if (activeSpace.tracks.size != 1) "s" else ""} (${activeSpace.tracks.joinToString(", ") { it.name }}) · Manage & edit"
                             }
-
                             ClaySettingRow(
-                                title = "+ Add reading track",
-                                subtitle = "Add a parallel track (e.g. revision or madrasa)",
-                                onClick = {
-                                    editingSpaceId = activeSpace.id
-                                    editingTrack = ReadingTrack(
-                                        id = "track_${System.currentTimeMillis()}",
-                                        name = "New Reading Track",
-                                        type = TrackType.HIFZ,
-                                        activeDays = DayOfWeek.entries.toSet(),
-                                        positionUnit = 0,
-                                        direction = ReadingDirection.TOWARDS_NAS,
-                                        dailyUnits = 2,
-                                    )
-                                    activeDialog = SettingsDialog.EDIT_TRACK
-                                },
+                                title = "Recitation tracks",
+                                subtitle = tracksSummary,
+                                onClick = { activeDialog = SettingsDialog.MANAGE_TRACKS },
                                 showDivider = false,
                             )
                         }
@@ -1561,8 +1542,9 @@ fun SettingsScreen(
                     is NudgeSchedule.AtClockTime -> if (schedule.time.hour == 20) 3 else 4
                     is NudgeSchedule.Off -> 5
                 }
+                val activeModeName = store.activeSpace().name
                 ClayOptionDialog(
-                    title = "Notification schedule",
+                    title = "Reminder schedule ($activeModeName)",
                     options = listOf(
                         DialogOption(0, "After Maghrib", "15 minutes after sunset"),
                         DialogOption(1, "After 'Isha", "Quiet night reading before sleep"),
@@ -1581,6 +1563,7 @@ fun SettingsScreen(
                             4 -> NudgeSchedule.AtClockTime(java.time.LocalTime.of(21, 0))
                             else -> NudgeSchedule.Off
                         }
+                        store.updateActiveSpaceReminder(newSchedule)
                         onSchedule(newSchedule)
                     },
                     onDismiss = { activeDialog = null },
@@ -2176,14 +2159,45 @@ fun SettingsScreen(
                         activeSpace = store.activeSpace()
                         onLifeSpacesChanged()
                     },
-                    onAddSpace = { name ->
-                        store.addLifeSpace(name)
+                    onAddSpace = { name, goal ->
+                        store.addLifeSpace(name, goal)
                         lifeSpaces = store.getLifeSpaces()
                         activeSpace = store.activeSpace()
                         onLifeSpacesChanged()
                     },
                     onDeleteSpace = { spaceId ->
                         store.deleteLifeSpace(spaceId)
+                        lifeSpaces = store.getLifeSpaces()
+                        activeSpace = store.activeSpace()
+                        onLifeSpacesChanged()
+                    },
+                    onDismiss = { activeDialog = null },
+                )
+            }
+
+            SettingsDialog.MANAGE_TRACKS -> {
+                ManageTracksDialog(
+                    space = activeSpace,
+                    onEditTrack = { track ->
+                        editingSpaceId = activeSpace.id
+                        editingTrack = track
+                        activeDialog = SettingsDialog.EDIT_TRACK
+                    },
+                    onAddNewTrack = {
+                        editingSpaceId = activeSpace.id
+                        editingTrack = ReadingTrack(
+                            id = "track_${System.currentTimeMillis()}",
+                            name = "New Reading Track",
+                            type = TrackType.HIFZ,
+                            activeDays = DayOfWeek.entries.toSet(),
+                            positionUnit = 0,
+                            direction = ReadingDirection.TOWARDS_NAS,
+                            dailyUnits = 2,
+                        )
+                        activeDialog = SettingsDialog.EDIT_TRACK
+                    },
+                    onDeleteTrack = { trackId ->
+                        store.deleteTrackFromSpace(activeSpace.id, trackId)
                         lifeSpaces = store.getLifeSpaces()
                         activeSpace = store.activeSpace()
                         onLifeSpacesChanged()

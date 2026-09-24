@@ -832,7 +832,13 @@ fun TodayScreen(
                 onBack = onBack,
                 translation = translationMode,
                 onToggleTranslation = { translationMode = !translationMode },
-                onOpenTranslationDialog = { showTranslationDialog = true },
+                onOpenTranslationDialog = {
+                    if (translationMode) {
+                        translationMode = false
+                    } else {
+                        showTranslationDialog = true
+                    }
+                },
                 bookmarked = remember(pageVerseKey, bookmarkTick) { isBookmarked(pageVerseKey) },
                 onToggleBookmark = {
                     onToggleBookmark(pageVerseKey)

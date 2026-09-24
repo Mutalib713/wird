@@ -491,67 +491,53 @@ class WirdStore(context: Context) {
         val currentPos = positionUnit
         val currentDir = readingDirection
         val currentUnits = plan.defaultUnits
+        val sVerse = startVerse
 
-        val monThu = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY)
-        val satSun = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+        val mainTrack = ReadingTrack(
+            id = "track_main",
+            name = "Daily Reading",
+            type = TrackType.TILAWAH,
+            activeDays = DayOfWeek.entries.toSet(),
+            positionUnit = currentPos,
+            direction = currentDir,
+            dailyUnits = currentUnits,
+            startVerseSurah = sVerse?.first,
+            startVerseAyah = sVerse?.second,
+        )
 
-        val homeSpace = LifeSpace(
-            id = "home",
-            name = "Home",
+        val defaultSpace = LifeSpace(
+            id = "mode_daily",
+            name = "Daily Reading",
             isFrozen = false,
-            tracks = listOf(
-                ReadingTrack(
-                    id = "home_mon_thu",
-                    name = "Evening Madrasa (Ya-Sin)",
-                    type = TrackType.HIFZ,
-                    activeDays = monThu,
-                    positionUnit = if (currentPos > 0) currentPos else (440 - 1) * Mushaf.UNITS_PER_PAGE,
-                    direction = currentDir,
-                    dailyUnits = currentUnits,
-                    startVerseSurah = 36,
-                    startVerseAyah = 1,
-                ),
-                ReadingTrack(
-                    id = "home_weekend",
-                    name = "Weekend Madrasa (Al-Anbiya)",
-                    type = TrackType.TILAWAH,
-                    activeDays = satSun,
-                    positionUnit = (322 - 1) * Mushaf.UNITS_PER_PAGE,
-                    direction = ReadingDirection.TOWARDS_NAS,
-                    dailyUnits = currentUnits,
-                    startVerseSurah = 21,
-                    startVerseAyah = 1,
-                ),
-            ),
+            tracks = listOf(mainTrack),
+            goal = null,
         )
 
-        val schoolSpace = LifeSpace(
-            id = "school",
-            name = "School",
-            isFrozen = true,
-            tracks = listOf(
-                ReadingTrack(
-                    id = "school_daily",
-                    name = "School Quran",
-                    type = TrackType.TILAWAH,
-                    activeDays = DayOfWeek.entries.toSet(),
-                    positionUnit = 0,
-                    direction = ReadingDirection.TOWARDS_NAS,
-                    dailyUnits = currentUnits,
-                ),
-            ),
-        )
-
-        return listOf(homeSpace, schoolSpace)
+        return listOf(defaultSpace)
     }
 
     fun activeSpace(): LifeSpace {
         val spaces = getLifeSpaces()
+        if (spaces.isEmpty()) {
+            return LifeSpace(id = "mode_default", name = "Daily Reading", isFrozen = false, tracks = emptyList())
+        }
         return spaces.firstOrNull { it.id == activeSpaceId } ?: spaces.first()
     }
 
     fun activeTrack(date: LocalDate = LocalDate.now()): ReadingTrack {
         val space = activeSpace()
+        if (space.tracks.isEmpty()) {
+            return ReadingTrack(
+                id = "track_default",
+                name = "Daily Quran",
+                type = TrackType.TILAWAH,
+                activeDays = DayOfWeek.entries.toSet(),
+                positionUnit = positionUnit,
+                direction = readingDirection,
+                dailyUnits = plan.defaultUnits,
+            )
+        }
+
         if (trackScheduleMode == TrackScheduleMode.MANUAL && manualActiveTrackId != null) {
             val manual = space.tracks.firstOrNull { it.id == manualActiveTrackId }
             if (manual != null) return manual
@@ -559,21 +545,29 @@ class WirdStore(context: Context) {
 
         val dow = date.dayOfWeek
         val matching = space.tracks.firstOrNull { dow in it.activeDays }
-        return matching ?: space.tracks.firstOrNull() ?: ReadingTrack(
-            id = "default",
-            name = "Daily Quran",
-            positionUnit = positionUnit,
-            direction = readingDirection,
-            dailyUnits = plan.defaultUnits,
-        )
+        return matching ?: space.tracks.first()
     }
 
     fun setActiveSpace(spaceId: String) {
         activeSpaceId = spaceId
         manualActiveTrackId = null
+        val space = activeSpace()
         val track = activeTrack()
         positionUnit = track.positionUnit
         readingDirection = track.direction
+        // Apply this mode's reminder schedule if configured
+        space.reminderScheduleRaw?.let { raw ->
+            prefs.edit { putString(KEY_NUDGE, raw) }
+        }
+    }
+
+    fun updateActiveSpaceReminder(schedule: NudgeSchedule) {
+        val raw = encodeSchedule(schedule)
+        nudgeSchedule = schedule
+        val spaces = getLifeSpaces().map {
+            if (it.id == activeSpaceId) it.copy(reminderScheduleRaw = raw) else it
+        }
+        saveLifeSpaces(spaces)
     }
 
     fun setActiveTrack(trackId: String) {
@@ -591,29 +585,30 @@ class WirdStore(context: Context) {
         saveLifeSpaces(spaces)
     }
 
-    fun addLifeSpace(name: String): LifeSpace {
+    fun addLifeSpace(name: String, goal: String? = null): LifeSpace {
         val id = "space_" + System.currentTimeMillis()
         val defaultTrack = ReadingTrack(
             id = "track_${id}_1",
-            name = "$name Quran",
+            name = "$name Track",
             type = TrackType.TILAWAH,
             activeDays = DayOfWeek.entries.toSet(),
-            positionUnit = 0,
-            direction = ReadingDirection.TOWARDS_NAS,
+            positionUnit = positionUnit,
+            direction = readingDirection,
             dailyUnits = plan.defaultUnits,
+            startVerseSurah = startVerse?.first,
+            startVerseAyah = startVerse?.second,
         )
-        val newSpace = LifeSpace(id = id, name = name, isFrozen = false, tracks = listOf(defaultTrack))
+        val newSpace = LifeSpace(id = id, name = name, isFrozen = false, tracks = listOf(defaultTrack), goal = goal)
         saveLifeSpaces(getLifeSpaces() + newSpace)
         return newSpace
     }
 
     fun deleteLifeSpace(spaceId: String): Boolean {
         val current = getLifeSpaces()
-        if (current.size <= 1) return false
         val filtered = current.filter { it.id != spaceId }
         saveLifeSpaces(filtered)
         if (activeSpaceId == spaceId) {
-            setActiveSpace(filtered.first().id)
+            activeSpaceId = filtered.firstOrNull()?.id ?: ""
         }
         return true
     }
@@ -630,7 +625,6 @@ class WirdStore(context: Context) {
     fun deleteTrackFromSpace(spaceId: String, trackId: String): Boolean {
         val spaces = getLifeSpaces().map { space ->
             if (space.id == spaceId) {
-                if (space.tracks.size <= 1) return false
                 space.copy(tracks = space.tracks.filter { it.id != trackId })
             } else space
         }

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.style.TextOverflow
 import com.mosman.wird.domain.LifeSpace
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.TrackScheduleMode
@@ -271,8 +272,61 @@ fun AtmosphericHeader(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Option C: Unified Reading Mode & Track Pill replaces Bookmark icon
-                    if (activeSpace != null && activeTrack != null) {
+                    // Reading Track Pill with due count badge (e.g. 1 of 3)
+                    if (activeTrack != null) {
+                        val dueTracks = activeSpace?.tracks?.filter { it.isDueToday() } ?: emptyList()
+                        val dueIndex = dueTracks.indexOfFirst { it.id == activeTrack.id }
+                        val badgeText = if (dueTracks.size > 1 && dueIndex >= 0) "${dueIndex + 1} of ${dueTracks.size}" else null
+
+                        Box(
+                            modifier = Modifier
+                                .clayPill(
+                                    shape = RoundedCornerShape(999.dp),
+                                    backgroundColor = Color(0xFF16382D).copy(alpha = 0.88f),
+                                    highlightColor = Color.White.copy(alpha = 0.35f),
+                                    shadowColor = Color.Black.copy(alpha = 0.4f),
+                                )
+                                .clickable(onClick = onOpenModePicker)
+                                .padding(horizontal = 11.dp, vertical = 7.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            ) {
+                                TrackTypeGlyph(
+                                    type = activeTrack.type,
+                                    tint = Color(0xFF8DE0A6),
+                                    modifier = Modifier.size(13.dp),
+                                )
+                                Text(
+                                    text = activeTrack.name.take(13).trimEnd(),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                )
+                                if (badgeText != null) {
+                                    Text(
+                                        text = "·",
+                                        fontSize = 11.sp,
+                                        color = Color.White.copy(alpha = 0.4f),
+                                    )
+                                    Text(
+                                        text = badgeText,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFFF9C86A),
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = "Switch Track",
+                                    tint = Color(0xFF90A99C),
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
+                    } else if (activeSpace != null) {
                         Box(
                             modifier = Modifier
                                 .clayPill(
@@ -294,21 +348,10 @@ fun AtmosphericHeader(
                                     modifier = Modifier.size(13.dp),
                                 )
                                 Text(
-                                    text = activeSpace.name,
+                                    text = activeSpace.name.take(14).trimEnd(),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
-                                )
-                                Text(
-                                    text = "·",
-                                    fontSize = 11.sp,
-                                    color = Color.White.copy(alpha = 0.4f),
-                                )
-                                Text(
-                                    text = activeTrack.name.take(12).trimEnd(),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFFC8E8D5),
                                 )
                                 Icon(
                                     imageVector = Icons.Filled.KeyboardArrowDown,
@@ -429,8 +472,8 @@ fun AtmosphericHeader(
                 }
             }
 
-            // Sub-mode status row underneath greeting
-            if (activeTrack != null) {
+            // Reading Mode & Goal status row underneath greeting - Tactile Clay Capsule & Segmented Switch
+            if (activeSpace != null) {
                 Spacer(Modifier.height(14.dp))
                 Row(
                     modifier = Modifier
@@ -439,48 +482,140 @@ fun AtmosphericHeader(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.clickable(onClick = onOpenModePicker),
+                    // Prominent Mode Capsule Button
+                    Box(
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = Color(0xFF16382D).copy(alpha = 0.92f),
+                                highlightColor = Color.White.copy(alpha = 0.22f),
+                                shadowColor = Color.Black.copy(alpha = 0.35f),
+                            )
+                            .clickable(onClick = onOpenModePicker)
+                            .padding(horizontal = 11.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.CenterStart,
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(Color(0xFF4ADE80))
-                        )
-                        val surah = activeTrack.surahName()
-                        val trackLabel = if (surah.isNotEmpty() && !activeTrack.name.contains(surah, ignoreCase = true)) {
-                            "${activeTrack.name} ($surah)"
-                        } else {
-                            activeTrack.name
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            LifeSpaceGlyph(
+                                tint = Color(0xFF8DE0A6),
+                                modifier = Modifier.size(12.dp),
+                            )
+                            Text(
+                                text = "Mode: ${activeSpace.name}",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (!activeSpace.goal.isNullOrBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color(0xFFF9C86A).copy(alpha = 0.15f))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = activeSpace.goal,
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFFF9C86A),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                            Icon(
+                                imageVector = Icons.Filled.KeyboardArrowDown,
+                                contentDescription = "Switch Mode",
+                                tint = Color(0xFF8DE0A6),
+                                modifier = Modifier.size(13.dp),
+                            )
                         }
-                        Text(
-                            text = trackLabel,
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFD6ECE0),
-                        )
                     }
 
-                    val schedLabel = if (scheduleMode == TrackScheduleMode.AUTOMATIC) "⏱ Auto" else "Manual"
-                    Box(
+                    Spacer(Modifier.width(8.dp))
+
+                    // Tactile Segmented Toggle Switch for Auto / Manual
+                    val isAuto = scheduleMode == TrackScheduleMode.AUTOMATIC
+                    Row(
                         modifier = Modifier
                             .clayPill(
                                 shape = RoundedCornerShape(999.dp),
-                                backgroundColor = Color(0xFF142B21).copy(alpha = 0.8f),
-                                elevation = 1.dp,
+                                backgroundColor = Color(0xFF10261E).copy(alpha = 0.95f),
+                                highlightColor = Color.White.copy(alpha = 0.15f),
+                                shadowColor = Color.Black.copy(alpha = 0.45f),
                             )
-                            .clickable(onClick = onToggleScheduleMode)
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .padding(2.5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = schedLabel,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFD4AF37),
-                        )
+                        // Auto segment
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .then(
+                                    if (isAuto) {
+                                        Modifier.background(Color(0xFF204D39))
+                                    } else Modifier
+                                )
+                                .clickable {
+                                    if (!isAuto) onToggleScheduleMode()
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.5.dp),
+                            ) {
+                                AutoScheduleGlyph(
+                                    tint = if (isAuto) Color(0xFF8DE0A6) else Color(0xFF6B8A7A),
+                                    modifier = Modifier.size(10.dp),
+                                )
+                                Text(
+                                    text = "Auto",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = if (isAuto) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isAuto) Color(0xFF8DE0A6) else Color(0xFF6B8A7A),
+                                )
+                            }
+                        }
+
+                        // Manual segment
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .then(
+                                    if (!isAuto) {
+                                        Modifier.background(Color(0xFF204D39))
+                                    } else Modifier
+                                )
+                                .clickable {
+                                    if (isAuto) onToggleScheduleMode()
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.5.dp),
+                            ) {
+                                ManualScheduleGlyph(
+                                    tint = if (!isAuto) Color(0xFFF9C86A) else Color(0xFF6B8A7A),
+                                    modifier = Modifier.size(10.dp),
+                                )
+                                Text(
+                                    text = "Manual",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = if (!isAuto) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (!isAuto) Color(0xFFF9C86A) else Color(0xFF6B8A7A),
+                                )
+                            }
+                        }
                     }
                 }
             }

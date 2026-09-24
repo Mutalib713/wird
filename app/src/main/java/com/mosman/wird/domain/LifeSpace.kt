@@ -90,6 +90,9 @@ data class ReadingTrack(
     fun isDueToday(today: LocalDate = LocalDate.now()): Boolean =
         activeDays.isEmpty() || today.dayOfWeek in activeDays
 
+    fun isCompletedToday(today: LocalDate = LocalDate.now()): Boolean =
+        lastCompletedDate == today.toString()
+
     companion object {
         fun fromJson(json: JSONObject): ReadingTrack {
             val days = runCatching {
@@ -129,11 +132,15 @@ data class LifeSpace(
     val name: String,
     val isFrozen: Boolean = false,
     val tracks: List<ReadingTrack> = emptyList(),
+    val goal: String? = null,
+    val reminderScheduleRaw: String? = null,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("id", id)
         put("name", name)
         put("isFrozen", isFrozen)
+        if (goal != null) put("goal", goal)
+        if (reminderScheduleRaw != null) put("reminderScheduleRaw", reminderScheduleRaw)
         val arr = JSONArray()
         tracks.forEach { arr.put(it.toJson()) }
         put("tracks", arr)
@@ -151,6 +158,8 @@ data class LifeSpace(
                 name = json.getString("name"),
                 isFrozen = json.optBoolean("isFrozen", false),
                 tracks = trackList,
+                goal = json.optString("goal").takeIf { it.isNotEmpty() },
+                reminderScheduleRaw = json.optString("reminderScheduleRaw").takeIf { it.isNotEmpty() },
             )
         }
     }
