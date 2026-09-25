@@ -324,6 +324,15 @@ class WirdStore(context: Context) {
         set(value) = prefs.edit { putBoolean(KEY_SEEN_CHROME, value) }
 
     /**
+     * Whether the reader has seen the Main App Toolkit Spotlight Tour.
+     * Starts false so first-time users explore the 6 tools on Home,
+     * and can be re-triggered anytime from the Home overflow menu.
+     */
+    var hasSeenToolkitTour: Boolean
+        get() = prefs.getBoolean(KEY_SEEN_TOOLKIT_TOUR, false)
+        set(value) = prefs.edit { putBoolean(KEY_SEEN_TOOLKIT_TOUR, value) }
+
+    /**
      * When the reminder arrives. Defaults to thirty minutes after Maghrib.
      *
      * Stored as one short string rather than three separate keys, so a half-written
@@ -724,6 +733,7 @@ class WirdStore(context: Context) {
         const val KEY_ACTIVE_SPACE_ID = "active_space_id"
         const val KEY_ACTIVE_TRACK_ID = "active_track_id"
         const val KEY_TRACK_SCHEDULE_MODE = "track_schedule_mode"
+        const val KEY_SEEN_TOOLKIT_TOUR = "seen_toolkit_tour"
         const val FIELD = " | "
         const val AWAY_SEP = ".."
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"

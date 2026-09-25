@@ -1,9 +1,20 @@
 package com.mosman.wird.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.graphics.Brush
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -79,14 +90,19 @@ import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 
 /**
- * First-run Onboarding flow redesigned into a cohesive 5-step journey:
- * - Step 1: What should I call you? (Greeting name, skippable)
- * - Step 2: Reading method ("From the mushaf" vs "From memory", matching Settings)
- * - Step 3: Reading direction ("Towards An-Nas" vs "Towards Al-Fatihah", matching Settings)
- * - Step 4: Reading position (Searchable Sūrah selection)
- * - Step 5: Starting Ayah & Daily Target (Open in Qur'an picker, Ayah number input, Custom daily verses)
+ * First-run Onboarding flow redesigned into an authentic 10-step journey (0 to 9):
+ * - Step 0: Animated Atmospheric Splash (auto-advances upon 2.4s sweep ring, tap anywhere, no Begin button)
+ * - Step 1: Why Wird? (The problem: rigid 1 Juz/day, broken streak shame. What is a Wird: presence over pressure)
+ * - Step 2: Adapts to Your Learning Style (African & Ghanaian madrasa reverse tradition, mushaf vs memory, switch anytime)
+ * - Step 3: 4 Core Features (Daily Wird portion, separated Sūrahs free reading, Whisper AI voice auditor, AI Chat companion)
+ * - Step 4: Let's Set Up Your Wird Gateway (100% offline guarantee, step-by-step or quick start)
+ * - Step 5: What should we call you? (readerName, private and local, skippable)
+ * - Step 6: Reading Method & Direction (Mushaf vs Memory; Forward vs Reverse Madrasa, with switch anytime notes)
+ * - Step 7: Starting Position (Searchable Sūrahs + quick presets: Juz 'Amma / Page 582, Beg / Page 1, Ya-Sin / Page 442)
+ * - Step 8: Starting Ayah & Daily Target (Open in Qur'an page viewer, ayah number, half/1/2 pages or custom verses)
+ * - Step 9: Blessing Du'a & Launch ("Bismillah, [Name]", du'a blessing, configured profile card, launch to Toolkit Tour)
  *
- * Implements Sacred Rule 6: Google Material / Lucide style vector drawables exclusively. Zero raw emojis.
+ * Implements Sacred Rule 6 & 9: Google Material / Lucide style vector drawables exclusively. Zero raw emojis.
  */
 @Composable
 fun SetupScreen(
@@ -109,11 +125,11 @@ fun SetupScreen(
     // State collected across steps
     var readerName by remember { mutableStateOf<String?>(null) }
     var readingMode by remember { mutableStateOf(ReadingMode.READING) }
-    var readingDirection by remember { mutableStateOf(ReadingDirection.TOWARDS_NAS) }
-    var chosenSurah by remember { mutableStateOf<Surah?>(SurahIndex.byNumber(1)) }
+    var readingDirection by remember { mutableStateOf(ReadingDirection.TOWARDS_FATIHAH) }
+    var chosenSurah by remember { mutableStateOf<Surah?>(SurahIndex.byNumber(78)) } // Default Juz 'Amma
     var startAyah by remember { mutableIntStateOf(1) }
     var startAyahText by remember { mutableStateOf("1") }
-    var startPage by remember { mutableIntStateOf(1) }
+    var startPage by remember { mutableIntStateOf(582) } // Default Page 582
     var dailyUnits by remember { mutableIntStateOf(2) } // 1 page (2 units)
     var isCustomTarget by remember { mutableStateOf(false) }
     var customVersesText by remember { mutableStateOf("10") }
@@ -125,8 +141,10 @@ fun SetupScreen(
     BackHandler(enabled = viewingMushafPage || currentStep > 0) {
         if (viewingMushafPage) {
             viewingMushafPage = false
-        } else if (currentStep > 0) {
+        } else if (currentStep > 1) {
             currentStep--
+        } else if (currentStep == 1) {
+            currentStep = 0
         }
     }
 
@@ -161,13 +179,13 @@ fun SetupScreen(
             .padding(horizontal = 20.dp),
     ) {
         if (currentStep == 0) {
-            Step0Welcome(
-                onStart = { currentStep = 1 },
+            Step0AnimatedSplash(
+                onComplete = { currentStep = 1 },
             )
         } else {
             Spacer(Modifier.height(10.dp))
 
-            // Top Stepper Navigation Row
+            // Top Stepper Navigation Row (Steps 1 to 9)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -182,7 +200,7 @@ fun SetupScreen(
                         .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Text(
-                        text = "STEP $currentStep OF 6",
+                        text = "STEP $currentStep OF 9",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 0.8.sp,
@@ -191,8 +209,8 @@ fun SetupScreen(
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (currentStep == 1) {
-                        TextButton(onClick = { currentStep = 2 }) {
+                    if (currentStep == 5) {
+                        TextButton(onClick = { currentStep = 6 }) {
                             Text(
                                 text = "Skip",
                                 color = colors.textSecondary,
@@ -202,21 +220,23 @@ fun SetupScreen(
                         }
                         Spacer(Modifier.width(4.dp))
                     }
-                    TextButton(onClick = { currentStep-- }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = colors.textSecondary,
-                                modifier = Modifier.size(14.dp),
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = "Back",
-                                color = colors.textSecondary,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
+                    if (currentStep > 1) {
+                        TextButton(onClick = { currentStep-- }) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = colors.textSecondary,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    text = "Back",
+                                    color = colors.textSecondary,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
                         }
                     }
                 }
@@ -224,12 +244,12 @@ fun SetupScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // 6-Capsule Progress Bar
+            // 9-Capsule Progress Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                for (stepIndex in 1..6) {
+                for (stepIndex in 1..9) {
                     val filled = stepIndex < currentStep
                     val current = stepIndex == currentStep
                     Box(
@@ -253,34 +273,56 @@ fun SetupScreen(
             // Step Content Body
             Box(modifier = Modifier.weight(1f)) {
                 when (currentStep) {
-                    1 -> Step1Name(
+                    1 -> Step1WhyWird(
+                        onNext = { currentStep = 2 },
+                    )
+                    2 -> Step2LearningStyle(
+                        onNext = { currentStep = 3 },
+                    )
+                    3 -> Step3CoreFeatures(
+                        onNext = { currentStep = 4 },
+                    )
+                    4 -> Step4Gateway(
+                        onPersonalize = { currentStep = 5 },
+                        onQuickStart = {
+                            chosenSurah = SurahIndex.byNumber(78) // Juz 'Amma An-Naba
+                            startPage = 582
+                            startAyah = 1
+                            startAyahText = "1"
+                            dailyUnits = 2 // 1 page
+                            readingMode = ReadingMode.READING
+                            readingDirection = ReadingDirection.TOWARDS_FATIHAH
+                            currentStep = 9
+                        },
+                    )
+                    5 -> Step5Name(
                         initialName = readerName,
                         onNext = {
                             readerName = it
-                            currentStep = 2
+                            currentStep = 6
                         },
                     )
-                    2 -> Step2ReadingMethod(
+                    6 -> Step6MethodAndDirection(
                         selectedMode = readingMode,
                         onSelectMode = { readingMode = it },
-                        onNext = { currentStep = 3 },
-                    )
-                    3 -> Step3ReadingDirection(
                         selectedDirection = readingDirection,
                         onSelectDirection = { readingDirection = it },
-                        onNext = { currentStep = 4 },
+                        onNext = { currentStep = 7 },
                     )
-                    4 -> Step4ReadingPosition(
-                        onSurahPicked = { surah ->
+                    7 -> Step7ReadingPosition(
+                        chosenSurah = chosenSurah,
+                        startPage = startPage,
+                        onSurahPicked = { surah, page ->
                             chosenSurah = surah
-                            startPage = surah.firstPage
+                            startPage = page
                             startAyah = 1
                             startAyahText = "1"
-                            currentStep = 5
+                            currentStep = 8
                         },
+                        onNext = { currentStep = 8 },
                     )
-                    5 -> Step5AyahAndTarget(
-                        surah = chosenSurah ?: SurahIndex.byNumber(1)!!,
+                    8 -> Step8AyahAndTarget(
+                        surah = chosenSurah ?: SurahIndex.byNumber(78)!!,
                         startAyah = startAyah,
                         startAyahText = startAyahText,
                         onAyahTextChange = { text ->
@@ -290,7 +332,7 @@ fun SetupScreen(
                             if (a != null && a in 1..max) {
                                 startAyah = a
                                 coroutineScope.launch {
-                                    repo.pageOfVerse(chosenSurah?.number ?: 1, a)?.let { p ->
+                                    repo.pageOfVerse(chosenSurah?.number ?: 78, a)?.let { p ->
                                         startPage = p
                                     }
                                 }
@@ -316,15 +358,21 @@ fun SetupScreen(
                         },
                         onOpenMushaf = { viewingMushafPage = true },
                         onFinish = {
-                            currentStep = 6
+                            currentStep = 9
                         },
                     )
-                    6 -> Step6DownloadPages(
-                        onDone = {
+                    9 -> Step9Blessing(
+                        readerName = readerName,
+                        startPage = startPage,
+                        chosenSurah = chosenSurah,
+                        startAyah = startAyah,
+                        dailyUnits = dailyUnits,
+                        readingMode = readingMode,
+                        readingDirection = readingDirection,
+                        onLaunch = {
                             val versePair = chosenSurah?.number?.let { s -> s to startAyah }
                             onDone(startPage, dailyUnits, versePair, readerName, readingMode, readingDirection)
                         },
-                        onBack = { currentStep = 5 },
                     )
                 }
             }
@@ -333,11 +381,194 @@ fun SetupScreen(
 }
 
 // ============================================================================
-// STEP 0: WELCOME & WHAT IS A WIRD?
+// STEP 0: ANIMATED ATMOSPHERIC SPLASH (Auto-advances, No Begin Button)
 // ============================================================================
 @Composable
-private fun Step0Welcome(
-    onStart: () -> Unit,
+private fun Step0AnimatedSplash(
+    onComplete: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+    val emerald = Color(0xFF8ED676)
+
+    // Animated Sweep Progress (0f to 1f over 2400ms)
+    val sweepProgress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        sweepProgress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = 2400, easing = FastOutSlowInEasing),
+        )
+        delay(120)
+        onComplete()
+    }
+
+    // Breathing Aura Infinite Pulse
+    val infiniteTransition = rememberInfiniteTransition(label = "splash_pulse")
+    val auraScale by infiniteTransition.animateFloat(
+        initialValue = 0.88f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "aura_scale",
+    )
+    val auraAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "aura_alpha",
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onComplete, // Tap anywhere advances immediately
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Background breathing aura
+        Box(
+            modifier = Modifier
+                .size((280 * auraScale).dp)
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            emerald.copy(alpha = 0.22f * auraAlpha),
+                            Color.Transparent,
+                        ),
+                    ),
+                    shape = CircleShape,
+                ),
+        )
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 24.dp),
+        ) {
+            // Rosette / Emblem with circular sweep ring
+            Box(
+                modifier = Modifier.size(136.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                // Background & progress ring canvas
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val strokeWidth = 3.5.dp.toPx()
+                    val radius = (size.minDimension - strokeWidth) / 2f
+                    val center = Offset(size.width / 2f, size.height / 2f)
+
+                    // Track
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.08f),
+                        radius = radius,
+                        center = center,
+                        style = Stroke(width = strokeWidth),
+                    )
+
+                    // Sweep progress arc (-90 deg start)
+                    drawArc(
+                        brush = Brush.linearGradient(listOf(emerald, gold)),
+                        startAngle = -90f,
+                        sweepAngle = 360f * sweepProgress.value,
+                        useCenter = false,
+                        topLeft = Offset(strokeWidth / 2f, strokeWidth / 2f),
+                        size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
+                        style = Stroke(width = strokeWidth * 1.15f, cap = StrokeCap.Round),
+                    )
+                }
+
+                // Central emblem
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clayCard(
+                            shape = CircleShape,
+                            backgroundColor = if (isDark) Color(0xFF143324) else Color(0xFF1C6342),
+                            highlightColor = Color.White.copy(alpha = 0.25f),
+                            shadowColor = Color.Black.copy(alpha = 0.5f),
+                            elevation = 6.dp,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Image(
+                        painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                        contentDescription = "Wird Emblem",
+                        modifier = Modifier.size(86.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // App title
+            Text(
+                text = "Wird",
+                fontSize = 42.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp,
+                color = colors.textPrimary,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "وِرْد · A Daily Qur'an Companion",
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.2.sp,
+                color = gold,
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            Text(
+                text = "“The deeds most beloved to Allah are those that are consistent, even if they are few.”",
+                fontSize = 13.5.sp,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                lineHeight = 20.sp,
+                color = colors.textSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+
+            Spacer(Modifier.height(28.dp))
+
+            // Status timer pill
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF10261C) else Color(0xFFECE3D2),
+                    )
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RhythmVectorIcon(tint = emerald, modifier = Modifier.size(13.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "Loading your quiet sanctuary...",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = emerald,
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// STEP 1: WHY WIRD? (THE PROBLEM & DEFINITION)
+// ============================================================================
+@Composable
+private fun Step1WhyWird(
+    onNext: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -349,139 +580,133 @@ private fun Step0Welcome(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Spacer(Modifier.height(16.dp))
-
-            // App Logo Badge
+        Column {
             Box(
                 modifier = Modifier
-                    .size(88.dp)
-                    .clayCard(
-                        shape = CircleShape,
-                        backgroundColor = if (isDark) Color(0xFF132D20) else Color(0xFF1E6A46),
-                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.4f),
-                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF123B26).copy(alpha = 0.3f),
-                        elevation = 4.dp,
-                    ),
-                contentAlignment = Alignment.Center,
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF1B2E24) else Color(0xFFF3ECE0),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
-                Image(
-                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                    contentDescription = "Wird Logo",
-                    modifier = Modifier.size(76.dp),
+                Text(
+                    text = "WHY WIRD?",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.8.sp,
+                    color = gold,
                 )
             }
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                text = "The Qur'an shouldn't feel like a chore you fail at.",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.textPrimary,
+                lineHeight = 28.sp,
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                text = "Most Quran apps expect you to recite a rigid 1 Juz a day, reset your streak if you miss a single busy evening, and leave you feeling guilty.",
+                fontSize = 13.sp,
+                color = colors.textSecondary,
+                lineHeight = 18.sp,
+            )
 
             Spacer(Modifier.height(16.dp))
 
-            // App Name & Subtitle
-            Text(
-                text = "Wird",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-0.5).sp,
-                color = colors.textPrimary,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = "وِرْد · Daily Qur'an Companion",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = gold,
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // "WHAT IS A WIRD?" Definition Card
+            // Card 1: What is a Wird?
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clayCard(
-                        shape = RoundedCornerShape(20.dp),
+                        shape = RoundedCornerShape(18.dp),
                         backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
-                        highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.9f),
-                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
-                        elevation = 2.dp,
-                    )
-                    .padding(18.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clayPill(
-                            shape = RoundedCornerShape(999.dp),
-                            backgroundColor = if (isDark) Color(0xFF1B2E24) else Color(0xFFF3ECE0),
-                        )
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
-                ) {
-                    Text(
-                        text = "WHAT IS A WIRD?",
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.8.sp,
-                        color = gold,
-                    )
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                Text(
-                    text = "“A Wird is the dedicated daily portion of the Holy Qur'an that you commit to reading every day — a quiet, lifelong habit.”",
-                    fontSize = 13.5.sp,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                    lineHeight = 20.sp,
-                    color = colors.textPrimary,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-
-            Spacer(Modifier.height(18.dp))
-
-            // 3 Core Pillars: Why Wird?
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clayCard(
-                        shape = RoundedCornerShape(20.dp),
-                        backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
-                        highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.9f),
-                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
                         elevation = 2.dp,
                     )
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                WelcomeFeatureRow(
-                    icon = { RhythmVectorIcon(tint = gold) },
-                    title = "Consistent Daily Pace",
-                    description = "Small, manageable portions tailored to your speed and schedule.",
-                    isDark = isDark,
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clayCard(
+                                shape = RoundedCornerShape(10.dp),
+                                backgroundColor = if (isDark) Color(0xFF11261D) else Color(0xFFEDE4D4),
+                                elevation = 1.dp,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        QuranVectorIcon(tint = gold)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = "What is a Wird (ورْد)?",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = colors.textPrimary,
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = "In classical Islamic tradition, your Wird is simply your dedicated daily portion of Qur'an and remembrance. It can be 2 pages, 1 page, or even 3 verses — a quiet, lifelong habit.",
+                    fontSize = 12.5.sp,
+                    color = colors.textSecondary,
+                    lineHeight = 17.5.sp,
                 )
-                Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(colors.ornament.copy(alpha = 0.25f)))
-                WelcomeFeatureRow(
-                    icon = { LockVectorIcon(tint = gold) },
-                    title = "100% Offline & Private",
-                    description = "No accounts, no ads, no tracking. Stays entirely on your device.",
-                    isDark = isDark,
-                )
-                Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(colors.ornament.copy(alpha = 0.25f)))
-                WelcomeFeatureRow(
-                    icon = { QuranVectorIcon(tint = gold) },
-                    title = "Authentic Mushaf",
-                    description = "Original Madinah pages, tap-to-ayah selection, and verse-by-verse audio.",
-                    isDark = isDark,
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Card 2: Presence over Pressure
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(18.dp),
+                        backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
+                        elevation = 2.dp,
+                    )
+                    .padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clayCard(
+                                shape = RoundedCornerShape(10.dp),
+                                backgroundColor = if (isDark) Color(0xFF11261D) else Color(0xFFEDE4D4),
+                                elevation = 1.dp,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        HeartVectorIcon(tint = Color(0xFF8ED676))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = "Presence over Pressure",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = colors.textPrimary,
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = "Consistency wins over sporadic bursts. Wird builds a calm habit that fits into your actual daily life without guilt alarms or shame.",
+                    fontSize = 12.5.sp,
+                    color = colors.textSecondary,
+                    lineHeight = 17.5.sp,
                 )
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-
-        // Get Started Button
-        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        Column(modifier = Modifier.padding(bottom = 16.dp, top = 20.dp)) {
             Button(
-                onClick = onStart,
+                onClick = onNext,
                 modifier = Modifier
                     .fillMaxWidth()
                     .defaultMinSize(minHeight = Scale.minTarget),
@@ -490,7 +715,7 @@ private fun Step0Welcome(
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Get Started", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("How Wird Adapts to You", fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
                 Spacer(Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -502,54 +727,475 @@ private fun Step0Welcome(
     }
 }
 
+// ============================================================================
+// STEP 2: ADAPTS TO YOUR LEARNING STYLE (Ghanaian & African Madrasa Emphasis)
+// ============================================================================
 @Composable
-private fun WelcomeFeatureRow(
-    icon: @Composable () -> Unit,
-    title: String,
-    description: String,
-    isDark: Boolean,
+private fun Step2LearningStyle(
+    onNext: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+    val emerald = Color(0xFF8ED676)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clayCard(
-                    shape = RoundedCornerShape(12.dp),
-                    backgroundColor = if (isDark) Color(0xFF102018) else Color(0xFFEDE4D4),
-                    elevation = 1.dp,
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            icon()
-        }
-        Spacer(Modifier.width(14.dp))
         Column {
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF1B2E24) else Color(0xFFF3ECE0),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = "ADAPTS TO YOU",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.8.sp,
+                    color = gold,
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
             Text(
-                text = title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.5.sp,
+                text = "Wird Adapts to Your Learning Style",
+                fontSize = 21.sp,
+                fontWeight = FontWeight.ExtraBold,
                 color = colors.textPrimary,
+                lineHeight = 27.sp,
             )
-            Spacer(Modifier.height(2.dp))
+
+            Spacer(Modifier.height(8.dp))
+
             Text(
-                text = description,
-                fontSize = 11.5.sp,
+                text = "Everyone has their own way of reciting and memorizing. Wird fits how you learn — and you can switch anytime:",
+                fontSize = 12.5.sp,
                 color = colors.textSecondary,
-                lineHeight = 15.sp,
+                lineHeight = 17.5.sp,
             )
+
+            Spacer(Modifier.height(16.dp))
+
+            // Card 1: Direction (Ghanaian & African madrasa tradition)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(18.dp),
+                        backgroundColor = if (isDark) Color(0xFF182A1D) else Color(0xFFFDFBF7),
+                        elevation = 2.dp,
+                    )
+                    .padding(16.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clayCard(
+                                    shape = RoundedCornerShape(10.dp),
+                                    backgroundColor = if (isDark) Color(0xFF2B2512) else Color(0xFFF7EED6),
+                                    elevation = 1.dp,
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CompassVectorIcon(tint = gold)
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = "Direction: Reverse or Forward",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = gold,
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = gold.copy(alpha = 0.18f),
+                            )
+                            .padding(horizontal = 7.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            text = "Switch Anytime",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = gold,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = "In Africa, and especially in Ghanaian madrasas and makaranta, we usually start memorizing and reciting from the back — beginning with Juz 'Amma (Surah An-Nas) and working upwards towards Al-Baqarah. Or you can read forward from the beginning. You can switch directions whenever you want.",
+                    fontSize = 12.sp,
+                    color = colors.textSecondary,
+                    lineHeight = 17.sp,
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // Card 2: Method (Mushaf vs By Heart)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(18.dp),
+                        backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
+                        elevation = 2.dp,
+                    )
+                    .padding(16.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clayCard(
+                                    shape = RoundedCornerShape(10.dp),
+                                    backgroundColor = if (isDark) Color(0xFF11261D) else Color(0xFFEDE4D4),
+                                    elevation = 1.dp,
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            BookVectorIcon(tint = emerald)
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = "Method: In Qur'an or By Heart",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = colors.textPrimary,
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = emerald.copy(alpha = 0.18f),
+                            )
+                            .padding(horizontal = 7.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            text = "Switch Anytime",
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = emerald,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = "Whether you prefer reading by looking directly at the authentic 15-line pages, or reciting by heart (Hifdh) walking to campus or on a trotro/bus without holding a book. Switch between them anytime with one tap.",
+                    fontSize = 12.sp,
+                    color = colors.textSecondary,
+                    lineHeight = 17.sp,
+                )
+            }
+        }
+
+        Column(modifier = Modifier.padding(bottom = 16.dp, top = 20.dp)) {
+            Button(
+                onClick = onNext,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Next: Core Features Explained", fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
 
 // ============================================================================
-// STEP 1: WHAT SHOULD I CALL YOU?
+// STEP 3: 4 CORE FEATURES EXPLAINED PLAINLY
 // ============================================================================
 @Composable
-private fun Step1Name(
+private fun Step3CoreFeatures(
+    onNext: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
+    val emerald = Color(0xFF8ED676)
+    val blue = Color(0xFF60A5FA)
+    val pink = Color(0xFFF472B6)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .clayPill(
+                        shape = RoundedCornerShape(999.dp),
+                        backgroundColor = if (isDark) Color(0xFF1B2E24) else Color(0xFFF3ECE0),
+                    )
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = "4 CORE FEATURES",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 0.8.sp,
+                    color = gold,
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                text = "Where Things Live in Wird",
+                fontSize = 21.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.textPrimary,
+                lineHeight = 27.sp,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = "Plainly designed so your daily reading habit stays completely organized:",
+                fontSize = 12.5.sp,
+                color = colors.textSecondary,
+                lineHeight = 17.5.sp,
+            )
+
+            Spacer(Modifier.height(14.dp))
+
+            // Feature 1: Your Daily Wird
+            FeatureCard(
+                title = "1. Your Daily Wird (Portion)",
+                description = "Your committed daily portion (even 1 page or 3 verses). Advances each day to keep you steady without pressure.",
+                icon = { QuranVectorIcon(tint = emerald) },
+                accentColor = emerald,
+                isDark = isDark,
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            // Feature 2: Sūrahs Section (Free reading, separated)
+            FeatureCard(
+                title = "2. The Sūrahs Section (Free Reading)",
+                description = "Separate from your daily portion! When you want to recite Surah Al-Kahf on Friday, Al-Mulk at night, or browse, read freely here without moving your daily wird bookmark.",
+                icon = { BookVectorIcon(tint = gold) },
+                accentColor = gold,
+                isDark = isDark,
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            // Feature 3: Offline Voice Auditor (Whisper AI)
+            FeatureCard(
+                title = "3. Offline Voice Auditor (Whisper AI)",
+                description = "A smart voice checker right on your phone. Recite out loud by heart — it listens and checks your verses word-for-word. 100% offline with zero data bundles used.",
+                icon = { MicVectorIcon(tint = blue) },
+                accentColor = blue,
+                isDark = isDark,
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            // Feature 4: AI Chat Companion
+            FeatureCard(
+                title = "4. The AI Chat Companion",
+                description = "Chat with your quiet Quran companion anytime. Ask for English translations or Tafsir (explanations), ask 'What is my wird today?', or say 'I'm travelling this week' to pause without streak guilt.",
+                icon = { ChatVectorIcon(tint = pink) },
+                accentColor = pink,
+                isDark = isDark,
+            )
+        }
+
+        Column(modifier = Modifier.padding(bottom = 16.dp, top = 20.dp)) {
+            Button(
+                onClick = onNext,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Ready to Personalize", fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
+}
+
+// ============================================================================
+// STEP 4: LET'S SET UP YOUR WIRD (Gateway)
+// ============================================================================
+@Composable
+private fun Step4Gateway(
+    onPersonalize: () -> Unit,
+    onQuickStart: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Spacer(Modifier.height(14.dp))
+
+            Box(
+                modifier = Modifier
+                    .size(68.dp)
+                    .clayCard(
+                        shape = CircleShape,
+                        backgroundColor = if (isDark) Color(0xFF163325) else Color(0xFF1F6B47),
+                        elevation = 4.dp,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                ShieldVectorIcon(tint = Color(0xFF8ED676), modifier = Modifier.size(34.dp))
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = "Let's Set Up Your Wird",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.textPrimary,
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = "Takes under 45 seconds. No account, no email, and zero tracking.",
+                fontSize = 13.sp,
+                color = colors.textSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // Reassurance Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(18.dp),
+                        backgroundColor = if (isDark) Color(0xFF14241B) else Color(0xFFFFFFFF),
+                        elevation = 2.dp,
+                    )
+                    .padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clayCard(
+                                shape = RoundedCornerShape(10.dp),
+                                backgroundColor = if (isDark) Color(0xFF102018) else Color(0xFFEDE4D4),
+                                elevation = 1.dp,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CheckVectorIcon(tint = Color(0xFF8ED676))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = "100% Offline Guarantee",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.5.sp,
+                        color = colors.textPrimary,
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = "Everything stays strictly on your device. Never consumes data or mobile money bundles. No cloud sync, no tracking.",
+                    fontSize = 12.sp,
+                    color = colors.textSecondary,
+                    lineHeight = 17.sp,
+                )
+            }
+        }
+
+        Column(
+            modifier = Modifier.padding(bottom = 16.dp, top = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Button(
+                onClick = onPersonalize,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Personalize Step-by-Step ›", fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
+            }
+
+            Button(
+                onClick = onQuickStart,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF162B21) else Color(0xFFECE4D6),
+                    contentColor = colors.textPrimary,
+                ),
+            ) {
+                Text("⚡ Quick Start with Defaults", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
+            }
+        }
+    }
+}
+
+// ============================================================================
+// STEP 5: WHAT SHOULD WE CALL YOU? (Greeting Name, Skippable)
+// ============================================================================
+@Composable
+private fun Step5Name(
     initialName: String?,
     onNext: (String?) -> Unit,
 ) {
@@ -566,7 +1212,7 @@ private fun Step1Name(
         Column {
             HeroHeader(
                 icon = { UserVectorIcon(tint = Color(0xFFC9A24B)) },
-                title = "What should I call you?",
+                title = "What should we call you?",
                 subtitle = "Only to greet you in your daily reflection. No account is required and your name stays strictly on this phone.",
             )
 
@@ -606,7 +1252,7 @@ private fun Step1Name(
             }
         }
 
-        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        Column(modifier = Modifier.padding(bottom = 16.dp, top = 20.dp)) {
             Button(
                 onClick = { onNext(typed.trim().takeIf { it.isNotEmpty() }) },
                 modifier = Modifier
@@ -617,107 +1263,26 @@ private fun Step1Name(
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Continue", fontWeight = FontWeight.Bold)
-                Spacer(Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
+                Text("Continue to Method & Direction ›", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
     }
 }
 
 // ============================================================================
-// STEP 2: READING METHOD (Matches Settings: Reading method)
+// STEP 6: READING METHOD & DIRECTION (With Switch Anytime Notes)
 // ============================================================================
 @Composable
-private fun Step2ReadingMethod(
+private fun Step6MethodAndDirection(
     selectedMode: ReadingMode,
     onSelectMode: (ReadingMode) -> Unit,
-    onNext: () -> Unit,
-) {
-    val colors = LocalWirdColors.current
-    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column {
-            HeroHeader(
-                icon = { BookVectorIcon(tint = Color(0xFFC9A24B)) },
-                title = "Reading method",
-                subtitle = "Choose how you approach your daily recitation.",
-            )
-
-            Spacer(Modifier.height(20.dp))
-
-            // Option 1: From the mushaf
-            SelectionCard(
-                title = "From the mushaf",
-                description = "Reading with printed text open in front of you.",
-                tag = "TILĀWAH & KHATM",
-                selected = selectedMode == ReadingMode.READING,
-                onClick = { onSelectMode(ReadingMode.READING) },
-            )
-
-            Spacer(Modifier.height(12.dp))
-
-            // Option 2: From memory
-            SelectionCard(
-                title = "From memory",
-                description = "Reciting by heart; page is for self-check and Murāja'ah.",
-                tag = "HIFDH REVISION",
-                selected = selectedMode == ReadingMode.MEMORISING,
-                onClick = { onSelectMode(ReadingMode.MEMORISING) },
-            )
-
-            Spacer(Modifier.height(14.dp))
-            Text(
-                text = "Matches Settings → Reading Preferences. Can be changed anytime.",
-                fontSize = 11.5.sp,
-                color = colors.textSecondary.copy(alpha = 0.8f),
-            )
-        }
-
-        Column(modifier = Modifier.padding(bottom = 16.dp)) {
-            Button(
-                onClick = onNext,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = Scale.minTarget),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
-                    contentColor = Color.White,
-                ),
-            ) {
-                Text("Next: Reading direction", fontWeight = FontWeight.Bold)
-                Spacer(Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-    }
-}
-
-// ============================================================================
-// STEP 3: READING DIRECTION (Matches Settings: Reading direction)
-// ============================================================================
-@Composable
-private fun Step3ReadingDirection(
     selectedDirection: ReadingDirection,
     onSelectDirection: (ReadingDirection) -> Unit,
     onNext: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
 
     Column(
         modifier = Modifier
@@ -727,42 +1292,73 @@ private fun Step3ReadingDirection(
     ) {
         Column {
             HeroHeader(
-                icon = { CompassVectorIcon(tint = Color(0xFFC9A24B)) },
-                title = "Reading direction",
-                subtitle = "When you finish a portion, which direction does tomorrow's portion come from?",
+                icon = { CompassVectorIcon(tint = gold) },
+                title = "How do you recite?",
+                subtitle = "Choose your starting preferences (you can switch anytime with one tap):",
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(18.dp))
 
-            // Option 1: Towards An-Nas (Downwards)
+            // Section 1: Reading Method
+            Text(
+                text = "1. READING METHOD",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = gold,
+                letterSpacing = 0.8.sp,
+            )
+            Spacer(Modifier.height(8.dp))
+
             SelectionCard(
-                title = "Towards An-Nas (Downwards)",
-                description = "Front to back. When you finish a surah, you move forward (e.g. Al-Ikhlas 112 → Al-Falaq 113).",
-                tag = "STANDARD READING",
-                selected = selectedDirection == ReadingDirection.TOWARDS_NAS,
-                onClick = { onSelectDirection(ReadingDirection.TOWARDS_NAS) },
+                title = "From the mushaf",
+                description = "Reading with printed text open in front of you (Madani 15-line script).",
+                tag = "TILĀWAH · SWITCH ANYTIME",
+                selected = selectedMode == ReadingMode.READING,
+                onClick = { onSelectMode(ReadingMode.READING) },
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
 
-            // Option 2: Towards Al-Fatihah (Upwards)
             SelectionCard(
-                title = "Towards Al-Fatihah (Upwards)",
-                description = "Back to front. When you finish a surah, you move backward (e.g. Al-Ikhlas 112 → Al-Masadd 111).",
-                tag = "STANDARD REVISION",
+                title = "From memory (Ḥifẓ)",
+                description = "Reciting by heart without holding a book; pages for self-check & Murāja'ah.",
+                tag = "HIFDH · SWITCH ANYTIME",
+                selected = selectedMode == ReadingMode.MEMORISING,
+                onClick = { onSelectMode(ReadingMode.MEMORISING) },
+            )
+
+            Spacer(Modifier.height(18.dp))
+
+            // Section 2: Reading Direction
+            Text(
+                text = "2. READING DIRECTION",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = gold,
+                letterSpacing = 0.8.sp,
+            )
+            Spacer(Modifier.height(8.dp))
+
+            SelectionCard(
+                title = "Towards Al-Fatihah (Reverse · Madrasa)",
+                description = "An-Nas ➔ Al-Fatihah. The standard West African & Ghanaian madrasa progression.",
+                tag = "MADRASA · SWITCH ANYTIME",
                 selected = selectedDirection == ReadingDirection.TOWARDS_FATIHAH,
                 onClick = { onSelectDirection(ReadingDirection.TOWARDS_FATIHAH) },
             )
 
-            Spacer(Modifier.height(14.dp))
-            Text(
-                text = "Matches Settings → Reading Preferences. Keeps your revision in order.",
-                fontSize = 11.5.sp,
-                color = colors.textSecondary.copy(alpha = 0.8f),
+            Spacer(Modifier.height(10.dp))
+
+            SelectionCard(
+                title = "Towards An-Nas (Forward)",
+                description = "Al-Fatihah ➔ An-Nas. Standard front-to-back recitation towards full Khatmah.",
+                tag = "STANDARD · SWITCH ANYTIME",
+                selected = selectedDirection == ReadingDirection.TOWARDS_NAS,
+                onClick = { onSelectDirection(ReadingDirection.TOWARDS_NAS) },
             )
         }
 
-        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        Column(modifier = Modifier.padding(bottom = 16.dp, top = 20.dp)) {
             Button(
                 onClick = onNext,
                 modifier = Modifier
@@ -773,39 +1369,78 @@ private fun Step3ReadingDirection(
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Next: Reading position", fontWeight = FontWeight.Bold)
-                Spacer(Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
+                Text("Continue to Starting Position ›", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
     }
 }
 
 // ============================================================================
-// STEP 4: READING POSITION (Searchable Sūrah Selection)
+// STEP 7: STARTING POSITION (Searchable Sūrahs + African Madrasa Presets)
 // ============================================================================
 @Composable
-private fun Step4ReadingPosition(
-    onSurahPicked: (Surah) -> Unit,
+private fun Step7ReadingPosition(
+    chosenSurah: Surah?,
+    startPage: Int,
+    onSurahPicked: (Surah, Int) -> Unit,
+    onNext: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    val gold = Color(0xFFC9A24B)
     var searchQuery by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize()) {
         HeroHeader(
-            icon = { QuranVectorIcon(tint = Color(0xFFC9A24B)) },
-            title = "Reading position",
-            subtitle = "Select any Sūrah to start from.",
+            icon = { QuranVectorIcon(tint = gold) },
+            title = "Starting Position",
+            subtitle = "Choose where your recitation journey begins:",
         )
 
         Spacer(Modifier.height(14.dp))
 
-        // Search Input
+        // Quick Presets
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PresetPositionCard(
+                title = "Juz 'Amma (Surah An-Naba, Page 582)",
+                subtitle = "The classic African & Ghanaian madrasa starting point",
+                tag = "RECOMMENDED",
+                selected = startPage == 582,
+                onClick = {
+                    SurahIndex.byNumber(78)?.let { onSurahPicked(it, 582) }
+                },
+                isDark = isDark,
+            )
+
+            PresetPositionCard(
+                title = "From the Beginning (Page 1)",
+                subtitle = "Surah Al-Fatihah & Al-Baqarah (Full Khatmah)",
+                tag = "STANDARD",
+                selected = startPage == 1,
+                onClick = {
+                    SurahIndex.byNumber(1)?.let { onSurahPicked(it, 1) }
+                },
+                isDark = isDark,
+            )
+
+            PresetPositionCard(
+                title = "Surah Ya-Sin (Page 442)",
+                subtitle = "The heart of the Holy Qur'an · Juz 23",
+                tag = "POPULAR",
+                selected = startPage == 442,
+                onClick = {
+                    SurahIndex.byNumber(36)?.let { onSurahPicked(it, 442) }
+                },
+                isDark = isDark,
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Search Input for Any Sūrah
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -827,9 +1462,9 @@ private fun Step4ReadingPosition(
             Box(modifier = Modifier.weight(1f)) {
                 if (searchQuery.isEmpty()) {
                     Text(
-                        text = "Search by name or number (e.g. Ya-Sin or 36)...",
+                        text = "Or search any Sūrah (e.g. Al-Kahf or 18)...",
                         color = colors.textSecondary.copy(alpha = 0.6f),
-                        fontSize = 13.sp,
+                        fontSize = 12.5.sp,
                     )
                 }
                 androidx.compose.foundation.text.BasicTextField(
@@ -837,7 +1472,7 @@ private fun Step4ReadingPosition(
                     onValueChange = { searchQuery = it },
                     textStyle = TextStyle(
                         color = colors.textPrimary,
-                        fontSize = 13.5.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                     ),
                     modifier = Modifier.fillMaxWidth(),
@@ -856,24 +1491,45 @@ private fun Step4ReadingPosition(
             }
         }
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
 
         // Surah List
         Box(modifier = Modifier.weight(1f)) {
             SurahList(
-                onPick = onSurahPicked,
+                onPick = { surah -> onSurahPicked(surah, surah.firstPage) },
                 searchQuery = searchQuery,
-                contentPadding = PaddingValues(bottom = 24.dp),
+                contentPadding = PaddingValues(bottom = 12.dp),
             )
+        }
+
+        // Action Button
+        Column(modifier = Modifier.padding(bottom = 16.dp, top = 6.dp)) {
+            Button(
+                onClick = onNext,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                Text("Confirm Position: ${chosenSurah?.name ?: "Page $startPage"}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
         }
     }
 }
-
 // ============================================================================
-// STEP 5: STARTING AYAH & DAILY TARGET (Open in Quran + Custom Verses)
+// STEP 8: STARTING AYAH & DAILY TARGET (Open in Quran + Custom Verses)
 // ============================================================================
 @Composable
-private fun Step5AyahAndTarget(
+private fun Step8AyahAndTarget(
     surah: Surah,
     startAyah: Int,
     startAyahText: String,
@@ -1134,7 +1790,7 @@ private fun Step5AyahAndTarget(
 
         Spacer(Modifier.height(20.dp))
 
-        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        Column(modifier = Modifier.padding(bottom = 16.dp, top = 20.dp)) {
             Button(
                 onClick = onFinish,
                 modifier = Modifier
@@ -1145,7 +1801,7 @@ private fun Step5AyahAndTarget(
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Next: Qur'an Pages", fontWeight = FontWeight.Bold)
+                Text("Save Setup & View Blessing ›", fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
                 Spacer(Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -1158,18 +1814,24 @@ private fun Step5AyahAndTarget(
 }
 
 // ============================================================================
-// STEP 6: DOWNLOAD QUR'AN PAGES (All 604 Pages · Background Enabled)
+// STEP 9: BLESSING DU'A & LAUNCH INTO TOOLKIT TOUR
 // ============================================================================
 @Composable
-private fun Step6DownloadPages(
-    onDone: () -> Unit,
-    onBack: () -> Unit,
+private fun Step9Blessing(
+    readerName: String?,
+    startPage: Int,
+    chosenSurah: Surah?,
+    startAyah: Int,
+    dailyUnits: Int,
+    readingMode: ReadingMode,
+    readingDirection: ReadingDirection,
+    onLaunch: () -> Unit,
 ) {
-    val context = LocalContext.current
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val gold = Color(0xFFC9A24B)
-    val liveProgress by MushafDownloadService.mushafProgress.collectAsState()
+    val emerald = Color(0xFF8ED676)
+    val nameGreeting = readerName?.trim()?.takeIf { it.isNotEmpty() } ?: "dear reader"
 
     Column(
         modifier = Modifier
@@ -1177,263 +1839,148 @@ private fun Step6DownloadPages(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Column {
-            HeroHeader(
-                icon = { DownloadVectorIcon(tint = gold) },
-                title = "Qur'an Pages Download",
-                subtitle = "Download all 604 pages once to read completely offline anywhere.",
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Spacer(Modifier.height(16.dp))
+
+            // Heart / Du'a Icon Bubble
+            Box(
+                modifier = Modifier
+                    .size(68.dp)
+                    .clayCard(
+                        shape = CircleShape,
+                        backgroundColor = if (isDark) Color(0xFF163325) else Color(0xFF1F6B47),
+                        elevation = 4.dp,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                HeartVectorIcon(tint = emerald, modifier = Modifier.size(34.dp))
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = "Bismillah, $nameGreeting",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = colors.textPrimary,
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            // Arabic Du'a
+            Text(
+                text = "اللَّهُمَّ اجْعَلِ القُرْآنَ رَبِيعَ قُلُوبِنَا",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = gold,
+                letterSpacing = 0.5.sp,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = "“May Allah make the Qur'an the spring of our hearts, the light of our chests, and a steadfast companion in this life.”",
+                fontSize = 12.5.sp,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                lineHeight = 18.sp,
+                color = colors.textSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
 
             Spacer(Modifier.height(20.dp))
 
-            if (liveProgress != null) {
-                val progress = liveProgress!!
-                val done = progress.done
-                val total = progress.total
-                val fraction = if (total > 0) done.toFloat() / total.toFloat() else 0f
-                val mbDone = String.format(java.util.Locale.US, "%.1f", progress.bytesDownloaded.toFloat() / (1024 * 1024))
-                val mbTotal = String.format(java.util.Locale.US, "%.1f", progress.totalBytes.toFloat() / (1024 * 1024))
-
-                // Active Download Card
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clayCard(
-                            shape = RoundedCornerShape(20.dp),
-                            backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
-                            highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.9f),
-                            shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
-                            elevation = 2.dp,
-                        )
-                        .padding(20.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "Downloading Mushaf...",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = colors.textPrimary,
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clayPill(
-                                    shape = RoundedCornerShape(999.dp),
-                                    backgroundColor = if (isDark) Color(0xFF102018) else Color(0xFFE8F3EE),
-                                )
-                                .padding(horizontal = 8.dp, vertical = 3.dp),
-                        ) {
-                            Text(
-                                text = "${(fraction * 100).toInt()}%",
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = if (isDark) Color(0xFF93DB7A) else Color(0xFF245847),
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    LinearProgressIndicator(
-                        progress = { fraction },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = gold,
-                        trackColor = if (isDark) Color(0xFF0F1A14) else Color(0xFFDDD7C8),
+            // Configured Profile Summary Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(18.dp),
+                        backgroundColor = if (isDark) Color(0xFF14241B) else Color(0xFFFFFFFF),
+                        elevation = 2.dp,
                     )
+                    .padding(16.dp),
+            ) {
+                Text(
+                    text = "YOUR PROFILE IS CONFIGURED",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = emerald,
+                    letterSpacing = 0.8.sp,
+                )
 
-                    Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(12.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = "$done of $total pages",
-                            fontSize = 12.sp,
-                            color = colors.textSecondary,
-                        )
-                        Text(
-                            text = "$mbDone / $mbTotal MB",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.textPrimary,
-                        )
-                    }
+                ProfileSummaryRow(
+                    label = "Starting Position",
+                    value = if (startPage == 582) "Juz 'Amma (Page 582)" else "${chosenSurah?.name ?: "Al-Fatihah"} (Page $startPage, Ayah $startAyah)",
+                )
+                Spacer(Modifier.height(8.dp))
+                ProfileSummaryRow(
+                    label = "Reading Direction",
+                    value = if (readingDirection == ReadingDirection.TOWARDS_FATIHAH) "Towards Al-Fatihah (Madrasa)" else "Towards An-Nas (Forward)",
+                )
+                Spacer(Modifier.height(8.dp))
+                ProfileSummaryRow(
+                    label = "Daily Reading Goal",
+                    value = when (dailyUnits) {
+                        1 -> "Half a Page Daily (~2 mins)"
+                        2 -> "1 Page Daily (~3 to 4 mins)"
+                        4 -> "2 Pages Daily (~7 mins)"
+                        else -> "${(dailyUnits / 2.0)} Pages Daily"
+                    },
+                )
+                Spacer(Modifier.height(8.dp))
+                ProfileSummaryRow(
+                    label = "Reading Method",
+                    value = if (readingMode == ReadingMode.READING) "From the Mushaf" else "From Memory (Ḥifẓ)",
+                )
 
-                    Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(14.dp))
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = if (isDark) Color(0xFF0F1C15) else Color(0xFFF3EFE6),
-                                shape = RoundedCornerShape(10.dp),
-                            )
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            text = "Downloads smoothly in the background. You can enter the app now — reading is fully functional.",
-                            fontSize = 11.5.sp,
-                            color = colors.textSecondary,
-                            lineHeight = 16.sp,
-                        )
-                    }
-                }
-            } else {
-                // Specs & Benefit Card
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clayCard(
-                            shape = RoundedCornerShape(20.dp),
-                            backgroundColor = if (isDark) Color(0xFF15261D) else Color(0xFFFFFFFF),
-                            highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.9f),
-                            shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
-                            elevation = 2.dp,
+                        .background(
+                            color = if (isDark) Color(0xFF0F1C15) else Color(0xFFF3EFE6),
+                            shape = RoundedCornerShape(10.dp),
                         )
-                        .padding(20.dp),
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                 ) {
                     Text(
-                        text = "PACKAGE SPECIFICATIONS",
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 0.8.sp,
-                        color = gold,
+                        text = "Qur'an pages stream instantly and can be fully downloaded for offline reading anytime in Settings.",
+                        fontSize = 11.5.sp,
+                        color = colors.textSecondary,
+                        lineHeight = 16.sp,
                     )
-                    Spacer(Modifier.height(12.dp))
-
-                    DownloadSpecRow(
-                        label = "Total Pages",
-                        value = "All 604 Pages (Full Qur'an)",
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    DownloadSpecRow(
-                        label = "Download Size",
-                        value = "~86.5 MB",
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    DownloadSpecRow(
-                        label = "Offline Status",
-                        value = "100% Offline forever",
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    DownloadSpecRow(
-                        label = "Background",
-                        value = "Runs while you read",
-                    )
-
-                    Spacer(Modifier.height(14.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = if (isDark) Color(0xFF0F1C15) else Color(0xFFF3EFE6),
-                                shape = RoundedCornerShape(10.dp),
-                            )
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            text = "Recommended on Wi-Fi. If you skip or cancel, pages will stream on-demand or can be downloaded in Settings anytime.",
-                            fontSize = 11.5.sp,
-                            color = colors.textSecondary,
-                            lineHeight = 16.sp,
-                        )
-                    }
                 }
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-
-        // Action Buttons Column
-        Column(
-            modifier = Modifier.padding(bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            if (liveProgress != null) {
-                // While downloading: "Enter App & Start Reading" + "Cancel Download"
-                Button(
-                    onClick = onDone,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = Scale.minTarget),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
-                        contentColor = Color.White,
-                    ),
-                ) {
-                    Text("Enter App & Start Reading", fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                TextButton(
-                    onClick = { MushafDownloadService.stop(context) },
-                    modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
-                ) {
-                    Text(
-                        text = "Cancel Download",
-                        color = colors.textSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            } else {
-                // Idle: "Download & Start Reading" + "Skip for now"
-                Button(
-                    onClick = {
-                        MushafDownloadService.start(context)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = Scale.minTarget),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
-                        contentColor = Color.White,
-                    ),
-                ) {
-                    Text("Download & Start Reading", fontWeight = FontWeight.Bold)
-                    Spacer(Modifier.width(8.dp))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                TextButton(
-                    onClick = onDone,
-                    modifier = Modifier.defaultMinSize(minHeight = Scale.minTarget),
-                ) {
-                    Text(
-                        text = "Skip for now (stream on-demand)",
-                        color = colors.textSecondary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
+        Column(modifier = Modifier.padding(bottom = 16.dp, top = 20.dp)) {
+            Button(
+                onClick = onLaunch,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = Scale.minTarget),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                    contentColor = Color.White,
+                ),
+            ) {
+                CompassVectorIcon(tint = Color.White, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Enter Wird & Explore Toolkit ›", fontWeight = FontWeight.Bold, fontSize = 14.5.sp)
             }
         }
     }
 }
 
 @Composable
-private fun DownloadSpecRow(label: String, value: String) {
+private fun ProfileSummaryRow(label: String, value: String) {
     val colors = LocalWirdColors.current
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1442,12 +1989,12 @@ private fun DownloadSpecRow(label: String, value: String) {
     ) {
         Text(
             text = label,
-            fontSize = 12.5.sp,
+            fontSize = 12.sp,
             color = colors.textSecondary,
         )
         Text(
             text = value,
-            fontSize = 12.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             color = colors.textPrimary,
         )
@@ -1776,6 +2323,220 @@ private fun RhythmVectorIcon(tint: Color, modifier: Modifier = Modifier) {
         drawLine(tint, Offset(w * 0.68f, h * 0.12f), Offset(w * 0.68f, h * 0.26f), stroke.width, stroke.cap)
         // Inner header divider
         drawLine(tint, Offset(w * 0.15f, h * 0.42f), Offset(w * 0.85f, h * 0.42f), stroke.width, stroke.cap)
+    }
+}
+
+@Composable
+private fun FeatureCard(
+    title: String,
+    description: String,
+    icon: @Composable () -> Unit,
+    accentColor: Color,
+    isDark: Boolean,
+) {
+    val colors = LocalWirdColors.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(16.dp),
+                backgroundColor = if (isDark) Color(0xFF14251C) else Color(0xFFFFFFFF),
+                elevation = 2.dp,
+            )
+            .border(
+                width = 1.dp,
+                color = accentColor.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(16.dp),
+            )
+            .padding(14.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clayCard(
+                    shape = RoundedCornerShape(10.dp),
+                    backgroundColor = if (isDark) Color(0xFF0F1E16) else Color(0xFFEDE4D4),
+                    elevation = 1.dp,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon()
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = colors.textPrimary,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = description,
+                fontSize = 11.8.sp,
+                color = colors.textSecondary,
+                lineHeight = 16.5.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PresetPositionCard(
+    title: String,
+    subtitle: String,
+    tag: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    isDark: Boolean,
+) {
+    val colors = LocalWirdColors.current
+    val gold = Color(0xFFC9A24B)
+    val emerald = Color(0xFF8ED676)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clayCard(
+                shape = RoundedCornerShape(14.dp),
+                backgroundColor = if (selected) {
+                    if (isDark) Color(0xFF193627) else Color(0xFFE5EFE8)
+                } else {
+                    if (isDark) Color(0xFF14241B) else Color(0xFFFFFFFF)
+                },
+                elevation = if (selected) 3.dp else 1.dp,
+                strokeWidth = if (selected) 1.5.dp else 0.5.dp,
+            )
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.5.sp,
+                    color = colors.textPrimary,
+                )
+                Spacer(Modifier.width(6.dp))
+                Box(
+                    modifier = Modifier
+                        .clayPill(
+                            shape = RoundedCornerShape(999.dp),
+                            backgroundColor = if (selected) gold.copy(alpha = 0.2f) else colors.ornament.copy(alpha = 0.12f),
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        text = tag,
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (selected) gold else colors.textSecondary,
+                    )
+                }
+            }
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = colors.textSecondary,
+                lineHeight = 15.sp,
+            )
+        }
+        if (selected) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(emerald, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color(0xFF081F14),
+                    modifier = Modifier.size(14.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Vector Heart Icon (Lucide Heart). */
+@Composable
+private fun HeartVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        val heart = Path().apply {
+            moveTo(w * 0.5f, h * 0.82f)
+            cubicTo(w * 0.15f, h * 0.55f, w * 0.05f, h * 0.25f, w * 0.28f, h * 0.18f)
+            cubicTo(w * 0.40f, h * 0.14f, w * 0.48f, h * 0.25f, w * 0.5f, h * 0.32f)
+            cubicTo(w * 0.52f, h * 0.25f, w * 0.60f, h * 0.14f, w * 0.72f, h * 0.18f)
+            cubicTo(w * 0.95f, h * 0.25f, w * 0.85f, h * 0.55f, w * 0.5f, h * 0.82f)
+            close()
+        }
+        drawPath(heart, color = tint, style = stroke)
+    }
+}
+
+/** Vector Chat Bubble Icon (Lucide Message-Square). */
+@Composable
+private fun ChatVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        val bubble = Path().apply {
+            moveTo(w * 0.18f, h * 0.20f)
+            lineTo(w * 0.82f, h * 0.20f)
+            lineTo(w * 0.82f, h * 0.68f)
+            lineTo(w * 0.45f, h * 0.68f)
+            lineTo(w * 0.28f, h * 0.84f)
+            lineTo(w * 0.28f, h * 0.68f)
+            lineTo(w * 0.18f, h * 0.68f)
+            close()
+        }
+        drawPath(bubble, color = tint, style = stroke)
+    }
+}
+
+/** Vector Shield Icon (Lucide Shield). */
+@Composable
+private fun ShieldVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(20.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round)
+        val shield = Path().apply {
+            moveTo(w * 0.5f, h * 0.14f)
+            lineTo(w * 0.85f, h * 0.26f)
+            lineTo(w * 0.85f, h * 0.58f)
+            cubicTo(w * 0.85f, h * 0.78f, w * 0.5f, h * 0.90f, w * 0.5f, h * 0.90f)
+            cubicTo(w * 0.5f, h * 0.90f, w * 0.15f, h * 0.78f, w * 0.15f, h * 0.58f)
+            lineTo(w * 0.15f, h * 0.26f)
+            close()
+        }
+        drawPath(shield, color = tint, style = stroke)
+    }
+}
+
+/** Vector Check Icon (Lucide Check). */
+@Composable
+private fun CheckVectorIcon(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier.size(18.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+        val check = Path().apply {
+            moveTo(w * 0.20f, h * 0.52f)
+            lineTo(w * 0.44f, h * 0.75f)
+            lineTo(w * 0.82f, h * 0.28f)
+        }
+        drawPath(check, color = tint, style = stroke)
     }
 }
 

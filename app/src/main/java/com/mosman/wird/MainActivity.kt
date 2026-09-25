@@ -120,6 +120,7 @@ class MainActivity : ComponentActivity() {
             var position by remember { mutableIntStateOf(store.positionUnit) }
             var startVerse by remember { mutableStateOf(store.startVerse) }
             var seenChrome by remember { mutableStateOf(store.hasSeenChrome) }
+            var showToolkitTour by remember { mutableStateOf(!store.hasSeenToolkitTour && store.isSetUp) }
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var readerName by remember { mutableStateOf(store.readerName) }
@@ -544,6 +545,8 @@ class MainActivity : ComponentActivity() {
                             lifeSpaces = store.getLifeSpaces()
                             activeSpace = store.activeSpace()
                             activeTrack = store.activeTrack(today)
+                            store.hasSeenToolkitTour = false
+                            showToolkitTour = true
                             screen = Screen.TODAY
                             // They have just said what they want to read and how much.
                             // This is the moment the reminder is worth asking about.
@@ -779,6 +782,10 @@ class MainActivity : ComponentActivity() {
                                                 screen = Screen.BOOKMARKS
                                             },
                                             onSettings = { menuOpen = false; screen = Screen.SETTINGS },
+                                            onToolkitTour = {
+                                                menuOpen = false
+                                                showToolkitTour = true
+                                            },
                                             onDismiss = { menuOpen = false },
                                         )
                                     }
@@ -846,6 +853,11 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onOpenSettings = {
                                     screen = Screen.SETTINGS
+                                },
+                                showToolkitTour = showToolkitTour,
+                                onDismissToolkitTour = {
+                                    store.hasSeenToolkitTour = true
+                                    showToolkitTour = false
                                 },
                             )
 
@@ -1117,6 +1129,7 @@ private fun HomeMenu(
     onNightMode: () -> Unit,
     onBookmarks: () -> Unit,
     onSettings: () -> Unit,
+    onToolkitTour: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
@@ -1149,6 +1162,10 @@ private fun HomeMenu(
                 )
             },
             onClick = onNightMode,
+        )
+        DropdownMenuItem(
+            text = { Text("App Toolkit Tour", color = colors.onSurfaceRaised) },
+            onClick = onToolkitTour,
         )
         DropdownMenuItem(
             text = { Text("Settings", color = colors.onSurfaceRaised) },

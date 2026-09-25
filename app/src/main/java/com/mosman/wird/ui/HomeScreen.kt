@@ -133,6 +133,8 @@ fun HomeScreen(
     onSelectSpace: (LifeSpace) -> Unit = {},
     onToggleScheduleMode: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    showToolkitTour: Boolean = false,
+    onDismissToolkitTour: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -163,16 +165,17 @@ fun HomeScreen(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(groundColor)
-            .verticalScroll(rememberScrollState()),
-    ) {
-        // Atmospheric Dawn Mosque Header (Option C with unified Reading Mode & Track pill)
-        AtmosphericHeader(
-            readerName = readerName ?: "Mutalib",
-            positionText = if (positionLabel.isNotEmpty()) positionLabel else "Al-Fātihah 1, page 1",
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(groundColor)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            // Atmospheric Dawn Mosque Header (Option C with unified Reading Mode & Track pill)
+            AtmosphericHeader(
+                readerName = readerName ?: "Mutalib",
+                positionText = if (positionLabel.isNotEmpty()) positionLabel else "Al-Fātihah 1, page 1",
             onOpenPosition = onOpenPage,
             onOpenBookmarks = onOpenBookmarks,
             onMenu = onMenu,
@@ -274,6 +277,13 @@ fun HomeScreen(
             Spacer(Modifier.height(84.dp))
         }
     }
+
+    if (showToolkitTour) {
+        ToolkitSpotlightOverlay(
+            onDismiss = onDismissToolkitTour,
+        )
+    }
+}
 }
 
 /**
@@ -968,16 +978,23 @@ private fun NumbersCard(p: Progress) {
             horizontalArrangement = Arrangement.SpaceAround,
         ) {
             // Col 1: Streak
+            val streakColor = if (isDark) Color(0xFFE67E22) else Color(0xFFD35400)
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "🔥 ${p.currentStreak}",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isDark) Color(0xFFE67E22) else Color(0xFFD35400),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    FlameGlyph(tint = streakColor, modifier = Modifier.size(16.dp))
+                    Text(
+                        text = "${p.currentStreak}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = streakColor,
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Day Streak",
@@ -996,16 +1013,23 @@ private fun NumbersCard(p: Progress) {
             )
 
             // Col 2: Total days read
+            val daysColor = if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32)
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "📖 ${p.totalDaysRead}",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    BookGlyph(tint = daysColor)
+                    Text(
+                        text = "${p.totalDaysRead}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = daysColor,
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Total Days",
@@ -1024,16 +1048,23 @@ private fun NumbersCard(p: Progress) {
             )
 
             // Col 3: Aloud Ratio
+            val aloudColor = if (isDark) Color(0xFF50A773) else Color(0xFF245847)
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "🎙️ $aloudRatio%",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = if (isDark) Color(0xFF50A773) else Color(0xFF245847),
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    MicGlyph(tint = aloudColor)
+                    Text(
+                        text = "$aloudRatio%",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = aloudColor,
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Aloud Ratio",

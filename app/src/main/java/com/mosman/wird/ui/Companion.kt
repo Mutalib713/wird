@@ -38,6 +38,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -129,9 +130,11 @@ fun HomeHabitClarityCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    text = "🔥",
-                    fontSize = 12.sp,
+                Icon(
+                    painter = painterResource(com.mosman.wird.R.drawable.ic_flame),
+                    contentDescription = null,
+                    tint = if (isDark) Color(0xFFF0D590) else Color(0xFF8A6418),
+                    modifier = Modifier.size(13.dp),
                 )
                 Text(
                     text = if (streak > 0) "$streak Day Streak" else "Start Streak",
