@@ -24,6 +24,7 @@ firebase-service-account*.json
 *.m4a
 *.wav
 *.mp4
+!showcase/videos/wird_promo.mp4
 __pycache__/
 
 # Cached mushaf assets — fetched on demand, not versioned

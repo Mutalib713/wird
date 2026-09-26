@@ -54,7 +54,12 @@
       --ease:           cubic-bezier(0.22, 0.61, 0.36, 1);
     }
 
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+      width: 100%;
+      max-width: 100%;
+    }
 
     body {
       font-family: 'Inter', -apple-system, sans-serif;
@@ -63,6 +68,8 @@
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+      width: 100%;
+      max-width: 100%;
     }
 
     ::selection { background: var(--gold); color: #060B08; }
@@ -210,10 +217,11 @@
     .hero h1 {
       font-family: 'Plus Jakarta Sans', sans-serif;
       font-weight: 800;
-      font-size: clamp(2.6rem, 6.2vw, 4.6rem);
-      line-height: 1.1; color: var(--ink-pure);
-      max-width: 960px; margin: 0 auto 1.5rem;
+      font-size: clamp(1.85rem, 4.2vw, 3.8rem);
+      line-height: 1.15; color: var(--ink-pure);
+      margin-bottom: 1.25rem;
       letter-spacing: -0.025em;
+      overflow-wrap: break-word;
     }
     .hero h1 em {
       font-style: normal;
@@ -226,17 +234,25 @@
     @keyframes shimmer { to { background-position: 200% center; } }
 
     .hero p {
-      font-size: clamp(1.05rem, 2vw, 1.25rem); color: var(--ink-soft);
-      max-width: 680px; margin: 0 auto 2.5rem;
+      font-size: clamp(1rem, 1.8vw, 1.15rem); color: var(--ink-soft);
+      max-width: 580px; margin-bottom: 2rem;
       font-weight: 300; line-height: 1.7;
     }
 
-    .hero-btns { display: flex; gap: 1.1rem; justify-content: center; flex-wrap: wrap; }
+    .hero-split {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 3.5rem;
+      align-items: center;
+    }
+    .hero-content { text-align: left; }
+
+    .hero-btns { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.8rem; }
 
     .btn-primary {
       position: relative; overflow: hidden;
       background: var(--gold); color: #060B08;
-      padding: 0.95rem 2.2rem; border-radius: 50px;
+      padding: 0.95rem 2rem; border-radius: 50px;
       font-size: 0.98rem; font-weight: 700;
       text-decoration: none; display: inline-flex; align-items: center; gap: 12px;
       box-shadow: 0 8px 30px var(--gold-glow);
@@ -251,9 +267,9 @@
 
     .btn-outline {
       background: rgba(19, 43, 32, 0.9); color: var(--ink-parchment);
-      padding: 0.95rem 2.2rem; border-radius: 50px;
-      font-size: 0.98rem; font-weight: 600;
-      text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+      padding: 0.95rem 2rem; border-radius: 50px;
+      font-size: 0.98rem; font-weight: 600; cursor: pointer;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 12px;
       border: 1.5px solid var(--card-border-hi);
       transition: border-color 0.25s, transform 0.2s var(--ease), background 0.25s;
     }
@@ -263,94 +279,208 @@
     }
 
     .hero-note {
-      margin-top: 2rem; font-size: 0.85rem; color: var(--ink-muted);
-      display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;
+      font-size: 0.82rem; color: var(--ink-muted);
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
     }
     .hero-note b { color: var(--ink-soft); font-weight: 600; }
 
-    /* ── 3D HERO DEVICE SHOWCASE ── */
-    .showcase {
-      margin: 4.5rem auto 0; max-width: 980px;
+    /* ── INTERACTIVE SMARTPHONE (HERO SIDE) ── */
+    .hero-phone-side {
       position: relative;
-      perspective: 1600px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .showcase-glow {
-      position: absolute; inset: -10% -5% -20%;
-      background: radial-gradient(ellipse 60% 60% at 50% 40%, rgba(212, 175, 55, 0.18) 0%, rgba(16, 185, 129, 0.12) 40%, transparent 70%);
-      filter: blur(50px); z-index: 0; opacity: 0.85;
+    .phone-glow {
+      position: absolute; inset: -15% -10% -20%;
+      background: radial-gradient(ellipse 70% 70% at 50% 50%, rgba(212, 175, 55, 0.22) 0%, rgba(16, 185, 129, 0.14) 45%, transparent 70%);
+      filter: blur(50px); z-index: 0; pointer-events: none;
     }
-    .window {
+    .phone-device {
       position: relative; z-index: 1;
-      border-radius: 28px; overflow: hidden;
-      box-shadow: var(--shadow-lg), 0 0 0 1px rgba(212, 175, 55, 0.25);
-      background: #09130D;
-      transform: rotateX(6deg);
-      transition: transform 1s var(--ease);
-      will-change: transform;
-      max-width: 440px; margin: 0 auto;
+      width: 100%; max-width: 330px;
+      aspect-ratio: 9 / 19.2;
+      background: #0B1610;
+      border-radius: 46px;
+      padding: 12px;
+      box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.85),
+        0 0 0 3px #1F3628,
+        0 0 0 5px #0E1B13,
+        0 0 28px rgba(212, 175, 55, 0.25);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      user-select: none;
+      transition: transform 0.4s var(--ease), box-shadow 0.4s;
     }
-    .showcase:hover .window { transform: rotateX(0deg); }
-    
-    .window-bar {
-      background: linear-gradient(180deg, #12281D, #0A1710);
-      padding: 12px 20px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    .phone-device:hover {
+      transform: translateY(-4px);
+      box-shadow:
+        0 35px 80px rgba(0, 0, 0, 0.9),
+        0 0 0 3px var(--gold),
+        0 0 36px rgba(212, 175, 55, 0.35);
     }
-    .window-bar .dots { display: flex; gap: 8px; }
-    .wdot { width: 11px; height: 11px; border-radius: 50%; }
-    .wdot:nth-child(1) { background: #EF4444; }
-    .wdot:nth-child(2) { background: #F59E0B; }
-    .wdot:nth-child(3) { background: #10B981; }
-    .window-title {
-      font-size: 0.75rem; color: var(--ink-soft);
-      font-weight: 600; letter-spacing: 0.04em;
+    .phone-screen-wrap {
+      position: relative;
+      width: 100%; height: 100%;
+      border-radius: 36px;
+      overflow: hidden;
+      background: #040906;
+      display: flex; flex-direction: column;
     }
-    .window-pill {
-      font-size: 0.68rem; font-weight: 700; color: var(--gold-light);
-      background: rgba(212, 175, 55, 0.16); padding: 4px 12px; border-radius: 20px;
-      border: 1px solid rgba(212, 175, 55, 0.3);
-      text-transform: uppercase; letter-spacing: 0.06em;
+    .phone-speaker {
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      width: 44px; height: 3.5px; background: #16241C; border-radius: 4px; z-index: 20;
     }
-    .window-screen {
-      position: relative; overflow: hidden;
-      background: #050A07;
+    .phone-camera {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      width: 10px; height: 10px; background: #030604; border: 1.5px solid #1E3427; border-radius: 50%; z-index: 21;
     }
-    .window-screen img {
-      display: block; width: 100%; height: auto;
-      transition: transform 0.8s var(--ease);
+    .phone-status-bar {
+      height: 36px; padding: 12px 16px 0;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.72rem; font-weight: 700; color: rgba(255,255,255,0.85);
+      background: #09130D; position: relative; z-index: 10;
+      flex-shrink: 0;
+    }
+    .status-icons { display: flex; align-items: center; gap: 8px; }
+    .status-ic { width: 13px; height: 13px; }
+
+    .phone-viewport {
+      flex: 1; position: relative; overflow: hidden; background: #050A07;
+      cursor: grab;
+    }
+    .phone-viewport:active { cursor: grabbing; }
+    .phone-app-screen {
+      position: absolute; inset: 0; opacity: 0;
+      transform: translateX(30px);
+      transition: opacity 0.32s var(--ease), transform 0.32s var(--ease);
+      pointer-events: none;
+    }
+    .phone-app-screen.active {
+      opacity: 1; transform: translateX(0);
+      pointer-events: auto; z-index: 2;
+    }
+    .phone-app-screen.prev {
+      transform: translateX(-30px);
+    }
+    .phone-app-screen img {
+      width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block;
     }
 
-    /* Floating Feature Chips around Phone */
-    .float-chip {
-      position: absolute; z-index: 3;
-      background: rgba(17, 36, 27, 0.92);
-      border: 1px solid rgba(212, 175, 55, 0.3);
-      border-radius: 16px; padding: 12px 16px;
-      box-shadow: 0 16px 36px rgba(0,0,0,0.6);
-      display: flex; align-items: center; gap: 12px;
-      font-size: 0.85rem; font-weight: 700; color: var(--ink-pure);
-      animation: float 6s ease-in-out infinite;
-      text-align: left;
+    .hotspot {
+      position: absolute; z-index: 5;
+      background: transparent; border: none; cursor: pointer;
     }
-    .float-chip .ic {
-      width: 36px; height: 36px; border-radius: 10px;
+    .hotspot-portion {
+      top: 24%; left: 6%; width: 88%; height: 26%;
+      border-radius: 14px;
+    }
+    .hotspot-portion::after {
+      content: 'Tap for Mushaf ↗';
+      position: absolute; right: 10px; bottom: 8px;
+      font-size: 0.62rem; font-weight: 700; color: var(--gold-light);
+      background: rgba(6, 11, 8, 0.75); padding: 4px 8px; border-radius: 6px;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .phone-device:hover .hotspot-portion::after { opacity: 1; }
+
+    .phone-bottom-nav {
+      height: 52px; background: #08150E; border-top: 1px solid rgba(212, 175, 55, 0.2);
+      display: flex; justify-content: space-around; align-items: center;
+      padding: 0 4px; position: relative; z-index: 10; flex-shrink: 0;
+    }
+    .pnav-item {
+      background: none; border: none; padding: 4px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      color: rgba(226, 236, 230, 0.5); font-size: 0.62rem; font-weight: 600;
+      transition: color 0.2s, transform 0.2s;
+      flex: 1;
+    }
+    .pnav-item svg { width: 17px; height: 17px; transition: transform 0.2s; }
+    .pnav-item:hover { color: var(--gold-light); transform: translateY(-1px); }
+    .pnav-item.active { color: var(--gold); }
+    .pnav-item.active svg { transform: scale(1.12); }
+
+    .phone-home-pill {
+      height: 12px; background: #08150E; display: flex; align-items: center; justify-content: center;
+      padding-bottom: 4px;
+    }
+    .phone-home-pill::after {
+      content: ''; width: 72px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 4px;
+    }
+
+    .phone-hint {
+      margin-top: 16px;
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; font-weight: 600; color: var(--gold-light);
+      background: rgba(19, 43, 32, 0.9); border: 1px solid rgba(212, 175, 55, 0.3);
+      padding: 8px 16px; border-radius: 50px;
+    }
+    .pulse-ring {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--sage);
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); animation: ping 2s infinite;
+    }
+
+    /* ── VIDEO LIGHTBOX MODAL ── */
+    .video-modal-backdrop {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(3, 7, 4, 0.88);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       display: flex; align-items: center; justify-content: center;
-      background: rgba(212, 175, 55, 0.15); color: var(--gold); flex-shrink: 0;
-      border: 1px solid rgba(212, 175, 55, 0.35);
+      padding: 20px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
     }
-    .float-chip .ic svg { width: 19px; height: 19px; }
-    .float-chip small { display: block; font-size: 0.72rem; font-weight: 400; color: var(--ink-soft); margin-top: 1px; }
-    
-    .chip-1 { top: 14%; left: 4%; animation-delay: 0s; }
-    .chip-2 { bottom: 18%; right: 4%; animation-delay: 1.6s; }
-    .chip-3 { top: 58%; left: 2%; animation-delay: 3.2s; }
-    
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50%      { transform: translateY(-14px); }
+    .video-modal-backdrop.open,
+    .video-modal-backdrop:target {
+      opacity: 1; pointer-events: auto;
     }
-    @media (max-width: 960px) { .float-chip { display: none; } }
+    .video-modal-content {
+      position: relative; max-width: 420px; width: 100%;
+      background: #08140E; border: 1.5px solid rgba(212, 175, 55, 0.4);
+      border-radius: 28px; overflow: hidden;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.9), 0 0 40px rgba(212, 175, 55, 0.2);
+      transform: scale(0.92);
+      transition: transform 0.3s var(--ease);
+      display: flex; flex-direction: column;
+    }
+    .video-modal-backdrop.open .video-modal-content,
+    .video-modal-backdrop:target .video-modal-content {
+      transform: scale(1);
+    }
+    .video-modal-header {
+      padding: 12px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      background: #050B07; border-bottom: 1px solid rgba(31, 66, 50, 0.5);
+    }
+    .video-modal-title {
+      font-size: 0.84rem; font-weight: 700; color: var(--gold-light);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .video-modal-close {
+      background: rgba(255,255,255,0.08); border: none; cursor: pointer;
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 1.3rem; line-height: 1;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .video-modal-close:hover { background: rgba(239, 68, 68, 0.3); color: #EF4444; transform: scale(1.08); }
+    .video-modal-player {
+      width: 100%; aspect-ratio: 9 / 16; background: #000;
+      position: relative;
+    }
+    .video-modal-player video {
+      width: 100%; height: 100%; object-fit: contain; display: block;
+    }
+
+    @media (max-width: 980px) {
+      .hero { text-align: center; padding-top: 110px; }
+      .hero-split { grid-template-columns: 1fr; gap: 3rem; }
+      .hero-content { text-align: center; margin: 0 auto; }
+      .hero-content p { margin-left: auto; margin-right: auto; }
+      .hero-btns { justify-content: center; }
+      .hero-note { justify-content: center; }
+      .hero-phone-side { margin-top: 1rem; }
+      .phone-device { max-width: 300px; }
+    }
 
     /* ── LOGO / KEYWORD MARQUEE ── */
     .marquee-wrap {
@@ -398,7 +528,7 @@
     .features-intro { margin-bottom: 4rem; max-width: 760px; }
     .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
       gap: 1.6rem;
     }
     .feature-card {
@@ -470,82 +600,7 @@
       .stats-inner { grid-template-columns: 1fr; gap: 1.6rem; }
     }
 
-    /* ── CINEMATIC SHOWCASE REEL / DEMO PLAYER ── */
-    .watch { padding: 110px 0; background: var(--bg-base); }
-    .watch-intro { text-align: center; margin-bottom: 3.8rem; }
-    .watch-intro .section-sub { margin: 0 auto; }
-    .watch-intro .section-label { justify-content: center; }
 
-    .demo-player {
-      max-width: 980px; margin: 0 auto; position: relative;
-      border-radius: 24px; overflow: hidden;
-      box-shadow: var(--shadow-lg), 0 0 0 1px rgba(212, 175, 55, 0.2);
-      background: #040906;
-    }
-    .demo-chrome {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 22px; background: linear-gradient(180deg, #0D2018, #07130D);
-      border-bottom: 1px solid rgba(31, 66, 50, 0.5);
-    }
-    .demo-live { display: flex; align-items: center; gap: 7px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #10B981; }
-    .demo-live .dot { width: 8px; height: 8px; border-radius: 50%; background: #10B981; animation: ping 1.6s infinite; }
-    .demo-chrome-title { flex: 1; text-align: center; font-size: 0.82rem; color: var(--ink-soft); font-weight: 600; }
-    .demo-chrome-time { font-size: 0.76rem; color: var(--gold-light); font-variant-numeric: tabular-nums; font-weight: 700; }
-
-    .demo-frame {
-      position: relative; aspect-ratio: 16/9; overflow: hidden; background: #040906;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .demo-scene {
-      position: absolute; inset: 0; opacity: 0; transition: opacity 0.8s ease;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .demo-scene.active { opacity: 1; z-index: 1; }
-    .demo-scene .demo-bg {
-      position: absolute; inset: -15%; width: 130%; height: 130%;
-      object-fit: cover; filter: blur(36px) brightness(0.32) saturate(140%);
-      transform: scale(1.1); pointer-events: none; z-index: 0;
-    }
-    .demo-scene .demo-fg {
-      position: relative; z-index: 1; height: 86%; max-width: 90%;
-      width: auto; object-fit: contain;
-      border-radius: 20px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.85), 0 0 0 1px rgba(212, 175, 55, 0.3);
-    }
-    .demo-scene.active .demo-fg { animation: kenburns 4.5s ease-in-out forwards; }
-    @keyframes kenburns {
-      0%   { transform: scale(1); }
-      100% { transform: scale(1.05); }
-    }
-    .demo-frame::after {
-      content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
-      background: linear-gradient(180deg, rgba(6,11,8,0.15) 0%, transparent 40%, rgba(4,9,6,0.85) 100%);
-    }
-    .demo-caption {
-      position: absolute; left: 24px; bottom: 20px; z-index: 3; color: #fff; max-width: 50%; text-align: left;
-      background: rgba(6, 11, 8, 0.94);
-      padding: 16px 20px; border-radius: 14px; border: 1px solid rgba(212, 175, 55, 0.25);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    .demo-caption .tag { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-light); margin-bottom: 4px; }
-    .demo-caption h4 { font-size: 1.18rem; font-weight: 800; margin-bottom: 4px; }
-    .demo-caption p { font-size: 0.85rem; color: var(--ink-soft); line-height: 1.5; }
-
-    .demo-playbtn {
-      position: absolute; z-index: 4; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      width: 68px; height: 68px; border-radius: 50%;
-      background: rgba(19, 43, 32, 0.9);
-      border: 1.5px solid rgba(212, 175, 55, 0.45);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; color: var(--gold-light); opacity: 0;
-      transition: opacity 0.3s, transform 0.3s var(--ease), background 0.25s;
-    }
-    .demo-frame:hover .demo-playbtn, .demo-player.paused .demo-playbtn { opacity: 1; }
-    .demo-playbtn:hover { background: rgba(30, 68, 50, 0.98); transform: translate(-50%,-50%) scale(1.08); }
-
-    .demo-progress { display: flex; gap: 8px; padding: 14px 22px 18px; background: #07130D; border-top: 1px solid rgba(31, 66, 50, 0.4); }
-    .demo-seg { flex: 1; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.12); cursor: pointer; position: relative; overflow: hidden; }
-    .demo-seg .fill { position: absolute; inset: 0; width: 0%; background: linear-gradient(90deg, var(--sage), var(--gold-light)); border-radius: 4px; }
 
     /* ── SCREENSHOT CAROUSEL WITH THUMBNAILS ── */
     .action { padding: 110px 0; background: var(--bg-surface); }
@@ -636,7 +691,7 @@
     .roles-intro .section-sub { margin: 0 auto; }
     .roles-intro .section-label { justify-content: center; }
     .roles-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
       gap: 2rem; margin-top: 2rem;
     }
     .role-card {
@@ -889,14 +944,21 @@
       }
     }
     @media (max-width: 640px) {
-      .hero { padding-top: 130px; }
+      .container { padding: 0 16px; }
+      nav { padding: 0 16px; height: 64px; }
+      .nav-logo { font-size: 1.15rem; gap: 8px; }
+      .nav-logo-icon { width: 32px; height: 32px; }
+      .hero { padding-top: 96px; padding-bottom: 60px; }
+      .hero-badge { font-size: 0.72rem; padding: 6px 12px; gap: 6px; margin-bottom: 1.25rem; }
+      .hero h1 { font-size: clamp(1.45rem, 6.2vw, 1.85rem); line-height: 1.2; }
+      .hero p { font-size: 0.95rem; line-height: 1.6; }
+      .hero-btns { flex-direction: column; width: 100%; max-width: 290px; margin: 0 auto 1.25rem; }
+      .btn-primary, .btn-outline { width: 100%; justify-content: center; padding: 0.82rem 1.2rem; font-size: 0.9rem; }
+      .hero-note { flex-direction: column; gap: 6px; align-items: center; font-size: 0.78rem; }
+      .hero-phone-side { margin-top: 1rem; width: 100%; }
+      .phone-device { max-width: 275px; }
       .badges { gap: 0.85rem; }
       .badge-btn { padding: 14px 18px; width: 100%; justify-content: center; }
-      .demo-frame { aspect-ratio: 4/5; }
-      .demo-caption { max-width: calc(100% - 32px); left: 16px; bottom: 16px; padding: 10px 14px; }
-      .demo-caption h4 { font-size: 1.05rem; }
-      .demo-caption p { font-size: 0.82rem; }
-      .demo-chrome-title { display: none; }
       .carousel-track { aspect-ratio: 4/5; }
     }
   </style>
@@ -916,7 +978,7 @@
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
     <li><a href="#habits">Habits</a></li>
-    <li><a href="#watch">Live Reel</a></li>
+    <li><a href="#videoModal" class="nav-watch-trigger">Product Video</a></li>
     <li><a href="#action">Screenshots</a></li>
     <li><a href="#how">How It Works</a></li>
     <li><a href="#pledge">Privacy</a></li>
@@ -933,55 +995,112 @@
 <section class="hero" id="home">
   <div class="hero-grid-lines"></div>
   <div class="container">
-    <div class="hero-badge" data-reveal><span class="dot"></span> Built for Real Life • 100% Offline</div>
-    <h1 data-reveal>Your Qur'an Habit, <em>Rebuilt With Presence</em></h1>
-    <p data-reveal>Wird guides your daily portion with the authentic Madani Mushaf, nudges you after prayer, audits your recitation word-for-word with on-device Whisper AI, and never scolds you with guilt.</p>
-    
-    <div class="hero-btns" data-reveal>
-      <a href="#store" class="btn-primary">
-        <span>Download Free (Android)</span>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </a>
-      <a href="#watch" class="btn-outline">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-        <span>Watch Demo Reel</span>
-      </a>
-    </div>
-
-    <div class="hero-note" data-reveal>
-      <span>&bull; <b>7.79 MB Lean APK</b> — R8 optimized</span>
-      <span>&bull; <b>Zero Data Bundles</b> — 100% private on-device</span>
-      <span>&bull; <b>Ghana &amp; West Africa Madrasa Heritage</b></span>
-    </div>
-
-    <!-- 3D HERO DEVICE SHOWCASE -->
-    <div class="showcase" data-reveal="scale">
-      <div class="showcase-glow"></div>
-
-      <!-- Floating Feature Chips -->
-      <div class="float-chip chip-1">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></span>
-        <span>Whisper AI Recite<small>Word-for-word on-device audit</small></span>
-      </div>
-
-      <div class="float-chip chip-2">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-        <span>Prayer-Anchored Nudges<small>Maghrib &amp; Isha solar timing</small></span>
-      </div>
-
-      <div class="float-chip chip-3">
-        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
-        <span>Offline AI Companion<small>Tafsir &amp; guilt-free pause</small></span>
-      </div>
-
-      <div class="window" id="heroWindow">
-        <div class="window-bar">
-          <div class="dots"><span class="wdot"></span><span class="wdot"></span><span class="wdot"></span></div>
-          <div class="window-title">Wird — Today's Portion</div>
-          <span class="window-pill">Android</span>
+    <div class="hero-split">
+      <!-- Left Column: Value Proposition & CTAs -->
+      <div class="hero-content">
+        <div class="hero-badge" data-reveal><span class="dot"></span> Built for Real Life • 100% Offline</div>
+        <h1 data-reveal>Your Qur'an Habit, <em>Rebuilt With Presence</em></h1>
+        <p data-reveal>Wird guides your daily portion with the authentic Madani Mushaf, nudges you after prayer, audits your recitation word-for-word with on-device Whisper AI, and never scolds you with guilt.</p>
+        
+        <div class="hero-btns" data-reveal>
+          <a href="#store" class="btn-primary">
+            <span>Download Free (Android)</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <button type="button" class="btn-outline" id="watchVideoBtn" aria-label="Watch Wird Product Video">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+            <span>Watch Product Video</span>
+          </button>
         </div>
-        <div class="window-screen">
-          <img src="images/home.webp" alt="Wird App Home Screen with Today's Portion and Mosque Silhouette Header" loading="eager" />
+
+        <div class="hero-note" data-reveal>
+          <span>&bull; <b>7.79 MB Lean APK</b> — R8 optimized</span>
+          <span>&bull; <b>Zero Data Bundles</b> — 100% private on-device</span>
+          <span>&bull; <b>Ghana &amp; West Africa Madrasa Heritage</b></span>
+        </div>
+      </div>
+
+      <!-- Right Column: Interactive Smartphone Device Frame -->
+      <div class="hero-phone-side" data-reveal="scale">
+        <div class="phone-glow"></div>
+        <div class="phone-device" id="interactivePhone" role="region" aria-label="Interactive Wird Android Smartphone Demo">
+          <div class="phone-screen-wrap">
+            <!-- Hardware Earpiece & Punch-Hole Camera -->
+            <div class="phone-speaker"></div>
+            <div class="phone-camera"></div>
+
+            <!-- Android Status Bar -->
+            <div class="phone-status-bar">
+              <span class="status-time">9:41</span>
+              <div class="status-icons">
+                <!-- Wi-Fi Vector -->
+                <svg class="status-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+                <!-- Battery Vector -->
+                <svg class="status-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
+              </div>
+            </div>
+
+            <!-- Interactive Viewport with Real Screens -->
+            <div class="phone-viewport" id="phoneViewport">
+              <!-- Screen 0: Home Screen -->
+              <div class="phone-app-screen active" data-screen="home">
+                <img src="images/home.webp" alt="Wird Home Dashboard" />
+                <button class="hotspot hotspot-portion" id="portionHotspot" aria-label="Open Mushaf page"></button>
+              </div>
+
+              <!-- Screen 1: Mushaf Screen -->
+              <div class="phone-app-screen" data-screen="mushaf">
+                <img src="images/mushaf.webp" alt="King Fahd Printed Madani Mushaf" />
+              </div>
+
+              <!-- Screen 2: Modes & Tracks Screen -->
+              <div class="phone-app-screen" data-screen="modes">
+                <img src="images/modes.webp" alt="Reading Modes and Tracks" />
+              </div>
+
+              <!-- Screen 3: Recite AI Screen -->
+              <div class="phone-app-screen" data-screen="recite">
+                <img src="images/recite.webp" alt="Whisper AI Recitation Auditor" />
+              </div>
+
+              <!-- Screen 4: Companion Chat Screen -->
+              <div class="phone-app-screen" data-screen="chat">
+                <img src="images/chat.webp" alt="Offline AI Companion" />
+              </div>
+            </div>
+
+            <!-- Android Bottom Navigation Bar (5 tabs) -->
+            <div class="phone-bottom-nav" id="phoneNav">
+              <button class="pnav-item active" data-target="home" aria-label="Home tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Home</span>
+              </button>
+              <button class="pnav-item" data-target="mushaf" aria-label="Mushaf tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>Mushaf</span>
+              </button>
+              <button class="pnav-item" data-target="modes" aria-label="Modes tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Modes</span>
+              </button>
+              <button class="pnav-item" data-target="recite" aria-label="Recite tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                <span>Recite</span>
+              </button>
+              <button class="pnav-item" data-target="chat" aria-label="Companion tab">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Companion</span>
+              </button>
+            </div>
+
+            <!-- Android Gesture Pill -->
+            <div class="phone-home-pill"></div>
+          </div>
+        </div>
+        
+        <div class="phone-hint" data-reveal>
+          <span class="pulse-ring"></span>
+          <span>Interactive Phone • Tap tabs or portion card</span>
         </div>
       </div>
     </div>
@@ -1133,72 +1252,7 @@
   </div>
 </section>
 
-<!-- ══════════════════ CINEMATIC DEMO REEL (VIDEO STYLE) ══════════════════ -->
-<section class="watch" id="watch">
-  <div class="container">
-    <div class="watch-intro">
-      <div class="section-label" data-reveal>Experience Wird</div>
-      <h2 class="section-title" data-reveal>See the app in motion</h2>
-      <p class="section-sub" data-reveal>Take an interactive tour through Wird's actual screens. Click any scene below to jump straight to that superpower.</p>
-    </div>
 
-    <div class="demo-player" id="demoPlayer" data-reveal="scale">
-      <div class="demo-chrome">
-        <div class="demo-live"><span class="dot"></span> LIVE REEL</div>
-        <div class="demo-chrome-title">Wird — Android App Walkthrough</div>
-        <div class="demo-chrome-time" id="demoTime">SCENE 1 / 5</div>
-      </div>
-
-      <div class="demo-frame">
-        <!-- Scene 0 -->
-        <div class="demo-scene active" data-index="0">
-          <img class="demo-bg" src="images/home.webp" alt="" aria-hidden="true" />
-          <img class="demo-fg" src="images/home.webp" alt="Home Screen with Daily Portion and Mosque Silhouette" />
-        </div>
-        <!-- Scene 1 -->
-        <div class="demo-scene" data-index="1">
-          <img class="demo-bg" src="images/mushaf.webp" alt="" aria-hidden="true" />
-          <img class="demo-fg" src="images/mushaf.webp" alt="Madani QCF Printed Mushaf with Illuminated Verses" />
-        </div>
-        <!-- Scene 2 -->
-        <div class="demo-scene" data-index="2">
-          <img class="demo-bg" src="images/modes.webp" alt="" aria-hidden="true" />
-          <img class="demo-fg" src="images/modes.webp" alt="Reading Modes and Tracks Manager" />
-        </div>
-        <!-- Scene 3 -->
-        <div class="demo-scene" data-index="3">
-          <img class="demo-bg" src="images/chat.webp" alt="" aria-hidden="true" />
-          <img class="demo-fg" src="images/chat.webp" alt="Offline AI Companion Chat" />
-        </div>
-        <!-- Scene 4 -->
-        <div class="demo-scene" data-index="4">
-          <img class="demo-bg" src="images/recite.webp" alt="" aria-hidden="true" />
-          <img class="demo-fg" src="images/recite.webp" alt="On-Device Whisper AI Recitation Auditor" />
-        </div>
-
-        <button class="demo-playbtn" id="demoPlayBtn" aria-label="Pause demo">
-          <svg class="ic-pause" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-          <svg class="ic-play" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" style="display:none; margin-left:3px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        </button>
-
-        <div class="demo-caption">
-          <span class="tag" id="demoCaptionTag">Today's Portion</span>
-          <h4 id="demoCaptionTitle">Your Exact Verses Every Day</h4>
-          <p id="demoCaptionDesc">Tells you your exact page and verses. Scroll down to choose how you finish: recite aloud, listen, or mark done.</p>
-        </div>
-      </div>
-
-      <!-- Segmented interactive progress bars -->
-      <div class="demo-progress">
-        <div class="demo-seg" data-idx="0"><div class="fill"></div></div>
-        <div class="demo-seg" data-idx="1"><div class="fill"></div></div>
-        <div class="demo-seg" data-idx="2"><div class="fill"></div></div>
-        <div class="demo-seg" data-idx="3"><div class="fill"></div></div>
-        <div class="demo-seg" data-idx="4"><div class="fill"></div></div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- ══════════════════ INTERACTIVE SCREENSHOT CAROUSEL ══════════════════ -->
 <section class="action" id="action">
@@ -1603,7 +1657,7 @@
       <ul>
         <li><a href="#features">Superpowers</a></li>
         <li><a href="#habits">Daily Habits</a></li>
-        <li><a href="#watch">Live Reel</a></li>
+        <li><a href="#videoModal" class="nav-watch-trigger">Product Video</a></li>
         <li><a href="#action">Screenshots</a></li>
         <li><a href="#how">Habit Loop</a></li>
         <li><a href="#store">Download APK</a></li>
@@ -1753,96 +1807,128 @@
     });
   });
 
-  // ── 7. Hero 3D Perspective Tilt on Scroll ──
-  const heroWindow = document.getElementById('heroWindow');
-  if (heroWindow && !reduceMotion) {
-    window.addEventListener('scroll', () => {
-      const y = window.scrollY;
-      if (y < 850) {
-        heroWindow.style.transform = `rotateX(${Math.max(0, 6 - y / 140)}deg) translateY(${y * -0.04}px)`;
-      }
-    }, { passive: true });
-  }
-
-  // ── 8. Interactive Cinematic Showcase Reel ──
+  // ── 7. Interactive Smartphone Frame Controller ──
   (function() {
-    const player = document.getElementById('demoPlayer');
-    if (!player) return;
-    const scenes = Array.from(player.querySelectorAll('.demo-scene'));
-    const segs = Array.from(player.querySelectorAll('.demo-seg'));
-    const fills = segs.map(s => s.querySelector('.fill'));
-    const playBtn = document.getElementById('demoPlayBtn');
-    const pauseIcon = playBtn.querySelector('.ic-pause');
-    const playIcon = playBtn.querySelector('.ic-play');
-    const timeEl = document.getElementById('demoTime');
-    const tagEl = document.getElementById('demoCaptionTag');
-    const titleEl = document.getElementById('demoCaptionTitle');
-    const descEl = document.getElementById('demoCaptionDesc');
+    const viewport = document.getElementById('phoneViewport');
+    const phoneNav = document.getElementById('phoneNav');
+    if (!viewport || !phoneNav) return;
 
-    const captions = [
-      { tag: "Today's Portion", title: "Your Exact Verses Every Day", desc: "Tells you your exact page and verses. Scroll down to choose how you finish: recite aloud, listen, or mark done." },
-      { tag: "Real Madani Mushaf", title: "Zero Generic Text", desc: "Authentic King Fahd QCF printed script. Your daily assignment illuminates with glowing borders while surroundings dim." },
-      { tag: "Reading Modes & Tracks", title: "Routines That Match Life", desc: "Separate Home Mode from School Mode. Switch tracks for Ramadan Khatmah or Hifz memorization with independent bookmarks." },
-      { tag: "Offline AI Companion", title: "Tafsir & Guilt-Free Habit Help", desc: "Ask about Ayah meanings or pause your streak without guilt when traveling. 100% on-device with zero data bundles." },
-      { tag: "Whisper AI Auditor", title: "Word-for-Word Recitation Audit", desc: "Tap recite and read aloud. On-device Whisper AI transcribes and checks your recitation word-for-word in local RAM." }
-    ];
+    const screens = Array.from(viewport.querySelectorAll('.phone-app-screen'));
+    const navItems = Array.from(phoneNav.querySelectorAll('.pnav-item'));
+    const order = ['home', 'mushaf', 'modes', 'recite', 'chat'];
+    let currentIdx = 0;
 
-    const DURATION = reduceMotion ? 100000 : 4200;
-    let idx = 0, playing = !reduceMotion, segStart = performance.now(), pausedElapsed = 0;
+    function showScreen(targetKey) {
+      const targetIdx = order.indexOf(targetKey);
+      if (targetIdx === -1) return;
 
-    function activate(newIdx) {
-      scenes[idx].classList.remove('active');
-      idx = (newIdx + scenes.length) % scenes.length;
-      scenes[idx].classList.add('active');
-      const img = scenes[idx].querySelector('.demo-fg') || scenes[idx].querySelector('img');
-      img.style.animation = 'none';
-      void img.offsetWidth;
-      img.style.animation = '';
-
-      fills.forEach((f, i) => {
-        f.style.transition = 'none';
-        f.style.width = i < idx ? '100%' : (i === idx ? '0%' : '0%');
+      screens.forEach((s, i) => {
+        s.classList.remove('active', 'prev');
+        if (i === targetIdx) {
+          s.classList.add('active');
+        } else if (i < targetIdx) {
+          s.classList.add('prev');
+        }
       });
 
-      const c = captions[idx];
-      tagEl.textContent = c.tag;
-      titleEl.textContent = c.title;
-      descEl.textContent = c.desc;
-      timeEl.textContent = 'SCENE ' + (idx + 1) + ' / ' + scenes.length;
+      navItems.forEach(item => {
+        item.classList.toggle('active', item.dataset.target === targetKey);
+      });
 
-      segStart = performance.now();
-      pausedElapsed = 0;
+      currentIdx = targetIdx;
     }
 
-    function tick(now) {
-      if (playing) {
-        const elapsed = now - segStart;
-        const pct = Math.min(100, (elapsed / DURATION) * 100);
-        fills[idx].style.transition = 'none';
-        fills[idx].style.width = pct + '%';
-        if (elapsed >= DURATION) activate(idx + 1);
-      }
-      requestAnimationFrame(tick);
-    }
-
-    segs.forEach((s, i) => s.addEventListener('click', () => activate(i)));
-
-    playBtn.addEventListener('click', () => {
-      playing = !playing;
-      player.classList.toggle('paused', !playing);
-      if (playing) {
-        segStart = performance.now() - pausedElapsed;
-      } else {
-        pausedElapsed = performance.now() - segStart;
-      }
-      pauseIcon.style.display = playing ? '' : 'none';
-      playIcon.style.display = playing ? 'none' : '';
-      playBtn.setAttribute('aria-label', playing ? 'Pause demo' : 'Play demo');
+    // Tab buttons click
+    navItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        showScreen(item.dataset.target);
+      });
     });
 
-    activate(0);
-    if (reduceMotion) { playing = false; player.classList.add('paused'); pauseIcon.style.display = 'none'; playIcon.style.display = ''; }
-    requestAnimationFrame(tick);
+    // Hotspot click on Today's Portion card -> jumps directly to Mushaf
+    const portionHotspot = document.getElementById('portionHotspot');
+    if (portionHotspot) {
+      portionHotspot.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showScreen('mushaf');
+      });
+    }
+
+    // Touch & Mouse swipe gestures on viewport
+    let startX = 0, isDragging = false;
+    viewport.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+    }, { passive: true });
+
+    viewport.addEventListener('touchend', (e) => {
+      const diffX = e.changedTouches[0].clientX - startX;
+      if (Math.abs(diffX) > 40) {
+        if (diffX < 0 && currentIdx < order.length - 1) {
+          showScreen(order[currentIdx + 1]);
+        } else if (diffX > 0 && currentIdx > 0) {
+          showScreen(order[currentIdx - 1]);
+        }
+      }
+    }, { passive: true });
+
+    viewport.addEventListener('mousedown', (e) => {
+      startX = e.clientX;
+      isDragging = true;
+    });
+
+    viewport.addEventListener('mouseup', (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      const diffX = e.clientX - startX;
+      if (Math.abs(diffX) > 45) {
+        if (diffX < 0 && currentIdx < order.length - 1) {
+          showScreen(order[currentIdx + 1]);
+        } else if (diffX > 0 && currentIdx > 0) {
+          showScreen(order[currentIdx - 1]);
+        }
+      }
+    });
+
+    viewport.addEventListener('mouseleave', () => { isDragging = false; });
+  })();
+
+  // ── 8. Product Video Modal Lightbox Controller ──
+  (function() {
+    const modal = document.getElementById('videoModal');
+    const video = document.getElementById('promoVideo');
+    const closeBtn = document.getElementById('closeVideoModal');
+    const openBtns = document.querySelectorAll('#watchVideoBtn, .nav-watch-trigger');
+
+    if (!modal || !video) return;
+
+    function openModal(e) {
+      if (e) e.preventDefault();
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    }
+
+    function closeModal() {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+      video.pause();
+    }
+
+    openBtns.forEach(btn => btn.addEventListener('click', openModal));
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('open')) {
+        closeModal();
+      }
+    });
   })();
 
   // ── 9. Interactive Screenshot Carousel ──
@@ -1928,6 +2014,25 @@
     }, 600);
   }
 </script>
+
+<!-- ══════════════════ PRODUCT VIDEO LIGHTBOX MODAL ══════════════════ -->
+<div class="video-modal-backdrop" id="videoModal" role="dialog" aria-modal="true" aria-label="Wird Product Video Walkthrough">
+  <div class="video-modal-content">
+    <div class="video-modal-header">
+      <div class="video-modal-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <span>Wird — Official Product Walkthrough</span>
+      </div>
+      <button type="button" class="video-modal-close" id="closeVideoModal" aria-label="Close video modal">&times;</button>
+    </div>
+    <div class="video-modal-player">
+      <video id="promoVideo" controls playsinline preload="metadata">
+        <source src="videos/wird_promo.mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+      </video>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
