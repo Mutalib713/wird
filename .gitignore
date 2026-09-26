@@ -19,10 +19,12 @@ local.properties
 google-services.json
 firebase-service-account*.json
 
-# Recordings are personal. They never leave the device, and they never enter the repo.
+# Recordings and media renders
 /recordings/
 *.m4a
 *.wav
+*.mp4
+__pycache__/
 
 # Cached mushaf assets — fetched on demand, not versioned
 /app/src/main/assets/qcf/

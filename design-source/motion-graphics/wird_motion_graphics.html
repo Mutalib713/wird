@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wird — Premium Motion Graphics Promo Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070D0A;
+      --bg-emerald: #0A1C14;
+      --surface-emerald: #122B20;
+      --surface-card: #18382A;
+      --gold-primary: #D4AF37;
+      --gold-bright: #F5E08C;
+      --gold-glow: rgba(212, 175, 55, 0.4);
+      --emerald-glow: rgba(46, 204, 113, 0.25);
+      --text-white: #FFFFFF;
+      --text-sub: #A3C2B1;
+      --text-muted: #6E8F7E;
+      --clay-shadow-out: 8px 12px 24px rgba(0,0,0,0.45);
+      --clay-shadow-in: inset 2px 2px 4px rgba(255,255,255,0.12), inset -2px -2px 4px rgba(0,0,0,0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background: #040806;
+      color: #E2ECE6;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      padding: 16px;
+    }
+
+    /* Studio Header */
+    .studio-header {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 8px 16px;
+      background: rgba(18, 43, 32, 0.5);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 12px;
+    }
+
+    .studio-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .studio-logo svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .studio-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 100px;
+      background: rgba(212, 175, 55, 0.15);
+      color: var(--gold-bright);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .studio-controls-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .aspect-toggle {
+      display: flex;
+      background: rgba(7, 13, 10, 0.8);
+      border-radius: 8px;
+      padding: 2px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .aspect-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .aspect-btn.active {
+      background: var(--surface-emerald);
+      color: var(--gold-bright);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* Video Stage Viewport */
+    .viewport-outer {
+      position: relative;
+      background: #000;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(212, 175, 55, 0.2);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), height 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Default: 9:16 Vertical aspect ratio (540x960 scaled down from 1080x1920) */
+    .viewport-outer.vertical {
+      width: 450px;
+      height: 800px;
+    }
+
+    /* 16:9 Landscape aspect ratio (960x540 scaled down from 1920x1080) */
+    .viewport-outer.horizontal {
+      width: 960px;
+      height: 540px;
+    }
+
+    #videoCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #070D0A;
+    }
+
+    /* Studio Bottom Controls */
+    .studio-bottom-bar {
+      width: 100%;
+      max-width: 1200px;
+      background: rgba(18, 43, 32, 0.6);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 16px;
+      padding: 14px 20px;
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Timeline Scrubber */
+    .timeline-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .time-readout {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold-bright);
+      min-width: 90px;
+      letter-spacing: 0.5px;
+    }
+
+    .scrubber-track {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .scrubber-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10B981, var(--gold-primary));
+      border-radius: 4px;
+      box-shadow: 0 0 10px var(--gold-glow);
+    }
+
+    .scrubber-markers {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      pointer-events: none;
+    }
+
+    .scene-marker {
+      position: absolute;
+      width: 2px;
+      height: 100%;
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Action Buttons Row */
+    .actions-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .playback-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-icon {
+      background: var(--surface-emerald);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #fff;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-icon:hover {
+      background: var(--surface-card);
+      border-color: var(--gold-primary);
+      transform: translateY(-1px);
+    }
+
+    .btn-icon.play-btn {
+      background: linear-gradient(135deg, var(--gold-primary), #B89020);
+      color: #070D0A;
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(212, 175, 55, 0.4);
+    }
+
+    .btn-icon.play-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6);
+    }
+
+    .scene-jump-group {
+      display: flex;
+      gap: 6px;
+      background: rgba(7, 13, 10, 0.6);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .scene-pill {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .scene-pill:hover {
+      color: #fff;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .scene-pill.active {
+      background: var(--surface-emerald);
+      color: var(--gold-bright);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+    }
+
+    .export-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-export {
+      background: linear-gradient(135deg, #10B981, #059669);
+      color: #FFFFFF;
+      border: none;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s;
+    }
+
+    .btn-export:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+    }
+
+    .btn-export.recording {
+      background: #EF4444;
+      animation: pulseRecord 1.2s infinite;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.5);
+    }
+
+    @keyframes pulseRecord {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* Sound indicator */
+    .audio-btn.muted svg {
+      opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Studio Top Navigation -->
+  <header class="studio-header">
+    <div class="studio-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-primary)">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+      <span>Wird Motion Graphics Studio</span>
+      <span class="studio-pill">60 FPS Commercial</span>
+    </div>
+
+    <div class="studio-controls-top">
+      <div class="aspect-toggle">
+        <button class="aspect-btn active" id="btnAspectVertical" title="9:16 Vertical for Reels, TikTok, Shorts, WhatsApp Status">9:16 Vertical</button>
+        <button class="aspect-btn" id="btnAspectHorizontal" title="16:9 Landscape for YouTube, Twitter/X, Website Hero">16:9 Landscape</button>
+      </div>
+
+      <button class="btn-icon audio-btn" id="btnAudioToggle" title="Toggle Sound Design Synthesizer">
+        <svg id="audioIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Video Viewport -->
+  <main class="viewport-outer vertical" id="viewportOuter">
+    <canvas id="videoCanvas" width="1080" height="1920"></canvas>
+  </main>
+
+  <!-- Studio Bottom Playback Bar -->
+  <footer class="studio-bottom-bar">
+    <div class="timeline-row">
+      <div class="time-readout" id="timecodeDisplay">00:00.00</div>
+      <div class="scrubber-track" id="scrubberTrack">
+        <div class="scrubber-fill" id="scrubberFill"></div>
+        <div class="scrubber-markers">
+          <div class="scene-marker" style="left: 12.5%;"></div>  <!-- Scene 2: 3.5s -->
+          <div class="scene-marker" style="left: 28.5%;"></div>  <!-- Scene 3: 8.0s -->
+          <div class="scene-marker" style="left: 46.4%;"></div>  <!-- Scene 4: 13.0s -->
+          <div class="scene-marker" style="left: 64.2%;"></div>  <!-- Scene 5: 18.0s -->
+          <div class="scene-marker" style="left: 82.1%;"></div>  <!-- Scene 6: 23.0s -->
+        </div>
+      </div>
+      <div class="time-readout" style="text-align: right; color: var(--text-muted);">00:28.00</div>
+    </div>
+
+    <div class="actions-row">
+      <div class="playback-controls">
+        <button class="btn-icon" id="btnRestart" title="Restart from 0:00">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="19 20 9 12 19 4 19 20"></polygon>
+            <line x1="5" y1="19" x2="5" y2="5"></line>
+          </svg>
+        </button>
+
+        <button class="btn-icon play-btn" id="btnPlayPause" title="Play / Pause">
+          <svg id="playIcon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </button>
+
+        <button class="btn-icon" id="btnLoopToggle" title="Loop Playback">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Quick Scene Jumper -->
+      <div class="scene-jump-group">
+        <button class="scene-pill active" data-scene="1">1. Hook</button>
+        <button class="scene-pill" data-scene="2">2. Meet Wird</button>
+        <button class="scene-pill" data-scene="3">3. Real Life</button>
+        <button class="scene-pill" data-scene="4">4. Whisper AI</button>
+        <button class="scene-pill" data-scene="5">5. AI Chat</button>
+        <button class="scene-pill" data-scene="6">6. Call to Action</button>
+      </div>
+
+      <!-- Video Export Button -->
+      <div class="export-group">
+        <button class="btn-export" id="btnExport">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span id="exportText">Export 60fps Video</span>
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Motion Graphics Engine Script -->
+  <script>
+    /**
+     * WIRD PREMIUM MOTION GRAPHICS ENGINE
+     * Renders a 60fps high-impact promotional commercial directly to HTML5 Canvas.
+     * Features:
+     * - Kinetic Typography with spring physics
+     * - 3D Isometric Smartphone Rig with lighting highlights
+     * - Real authentic Wird UI screens (Atmospheric Mosque, Daily Wird, Sūrahs, Whisper AI)
+     * - Procedural Particle & Islamic Rosette geometry
+     * - Web Audio Procedural Synthesizer for cinematic sound FX
+     * - Live Canvas MediaRecorder export to MP4/WebM
+     */
+
+    const canvas = document.getElementById('videoCanvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const viewportOuter = document.getElementById('viewportOuter');
+
+    // UI Elements
+    const btnPlayPause = document.getElementById('btnPlayPause');
+    const playIcon = document.getElementById('playIcon');
+    const btnRestart = document.getElementById('btnRestart');
+    const btnLoopToggle = document.getElementById('btnLoopToggle');
+    const timecodeDisplay = document.getElementById('timecodeDisplay');
+    const scrubberTrack = document.getElementById('scrubberTrack');
+    const scrubberFill = document.getElementById('scrubberFill');
+    const scenePills = document.querySelectorAll('.scene-pill');
+    const btnAspectVertical = document.getElementById('btnAspectVertical');
+    const btnAspectHorizontal = document.getElementById('btnAspectHorizontal');
+    const btnAudioToggle = document.getElementById('btnAudioToggle');
+    const btnExport = document.getElementById('btnExport');
+    const exportText = document.getElementById('exportText');
+
+    // State
+    const TOTAL_DURATION_SEC = 28.0;
+    let isPlaying = true;
+    let isLooping = true;
+    let currentTime = 0; // in seconds
+    let lastTimestamp = 0;
+    let isVertical = true;
+    let audioEnabled = true;
+    let isRecording = false;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+
+    // Scene timestamps (in seconds)
+    const SCENES = [
+      { id: 1, name: "The Hook", start: 0.0, end: 3.5 },
+      { id: 2, name: "Meet Wird", start: 3.5, end: 8.0 },
+      { id: 3, name: "Designed for Real Life", start: 8.0, end: 13.0 },
+      { id: 4, name: "Offline Whisper AI", start: 13.0, end: 18.0 },
+      { id: 5, name: "AI Companion", start: 18.0, end: 23.0 },
+      { id: 6, name: "Rebuilt for Life", start: 23.0, end: 28.0 }
+    ];
+
+    // Background floating dust particles
+    const PARTICLES = Array.from({ length: 45 }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      size: Math.random() * 2.5 + 1.0,
+      alpha: Math.random() * 0.4 + 0.15,
+      speedX: (Math.random() - 0.5) * 0.02,
+      speedY: -Math.random() * 0.04 - 0.01,
+      twinkle: Math.random() * Math.PI * 2
+    }));
+
+    // Web Audio Synthesizer for procedural Sound FX
+    let audioCtx = null;
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playSoundCue(type) {
+      if (!audioEnabled) return;
+      initAudio();
+      if (!audioCtx) return;
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'sub_drop') {
+        // Deep cinematic sub-bass boom (80Hz down to 30Hz)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(90, now);
+        osc.frequency.exponentialRampToValueAtTime(28, now + 1.2);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 1.3);
+      } else if (type === 'whoosh') {
+        // Filtered noise whoosh transition
+        const bufferSize = audioCtx.sampleRate * 0.4;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(300, now);
+        filter.frequency.exponentialRampToValueAtTime(1400, now + 0.2);
+        filter.frequency.exponentialRampToValueAtTime(400, now + 0.4);
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(0.25, now + 0.2);
+        gain.gain.linearRampToValueAtTime(0.001, now + 0.4);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        noise.start(now);
+      } else if (type === 'pop') {
+        // Subtle tactile UI click
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(360, now);
+        osc.frequency.exponentialRampToValueAtTime(120, now + 0.08);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      } else if (type === 'chime') {
+        // Resonant golden harmonic chime (Islamic rosette reveal)
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.06);
+          gain.gain.setValueAtTime(0.12, now + i * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.06 + 2.0);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + i * 0.06);
+          osc.stop(now + i * 0.06 + 2.1);
+        });
+      }
+    }
+
+    let lastSoundScene = 0;
+    function checkAudioTriggers(t) {
+      const currentScene = SCENES.find(s => t >= s.start && t < s.end);
+      if (currentScene && currentScene.id !== lastSoundScene) {
+        lastSoundScene = currentScene.id;
+        if (currentScene.id === 1) playSoundCue('sub_drop');
+        else if (currentScene.id === 2) { playSoundCue('whoosh'); setTimeout(() => playSoundCue('chime'), 400); }
+        else if (currentScene.id === 3) playSoundCue('whoosh');
+        else if (currentScene.id === 4) { playSoundCue('pop'); playSoundCue('whoosh'); }
+        else if (currentScene.id === 5) playSoundCue('pop');
+        else if (currentScene.id === 6) { playSoundCue('chime'); playSoundCue('sub_drop'); }
+      }
+    }
+
+    // Easing Functions
+    function easeOutCubic(x) {
+      return 1 - Math.pow(1 - x, 3);
+    }
+
+    function easeInOutCubic(x) {
+      return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    }
+
+    function spring(t) {
+      // Damped harmonic oscillation for natural punchy spring
+      const c4 = (2 * Math.PI) / 3;
+      return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+    }
+
+    // DRAWING HELPERS
+
+    // 8-Point Islamic Rosette
+    function drawIslamicRosette(ctx, cx, cy, radius, strokeColor, fillColor = null, rotation = 0) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rotation);
+
+      ctx.beginPath();
+      const points = 16;
+      for (let i = 0; i <= points; i++) {
+        const angle = (i * Math.PI) / 8;
+        const r = i % 2 === 0 ? radius : radius * 0.72;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+
+      if (fillColor) {
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+      }
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+
+      // Inner star ring
+      ctx.beginPath();
+      for (let i = 0; i <= points; i++) {
+        const angle = (i * Math.PI) / 8 + Math.PI / 16;
+        const r = i % 2 === 0 ? radius * 0.45 : radius * 0.32;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      if (strokeColor) {
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    // Rounded rectangle helper
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.arcTo(x + width, y, x + width, y + radius, radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.arcTo(x + width, y + height, x + width - radius, y + height, radius);
+      ctx.lineTo(x + radius, y + height);
+      ctx.arcTo(x, y + height, x, y + height - radius, radius);
+      ctx.lineTo(x, y + radius);
+      ctx.arcTo(x, y, x + radius, y, radius);
+      ctx.closePath();
+    }
+
+    // 3D Isometric Smartphone Rig
+    function draw3DPhone(ctx, cx, cy, scale, rotX, rotY, rotZ, screenContentRenderer, options = {}) {
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      const phoneW = 380 * scale;
+      const phoneH = 780 * scale;
+      const cornerRadius = 46 * scale;
+
+      // 3D transformation matrix approximation
+      const skewY = Math.tan(rotY) * 0.4;
+      const skewX = Math.tan(rotX) * 0.2;
+      const perspectiveScaleX = Math.cos(rotY);
+      const perspectiveScaleY = Math.cos(rotX);
+
+      ctx.transform(perspectiveScaleX, skewY, skewX, perspectiveScaleY, 0, 0);
+      ctx.rotate(rotZ);
+
+      // Multi-layer clay drop shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+      ctx.shadowBlur = 45 * scale;
+      ctx.shadowOffsetX = 18 * scale * Math.cos(rotY + 0.5);
+      ctx.shadowOffsetY = 32 * scale;
+
+      // Outer phone chassis (Titanium Dark Emerald)
+      roundRect(ctx, -phoneW/2, -phoneH/2, phoneW, phoneH, cornerRadius);
+      const chassisGrad = ctx.createLinearGradient(-phoneW/2, -phoneH/2, phoneW/2, phoneH/2);
+      chassisGrad.addColorStop(0, '#1E3E2F');
+      chassisGrad.addColorStop(0.5, '#0E2219');
+      chassisGrad.addColorStop(1, '#07130D');
+      ctx.fillStyle = chassisGrad;
+      ctx.fill();
+
+      // Reset shadow for phone body details
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      // Golden chamfered bezel edge
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.45)';
+      ctx.lineWidth = 2.5 * scale;
+      ctx.stroke();
+
+      // Inner bezel
+      const innerBezelInset = 8 * scale;
+      roundRect(ctx, -phoneW/2 + innerBezelInset, -phoneH/2 + innerBezelInset, phoneW - innerBezelInset*2, phoneH - innerBezelInset*2, cornerRadius - 6*scale);
+      ctx.fillStyle = '#060B08';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1 * scale;
+      ctx.stroke();
+
+      // Phone Screen Display (OLED Panel)
+      const screenInset = 12 * scale;
+      const screenW = phoneW - screenInset*2;
+      const screenH = phoneH - screenInset*2;
+      const screenR = cornerRadius - 8*scale;
+
+      ctx.save();
+      roundRect(ctx, -phoneW/2 + screenInset, -phoneH/2 + screenInset, screenW, screenH, screenR);
+      ctx.clip();
+
+      // Render custom screen contents
+      if (screenContentRenderer) {
+        screenContentRenderer(ctx, -phoneW/2 + screenInset, -phoneH/2 + screenInset, screenW, screenH, scale);
+      }
+
+      // Glass specular reflection highlight (sweeps across glass as phone rotates)
+      const reflectionGrad = ctx.createLinearGradient(
+        -phoneW + (rotY * 400 * scale), -phoneH,
+        phoneW + (rotY * 400 * scale), phoneH
+      );
+      reflectionGrad.addColorStop(0, 'rgba(255, 255, 255, 0.0)');
+      reflectionGrad.addColorStop(0.45, 'rgba(255, 255, 255, 0.04)');
+      reflectionGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.16)');
+      reflectionGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0.04)');
+      reflectionGrad.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+
+      ctx.fillStyle = reflectionGrad;
+      ctx.fillRect(-phoneW/2 + screenInset, -phoneH/2 + screenInset, screenW, screenH);
+
+      // Camera cutout pill (Dynamic Island style)
+      ctx.fillStyle = '#020403';
+      roundRect(ctx, -42 * scale, -phoneH/2 + 22 * scale, 84 * scale, 22 * scale, 11 * scale);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.restore(); // end screen clip
+
+      ctx.restore(); // end phone transform
+    }
+
+    // DRAW REAL APP SCREENS
+
+    // Screen 1: Atmospheric Dawn Mosque Home Screen
+    function renderMosqueHomeScreen(ctx, sx, sy, sw, sh, s) {
+      // Screen background
+      ctx.fillStyle = '#08120D';
+      ctx.fillRect(sx, sy, sw, sh);
+
+      // Dawn sky gradient header
+      const skyH = 260 * s;
+      const skyGrad = ctx.createLinearGradient(sx, sy, sx, sy + skyH);
+      skyGrad.addColorStop(0, '#092B1C');
+      skyGrad.addColorStop(0.6, '#184D34');
+      skyGrad.addColorStop(0.9, '#3A7052');
+      skyGrad.addColorStop(1, '#08120D');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(sx, sy, sw, skyH);
+
+      // Atmospheric Mosque Silhouette
+      ctx.fillStyle = '#040A07';
+      ctx.beginPath();
+      ctx.moveTo(sx, sy + skyH);
+      // Minaret 1
+      ctx.lineTo(sx + 35 * s, sy + skyH);
+      ctx.lineTo(sx + 35 * s, sy + 110 * s);
+      ctx.lineTo(sx + 45 * s, sy + 70 * s);
+      ctx.lineTo(sx + 55 * s, sy + 110 * s);
+      ctx.lineTo(sx + 55 * s, sy + skyH);
+      // Central Dome
+      ctx.lineTo(sx + 100 * s, sy + skyH);
+      ctx.arc(sx + sw/2, sy + skyH - 10 * s, 85 * s, Math.PI, 0, false);
+      // Minaret 2
+      ctx.lineTo(sx + sw - 55 * s, sy + skyH);
+      ctx.lineTo(sx + sw - 55 * s, sy + 110 * s);
+      ctx.lineTo(sx + sw - 45 * s, sy + 70 * s);
+      ctx.lineTo(sx + sw - 35 * s, sy + 110 * s);
+      ctx.lineTo(sx + sw, sy + skyH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Crescent Moon in dawn sky
+      ctx.fillStyle = '#F5E08C';
+      ctx.beginPath();
+      ctx.arc(sx + sw - 60 * s, sy + 70 * s, 14 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#184D34';
+      ctx.beginPath();
+      ctx.arc(sx + sw - 65 * s, sy + 67 * s, 12 * s, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Header Text
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = `600 ${11 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("AS-SALĀMU 'ALAYKUM", sx + 24 * s, sy + 65 * s);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `800 ${22 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("Mutalib Osman", sx + 24 * s, sy + 92 * s);
+
+      // Active Track Pill ("School / Ḥifẓ Track")
+      const pillY = sy + 108 * s;
+      roundRect(ctx, sx + 24 * s, pillY, 150 * s, 26 * s, 13 * s);
+      ctx.fillStyle = 'rgba(212, 175, 55, 0.2)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = '#F5E08C';
+      ctx.font = `700 ${11 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("⚡ School Mode", sx + 36 * s, pillY + 17 * s);
+
+      // Daily Wird Hero Card (Claymorphism)
+      const cardY = sy + 180 * s;
+      const cardH = 260 * s;
+      const cardW = sw - 48 * s;
+      roundRect(ctx, sx + 24 * s, cardY, cardW, cardH, 24 * s);
+      const cardGrad = ctx.createLinearGradient(sx, cardY, sx, cardY + cardH);
+      cardGrad.addColorStop(0, '#153627');
+      cardGrad.addColorStop(1, '#0C2017');
+      ctx.fillStyle = cardGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
+      ctx.lineWidth = 1.5 * s;
+      ctx.stroke();
+
+      // Card Header
+      ctx.fillStyle = '#D4AF37';
+      ctx.font = `700 ${12 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("TODAY'S DAILY WIRD", sx + 44 * s, cardY + 36 * s);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `800 ${26 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("Surah An-Nās", sx + 44 * s, cardY + 70 * s);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = `500 ${13 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("Verses 1 – 6 • Page 604", sx + 44 * s, cardY + 92 * s);
+
+      // Arabic Ayah Preview
+      ctx.fillStyle = '#E2ECE6';
+      ctx.font = `700 ${18 * s}px "Amiri"`;
+      ctx.textAlign = 'right';
+      ctx.fillText("قُلْ أَعُوذُ بِرَبِّ النَّاسِ ﴿١﴾", sx + cardW, cardY + 135 * s);
+      ctx.textAlign = 'left';
+
+      // Daily Target Progress Bar
+      const barY = cardY + 170 * s;
+      const barW = cardW - 40 * s;
+      roundRect(ctx, sx + 44 * s, barY, barW, 8 * s, 4 * s);
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.fill();
+      roundRect(ctx, sx + 44 * s, barY, barW * 0.65, 8 * s, 4 * s);
+      ctx.fillStyle = 'linear-gradient(90deg, #10B981, #D4AF37)';
+      ctx.fillStyle = '#10B981';
+      ctx.fill();
+
+      // Recite Button
+      const btnY = cardY + 195 * s;
+      roundRect(ctx, sx + 44 * s, btnY, barW, 46 * s, 14 * s);
+      ctx.fillStyle = 'linear-gradient(135deg, #D4AF37, #B89020)';
+      ctx.fillStyle = '#D4AF37';
+      ctx.fill();
+      ctx.fillStyle = '#07130D';
+      ctx.font = `800 ${14 * s}px "Plus Jakarta Sans"`;
+      ctx.textAlign = 'center';
+      ctx.fillText("🎙️ Recite Today's Portion", sx + 24 * s + cardW/2, btnY + 28 * s);
+      ctx.textAlign = 'left';
+
+      // Bottom Metrics (NumbersCard)
+      const numY = cardY + cardH + 16 * s;
+      roundRect(ctx, sx + 24 * s, numY, cardW, 85 * s, 18 * s);
+      ctx.fillStyle = '#0E2218';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.stroke();
+
+      const colW = cardW / 3;
+      // Col 1: Streak
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#E67E22';
+      ctx.font = `800 ${18 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("14", sx + 24 * s + colW * 0.5, numY + 38 * s);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = `600 ${10 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("Day Streak", sx + 24 * s + colW * 0.5, numY + 56 * s);
+
+      // Col 2: Total Days
+      ctx.fillStyle = '#92E2B6';
+      ctx.font = `800 ${18 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("28", sx + 24 * s + colW * 1.5, numY + 38 * s);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = `600 ${10 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("Total Days", sx + 24 * s + colW * 1.5, numY + 56 * s);
+
+      // Col 3: Aloud Ratio
+      ctx.fillStyle = '#50A773';
+      ctx.font = `800 ${18 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("82%", sx + 24 * s + colW * 2.5, numY + 38 * s);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = `600 ${10 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("Aloud Ratio", sx + 24 * s + colW * 2.5, numY + 56 * s);
+      ctx.textAlign = 'left';
+
+      // Bottom Navigation Bar
+      const navY = sy + sh - 68 * s;
+      ctx.fillStyle = 'rgba(8, 18, 13, 0.95)';
+      ctx.fillRect(sx, navY, sw, 68 * s);
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+      ctx.beginPath();
+      ctx.moveTo(sx, navY);
+      ctx.lineTo(sx + sw, navY);
+      ctx.stroke();
+
+      // 4 Nav Items
+      const navItemW = sw / 4;
+      const navs = [
+        { label: "Today", icon: "📖", active: true },
+        { label: "Sūrahs", icon: "📑", active: false },
+        { label: "AI Chat", icon: "💬", active: false },
+        { label: "Settings", icon: "⚙️", active: false }
+      ];
+      navs.forEach((item, idx) => {
+        const itemX = sx + navItemW * idx + navItemW/2;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = item.active ? '#D4AF37' : 'rgba(255,255,255,0.4)';
+        ctx.font = `14 * s}px "Plus Jakarta Sans"`;
+        ctx.fillText(item.icon, itemX, navY + 28 * s);
+        ctx.font = `700 ${9 * s}px "Plus Jakarta Sans"`;
+        ctx.fillText(item.label, itemX, navY + 46 * s);
+      });
+      ctx.textAlign = 'left';
+    }
+
+    // Screen 2: Whisper AI Voice Auditor Screen
+    function renderWhisperVoiceScreen(ctx, sx, sy, sw, sh, s) {
+      ctx.fillStyle = '#060E0A';
+      ctx.fillRect(sx, sy, sw, sh);
+
+      // Top Header
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `800 ${18 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("Offline Voice Auditor", sx + 24 * s, sy + 65 * s);
+
+      // 100% Offline Badge
+      roundRect(ctx, sx + sw - 145 * s, sy + 48 * s, 120 * s, 26 * s, 13 * s);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+      ctx.stroke();
+      ctx.fillStyle = '#6EE7B7';
+      ctx.font = `700 ${10 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("🛡️ 100% Offline", sx + sw - 133 * s, sy + 65 * s);
+
+      // Ayah Reading Target Card
+      const cardY = sy + 95 * s;
+      const cardW = sw - 48 * s;
+      roundRect(ctx, sx + 24 * s, cardY, cardW, 200 * s, 20 * s);
+      ctx.fillStyle = '#0D2117';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.3)';
+      ctx.stroke();
+
+      ctx.fillStyle = '#D4AF37';
+      ctx.font = `700 ${11 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("RECITE ALOUD • SURAH AL-FALAQ", sx + 42 * s, cardY + 34 * s);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `700 ${22 * s}px "Amiri"`;
+      ctx.textAlign = 'right';
+      ctx.fillText("قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ﴿١﴾", sx + cardW, cardY + 80 * s);
+      ctx.fillText("مِن شَرِّ مَا خَلَقَ ﴿٢﴾", sx + cardW, cardY + 125 * s);
+      ctx.textAlign = 'left';
+
+      // Word Accuracy Pill
+      roundRect(ctx, sx + 42 * s, cardY + 150 * s, cardW - 36 * s, 32 * s, 16 * s);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+      ctx.fill();
+      ctx.fillStyle = '#34D399';
+      ctx.font = `700 ${11 * s}px "Plus Jakarta Sans"`;
+      ctx.fillText("✓ Word-by-word verified on-device", sx + 56 * s, cardY + 170 * s);
+
+      // Big Glowing Waveform Visualizer
+      const waveY = sy + 400 * s;
+      const waveH = 140 * s;
+      const bars = 28;
+      const barW = (cardW - 60 * s) / bars;
+
+      for (let i = 0; i < bars; i++) {
+        const heightFactor = Math.sin((currentTime * 12) + i * 0.4) * 0.4 + 0.6;
+        const bH = waveH * heightFactor * (Math.sin(i / bars * Math.PI));
+        const bx = sx + 50 * s + i * (barW + 2 * s);
+        const by = waveY - bH / 2;
+
+        roundRect(ctx, bx, by, barW, bH, 3 * s);
+        const barGrad = ctx.createLinearGradient(bx, by, bx, by + bH);
+        barGrad.addColorStop(0, '#F5E08C');
+        barGrad.addColorStop(0.5, '#10B981');
+        barGrad.addColorStop(1, '#059669');
+        ctx.fillStyle = barGrad;
+        ctx.fill();
+      }
+
+      // Mic Button with Pulsing Wave Rings
+      const micY = sy + 560 * s;
+      const micR = 48 * s;
+
+      // Pulse rings
+      const pulse = (currentTime * 2) % 1;
+      ctx.beginPath();
+      ctx.arc(sx + sw/2, micY, micR + pulse * 40 * s, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(212, 175, 55, ${0.4 * (1 - pulse)})`;
+      ctx.lineWidth = 2 * s;
+      ctx.stroke();
+
+      // Main mic circle
+      ctx.beginPath();
+      ctx.arc(sx + sw/2, micY, micR, 0, Math.PI * 2);
+      const micGrad = ctx.createRadialGradient(sx + sw/2, micY, 0, sx + sw/2, micY, micR);
+      micGrad.addColorStop(0, '#F5E08C');
+      micGrad.addColorStop(1, '#D4AF37');
+      ctx.fillStyle = micGrad;
+      ctx.fill();
+      ctx.shadowColor = 'rgba(212, 175, 55, 0.6)';
+      ctx.shadowBlur = 24 * s;
+
+      // Mic Icon
+      ctx.fillStyle = '#07130D';
+      ctx.font = `800 ${26 * s}px "Plus Jakarta Sans"`;
+      ctx.textAlign = 'center';
+      ctx.fillText("🎙️", sx + sw/2, micY + 8 * s);
+      ctx.textAlign = 'left';
+      ctx.shadowBlur = 0;
+
+      // Reciting status text
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = `600 ${13 * s}px "Plus Jakarta Sans"`;
+      ctx.textAlign = 'center';
+      ctx.fillText("Reciting aloud... Listening on device", sx + sw/2, micY + 68 * s);
+      ctx.textAlign = 'left';
+    }
+
+    // MAIN RENDER LOOP (Timeline-driven)
+    function render(timestamp) {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const delta = (timestamp - lastTimestamp) / 1000;
+      lastTimestamp = timestamp;
+
+      if (isPlaying) {
+        currentTime += delta;
+        if (currentTime >= TOTAL_DURATION_SEC) {
+          if (isLooping) {
+            currentTime = 0;
+            lastSoundScene = 0;
+          } else {
+            currentTime = TOTAL_DURATION_SEC;
+            isPlaying = false;
+            updatePlayIcon();
+          }
+        }
+      }
+
+      checkAudioTriggers(currentTime);
+      updateUI();
+
+      // Canvas dimensions
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // Clear Canvas with Obsidian Background
+      ctx.fillStyle = '#060D09';
+      ctx.fillRect(0, 0, W, H);
+
+      // Draw Volumetric Radial Background Glow
+      const bgGrad = ctx.createRadialGradient(W/2, H/2, 50, W/2, H/2, W * 0.85);
+      bgGrad.addColorStop(0, '#0F2B1E');
+      bgGrad.addColorStop(0.5, '#071610');
+      bgGrad.addColorStop(1, '#030805');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // Render Floating Dust Particles
+      PARTICLES.forEach(p => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+        if (p.y < 0) p.y = 1;
+        if (p.x < 0) p.x = 1;
+        if (p.x > 1) p.x = 0;
+
+        const px = p.x * W;
+        const py = p.y * H;
+        const twinkleAlpha = p.alpha * (0.6 + 0.4 * Math.sin(currentTime * 3 + p.twinkle));
+
+        ctx.fillStyle = `rgba(245, 224, 140, ${twinkleAlpha})`;
+        ctx.beginPath();
+        ctx.arc(px, py, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // RENDER SCENES BASED ON TIMECODE
+      const t = currentTime;
+
+      // SCENE 1: THE FRICTION (0.0s - 3.5s)
+      if (t >= 0.0 && t < 3.5) {
+        renderScene1(ctx, W, H, t);
+      }
+      // SCENE 2: MEET WIRD / THE REVEAL (3.5s - 8.0s)
+      else if (t >= 3.5 && t < 8.0) {
+        renderScene2(ctx, W, H, t - 3.5);
+      }
+      // SCENE 3: DESIGNED FOR REAL LIFE (8.0s - 13.0s)
+      else if (t >= 8.0 && t < 13.0) {
+        renderScene3(ctx, W, H, t - 8.0);
+      }
+      // SCENE 4: 100% OFFLINE WHISPER AI (13.0s - 18.0s)
+      else if (t >= 13.0 && t < 18.0) {
+        renderScene4(ctx, W, H, t - 13.0);
+      }
+      // SCENE 5: AI COMPANION (18.0s - 23.0s)
+      else if (t >= 18.0 && t < 23.0) {
+        renderScene5(ctx, W, H, t - 18.0);
+      }
+      // SCENE 6: THE OUTRO / CALL TO ACTION (23.0s - 28.0s)
+      else if (t >= 23.0) {
+        renderScene6(ctx, W, H, t - 23.0);
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // SCENE 1: The Friction / The Hook
+    function renderScene1(ctx, W, H, st) {
+      const enterProgress = Math.min(st / 0.8, 1);
+      const ease = easeOutCubic(enterProgress);
+
+      // Subtle tension vignette
+      const redVignette = ctx.createRadialGradient(W/2, H/2, W*0.3, W/2, H/2, W*0.9);
+      redVignette.addColorStop(0, 'rgba(0,0,0,0)');
+      redVignette.addColorStop(1, 'rgba(180, 40, 30, 0.15)');
+      ctx.fillStyle = redVignette;
+      ctx.fillRect(0, 0, W, H);
+
+      // Faint background watermarks of broken streaks
+      ctx.save();
+      ctx.fillStyle = 'rgba(255, 80, 80, 0.08)';
+      ctx.font = '800 120px "Plus Jakarta Sans"';
+      ctx.textAlign = 'center';
+      ctx.fillText("STREAK BROKEN", W/2, H/2 - 240);
+      ctx.fillText("1 JUZ / DAY", W/2, H/2 + 340);
+      ctx.restore();
+
+      // Kinetic Typography Hook
+      ctx.save();
+      ctx.textAlign = 'center';
+
+      // Line 1: "Why do Qur'an apps"
+      const scale1 = 0.8 + 0.2 * ease;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `800 ${isVertical ? 64 : 52}px "Plus Jakarta Sans"`;
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 20;
+      ctx.fillText("Why do Qur'an apps", W/2, H/2 - 80);
+
+      // Line 2: "feel like homework?" (in gold/red contrast)
+      if (st > 0.4) {
+        const ease2 = easeOutCubic(Math.min((st - 0.4) / 0.6, 1));
+        ctx.fillStyle = '#F5A623';
+        ctx.font = `900 ${isVertical ? 74 : 62}px "Plus Jakarta Sans"`;
+        ctx.fillText("feel like homework?", W/2, H/2);
+      }
+
+      // Subtitle: "Guilt. Broken streaks. Rigid rules."
+      if (st > 1.2) {
+        const ease3 = Math.min((st - 1.2) / 0.7, 1);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+        ctx.font = `500 ${isVertical ? 28 : 24}px "Plus Jakarta Sans"`;
+        ctx.fillText("Rigid 1 Juz targets. Zero forgiveness.", W/2, H/2 + 80);
+      }
+
+      ctx.restore();
+    }
+
+    // SCENE 2: The Reveal / Meet Wird
+    function renderScene2(ctx, W, H, st) {
+      const enterProgress = Math.min(st / 1.0, 1);
+      const ease = easeOutCubic(enterProgress);
+
+      // Golden light bloom sweep from center
+      const bloom = ctx.createRadialGradient(W/2, H/2, 20, W/2, H/2, W * 0.7);
+      bloom.addColorStop(0, 'rgba(212, 175, 55, 0.35)');
+      bloom.addColorStop(0.4, 'rgba(16, 185, 129, 0.2)');
+      bloom.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = bloom;
+      ctx.fillRect(0, 0, W, H);
+
+      // Islamic Rosette expansion in background
+      const rosetteRadius = (isVertical ? 280 : 220) * (0.8 + 0.2 * ease);
+      const rosetteRot = st * 0.15;
+      drawIslamicRosette(ctx, W/2, H/2 - 120, rosetteRadius, 'rgba(212, 175, 55, 0.25)', 'rgba(18, 43, 32, 0.12)', rosetteRot);
+
+      // 3D Phone swoops into view
+      const phoneScale = (isVertical ? 1.05 : 0.75) * ease;
+      const phoneY = H/2 + (1 - ease) * 350;
+      const rotY = -0.3 + 0.15 * Math.sin(st * 0.8);
+      const rotX = 0.15;
+
+      draw3DPhone(ctx, W/2, phoneY + 40, phoneScale, rotX, rotY, 0, renderMosqueHomeScreen);
+
+      // Kinetic Typography Overlays
+      ctx.save();
+      ctx.textAlign = 'center';
+
+      // Top Tagline
+      ctx.fillStyle = 'rgba(212, 175, 55, 0.9)';
+      ctx.font = `700 ${isVertical ? 22 : 18}px "Plus Jakarta Sans"`;
+      ctx.fillText("A NEW APPROACH TO YOUR HABIT", W/2, isVertical ? 160 : 70);
+
+      // Main Title: "Meet Wird (ورْد)"
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `900 ${isVertical ? 68 : 52}px "Plus Jakarta Sans"`;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+      ctx.shadowBlur = 24;
+      ctx.fillText("Meet Wird", W/2 - 50, isVertical ? 230 : 125);
+
+      ctx.fillStyle = '#D4AF37';
+      ctx.font = `700 ${isVertical ? 62 : 46}px "Amiri"`;
+      ctx.fillText("(ورْد)", W/2 + 130, isVertical ? 230 : 125);
+
+      // Core Motto: "Presence over pressure."
+      if (st > 0.8) {
+        const easeSub = easeOutCubic(Math.min((st - 0.8) / 0.6, 1));
+        ctx.fillStyle = '#F5E08C';
+        ctx.font = `700 ${isVertical ? 32 : 24}px "Playfair Display"`;
+        ctx.fillText("Presence over pressure.", W/2, isVertical ? 285 : 165);
+      }
+
+      ctx.restore();
+    }
+
+    // SCENE 3: Designed for Real Life (Daily Target + Sūrahs Isolation)
+    function renderScene3(ctx, W, H, st) {
+      const ease = easeOutCubic(Math.min(st / 0.8, 1));
+
+      // Zoom closer into phone
+      const phoneScale = (isVertical ? 1.25 : 0.88);
+      const phoneX = isVertical ? W/2 : W/2 - 240;
+      const phoneY = isVertical ? H/2 + 180 : H/2 + 20;
+
+      // Slight tilt focusing on daily card
+      draw3DPhone(ctx, phoneX, phoneY, phoneScale, 0.08, -0.15, 0, renderMosqueHomeScreen);
+
+      // Floating Callout Feature Cards popping out in 3D
+      ctx.save();
+
+      // Feature Card 1: "Your Pace, Your Blessing"
+      const card1X = isVertical ? W/2 : W/2 + 220;
+      const card1Y = isVertical ? 220 : 180;
+      const c1W = isVertical ? W - 100 : 420;
+      const c1H = 140;
+
+      ctx.translate(card1X, card1Y);
+      roundRect(ctx, -c1W/2, -c1H/2, c1W, c1H, 20);
+      ctx.fillStyle = 'rgba(18, 43, 32, 0.92)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#F5E08C';
+      ctx.font = `700 ${isVertical ? 14 : 12}px "Plus Jakarta Sans"`;
+      ctx.fillText("BUILT AROUND YOUR SCHEDULE", -c1W/2 + 24, -c1H/2 + 36);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `800 ${isVertical ? 24 : 20}px "Plus Jakarta Sans"`;
+      ctx.fillText("Half page. 1 page. Or 3 verses.", -c1W/2 + 24, -c1H/2 + 72);
+
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = `500 ${isVertical ? 15 : 13}px "Plus Jakarta Sans"`;
+      ctx.fillText("Whatever you can sustain with presence.", -c1W/2 + 24, -c1H/2 + 102);
+
+      ctx.restore();
+
+      // Feature Card 2 (Staggered pop): "Separate Sūrahs Section"
+      if (st > 1.5) {
+        const ease2 = easeOutCubic(Math.min((st - 1.5) / 0.6, 1));
+        ctx.save();
+        const card2X = isVertical ? W/2 : W/2 + 220;
+        const card2Y = isVertical ? 385 : 350;
+        const c2W = isVertical ? W - 100 : 420;
+        const c2H = 130;
+
+        ctx.translate(card2X, card2Y);
+        ctx.scale(ease2, ease2);
+
+        roundRect(ctx, -c2W/2, -c2H/2, c2W, c2H, 20);
+        ctx.fillStyle = 'rgba(12, 28, 20, 0.95)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#6EE7B7';
+        ctx.font = `700 ${isVertical ? 14 : 12}px "Plus Jakarta Sans"`;
+        ctx.fillText("📑 INDEPENDENT SŪRAHS READING", -c2W/2 + 24, -c2H/2 + 34);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `800 ${isVertical ? 22 : 18}px "Plus Jakarta Sans"`;
+        ctx.fillText("Read Al-Kahf freely on Friday.", -c2W/2 + 24, -c2H/2 + 68);
+
+        ctx.fillStyle = '#F5E08C';
+        ctx.font = `600 ${isVertical ? 14 : 12}px "Plus Jakarta Sans"`;
+        ctx.fillText("Zero risk of losing your daily bookmark.", -c2W/2 + 24, -c2H/2 + 96);
+
+        ctx.restore();
+      }
+    }
+
+    // SCENE 4: 100% Offline Whisper AI & Madrasa Heritage
+    function renderScene4(ctx, W, H, st) {
+      const ease = easeOutCubic(Math.min(st / 0.8, 1));
+
+      // Phone in center / angled showing Whisper Auditor screen
+      const phoneScale = isVertical ? 1.15 : 0.85;
+      const phoneX = isVertical ? W/2 : W/2 - 220;
+      const phoneY = isVertical ? H/2 + 120 : H/2;
+      const rotY = 0.18 * Math.cos(st * 1.2);
+
+      draw3DPhone(ctx, phoneX, phoneY, phoneScale, 0.1, rotY, 0, renderWhisperVoiceScreen);
+
+      // Kinetic Callouts
+      ctx.save();
+      const textX = isVertical ? W/2 : W/2 + 230;
+
+      // Header Tag
+      ctx.textAlign = isVertical ? 'center' : 'left';
+      ctx.fillStyle = '#34D399';
+      ctx.font = `800 ${isVertical ? 16 : 14}px "Plus Jakarta Sans"`;
+      ctx.fillText("🎙️ 100% ON-DEVICE SPEECH AUDITOR", isVertical ? textX : textX - 180, isVertical ? 140 : 120);
+
+      // Big Title: "Whisper AI Voice Check"
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `900 ${isVertical ? 48 : 38}px "Plus Jakarta Sans"`;
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 18;
+      ctx.fillText("Recite Aloud.", isVertical ? textX : textX - 180, isVertical ? 200 : 170);
+
+      // Madrasa & Ghanaian heritage callout
+      if (st > 1.2) {
+        ctx.fillStyle = '#F5E08C';
+        ctx.font = `800 ${isVertical ? 26 : 22}px "Plus Jakarta Sans"`;
+        ctx.fillText("Adapted for African Madrasas", isVertical ? textX : textX - 180, isVertical ? 250 : 220);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.font = `500 ${isVertical ? 18 : 15}px "Plus Jakarta Sans"`;
+        ctx.fillText("Start forward, or reverse from Juz 'Amma.", isVertical ? textX : textX - 180, isVertical ? 285 : 255);
+        ctx.fillText("Zero data bundles. Total privacy.", isVertical ? textX : textX - 180, isVertical ? 315 : 285);
+      }
+
+      ctx.restore();
+    }
+
+    // SCENE 5: Offline AI Companion
+    function renderScene5(ctx, W, H, st) {
+      const ease = easeOutCubic(Math.min(st / 0.8, 1));
+
+      // Phone backdrop
+      const phoneScale = isVertical ? 1.05 : 0.8;
+      draw3DPhone(ctx, W/2, H/2 + 80, phoneScale, 0.05, -0.05, 0, renderMosqueHomeScreen);
+
+      // Glassmorphic Conversation Overlay Sheet
+      const sheetW = isVertical ? W - 80 : 540;
+      const sheetH = 340;
+      const sheetY = H/2 - 80 + (1 - ease) * 120;
+
+      ctx.save();
+      ctx.translate(W/2, sheetY);
+
+      roundRect(ctx, -sheetW/2, -sheetH/2, sheetW, sheetH, 24);
+      ctx.fillStyle = 'rgba(7, 18, 13, 0.94)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Companion Header
+      ctx.fillStyle = '#D4AF37';
+      ctx.font = `700 ${isVertical ? 13 : 11}px "Plus Jakarta Sans"`;
+      ctx.fillText("✦ OFFLINE AI COMPANION", -sheetW/2 + 28, -sheetH/2 + 38);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `800 ${isVertical ? 24 : 20}px "Plus Jakarta Sans"`;
+      ctx.fillText("Always ready to help your recitation.", -sheetW/2 + 28, -sheetH/2 + 72);
+
+      // Message Bubble 1 (User)
+      roundRect(ctx, sheetW/2 - 280, -sheetH/2 + 105, 250, 48, 16);
+      ctx.fillStyle = 'rgba(212, 175, 55, 0.18)';
+      ctx.fill();
+      ctx.fillStyle = '#F5E08C';
+      ctx.font = `600 13px "Plus Jakarta Sans"`;
+      ctx.fillText("What does 'Al-Falaq' mean here?", sheetW/2 - 264, -sheetH/2 + 135);
+
+      // Message Bubble 2 (Companion Reply)
+      roundRect(ctx, -sheetW/2 + 28, -sheetH/2 + 168, 380, 80, 16);
+      ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(16, 185, 129, 0.3)';
+      ctx.stroke();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `600 13px "Plus Jakarta Sans"`;
+      ctx.fillText("Al-Falaq literally means 'the daybreak' or", -sheetW/2 + 44, -sheetH/2 + 198);
+      ctx.fillText("cleaving of dawn. Seeking refuge in Allah.", -sheetW/2 + 44, -sheetH/2 + 224);
+
+      // Bottom pause reassurance badge
+      roundRect(ctx, -sheetW/2 + 28, -sheetH/2 + 268, sheetW - 56, 42, 12);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.fill();
+      ctx.fillStyle = '#92E2B6';
+      ctx.font = `700 12px "Plus Jakarta Sans"`;
+      ctx.fillText("✓ Need to travel or rest? Ask anytime to pause without streak shame.", -sheetW/2 + 44, -sheetH/2 + 294);
+
+      ctx.restore();
+    }
+
+    // SCENE 6: Climax / Call to Action
+    function renderScene6(ctx, W, H, st) {
+      const ease = easeOutCubic(Math.min(st / 0.8, 1));
+
+      // Golden Rosette halo expansion
+      const haloRadius = (isVertical ? 380 : 300) * (0.8 + 0.2 * Math.sin(st));
+      drawIslamicRosette(ctx, W/2, H/2 - 80, haloRadius, 'rgba(212, 175, 55, 0.35)', null, st * 0.1);
+
+      // Centered Hero Phone
+      const phoneScale = isVertical ? 0.95 : 0.72;
+      draw3DPhone(ctx, W/2, H/2 + 40, phoneScale, 0.06, 0.0, 0, renderMosqueHomeScreen);
+
+      // Big Climax Title
+      ctx.save();
+      ctx.textAlign = 'center';
+
+      ctx.fillStyle = 'rgba(212, 175, 55, 0.9)';
+      ctx.font = `800 ${isVertical ? 18 : 15}px "Plus Jakarta Sans"`;
+      ctx.fillText("YOUR QUR'AN HABIT", W/2, isVertical ? 140 : 65);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `900 ${isVertical ? 64 : 48}px "Plus Jakarta Sans"`;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+      ctx.shadowBlur = 24;
+      ctx.fillText("Rebuilt for Real Life.", W/2, isVertical ? 210 : 120);
+
+      // Call to action button
+      const btnW = isVertical ? 340 : 280;
+      const btnH = isVertical ? 64 : 52;
+      const btnY = isVertical ? H - 180 : H - 90;
+
+      ctx.translate(W/2, btnY);
+      roundRect(ctx, -btnW/2, -btnH/2, btnW, btnH, 18);
+      const ctaGrad = ctx.createLinearGradient(-btnW/2, -btnH/2, btnW/2, btnH/2);
+      ctaGrad.addColorStop(0, '#F5E08C');
+      ctaGrad.addColorStop(1, '#D4AF37');
+      ctx.fillStyle = ctaGrad;
+      ctx.shadowColor = 'rgba(212, 175, 55, 0.6)';
+      ctx.shadowBlur = 28;
+      ctx.fill();
+
+      ctx.fillStyle = '#07130D';
+      ctx.font = `800 ${isVertical ? 18 : 16}px "Plus Jakarta Sans"`;
+      ctx.fillText("Download Wird Free", 0, isVertical ? 6 : 5);
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.font = `600 ${isVertical ? 14 : 12}px "Plus Jakarta Sans"`;
+      ctx.fillText("100% Offline • Zero Data Bundles • Private", 0, isVertical ? 48 : 38);
+
+      ctx.restore();
+    }
+
+    // UI Updates (Timecode, Scrubber, Scene highlights)
+    function updateUI() {
+      // Timecode
+      const mins = Math.floor(currentTime / 60);
+      const secs = Math.floor(currentTime % 60);
+      const ms = Math.floor((currentTime % 1) * 100);
+      timecodeDisplay.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}.${String(ms).padStart(2,'0')}`;
+
+      // Scrubber fill
+      const progressPercent = (currentTime / TOTAL_DURATION_SEC) * 100;
+      scrubberFill.style.width = `${progressPercent}%`;
+
+      // Active scene pill
+      const currentScene = SCENES.find(s => currentTime >= s.start && currentTime < s.end) || SCENES[SCENES.length - 1];
+      scenePills.forEach(pill => {
+        if (parseInt(pill.dataset.scene) === currentScene.id) {
+          pill.classList.add('active');
+        } else {
+          pill.classList.remove('active');
+        }
+      });
+    }
+
+    function updatePlayIcon() {
+      if (isPlaying) {
+        playIcon.innerHTML = `<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>`;
+      } else {
+        playIcon.innerHTML = `<polygon points="5 3 19 12 5 21 5 3"></polygon>`;
+      }
+    }
+
+    // Event Listeners
+    btnPlayPause.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      updatePlayIcon();
+      if (isPlaying && audioEnabled) initAudio();
+    });
+
+    btnRestart.addEventListener('click', () => {
+      currentTime = 0;
+      lastSoundScene = 0;
+      isPlaying = true;
+      updatePlayIcon();
+    });
+
+    btnLoopToggle.addEventListener('click', () => {
+      isLooping = !isLooping;
+      btnLoopToggle.style.color = isLooping ? 'var(--gold-bright)' : 'var(--text-muted)';
+    });
+
+    // Scrubber click / drag
+    scrubberTrack.addEventListener('click', (e) => {
+      const rect = scrubberTrack.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = Math.max(0, Math.min(1, clickX / rect.width));
+      currentTime = pct * TOTAL_DURATION_SEC;
+      lastSoundScene = 0;
+    });
+
+    // Scene jumper buttons
+    scenePills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        const sceneId = parseInt(pill.dataset.scene);
+        const scene = SCENES.find(s => s.id === sceneId);
+        if (scene) {
+          currentTime = scene.start;
+          lastSoundScene = 0;
+        }
+      });
+    });
+
+    // Aspect ratio toggle
+    btnAspectVertical.addEventListener('click', () => {
+      if (!isVertical) {
+        isVertical = true;
+        btnAspectVertical.classList.add('active');
+        btnAspectHorizontal.classList.remove('active');
+        viewportOuter.className = 'viewport-outer vertical';
+        canvas.width = 1080;
+        canvas.height = 1920;
+      }
+    });
+
+    btnAspectHorizontal.addEventListener('click', () => {
+      if (isVertical) {
+        isVertical = false;
+        btnAspectHorizontal.classList.add('active');
+        btnAspectVertical.classList.remove('active');
+        viewportOuter.className = 'viewport-outer horizontal';
+        canvas.width = 1920;
+        canvas.height = 1080;
+      }
+    });
+
+    // Audio Mute/Unmute
+    btnAudioToggle.addEventListener('click', () => {
+      audioEnabled = !audioEnabled;
+      btnAudioToggle.classList.toggle('muted', !audioEnabled);
+      if (audioEnabled) initAudio();
+    });
+
+    // Live In-Browser Video Export (MediaRecorder)
+    btnExport.addEventListener('click', () => {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    function startRecording() {
+      initAudio();
+      recordedChunks = [];
+      currentTime = 0;
+      lastSoundScene = 0;
+      isPlaying = true;
+      updatePlayIcon();
+
+      const stream = canvas.captureStream(60);
+
+      // Connect Web Audio stream if available
+      if (audioCtx && audioEnabled) {
+        try {
+          const dest = audioCtx.createMediaStreamDestination();
+          // Mix audio destination into stream
+          const audioTrack = dest.stream.getAudioTracks()[0];
+          if (audioTrack) stream.addTrack(audioTrack);
+        } catch(e) {
+          console.warn("Audio stream capture not supported, continuing with video only:", e);
+        }
+      }
+
+      const options = { mimeType: 'video/webm;codecs=vp9' };
+      try {
+        mediaRecorder = new MediaRecorder(stream, options);
+      } catch (e) {
+        mediaRecorder = new MediaRecorder(stream);
+      }
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `wird_promo_${isVertical ? 'vertical_9x16' : 'widescreen_16x9'}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        btnExport.classList.remove('recording');
+        exportText.textContent = "Export 60fps Video";
+        isRecording = false;
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      btnExport.classList.add('recording');
+      exportText.textContent = "Recording Commercial...";
+
+      // Automatically stop at end of duration
+      setTimeout(() => {
+        if (isRecording) stopRecording();
+      }, (TOTAL_DURATION_SEC + 0.5) * 1000);
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    }
+
+    // Start playback
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
