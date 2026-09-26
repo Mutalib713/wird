@@ -296,13 +296,13 @@
     }
     .phone-device {
       position: relative; z-index: 1;
-      width: 100%; max-width: 330px;
-      aspect-ratio: 9 / 19.2;
+      width: 100%; max-width: 325px;
+      aspect-ratio: 9 / 19;
       background: #0B1610;
-      border-radius: 46px;
+      border-radius: 48px;
       padding: 12px;
       box-shadow:
-        0 25px 60px rgba(0, 0, 0, 0.85),
+        0 24px 64px rgba(0, 0, 0, 0.85),
         0 0 0 3px #1F3628,
         0 0 0 5px #0E1B13,
         0 0 28px rgba(212, 175, 55, 0.25);
@@ -313,7 +313,7 @@
     .phone-device:hover {
       transform: translateY(-4px);
       box-shadow:
-        0 35px 80px rgba(0, 0, 0, 0.9),
+        0 36px 80px rgba(0, 0, 0, 0.9),
         0 0 0 3px var(--gold),
         0 0 36px rgba(212, 175, 55, 0.35);
     }
@@ -326,22 +326,13 @@
       display: flex; flex-direction: column;
     }
     .phone-speaker {
-      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
-      width: 44px; height: 3.5px; background: #16241C; border-radius: 4px; z-index: 20;
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      width: 44px; height: 4px; background: #16241C; border-radius: 4px; z-index: 20;
     }
     .phone-camera {
-      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
       width: 10px; height: 10px; background: #030604; border: 1.5px solid #1E3427; border-radius: 50%; z-index: 21;
     }
-    .phone-status-bar {
-      height: 36px; padding: 12px 16px 0;
-      display: flex; justify-content: space-between; align-items: center;
-      font-size: 0.72rem; font-weight: 700; color: rgba(255,255,255,0.85);
-      background: #09130D; position: relative; z-index: 10;
-      flex-shrink: 0;
-    }
-    .status-icons { display: flex; align-items: center; gap: 8px; }
-    .status-ic { width: 13px; height: 13px; }
 
     .phone-viewport {
       flex: 1; position: relative; overflow: hidden; background: #050A07;
@@ -350,7 +341,7 @@
     .phone-viewport:active { cursor: grabbing; }
     .phone-app-screen {
       position: absolute; inset: 0; opacity: 0;
-      transform: translateX(30px);
+      transform: translateX(32px);
       transition: opacity 0.32s var(--ease), transform 0.32s var(--ease);
       pointer-events: none;
     }
@@ -359,64 +350,138 @@
       pointer-events: auto; z-index: 2;
     }
     .phone-app-screen.prev {
-      transform: translateX(-30px);
+      transform: translateX(-32px);
     }
     .phone-app-screen img {
       width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block;
     }
 
+    /* Hotspots for real in-app tap interactions */
     .hotspot {
       position: absolute; z-index: 5;
       background: transparent; border: none; cursor: pointer;
     }
     .hotspot-portion {
-      top: 24%; left: 6%; width: 88%; height: 26%;
-      border-radius: 14px;
+      top: 19%; left: 5%; width: 90%; height: 26%;
+      border-radius: 16px;
     }
     .hotspot-portion::after {
-      content: 'Tap for Mushaf ↗';
-      position: absolute; right: 10px; bottom: 8px;
+      content: 'Open Mushaf ↗';
+      position: absolute; right: 12px; bottom: 8px;
       font-size: 0.62rem; font-weight: 700; color: var(--gold-light);
-      background: rgba(6, 11, 8, 0.75); padding: 4px 8px; border-radius: 6px;
-      opacity: 0; transition: opacity 0.2s;
+      background: rgba(6, 11, 8, 0.85); padding: 4px 8px; border-radius: 8px;
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      opacity: 0; transition: opacity 0.2s; pointer-events: none;
     }
     .phone-device:hover .hotspot-portion::after { opacity: 1; }
 
+    .hotspot-checkin {
+      top: 48%; left: 5%; width: 90%; height: 35%;
+      border-radius: 16px;
+    }
+    .hotspot-checkin::after {
+      content: "Today's Check-in ↗";
+      position: absolute; right: 12px; top: 12px;
+      font-size: 0.62rem; font-weight: 700; color: var(--gold-light);
+      background: rgba(6, 11, 8, 0.85); padding: 4px 8px; border-radius: 8px;
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      opacity: 0; transition: opacity 0.2s; pointer-events: none;
+    }
+    .phone-device:hover .hotspot-checkin::after { opacity: 1; }
+
+    .hotspot-back {
+      top: 1.5%; left: 2%; width: 48px; height: 40px; border-radius: 50%;
+    }
+    .hotspot-back::after {
+      content: '← Back';
+      position: absolute; left: 48px; top: 8px; white-space: nowrap;
+      font-size: 0.62rem; font-weight: 700; color: var(--gold-light);
+      background: rgba(6, 11, 8, 0.85); padding: 4px 8px; border-radius: 4px;
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      opacity: 0; transition: opacity 0.2s; pointer-events: none;
+    }
+    .phone-device:hover .hotspot-back::after { opacity: 1; }
+
+    .hotspot-surah {
+      top: 8%; left: 5%; width: 90%; height: 30%;
+      border-radius: 16px;
+    }
+
+    /* ── AUTHENTIC 3-TAB FLOATING ISLAND DOCK (Compose FloatingIslandDock.kt) ── */
     .phone-bottom-nav {
-      height: 52px; background: #08150E; border-top: 1px solid rgba(212, 175, 55, 0.2);
-      display: flex; justify-content: space-around; align-items: center;
-      padding: 0 4px; position: relative; z-index: 10; flex-shrink: 0;
+      position: absolute; bottom: 12px; left: 16px; right: 16px;
+      height: 48px; background: transparent; border: none;
+      display: flex; justify-content: center; align-items: center;
+      padding: 0; z-index: 25; pointer-events: none;
+    }
+    .pnav-capsule {
+      pointer-events: auto;
+      width: 100%; max-width: 272px; height: 44px;
+      background: rgba(14, 27, 20, 0.96);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 1.5px solid rgba(212, 175, 55, 0.38);
+      border-radius: 999px;
+      display: flex; align-items: center; justify-content: space-around;
+      padding: 4px 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8), 0 0 16px rgba(212, 175, 55, 0.2);
     }
     .pnav-item {
-      background: none; border: none; padding: 4px; cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-      color: rgba(226, 236, 230, 0.5); font-size: 0.62rem; font-weight: 600;
-      transition: color 0.2s, transform 0.2s;
-      flex: 1;
+      background: none; border: none; border-radius: 999px;
+      height: 36px; padding: 0 12px; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      color: #798E82; font-family: inherit; font-size: 0.72rem; font-weight: 700;
+      transition: all 0.22s var(--ease);
     }
-    .pnav-item svg { width: 17px; height: 17px; transition: transform 0.2s; }
-    .pnav-item:hover { color: var(--gold-light); transform: translateY(-1px); }
-    .pnav-item.active { color: var(--gold); }
-    .pnav-item.active svg { transform: scale(1.12); }
+    .pnav-item svg { width: 18px; height: 18px; stroke: currentColor; fill: none; transition: transform 0.2s, stroke 0.2s; }
+    .pnav-item:hover { color: var(--gold-light); }
+    .pnav-item.active {
+      background: #183F32;
+      color: #FFFFFF;
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+      padding: 0 16px;
+    }
+    .pnav-item.active svg { stroke: #8ED676; transform: scale(1.06); }
+    .pnav-label { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.02em; }
 
-    .phone-home-pill {
-      height: 12px; background: #08150E; display: flex; align-items: center; justify-content: center;
-      padding-bottom: 4px;
-    }
-    .phone-home-pill::after {
-      content: ''; width: 72px; height: 4px; background: rgba(255,255,255,0.4); border-radius: 4px;
-    }
-
-    .phone-hint {
+    /* ── PHONE CONTROLLER & QUICK JUMP BAR ── */
+    .phone-controls {
       margin-top: 16px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      width: 100%; max-width: 320px;
+    }
+    .phone-indicator-badge {
       display: inline-flex; align-items: center; gap: 8px;
       font-size: 0.78rem; font-weight: 600; color: var(--gold-light);
-      background: rgba(19, 43, 32, 0.9); border: 1px solid rgba(212, 175, 55, 0.3);
-      padding: 8px 16px; border-radius: 50px;
+      background: rgba(19, 43, 32, 0.92); border: 1px solid rgba(212, 175, 55, 0.35);
+      padding: 6px 14px; border-radius: 50px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
     }
+    .btn-pause-toggle {
+      background: none; border: none; padding: 0; margin: 0;
+      color: var(--gold); cursor: pointer; display: flex; align-items: center;
+      transition: transform 0.18s;
+    }
+    .btn-pause-toggle:hover { transform: scale(1.15); color: #fff; }
+    .btn-pause-toggle svg { width: 13px; height: 13px; }
     .pulse-ring {
       width: 7px; height: 7px; border-radius: 50%; background: var(--sage);
       box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); animation: ping 2s infinite;
+    }
+
+    .phone-quick-chips {
+      display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
+    }
+    .pchip {
+      background: rgba(13, 29, 21, 0.85); border: 1px solid rgba(212, 175, 55, 0.22);
+      color: var(--ink-parchment); font-size: 0.7rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 50px; cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+    }
+    .pchip:hover { border-color: var(--gold); color: #fff; transform: translateY(-1px); }
+    .pchip.active {
+      background: var(--gold); color: #060B08; font-weight: 700;
+      border-color: var(--gold); box-shadow: 0 2px 8px var(--gold-glow);
     }
 
     /* ── VIDEO LIGHTBOX MODAL ── */
@@ -1029,78 +1094,77 @@
             <div class="phone-speaker"></div>
             <div class="phone-camera"></div>
 
-            <!-- Android Status Bar -->
-            <div class="phone-status-bar">
-              <span class="status-time">9:41</span>
-              <div class="status-icons">
-                <!-- Wi-Fi Vector -->
-                <svg class="status-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
-                <!-- Battery Vector -->
-                <svg class="status-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="16" height="10" rx="2" ry="2"/><line x1="22" y1="11" x2="22" y2="13"/></svg>
-              </div>
-            </div>
-
             <!-- Interactive Viewport with Real Screens -->
             <div class="phone-viewport" id="phoneViewport">
-              <!-- Screen 0: Home Screen -->
+              <!-- Screen 0: Home Dashboard -->
               <div class="phone-app-screen active" data-screen="home">
                 <img src="images/home.webp" alt="Wird Home Dashboard" />
-                <button class="hotspot hotspot-portion" id="portionHotspot" aria-label="Open Mushaf page"></button>
+                <button class="hotspot hotspot-portion" id="portionHotspot" aria-label="Open Madani Mushaf" title="Open Madani Mushaf"></button>
+                <button class="hotspot hotspot-checkin" id="checkinHotspot" aria-label="Open Today's Check-in" title="Open Today's Check-in"></button>
               </div>
 
-              <!-- Screen 1: Mushaf Screen -->
+              <!-- Screen 1: Authentic Today's Check-in & Offline AI Companion -->
+              <div class="phone-app-screen" data-screen="checkin">
+                <img src="images/chat.webp" alt="Today's Check-in and Offline AI Companion" />
+                <button class="hotspot hotspot-back" id="checkinBackHotspot" aria-label="Return to Home" title="Back to Home"></button>
+              </div>
+
+              <!-- Screen 2: Authentic Madani Mushaf Layout -->
               <div class="phone-app-screen" data-screen="mushaf">
                 <img src="images/mushaf.webp" alt="King Fahd Printed Madani Mushaf" />
+                <button class="hotspot hotspot-back" id="mushafBackHotspot" aria-label="Return to Home" title="Back to Home"></button>
               </div>
 
-              <!-- Screen 2: Modes & Tracks Screen -->
-              <div class="phone-app-screen" data-screen="modes">
-                <img src="images/modes.webp" alt="Reading Modes and Tracks" />
+              <!-- Screen 3: 114 Sūrahs Directory -->
+              <div class="phone-app-screen" data-screen="surahs">
+                <img src="images/surahs.webp" alt="114 Sūrahs Directory" />
+                <button class="hotspot hotspot-surah" id="surahItemHotspot" aria-label="Read Sūrah in Mushaf" title="Read Sūrah"></button>
               </div>
 
-              <!-- Screen 3: Recite AI Screen -->
-              <div class="phone-app-screen" data-screen="recite">
-                <img src="images/recite.webp" alt="Whisper AI Recitation Auditor" />
-              </div>
-
-              <!-- Screen 4: Companion Chat Screen -->
-              <div class="phone-app-screen" data-screen="chat">
-                <img src="images/chat.webp" alt="Offline AI Companion" />
+              <!-- Screen 4: Recitation History & Streaks -->
+              <div class="phone-app-screen" data-screen="history">
+                <img src="images/history.webp" alt="Recitation History and Streaks" />
               </div>
             </div>
 
-            <!-- Android Bottom Navigation Bar (5 tabs) -->
+            <!-- Android Bottom Navigation Bar (Authentic 3-Tab Floating Capsule Dock) -->
             <div class="phone-bottom-nav" id="phoneNav">
-              <button class="pnav-item active" data-target="home" aria-label="Home tab">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                <span>Home</span>
-              </button>
-              <button class="pnav-item" data-target="mushaf" aria-label="Mushaf tab">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                <span>Mushaf</span>
-              </button>
-              <button class="pnav-item" data-target="modes" aria-label="Modes tab">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                <span>Modes</span>
-              </button>
-              <button class="pnav-item" data-target="recite" aria-label="Recite tab">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
-                <span>Recite</span>
-              </button>
-              <button class="pnav-item" data-target="chat" aria-label="Companion tab">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                <span>Companion</span>
-              </button>
+              <div class="pnav-capsule">
+                <button class="pnav-item active" data-target="home" aria-label="Home tab">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                  <span class="pnav-label">Home</span>
+                </button>
+                <button class="pnav-item" data-target="surahs" aria-label="Sūrahs tab">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                  <span class="pnav-label">Sūrahs</span>
+                </button>
+                <button class="pnav-item" data-target="history" aria-label="History tab">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span class="pnav-label">History</span>
+                </button>
+              </div>
             </div>
-
-            <!-- Android Gesture Pill -->
-            <div class="phone-home-pill"></div>
           </div>
         </div>
         
-        <div class="phone-hint" data-reveal>
-          <span class="pulse-ring"></span>
-          <span>Interactive Phone • Tap tabs or portion card</span>
+        <!-- Phone Controls & Auto-Advance Indicator -->
+        <div class="phone-controls" id="phoneControls">
+          <div class="phone-indicator-badge">
+            <button type="button" class="btn-pause-toggle" id="autoAdvanceToggle" aria-label="Pause or Resume Auto Advance">
+              <svg class="ic-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+              <svg class="ic-play" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </button>
+            <span class="pulse-ring" id="autoAdvancePulse"></span>
+            <span id="screenStatusText">Auto-advancing: Home Dashboard</span>
+          </div>
+
+          <div class="phone-quick-chips">
+            <button type="button" class="pchip active" data-screen-jump="home">Home</button>
+            <button type="button" class="pchip" data-screen-jump="checkin">Today's Check-in</button>
+            <button type="button" class="pchip" data-screen-jump="mushaf">Mushaf</button>
+            <button type="button" class="pchip" data-screen-jump="surahs">Sūrahs</button>
+            <button type="button" class="pchip" data-screen-jump="history">History</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1811,52 +1875,182 @@
   (function() {
     const viewport = document.getElementById('phoneViewport');
     const phoneNav = document.getElementById('phoneNav');
+    const screenStatus = document.getElementById('screenStatusText');
+    const pauseToggle = document.getElementById('autoAdvanceToggle');
+    const pulseRing = document.getElementById('autoAdvancePulse');
+    const quickChips = Array.from(document.querySelectorAll('.pchip'));
     if (!viewport || !phoneNav) return;
 
     const screens = Array.from(viewport.querySelectorAll('.phone-app-screen'));
     const navItems = Array.from(phoneNav.querySelectorAll('.pnav-item'));
-    const order = ['home', 'mushaf', 'modes', 'recite', 'chat'];
-    let currentIdx = 0;
 
-    function showScreen(targetKey) {
-      const targetIdx = order.indexOf(targetKey);
-      if (targetIdx === -1) return;
+    // Sequence for auto-advance cycle
+    const cycle = ['home', 'checkin', 'mushaf', 'surahs', 'history'];
+    const screenNames = {
+      'home': 'Home Dashboard',
+      'checkin': "Today's Check-in",
+      'mushaf': 'Madani Mushaf',
+      'surahs': '114 Sūrahs Directory',
+      'history': 'Recitation History'
+    };
 
-      screens.forEach((s, i) => {
+    // Mapping screen -> active bottom dock tab (exact 3 tabs)
+    const dockMap = {
+      'home': 'home',
+      'checkin': 'home',
+      'mushaf': 'home',
+      'surahs': 'surahs',
+      'history': 'history'
+    };
+
+    let currentScreen = 'home';
+    let autoTimer = null;
+    let isPaused = false;
+    const AUTO_DELAY = 4500; // 4.5 seconds per screen
+
+    function setScreen(targetKey, isUserAction = false) {
+      if (!screens.some(s => s.dataset.screen === targetKey)) return;
+
+      currentScreen = targetKey;
+      const targetIdx = cycle.indexOf(targetKey);
+
+      // Transition screen elements
+      screens.forEach((s) => {
+        const sKey = s.dataset.screen;
+        const sIdx = cycle.indexOf(sKey);
         s.classList.remove('active', 'prev');
-        if (i === targetIdx) {
+        if (sKey === targetKey) {
           s.classList.add('active');
-        } else if (i < targetIdx) {
+        } else if (sIdx < targetIdx) {
           s.classList.add('prev');
         }
       });
 
+      // Update 3-tab bottom dock (exact 3 tabs: home, surahs, history)
+      const activeDockTab = dockMap[targetKey] || 'home';
       navItems.forEach(item => {
-        item.classList.toggle('active', item.dataset.target === targetKey);
+        item.classList.toggle('active', item.dataset.target === activeDockTab);
       });
 
-      currentIdx = targetIdx;
+      // Update quick chips
+      quickChips.forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.screenJump === targetKey);
+      });
+
+      // Update status text
+      if (screenStatus) {
+        screenStatus.textContent = (isPaused ? 'Paused: ' : 'Viewing: ') + screenNames[targetKey];
+      }
+
+      // If triggered by user, pause briefly then restart auto-timer after 8s
+      if (isUserAction) {
+        restartTimer(8000);
+      }
     }
 
-    // Tab buttons click
+    function advanceNext() {
+      if (isPaused) return;
+      const currentIdx = cycle.indexOf(currentScreen);
+      const nextIdx = (currentIdx + 1) % cycle.length;
+      setScreen(cycle[nextIdx], false);
+    }
+
+    function startTimer(delay = AUTO_DELAY) {
+      clearInterval(autoTimer);
+      if (reduceMotion || isPaused) return;
+      autoTimer = setInterval(advanceNext, delay);
+    }
+
+    function restartTimer(delay = AUTO_DELAY) {
+      clearInterval(autoTimer);
+      if (reduceMotion || isPaused) return;
+      autoTimer = setTimeout(() => {
+        advanceNext();
+        startTimer(AUTO_DELAY);
+      }, delay);
+    }
+
+    // 1. Bottom Dock 3 Tabs click
     navItems.forEach(item => {
       item.addEventListener('click', (e) => {
         e.preventDefault();
-        showScreen(item.dataset.target);
+        setScreen(item.dataset.target, true);
       });
     });
 
-    // Hotspot click on Today's Portion card -> jumps directly to Mushaf
+    // 2. Quick chips click
+    quickChips.forEach(chip => {
+      chip.addEventListener('click', (e) => {
+        e.preventDefault();
+        setScreen(chip.dataset.screenJump, true);
+      });
+    });
+
+    // 3. Hotspots
     const portionHotspot = document.getElementById('portionHotspot');
     if (portionHotspot) {
       portionHotspot.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showScreen('mushaf');
+        e.preventDefault(); e.stopPropagation();
+        setScreen('mushaf', true);
       });
     }
 
-    // Touch & Mouse swipe gestures on viewport
+    const checkinHotspot = document.getElementById('checkinHotspot');
+    if (checkinHotspot) {
+      checkinHotspot.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        setScreen('checkin', true);
+      });
+    }
+
+    const checkinBackHotspot = document.getElementById('checkinBackHotspot');
+    if (checkinBackHotspot) {
+      checkinBackHotspot.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        setScreen('home', true);
+      });
+    }
+
+    const mushafBackHotspot = document.getElementById('mushafBackHotspot');
+    if (mushafBackHotspot) {
+      mushafBackHotspot.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        setScreen('home', true);
+      });
+    }
+
+    const surahItemHotspot = document.getElementById('surahItemHotspot');
+    if (surahItemHotspot) {
+      surahItemHotspot.addEventListener('click', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        setScreen('mushaf', true);
+      });
+    }
+
+    // 4. Play / Pause button
+    if (pauseToggle) {
+      pauseToggle.addEventListener('click', () => {
+        isPaused = !isPaused;
+        const icPause = pauseToggle.querySelector('.ic-pause');
+        const icPlay = pauseToggle.querySelector('.ic-play');
+        if (icPause && icPlay) {
+          icPause.style.display = isPaused ? 'none' : 'block';
+          icPlay.style.display = isPaused ? 'block' : 'none';
+        }
+        if (pulseRing) {
+          pulseRing.style.display = isPaused ? 'none' : 'inline-block';
+        }
+        if (isPaused) {
+          clearInterval(autoTimer);
+          if (screenStatus) screenStatus.textContent = 'Paused: ' + screenNames[currentScreen];
+        } else {
+          if (screenStatus) screenStatus.textContent = 'Auto-advancing: ' + screenNames[currentScreen];
+          startTimer(AUTO_DELAY);
+        }
+      });
+    }
+
+    // 5. Swipe Gestures
     let startX = 0, isDragging = false;
     viewport.addEventListener('touchstart', (e) => {
       startX = e.touches[0].clientX;
@@ -1865,10 +2059,13 @@
     viewport.addEventListener('touchend', (e) => {
       const diffX = e.changedTouches[0].clientX - startX;
       if (Math.abs(diffX) > 40) {
-        if (diffX < 0 && currentIdx < order.length - 1) {
-          showScreen(order[currentIdx + 1]);
-        } else if (diffX > 0 && currentIdx > 0) {
-          showScreen(order[currentIdx - 1]);
+        const cur = cycle.indexOf(currentScreen);
+        if (diffX < 0) {
+          const next = (cur + 1) % cycle.length;
+          setScreen(cycle[next], true);
+        } else {
+          const prev = (cur - 1 + cycle.length) % cycle.length;
+          setScreen(cycle[prev], true);
         }
       }
     }, { passive: true });
@@ -1883,15 +2080,32 @@
       isDragging = false;
       const diffX = e.clientX - startX;
       if (Math.abs(diffX) > 45) {
-        if (diffX < 0 && currentIdx < order.length - 1) {
-          showScreen(order[currentIdx + 1]);
-        } else if (diffX > 0 && currentIdx > 0) {
-          showScreen(order[currentIdx - 1]);
+        const cur = cycle.indexOf(currentScreen);
+        if (diffX < 0) {
+          const next = (cur + 1) % cycle.length;
+          setScreen(cycle[next], true);
+        } else {
+          const prev = (cur - 1 + cycle.length) % cycle.length;
+          setScreen(cycle[prev], true);
         }
       }
     });
 
     viewport.addEventListener('mouseleave', () => { isDragging = false; });
+
+    // Hover pauses timer
+    const phoneEl = document.getElementById('interactivePhone');
+    if (phoneEl) {
+      phoneEl.addEventListener('mouseenter', () => {
+        if (!isPaused) clearInterval(autoTimer);
+      });
+      phoneEl.addEventListener('mouseleave', () => {
+        if (!isPaused) startTimer(AUTO_DELAY);
+      });
+    }
+
+    // Start auto-advance cycle
+    startTimer(AUTO_DELAY);
   })();
 
   // ── 8. Product Video Modal Lightbox Controller ──
