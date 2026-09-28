@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
 class TafsirRepository(private val context: Context) {
 
     private val memCache = ConcurrentHashMap<String, String>()
-    private val cacheDir = File(context.cacheDir, "tafsir_cache_v2").apply { mkdirs() }
+    private val cacheDir = File(context.cacheDir, "tafsir_cache_v3").apply { mkdirs() }
 
     suspend fun getTafsir(surah: Int, ayah: Int): String? = withContext(Dispatchers.IO) {
         val key = "$surah:$ayah"
@@ -77,33 +77,102 @@ class TafsirRepository(private val context: Context) {
     }
 
     private fun cleanHtml(html: String): String {
-        var text = html
+        val headings = HEADER_REGEX.findAll(html).toList()
 
-        // 1. Format headings into distinct section banners
-        text = HEADER_REGEX.replace(text) { match ->
-            val title = match.groupValues[1].replace(HTML_TAG_REGEX, " ").trim()
-            if (title.isNotBlank()) "\n\n§ $title\n\n" else "\n\n"
+        if (headings.isEmpty()) {
+            val cleanBody = stripAndUnescape(html)
+            val paras = cleanBody.split(Regex("\n{2,}"))
+                .map { it.replace(Regex("[ \\t]+"), " ").trim() }
+                .filter { it.isNotBlank() }
+
+            if (paras.isEmpty()) return ""
+            if (paras.size <= 3) {
+                return "§ Section 1: Commentary\n\n" + paras.joinToString("\n\n")
+            }
+            val mid = (paras.size + 1) / 2
+            val sec1 = paras.subList(0, mid).joinToString("\n\n")
+            val sec2 = paras.subList(mid, paras.size).joinToString("\n\n")
+            return "§ Section 1: Overview & Commentary\n\n$sec1\n\n§ Section 2: Scholarly Insights\n\n$sec2"
         }
 
-        // 2. Format Arabic commentary anchors
+        val sections = mutableListOf<Pair<String, List<String>>>()
+        val pendingTitles = mutableListOf<String>()
+
+        // Check if there was text before the first heading
+        if (headings.first().range.first > 0) {
+            val preText = html.substring(0, headings.first().range.first)
+            val cleanPre = stripAndUnescape(preText)
+            val preParas = cleanPre.split(Regex("\n{2,}"))
+                .map { it.replace(Regex("[ \\t]+"), " ").trim() }
+                .filter { it.isNotBlank() }
+            if (preParas.isNotEmpty()) {
+                sections.add("Overview" to preParas)
+            }
+        }
+
+        for (i in headings.indices) {
+            val hMatch = headings[i]
+            val rawTitle = hMatch.groupValues[1]
+            val cleanTitle = unescapeHtml(rawTitle.replace(HTML_TAG_REGEX, " ")).trim()
+
+            val contentStart = hMatch.range.last + 1
+            val contentEnd = if (i + 1 < headings.size) headings[i + 1].range.first else html.length
+            val rawContent = if (contentStart < contentEnd) html.substring(contentStart, contentEnd) else ""
+
+            val cleanContent = stripAndUnescape(rawContent)
+            val paras = cleanContent.split(Regex("\n{2,}"))
+                .map { it.replace(Regex("[ \\t]+"), " ").trim() }
+                .filter { it.isNotBlank() }
+
+            if (paras.isEmpty()) {
+                if (cleanTitle.isNotBlank()) {
+                    pendingTitles.add(cleanTitle)
+                }
+            } else {
+                val fullTitle = if (pendingTitles.isNotEmpty()) {
+                    val combined = (pendingTitles + cleanTitle).joinToString(" · ")
+                    pendingTitles.clear()
+                    combined
+                } else {
+                    cleanTitle
+                }
+                sections.add(fullTitle to paras)
+            }
+        }
+
+        val result = StringBuilder()
+        sections.forEachIndexed { index, (title, paras) ->
+            if (index > 0) result.append("\n\n")
+            val sectionNum = index + 1
+            result.append("§ Section $sectionNum: $title\n\n")
+            result.append(paras.joinToString("\n\n"))
+        }
+
+        return result.toString().trim()
+    }
+
+    private fun stripAndUnescape(raw: String): String {
+        var text = raw
+        // 1. Format Arabic commentary containers
         text = ARABIC_DIV_REGEX.replace(text) { match ->
             val arabic = match.groupValues[1].replace(HTML_TAG_REGEX, " ").trim()
             if (arabic.isNotBlank()) "\n\n« $arabic »\n\n" else ""
         }
-
-        // 3. Convert paragraphs, linebreaks and list items
+        // 2. Convert standard tags to readable spacing
         text = text
             .replace(Regex("</p>", RegexOption.IGNORE_CASE), "\n\n")
             .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), "\n")
             .replace(Regex("</li>", RegexOption.IGNORE_CASE), "\n")
             .replace(Regex("<li[^>]*>", RegexOption.IGNORE_CASE), "• ")
             .replace(Regex("</blockquote>", RegexOption.IGNORE_CASE), "\n\n")
-
-        // 4. Strip remaining HTML tags
+        // 3. Strip remaining HTML tags
         text = text.replace(HTML_TAG_REGEX, " ")
+        // 4. Unescape HTML entities
+        return unescapeHtml(text)
+    }
 
-        // 5. Unescape HTML entities
-        text = text
+    private fun unescapeHtml(str: String): String {
+        return str
             .replace("&quot;", "\"")
             .replace("&amp;", "&")
             .replace("&lt;", "<")
@@ -111,39 +180,11 @@ class TafsirRepository(private val context: Context) {
             .replace("&#39;", "'")
             .replace("&nbsp;", " ")
             .replace("&#8217;", "'")
+            .replace("&#8218;", ",")
             .replace("&#8220;", "\"")
             .replace("&#8221;", "\"")
             .replace("&#8212;", "—")
-
-        // 6. Split into clean paragraphs
-        val rawParagraphs = text.split(Regex("\n{2,}"))
-            .map { it.replace(Regex("[ \\t]+"), " ").trim() }
-            .filter { it.isNotBlank() }
-
-        // 7. Structure into numbered sections for pleasant mobile reading
-        val formattedSections = mutableListOf<String>()
-        var pointNum = 1
-        for (para in rawParagraphs) {
-            when {
-                para.startsWith("§ ") -> {
-                    formattedSections.add(para)
-                }
-                para.startsWith("«") && para.endsWith("»") -> {
-                    formattedSections.add(para)
-                }
-                para.startsWith("• ") -> {
-                    formattedSections.add(para)
-                }
-                para.length > 30 && rawParagraphs.size > 1 -> {
-                    formattedSections.add("${pointNum++}. $para")
-                }
-                else -> {
-                    formattedSections.add(para)
-                }
-            }
-        }
-
-        return formattedSections.joinToString("\n\n").trim()
+            .replace("&#8211;", "–")
     }
 
     companion object {

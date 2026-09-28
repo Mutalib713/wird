@@ -20,9 +20,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.animation.animateContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -549,6 +552,8 @@ fun Companion(
 
 @Composable
 internal fun BotBubble(text: String, time: String, isDark: Boolean) {
+    val tafsir = remember(text) { parseTafsirMessage(text) }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start,
@@ -565,32 +570,372 @@ internal fun BotBubble(text: String, time: String, isDark: Boolean) {
         }
         Spacer(Modifier.width(8.dp))
         BoxWithConstraints(modifier = Modifier.weight(1f, fill = false)) {
-            Column(
-                modifier = Modifier
-                    .widthIn(max = maxWidth * 0.88f)
-                    .clayCard(
-                        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 3.dp),
-                        backgroundColor = if (isDark) Color(0xFF18231E) else Color(0xFFFFFFFF),
-                        highlightColor = Color.White.copy(alpha = if (isDark) 0.08f else 0.95f),
-                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF245847).copy(alpha = 0.08f),
-                        elevation = 2.dp,
-                        strokeWidth = 1.dp,
+            if (tafsir != null) {
+                TafsirCard(
+                    tafsir = tafsir,
+                    time = time,
+                    isDark = isDark,
+                    maxWidth = maxWidth,
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = maxWidth * 0.88f)
+                        .clayCard(
+                            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 3.dp),
+                            backgroundColor = if (isDark) Color(0xFF18231E) else Color(0xFFFFFFFF),
+                            highlightColor = Color.White.copy(alpha = if (isDark) 0.08f else 0.95f),
+                            shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF245847).copy(alpha = 0.08f),
+                            elevation = 2.dp,
+                            strokeWidth = 1.dp,
+                        )
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                ) {
+                    Text(
+                        text = text,
+                        color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                        style = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
                     )
-                    .padding(horizontal = 12.dp, vertical = 9.dp),
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = time,
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                        style = TextStyle(fontSize = 9.5.sp),
+                        modifier = Modifier.align(Alignment.End),
+                    )
+                }
+            }
+        }
+    }
+}
+
+internal data class ParsedTafsir(
+    val verseRef: String,
+    val translation: String,
+    val translationSource: String,
+    val sections: List<TafsirSectionItem>,
+    val attribution: String,
+)
+
+internal data class TafsirSectionItem(
+    val number: Int,
+    val title: String,
+    val paragraphs: List<String>,
+)
+
+internal fun parseTafsirMessage(text: String): ParsedTafsir? {
+    if (!text.contains("Tafsir Ibn Kathir (Abridged):")) return null
+
+    return runCatching {
+        val parts = text.split("━━━━━━━━━━━━━━━")
+        if (parts.size < 2) return null
+
+        val topPart = parts[0].trim()
+        val bottomPart = parts[1].trim()
+
+        val topLines = topPart.split("\n\n").map { it.trim() }.filter { it.isNotBlank() }
+        val verseRef = topLines.getOrNull(0) ?: ""
+        val translationRaw = topLines.getOrNull(1) ?: ""
+        val translation = translationRaw.removeSurrounding("\"")
+        val translationSource = topLines.getOrNull(2)?.removePrefix("— Translation:")?.trim() ?: "Saheeh International"
+
+        val tafsirBody = bottomPart.removePrefix("Tafsir Ibn Kathir (Abridged):").trim()
+        val rawSections = tafsirBody.split(Regex("\n{2,}§ ")).map { it.trim() }.filter { it.isNotBlank() }
+
+        val sectionItems = mutableListOf<TafsirSectionItem>()
+        var attribution = "— Sourced from Quran.com / Dar-us-Salam"
+
+        rawSections.forEachIndexed { idx, rawSec ->
+            var secText = if (rawSec.startsWith("§ ")) rawSec.removePrefix("§ ").trim() else rawSec
+            if (secText.contains("— Sourced from")) {
+                val splitAttr = secText.split(Regex("\n{2,}— Sourced from"))
+                secText = splitAttr[0].trim()
+                if (splitAttr.size > 1) {
+                    attribution = "— Sourced from " + splitAttr[1].trim()
+                }
+            }
+
+            val lines = secText.split(Regex("\n{2,}")).map { it.trim() }.filter { it.isNotBlank() }
+            if (lines.isNotEmpty()) {
+                val rawHeader = lines[0]
+                val title = if (rawHeader.startsWith("Section ") && rawHeader.contains(":")) {
+                    rawHeader.substringAfter(":").trim()
+                } else rawHeader
+
+                val secNumber = Regex("Section (\\d+)").find(rawHeader)?.groupValues?.get(1)?.toIntOrNull() ?: (idx + 1)
+                val paras = lines.drop(1)
+                sectionItems.add(TafsirSectionItem(secNumber, title, paras))
+            }
+        }
+
+        if (sectionItems.isEmpty()) return null
+
+        ParsedTafsir(
+            verseRef = verseRef,
+            translation = translation,
+            translationSource = translationSource,
+            sections = sectionItems,
+            attribution = attribution,
+        )
+    }.getOrNull()
+}
+
+@Composable
+private fun TafsirCard(
+    tafsir: ParsedTafsir,
+    time: String,
+    isDark: Boolean,
+    maxWidth: androidx.compose.ui.unit.Dp,
+) {
+    var expandedSections by remember { mutableStateOf(setOf(1)) }
+    val allExpanded = expandedSections.size == tafsir.sections.size
+
+    Column(
+        modifier = Modifier
+            .widthIn(max = maxWidth * 0.94f)
+            .clayCard(
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 3.dp),
+                backgroundColor = if (isDark) Color(0xFF14211A) else Color(0xFFFFFFFF),
+                highlightColor = Color.White.copy(alpha = if (isDark) 0.08f else 0.95f),
+                shadowColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0xFF245847).copy(alpha = 0.08f),
+                elevation = 2.dp,
+                strokeWidth = 1.dp,
+            )
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        // 1. Verse Reference & Source Pill
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(if (isDark) Color(0xFF1E3D2F) else Color(0xFFD6EAE0))
+                    .padding(horizontal = 9.dp, vertical = 4.dp),
             ) {
                 Text(
-                    text = text,
-                    color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
-                    style = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
-                )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = time,
-                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
-                    style = TextStyle(fontSize = 9.5.sp),
-                    modifier = Modifier.align(Alignment.End),
+                    text = tafsir.verseRef,
+                    color = if (isDark) Color(0xFF98E2A7) else Color(0xFF1D5A40),
+                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold),
                 )
             }
+            Text(
+                text = tafsir.translationSource,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6B8074),
+                style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Medium),
+            )
+        }
+
+        // 2. Verse Translation Callout
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (isDark) Color(0xFF192B22) else Color(0xFFF4F7F4))
+                .border(
+                    width = 1.dp,
+                    color = if (isDark) Color(0xFF284D3C) else Color(0xFFD0E2D6),
+                    shape = RoundedCornerShape(10.dp),
+                )
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+        ) {
+            Text(
+                text = "“${tafsir.translation}”",
+                color = if (isDark) Color(0xFFEFF5F0) else Color(0xFF153326),
+                style = TextStyle(fontSize = 13.sp, lineHeight = 19.sp, fontWeight = FontWeight.Normal),
+            )
+        }
+
+        // 3. Tafsir Header & Expand/Collapse Toggle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                CompanionBookVectorIcon(
+                    tint = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                    modifier = Modifier.size(15.dp),
+                )
+                Text(
+                    text = "Tafsir Ibn Kathir",
+                    color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(if (isDark) Color(0xFF22362C) else Color(0xFFE3EDE6))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        text = "${tafsir.sections.size} sections",
+                        color = if (isDark) Color(0xFF9CCDAE) else Color(0xFF2E634F),
+                        style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.SemiBold),
+                    )
+                }
+            }
+
+            if (tafsir.sections.size > 1) {
+                Text(
+                    text = if (allExpanded) "Collapse all" else "Expand all",
+                    color = if (isDark) Color(0xFF98E2A7) else Color(0xFF245847),
+                    style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                    modifier = Modifier
+                        .clickable {
+                            expandedSections = if (allExpanded) {
+                                emptySet()
+                            } else {
+                                tafsir.sections.map { it.number }.toSet()
+                            }
+                        }
+                        .padding(4.dp),
+                )
+            }
+        }
+
+        // 4. Structured Numbered Sections (Accordion)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            tafsir.sections.forEach { section ->
+                val isExpanded = expandedSections.contains(section.number)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isDark) Color(0xFF0F1A14) else Color(0xFFF9F8F3))
+                        .border(
+                            width = 1.dp,
+                            color = if (isExpanded) {
+                                if (isDark) Color(0xFF335746) else Color(0xFFC4D9CA)
+                            } else {
+                                if (isDark) Color(0x18FFFFFF) else Color(0x12000000)
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                        )
+                        .animateContentSize(),
+                ) {
+                    // Section Header
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                expandedSections = if (isExpanded) {
+                                    expandedSections - section.number
+                                } else {
+                                    expandedSections + section.number
+                                }
+                            }
+                            .padding(horizontal = 10.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        // Section Number Badge
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .clip(CircleShape)
+                                .background(if (isDark) Color(0xFF1E382A) else Color(0xFFD6EAE0)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "${section.number}",
+                                color = if (isDark) Color(0xFF98E2A7) else Color(0xFF1F583F),
+                                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = section.title,
+                            color = if (isDark) Color(0xFFECEFE8) else Color(0xFF1B3B2F),
+                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
+                            modifier = Modifier.weight(1f),
+                            maxLines = if (isExpanded) 3 else 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                            tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+
+                    // Section Content (when expanded)
+                    if (isExpanded) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 10.dp, end = 10.dp, bottom = 10.dp, top = 2.dp),
+                            verticalArrangement = Arrangement.spacedBy(7.dp),
+                        ) {
+                            section.paragraphs.forEach { para ->
+                                when {
+                                    para.startsWith("«") && para.endsWith("»") -> {
+                                        // Arabic commentary box
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(if (isDark) Color(0xFF1A3326) else Color(0xFFE8F2EA))
+                                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                text = para,
+                                                color = if (isDark) Color(0xFFA6E3A1) else Color(0xFF165039),
+                                                style = TextStyle(fontSize = 15.sp, lineHeight = 23.sp, fontWeight = FontWeight.Medium),
+                                            )
+                                        }
+                                    }
+                                    para.startsWith("• ") -> {
+                                        Text(
+                                            text = para,
+                                            color = if (isDark) Color(0xFFD6DDD7) else Color(0xFF233B31),
+                                            style = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
+                                            modifier = Modifier.padding(start = 4.dp),
+                                        )
+                                    }
+                                    else -> {
+                                        Text(
+                                            text = para,
+                                            color = if (isDark) Color(0xFFD6DDD7) else Color(0xFF233B31),
+                                            style = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Footer & Timestamp
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = tafsir.attribution,
+                color = if (isDark) Color(0xFF758A7E) else Color(0xFF82948A),
+                style = TextStyle(fontSize = 9.5.sp),
+            )
+            Text(
+                text = time,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                style = TextStyle(fontSize = 9.5.sp),
+            )
         }
     }
 }
