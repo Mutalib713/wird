@@ -54,8 +54,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import com.mosman.wird.data.ThemeMode
 import com.mosman.wird.data.ArabicText
+import com.mosman.wird.data.TafsirRepository
 import com.mosman.wird.data.TranslationSource
 import com.mosman.wird.data.Translations
+import com.mosman.wird.domain.PageVerses
 import com.mosman.wird.ui.WirdTopBar
 import com.mosman.wird.ui.theme.LocalWirdColors
 import androidx.compose.foundation.layout.Box
@@ -140,6 +142,7 @@ class MainActivity : ComponentActivity() {
             var away by remember { mutableStateOf(store.away) }
             var pageNight by remember { mutableStateOf(store.pageNight) }
             val translations = remember { Translations(this@MainActivity) }
+            val tafsirRepo = remember { TafsirRepository(this@MainActivity) }
             val mushaf = remember { MushafRepository(this@MainActivity) }
             var cachedPages by remember { mutableStateOf(0 to 0L) }
             val recogniser = remember { Recogniser(this@MainActivity) }
@@ -361,7 +364,28 @@ class MainActivity : ComponentActivity() {
                 // exception and a pause, and applying only the first would leave the other
                 // two silently unheard. The plan goes in because "make Fridays lighter" is
                 // relative to what Fridays currently are.
-                val actions = CompanionBrain.understandAll(t, plan = plan)
+                val activePage = assignment.pages.firstOrNull() ?: Mushaf.pageOf(position)
+                val firstKeyOnPage = PageVerses.keysOn(this@MainActivity, activePage).firstOrNull()
+                val (pageSurah, pageAyah) = firstKeyOnPage?.split(":")?.let {
+                    it.getOrNull(0)?.toIntOrNull() to it.getOrNull(1)?.toIntOrNull()
+                } ?: (null to null)
+
+                val curSurah = startVerse?.first
+                    ?: pageSurah
+                    ?: assignment.surahs.firstOrNull()?.number
+                    ?: activeTrack.startVerseSurah
+                    ?: 1
+                val curAyah = startVerse?.second
+                    ?: pageAyah
+                    ?: activeTrack.startVerseAyah
+                    ?: 1
+
+                val actions = CompanionBrain.understandAll(
+                    t,
+                    plan = plan,
+                    defaultSurah = curSurah,
+                    defaultAyah = curAyah,
+                )
 
                 actions.forEach { action ->
                     when (action) {
@@ -485,7 +509,7 @@ class MainActivity : ComponentActivity() {
 
                 actions.filterIsInstance<CompanionAction.ExplainVerse>().forEach { ask ->
                     widgetScope.launch {
-                        turns = chat.say(Speaker.WIRD, translationFor(translations, ask))
+                        turns = chat.say(Speaker.WIRD, explainVerseFor(translations, tafsirRepo, ask))
                     }
                 }
             }
@@ -503,7 +527,7 @@ class MainActivity : ComponentActivity() {
                         commitment = if (doneMethod == null) commitment else null,
                         checkingBackAt = (armed as? Armed.At)?.time?.let(::clockLabel)
                             ?: (armed as? Armed.AtFallback)?.time?.let(::clockLabel),
-                        shortcuts = listOf("Tafsir of verse", "How am I doing?", "Where am I?", "Already recited today", "Remind in 1 hour", "Not today"),
+                        shortcuts = listOf("Tafsir & Translation", "How am I doing?", "Where am I?", "Already recited today", "Remind in 1 hour", "Not today"),
                         surahName = assignment.surahs.firstOrNull()?.name,
                         pageNumber = assignment.pages.firstOrNull(),
                         doneMethod = doneMethod,
@@ -1175,45 +1199,59 @@ private fun HomeMenu(
 }
 
 /**
- * What the companion says when asked what an ayah means. **His ask, 2026-08-19**, after
- * typing *"so explain verse 1 of fatiha"* and being told "I didn't catch that."
+ * Explaining a verse: combines Saheeh International translation with scholarly Tafsir Ibn Kathir.
  *
- * ⚠ **It answers with a TRANSLATION and says so in the same breath.** PROFILE.md § 5h approved
- * explaining the Qur'an and Sacred Rule 2 was not softened by that approval: the words come
- * from the bundled Saheeh International text, the translator is named every time, and nothing
- * in this function writes, summarises or interprets anything. The line saying it is not a
- * tafsir is part of the answer rather than a disclaimer bolted on, because a reader who thinks
- * they have been given a scholar's explanation has been misled by the shape of the reply.
- *
- * **Offline, no key, no model, no cost** — his decision the same day: *"for now offline but we
- * will add gemini."* When Gemini lands it may rephrase a *fetched* tafsir; it may not author
- * one, and this function is the shape that rule takes in code.
+ * Sacred Rule 2 binds strictly:
+ * - Translation is bundled Saheeh International, never generated.
+ * - Tafsir is scholarly Ibn Kathir (Abridged), fetched from Quran.com API and cached locally on disk.
+ * - No AI hallucination or synthetic religious text is ever produced.
+ * - Sourced and attributed explicitly in every single reply.
  */
-private suspend fun translationFor(
+private suspend fun explainVerseFor(
     translations: Translations,
+    tafsirRepo: TafsirRepository,
     ask: CompanionAction.ExplainVerse,
 ): String {
     val surah = SurahIndex.byNumber(ask.surah)
         ?: return "I don't know that surah."
 
-    // A surah named with no ayah is a question about the title, and is answered as one.
     val ayah = ask.ayah
-        ?: return "${surah.name} means ${surah.meaning}. Name an ayah, like " +
-            "${surah.number}:1, and I'll show you its translation."
+    if (ayah == null) {
+        return "${surah.name} (${surah.meaning}) has ${surah.verses} verses.\n\n" +
+            "To see the translation and scholarly Tafsir Ibn Kathir for any verse, name it like \"${surah.name} 1\" or \"${surah.number}:1\"."
+    }
 
     if (ayah > surah.verses) {
         return "${surah.name} has ${surah.verses} ayahs, so there is no ${surah.number}:$ayah."
     }
 
+    // 1. Saheeh International English Translation (Bundled offline asset)
     val found = translations.verse(
         surah = surah.number,
         ayah = ayah,
         source = TranslationSource.SAHEEH,
         firstPage = surah.firstPage,
         lastPage = surah.lastPage,
-    ) ?: return "I couldn't find ${surah.number}:$ayah in the bundled translation."
+    )
+    val translationText = found?.text ?: "[Translation not available in bundled store]"
 
-    return "${surah.name} ${surah.number}:$ayah\n\n" +
-        "${found.text}\n\n" +
-        "Translated by ${TranslationSource.SAHEEH.by}. That is a translation, not a tafsir."
+    // 2. Tafsir Ibn Kathir (Abridged) via Quran.com / cached on disk
+    val tafsirText = tafsirRepo.getTafsir(surah.number, ayah)
+
+    val builder = StringBuilder()
+    builder.append("${surah.name} ${surah.number}:$ayah\n\n")
+    builder.append("\"$translationText\"\n\n")
+    builder.append("— Translation: ${TranslationSource.SAHEEH.by}\n\n")
+
+    if (!tafsirText.isNullOrBlank()) {
+        builder.append("━━━━━━━━━━━━━━━\n\n")
+        builder.append("Tafsir Ibn Kathir (Abridged):\n\n")
+        builder.append(tafsirText)
+        builder.append("\n\n— Sourced from Quran.com / Dar-us-Salam")
+    } else {
+        builder.append("━━━━━━━━━━━━━━━\n\n")
+        builder.append("Tafsir Ibn Kathir is currently offline. Connect to the internet once to load the scholarly tafsir commentary for this verse (it will be saved to your device for offline reading).")
+    }
+
+    return builder.toString()
 }

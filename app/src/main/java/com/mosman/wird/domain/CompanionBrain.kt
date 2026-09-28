@@ -121,11 +121,13 @@ object CompanionBrain {
         now: LocalTime = LocalTime.now(),
         plan: ReadingPlan = ReadingPlan(),
         today: LocalDate = LocalDate.now(),
+        defaultSurah: Int? = null,
+        defaultAyah: Int? = null,
     ): List<CompanionAction> {
         val clauses = clauses(said)
-        if (clauses.size < 2) return listOf(understand(said, now, plan, today))
+        if (clauses.size < 2) return listOf(understand(said, now, plan, today, defaultSurah, defaultAyah))
 
-        val read = clauses.map { it to understand(it, now, plan, today) }
+        val read = clauses.map { it to understand(it, now, plan, today, defaultSurah, defaultAyah) }
         val understood = read
             .map { it.second }
             .filter { it !is CompanionAction.NotUnderstood }
@@ -133,7 +135,7 @@ object CompanionBrain {
 
         // Nothing landed, so those commas were punctuation rather than a list. Read the
         // whole thing again as one sentence and let it fail as one sentence.
-        if (understood.isEmpty()) return listOf(understand(said, now, plan, today))
+        if (understood.isEmpty()) return listOf(understand(said, now, plan, today, defaultSurah, defaultAyah))
 
         val missed = read
             .filter { it.second is CompanionAction.NotUnderstood && !isPleasantry(it.first) }
@@ -148,6 +150,8 @@ object CompanionBrain {
         now: LocalTime = LocalTime.now(),
         plan: ReadingPlan = ReadingPlan(),
         today: LocalDate = LocalDate.now(),
+        defaultSurah: Int? = null,
+        defaultAyah: Int? = null,
     ): CompanionAction {
         val t = said.lowercase().trim()
         if (t.isEmpty()) return CompanionAction.NotUnderstood(said)
@@ -163,7 +167,7 @@ object CompanionBrain {
         decline(t)?.let { return it }
         progress(t)?.let { return it }
         listen(t)?.let { return it }
-        explain(t)?.let { return it }
+        explain(t, defaultSurah, defaultAyah)?.let { return it }
         open(t)?.let { return it }
         moveReminder(t, now)?.let { return it }
         dayPlan(t, plan)?.let { return it }
@@ -217,33 +221,75 @@ object CompanionBrain {
     }
 
     /**
-     * "explain verse 1 of Fatiha", "what does 2:255 mean", "translate 18:10".
-     *
-     * **Asking is not enough on its own — it has to name something.** A bare "what does this
-     * mean" has no ayah in it, and guessing that it meant today's first verse would be the
-     * parser inventing a question it was not asked. That falls through to [CompanionAction
-     * .NotUnderstood], whose reply now names this as one of the things it *can* do.
+     * "explain verse 1 of Fatiha", "what does 2:255 mean", "translate 18:10", "tafsir of verse".
      */
-    private fun explain(t: String): CompanionAction? {
-        val asking = t.has(
-            "explain", "what does", "what is", "meaning of", "translate", "translation of",
-            "means", "tafsir", "tafseer",
-        )
-        if (!asking) return null
+    private fun explain(
+        t: String,
+        defaultSurah: Int? = null,
+        defaultAyah: Int? = null,
+    ): CompanionAction? {
+        // Navigation words belong to open(), never explain().
+        if (t.has("open", "go to", "take me to", "show me", "jump to")) return null
 
-        // "2:255" is the least ambiguous form and the cheapest to read, so it wins.
-        Regex("\\b(\\d{1,3}):(\\d{1,3})\\b").find(t)?.let { m ->
-            val surah = m.groupValues[1].toInt()
-            val ayah = m.groupValues[2].toInt()
-            SurahIndex.byNumber(surah)?.let { return CompanionAction.ExplainVerse(surah, ayah) }
+        val hasAyahIndicator = Regex("\\b(?:verse|ayah|aya|ayat)\\s*\\d{1,3}\\b").containsMatchIn(t)
+        val asking = t.has(
+            "explain", "what does", "what is", "meaning of", "meaning", "translate",
+            "translation of", "translation", "means", "tafsir", "tafseer", "reflection", "reflect",
+        ) || hasAyahIndicator
+
+        // 1. Explicit Ayah notation like "2:255"
+        // Guarded against clock times like "at 9:30 pm" or "9:30 am"
+        val verseNotationMatch = Regex("\\b(\\d{1,3}):(\\d{1,3})\\b").find(t)
+        if (verseNotationMatch != null) {
+            val isTime = Regex("\\b(?:at|by|in|around)\\s+\\d{1,2}:\\d{2}|\\d{1,2}:\\d{2}\\s*(?:am|pm)\\b").containsMatchIn(t)
+            if (!isTime && (asking || t.trim() == verseNotationMatch.value)) {
+                val surah = verseNotationMatch.groupValues[1].toInt()
+                val ayah = verseNotationMatch.groupValues[2].toInt()
+                SurahIndex.byNumber(surah)?.let {
+                    if (ayah in 1..it.verses) {
+                        return CompanionAction.ExplainVerse(surah, ayah)
+                    }
+                }
+            }
         }
 
-        // Otherwise a sūrah by name, with an ayah number somewhere near it if there is one.
-        val surah = matchSurah(t) ?: return null
+        // 2. "surah 1 verse 1", "chapter 18 verse 10", "surah 2:255"
+        Regex("\\b(?:surah|sura|chapter)\\s+(\\d{1,3})\\s*(?:verse|ayah|aya|ayat|:)\\s*(\\d{1,3})\\b").find(t)?.let { m ->
+            val surahNum = m.groupValues[1].toInt()
+            val ayahNum = m.groupValues[2].toInt()
+            SurahIndex.byNumber(surahNum)?.let {
+                if (ayahNum in 1..it.verses) {
+                    return CompanionAction.ExplainVerse(surahNum, ayahNum)
+                }
+            }
+        }
 
-        val ayah = Regex("(?:verse|ayah|aya|ayat)\\s+(\\d{1,3})").find(t)?.groupValues?.get(1)?.toIntOrNull()
-            ?: Regex("(\\d{1,3})(?:st|nd|rd|th)?\\s+(?:verse|ayah)").find(t)?.groupValues?.get(1)?.toIntOrNull()
-        return CompanionAction.ExplainVerse(surah.number, ayah)
+        // From here on, require asking == true so plain text doesn't match partial surah names
+        if (!asking) return null
+
+        // 3. Otherwise a sūrah by name, with an ayah number somewhere near it if there is one.
+        val surah = matchSurah(t)
+        if (surah != null) {
+            val ayah = Regex("(?:verse|ayah|aya|ayat)\\s+(\\d{1,3})").find(t)?.groupValues?.get(1)?.toIntOrNull()
+                ?: Regex("(\\d{1,3})(?:st|nd|rd|th)?\\s+(?:verse|ayah)").find(t)?.groupValues?.get(1)?.toIntOrNull()
+                ?: Regex("\\b(\\d{1,3})\\b").findAll(t)
+                    .mapNotNull { it.groupValues[1].toIntOrNull() }
+                    .firstOrNull { it in 1..surah.verses }
+
+            return CompanionAction.ExplainVerse(surah.number, ayah)
+        }
+
+        // 4. When no surah is named, but the user is asking about a verse or portion with active context
+        // e.g. "Tafsir of verse", "Tafsir & Translation", "tafsir", "translation", "explain today's verse", "verse 5"
+        if (defaultSurah != null) {
+            val ayahFromText = Regex("(?:verse|ayah|aya|ayat)\\s+(\\d{1,3})").find(t)?.groupValues?.get(1)?.toIntOrNull()
+                ?: Regex("(\\d{1,3})(?:st|nd|rd|th)?\\s+(?:verse|ayah)").find(t)?.groupValues?.get(1)?.toIntOrNull()
+
+            val targetAyah = ayahFromText ?: defaultAyah ?: 1
+            return CompanionAction.ExplainVerse(defaultSurah, targetAyah)
+        }
+
+        return null
     }
 
     /**

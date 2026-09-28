@@ -301,7 +301,7 @@ fun ChatScreen(
         // ---- Suggested Topics / Quick Chips Row ----
         val chips = remember(shortcuts) {
             if (shortcuts.isNotEmpty()) shortcuts else listOf(
-                "Tafsir of verse",
+                "Tafsir & Translation",
                 "How am I doing?",
                 "Where am I?",
                 "Already recited today",

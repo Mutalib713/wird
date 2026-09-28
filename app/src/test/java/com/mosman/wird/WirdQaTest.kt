@@ -1537,6 +1537,41 @@ class ExplainVerseTest {
         val reply = replyFor(u("explain this"), null, "")
         assertTrue("should offer the translation route: $reply", reply.contains("18:10"))
     }
+
+    @Test
+    fun `it understands tafsir and translation queries with portion context`() {
+        // Tapping the shortcut button or typing tafsir with active reading context
+        assertEquals(
+            CompanionAction.ExplainVerse(18, 10),
+            CompanionBrain.understand("Tafsir of verse", defaultSurah = 18, defaultAyah = 10),
+        )
+        assertEquals(
+            CompanionAction.ExplainVerse(1, 1),
+            CompanionBrain.understand("Tafsir & Translation", defaultSurah = 1, defaultAyah = 1),
+        )
+        assertEquals(
+            CompanionAction.ExplainVerse(36, 1),
+            CompanionBrain.understand("tafsir", defaultSurah = 36, defaultAyah = 1),
+        )
+        assertEquals(
+            CompanionAction.ExplainVerse(2, 255),
+            CompanionBrain.understand("translation", defaultSurah = 2, defaultAyah = 255),
+        )
+        assertEquals(
+            CompanionAction.ExplainVerse(18, 5),
+            CompanionBrain.understand("verse 5", defaultSurah = 18, defaultAyah = 1),
+        )
+
+        // Direct chapter and verse forms without requiring "explain"
+        assertEquals(
+            CompanionAction.ExplainVerse(1, 1),
+            CompanionBrain.understand("surah 1 verse 1"),
+        )
+        assertEquals(
+            CompanionAction.ExplainVerse(18, 10),
+            CompanionBrain.understand("chapter 18 verse 10"),
+        )
+    }
 }
 
 /**
