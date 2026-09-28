@@ -32,7 +32,7 @@ if hasattr(sys.stdout, 'reconfigure'):
 WIDTH = 1080
 HEIGHT = 1920
 FPS = 30
-DURATION_SEC = 74.56
+DURATION_SEC = 75.34
 TOTAL_FRAMES = int(FPS * DURATION_SEC)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -41,13 +41,15 @@ BRAIN_DIR = r"C:\Users\USER\.gemini\antigravity\brain\6df70f33-6dd8-4b46-be69-51
 AUDIO_PATH = os.path.join(BASE_DIR, "audio_master.wav")
 OUTPUT_VIDEO = os.path.join(BASE_DIR, "wird_promo_master.mp4")
 
+DOCK_CROP = Image.open(os.path.join(BRAIN_DIR, "dock_floating_capsule.png")).convert("RGB")
+
 # Load all 8 real Android screenshots (1440 x 3120)
 RAW_SCREENS = {
-    "home": Image.open(os.path.join(BRAIN_DIR, "live_home_new_mode.png")).convert("RGB"),
-    "mushaf": Image.open(os.path.join(BRAIN_DIR, "live_device_mushaf.png")).convert("RGB"),
+    "home": Image.open(os.path.join(BRAIN_DIR, "live_home_tall.png")).convert("RGB"),
+    "mushaf": Image.open(os.path.join(BRAIN_DIR, "screen_mushaf_dimmed.png")).convert("RGB"),
     "modes": Image.open(os.path.join(BRAIN_DIR, "live_mode_switched.png")).convert("RGB"),
     "tracks": Image.open(os.path.join(BRAIN_DIR, "live_track_setup_with_pos.png")).convert("RGB"),
-    "chat": Image.open(os.path.join(BRAIN_DIR, "live_device_chatscreen.png")).convert("RGB"),
+    "chat": Image.open(os.path.join(BRAIN_DIR, "screen_chat_authentic.png")).convert("RGB"),
     "speech": Image.open(os.path.join(BRAIN_DIR, "screen_recite.png")).convert("RGB"),
     "direction": Image.open(os.path.join(BRAIN_DIR, "live_add_track_dialog.png")).convert("RGB"),
     "surahs": Image.open(os.path.join(BRAIN_DIR, "phone_surahs_live.png")).convert("RGB"),
@@ -111,7 +113,9 @@ def get_cropped_screen(screen_key, scroll_y=0):
     raw = RAW_SCREENS.get(screen_key, RAW_SCREENS["home"])
     max_scroll = max(0, raw.height - VIEWPORT_H)
     actual_scroll = min(max_scroll, max(0, int(scroll_y)))
-    cropped = raw.crop((0, actual_scroll, 1440, actual_scroll + VIEWPORT_H))
+    cropped = raw.crop((0, actual_scroll, 1440, actual_scroll + VIEWPORT_H)).copy()
+    if screen_key == "home":
+        cropped.paste(DOCK_CROP, (0, VIEWPORT_H - DOCK_CROP.height))
     return cropped.resize((SCREEN_W, SCREEN_H), Image.Resampling.BILINEAR)
 
 def paste_phone(img, cx, cy, screen_key, scroll_y=0, rot_y=0.0, scale=1.0):
@@ -233,9 +237,9 @@ def render_frame_master(frame_idx):
     # =========================================================================
     elif t < 19.25:
         st = t - 13.65
-        # Dynamic real-time vertical scroll down from 0 to 580 px!
+        # Dynamic real-time vertical scroll down to reveal action buttons & check-in
         scroll_progress = ease_in_out_cubic(min(st / 3.0, 1.0))
-        current_scroll = int(scroll_progress * 580)
+        current_scroll = int(scroll_progress * 520)
 
         phone_rot = 0.08 - math.sin(st * 0.9) * 0.03
         paste_phone(img, WIDTH//2, phone_cy, "home", scroll_y=current_scroll, rot_y=phone_rot)
@@ -264,27 +268,27 @@ def render_frame_master(frame_idx):
         draw_pill(draw, WIDTH//2, 380, "Authentic Madani QCF Script & Page Layout", (16, 46, 32), (212, 175, 55), (245, 224, 140))
 
     # =========================================================================
-    # SCENE 5: Reading Modes Manager (29.02s – 37.60s)
-    # Voice: "Here is what no other app has: Reading Modes and Tracks. Switch between Home Mode, School Mode, or Work Mode, each with its own reminder time."
+    # SCENE 5: Reading Modes Manager (29.02s – 38.37s)
+    # Voice: "Here is what no other app has: Reading Modes and Tracks. Create custom modes — for example: Home, School, or Ramadan — each with its own reminders."
     # =========================================================================
-    elif t < 37.60:
+    elif t < 38.37:
         st = t - 29.02
         phone_rot = 0.14 - math.sin(st * 0.8) * 0.05
         paste_phone(img, WIDTH//2, phone_cy, "modes", scroll_y=0, rot_y=phone_rot)
 
-        draw.text((WIDTH//2, 140), "EXCLUSIVE FEATURE", fill=(52, 211, 153), font=f_caption, anchor="mm")
-        draw.text((WIDTH//2, 205), "Reading Modes", fill=(255, 255, 255), font=f_hero, anchor="mm")
-        draw.text((WIDTH//2, 275), "Home Mode • School Mode • Work Mode", fill=(245, 224, 140), font=f_h2, anchor="mm")
-        draw.text((WIDTH//2, 320), "Each mode holds its own reminder times.", fill=(160, 190, 175), font=f_h3, anchor="mm")
+        draw.text((WIDTH//2, 140), "FLEXIBLE TO YOUR LIFE", fill=(52, 211, 153), font=f_caption, anchor="mm")
+        draw.text((WIDTH//2, 205), "Custom Reading Modes", fill=(255, 255, 255), font=f_hero, anchor="mm")
+        draw.text((WIDTH//2, 275), "For example: Home • School • Ramadan", fill=(245, 224, 140), font=f_h2, anchor="mm")
+        draw.text((WIDTH//2, 320), "Each custom mode holds its own reminders.", fill=(160, 190, 175), font=f_h3, anchor="mm")
 
-        draw_pill(draw, WIDTH//2, 380, "Auto-Adapts to Where You Are", (14, 40, 28), (52, 211, 153), (255, 255, 255))
+        draw_pill(draw, WIDTH//2, 380, "Custom Modes for Your Schedule", (14, 40, 28), (52, 211, 153), (255, 255, 255))
 
     # =========================================================================
-    # SCENE 6: Multiple Life Tracks (37.60s – 42.57s)
+    # SCENE 6: Multiple Life Tracks (38.37s – 43.34s)
     # Voice: "And run separate tracks for your daily wird, your Ramadan goal, or your Hifz memorization."
     # =========================================================================
-    elif t < 42.57:
-        st = t - 37.60
+    elif t < 43.34:
+        st = t - 38.37
         phone_rot = -0.11 + math.sin(st * 0.9) * 0.04
         paste_phone(img, WIDTH//2, phone_cy, "tracks", scroll_y=0, rot_y=phone_rot)
 
@@ -296,11 +300,11 @@ def render_frame_master(frame_idx):
         draw_pill(draw, WIDTH//2, 380, "Separate Your Reading Disciplines", (16, 44, 30), (212, 175, 55), (245, 224, 140))
 
     # =========================================================================
-    # SCENE 7: Offline AI Companion Chat (42.57s – 51.25s)
+    # SCENE 7: Offline AI Companion Chat (43.34s – 52.02s)
     # Voice: "Need help understanding an Ayah? Open the offline AI Companion. Ask about word meanings, Tafsir, or pause your streak without guilt."
     # =========================================================================
-    elif t < 51.25:
-        st = t - 42.57
+    elif t < 52.02:
+        st = t - 43.34
         phone_rot = 0.09 - math.sin(st * 0.8) * 0.04
         paste_phone(img, WIDTH//2, phone_cy, "chat", scroll_y=0, rot_y=phone_rot)
 
@@ -312,11 +316,11 @@ def render_frame_master(frame_idx):
         draw_pill(draw, WIDTH//2, 380, "100% Offline Chatbot • Zero Data Needed", (16, 44, 30), (212, 175, 55), (245, 224, 140))
 
     # =========================================================================
-    # SCENE 8: Whisper AI Speech Auditor (51.25s – 59.10s)
+    # SCENE 8: Whisper AI Speech Auditor (52.02s – 59.87s)
     # Voice: "And tap recite to check your recitation word-for-word with on-device Whisper AI. Zero internet. Zero data bundles."
     # =========================================================================
-    elif t < 59.10:
-        st = t - 51.25
+    elif t < 59.87:
+        st = t - 52.02
         phone_rot = -0.08 + math.sin(st * 0.8) * 0.03
         paste_phone(img, WIDTH//2, phone_cy, "speech", scroll_y=0, rot_y=phone_rot)
 
@@ -337,11 +341,11 @@ def render_frame_master(frame_idx):
         draw_pill(draw, WIDTH//2, 465, "Zero Internet • Zero Data Bundles • Private", (16, 44, 30), (52, 211, 153), (255, 255, 255))
 
     # =========================================================================
-    # SCENE 9: African / Ghanaian Madrasa Heritage (59.10s – 64.37s)
+    # SCENE 9: African / Ghanaian Madrasa Heritage (59.87s – 65.14s)
     # Voice: "Adapted for African and Ghanaian madrasas: recite forward, or in reverse from Juz 'Amma."
     # =========================================================================
-    elif t < 64.37:
-        st = t - 59.10
+    elif t < 65.14:
+        st = t - 59.87
         phone_rot = 0.12 - math.sin(st * 0.8) * 0.04
         paste_phone(img, WIDTH//2, phone_cy, "direction", scroll_y=0, rot_y=phone_rot)
 
@@ -353,11 +357,11 @@ def render_frame_master(frame_idx):
         draw_pill(draw, WIDTH//2, 380, "Ghanaian Madrasa Style • Towards Al-Fatihah", (16, 46, 32), (212, 175, 55), (245, 224, 140))
 
     # =========================================================================
-    # SCENE 10: Independent Surahs Reading (64.37s – 69.23s)
+    # SCENE 10: Independent Surahs Reading (65.14s – 70.00s)
     # Voice: "Plus, read Surah Al-Kahf on Friday freely without ever messing up your daily bookmark."
     # =========================================================================
-    elif t < 69.23:
-        st = t - 64.37
+    elif t < 70.00:
+        st = t - 65.14
         phone_rot = -0.10 + math.sin(st * 0.8) * 0.04
         paste_phone(img, WIDTH//2, phone_cy, "surahs", scroll_y=0, rot_y=phone_rot)
 
@@ -369,11 +373,11 @@ def render_frame_master(frame_idx):
         draw_pill(draw, WIDTH//2, 380, "114 Surahs Directory • Never Resets Bookmark", (14, 42, 30), (16, 185, 129), (110, 231, 183))
 
     # =========================================================================
-    # SCENE 11: Grand Finale & Call to Action (69.23s – 74.56s)
+    # SCENE 11: Grand Finale & Call to Action (70.00s – 75.34s)
     # Voice: "Your Qur'an habit, rebuilt for real life. Download Wird free on Android."
     # =========================================================================
     else:
-        st = t - 69.23
+        st = t - 70.00
         # Rotating 16-point golden Islamic rosette halo
         draw_rosette(draw, WIDTH//2, cy - 60, 360, (212, 175, 55), rot=st * 0.12)
         # Hero Phone upright with true Home Screen
