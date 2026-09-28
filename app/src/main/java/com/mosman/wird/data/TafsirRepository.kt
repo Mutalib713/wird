@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap
 class TafsirRepository(private val context: Context) {
 
     private val memCache = ConcurrentHashMap<String, String>()
-    private val cacheDir = File(context.cacheDir, "tafsir_cache").apply { mkdirs() }
+    private val cacheDir = File(context.cacheDir, "tafsir_cache_v2").apply { mkdirs() }
 
     suspend fun getTafsir(surah: Int, ayah: Int): String? = withContext(Dispatchers.IO) {
         val key = "$surah:$ayah"
@@ -77,10 +77,33 @@ class TafsirRepository(private val context: Context) {
     }
 
     private fun cleanHtml(html: String): String {
-        // Strip HTML tags
-        val noTags = html.replace(HTML_TAG_REGEX, " ")
-        // Unescape common HTML entities
-        val unescaped = noTags
+        var text = html
+
+        // 1. Format headings into distinct section banners
+        text = HEADER_REGEX.replace(text) { match ->
+            val title = match.groupValues[1].replace(HTML_TAG_REGEX, " ").trim()
+            if (title.isNotBlank()) "\n\n§ $title\n\n" else "\n\n"
+        }
+
+        // 2. Format Arabic commentary anchors
+        text = ARABIC_DIV_REGEX.replace(text) { match ->
+            val arabic = match.groupValues[1].replace(HTML_TAG_REGEX, " ").trim()
+            if (arabic.isNotBlank()) "\n\n« $arabic »\n\n" else ""
+        }
+
+        // 3. Convert paragraphs, linebreaks and list items
+        text = text
+            .replace(Regex("</p>", RegexOption.IGNORE_CASE), "\n\n")
+            .replace(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE), "\n")
+            .replace(Regex("</li>", RegexOption.IGNORE_CASE), "\n")
+            .replace(Regex("<li[^>]*>", RegexOption.IGNORE_CASE), "• ")
+            .replace(Regex("</blockquote>", RegexOption.IGNORE_CASE), "\n\n")
+
+        // 4. Strip remaining HTML tags
+        text = text.replace(HTML_TAG_REGEX, " ")
+
+        // 5. Unescape HTML entities
+        text = text
             .replace("&quot;", "\"")
             .replace("&amp;", "&")
             .replace("&lt;", "<")
@@ -91,15 +114,42 @@ class TafsirRepository(private val context: Context) {
             .replace("&#8220;", "\"")
             .replace("&#8221;", "\"")
             .replace("&#8212;", "—")
-        // Normalize whitespace and newlines
-        return unescaped
-            .replace(WHITESPACE_REGEX, " ")
-            .trim()
+
+        // 6. Split into clean paragraphs
+        val rawParagraphs = text.split(Regex("\n{2,}"))
+            .map { it.replace(Regex("[ \\t]+"), " ").trim() }
+            .filter { it.isNotBlank() }
+
+        // 7. Structure into numbered sections for pleasant mobile reading
+        val formattedSections = mutableListOf<String>()
+        var pointNum = 1
+        for (para in rawParagraphs) {
+            when {
+                para.startsWith("§ ") -> {
+                    formattedSections.add(para)
+                }
+                para.startsWith("«") && para.endsWith("»") -> {
+                    formattedSections.add(para)
+                }
+                para.startsWith("• ") -> {
+                    formattedSections.add(para)
+                }
+                para.length > 30 && rawParagraphs.size > 1 -> {
+                    formattedSections.add("${pointNum++}. $para")
+                }
+                else -> {
+                    formattedSections.add(para)
+                }
+            }
+        }
+
+        return formattedSections.joinToString("\n\n").trim()
     }
 
     companion object {
         private const val TAG = "WirdTafsir"
+        private val HEADER_REGEX = Regex("<h[1-6][^>]*>(.*?)</h[1-6]>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        private val ARABIC_DIV_REGEX = Regex("<div[^>]*class=[\"'][^\"']*arabic[^\"']*[\"'][^>]*>(.*?)</div>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
         private val HTML_TAG_REGEX = Regex("<[^>]+>")
-        private val WHITESPACE_REGEX = Regex("\\s+")
     }
 }

@@ -277,12 +277,6 @@ fun HomeScreen(
             Spacer(Modifier.height(84.dp))
         }
     }
-
-    if (showToolkitTour) {
-        ToolkitSpotlightOverlay(
-            onDismiss = onDismissToolkitTour,
-        )
-    }
 }
 }
 

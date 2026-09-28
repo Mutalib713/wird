@@ -87,6 +87,7 @@ import com.mosman.wird.ui.SettingsScreen
 import com.mosman.wird.ui.SurahsTab
 import com.mosman.wird.ui.WirdTab
 import com.mosman.wird.ui.FloatingIslandDock
+import com.mosman.wird.ui.ToolkitSpotlightOverlay
 import com.mosman.wird.ui.SetupScreen
 import com.mosman.wird.ui.TodayScreen
 import com.mosman.wird.ui.positionLabelFor
@@ -927,6 +928,15 @@ class MainActivity : ComponentActivity() {
                             onPick = { tab = it },
                             modifier = Modifier.align(Alignment.BottomCenter),
                         )
+
+                        if (showToolkitTour) {
+                            ToolkitSpotlightOverlay(
+                                onDismiss = {
+                                    store.hasSeenToolkitTour = true
+                                    showToolkitTour = false
+                                },
+                            )
+                        }
                     }
                   }
                 }
