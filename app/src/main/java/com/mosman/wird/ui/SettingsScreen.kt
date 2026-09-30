@@ -110,7 +110,7 @@ enum class SettingsSubScreen {
 }
 
 /** Which popup modal dialog is open. Null means none. */
-private enum class SettingsDialog {
+enum class SettingsDialog {
     DOWNLOAD_AMOUNT,
     DAILY_TARGET,
     READING_METHOD,
@@ -187,6 +187,8 @@ fun SettingsScreen(
     onChangePosition: () -> Unit = {},
     onPositionChanged: (Pair<Int, Int>?, Int) -> Unit = { _, _ -> },
     onLifeSpacesChanged: () -> Unit = {},
+    onToolkitTour: () -> Unit = {},
+    initialDialog: SettingsDialog? = null,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -232,7 +234,7 @@ fun SettingsScreen(
     var downloadedSurahs by remember { mutableStateOf(setOf(1, 36, 67, 112, 113, 114)) }
 
     // Active popup dialog state
-    var activeDialog by remember { mutableStateOf<SettingsDialog?>(null) }
+    var activeDialog by remember(initialDialog) { mutableStateOf<SettingsDialog?>(initialDialog) }
 
     LaunchedEffect(positionSearchActive) {
         if (positionSearchActive) {
@@ -859,6 +861,15 @@ fun SettingsScreen(
                                 title = PrivacyPledge.TITLE,
                                 subtitle = PrivacyPledge.SUBTITLE,
                                 onClick = { activeDialog = SettingsDialog.PRIVACY_PLEDGE },
+                            )
+
+                            ClaySettingRow(
+                                title = "App Toolkit Tour",
+                                subtitle = "Replay the guided walkthrough of Wird's features",
+                                onClick = {
+                                    onToolkitTour()
+                                    onBack()
+                                },
                             )
 
                             ClaySettingRow(
@@ -2167,6 +2178,12 @@ fun SettingsScreen(
                     },
                     onDeleteSpace = { spaceId ->
                         store.deleteLifeSpace(spaceId)
+                        lifeSpaces = store.getLifeSpaces()
+                        activeSpace = store.activeSpace()
+                        onLifeSpacesChanged()
+                    },
+                    onRenameSpace = { spaceId, newName ->
+                        store.renameSpace(spaceId, newName)
                         lifeSpaces = store.getLifeSpaces()
                         activeSpace = store.activeSpace()
                         onLifeSpacesChanged()

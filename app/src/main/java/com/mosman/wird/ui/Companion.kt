@@ -618,10 +618,18 @@ internal data class ParsedTafsir(
 )
 
 internal data class TafsirSectionItem(
-    val number: Int,
+    val number: Int?,
     val title: String,
     val paragraphs: List<String>,
 )
+
+/**
+ * Detect whether a paragraph is explaining a specific verse (ayah).
+ * These get a distinct visual treatment so the user can tell
+ * "this is an explanation of a specific ayah" apart from general commentary.
+ */
+private val VERSE_REF_REGEX = Regex("""\(\d+:\d+\)|[Vv]erse\s+\d+|[Aa]yah\s+\d+|[Ss]urah\s+\w+,?\s+\d+:\d+""")
+private fun isVerseExplanation(para: String): Boolean = VERSE_REF_REGEX.containsMatchIn(para)
 
 internal fun parseTafsirMessage(text: String): ParsedTafsir? {
     if (!text.contains("Tafsir Ibn Kathir (Abridged):")) return null
@@ -658,11 +666,17 @@ internal fun parseTafsirMessage(text: String): ParsedTafsir? {
             val lines = secText.split(Regex("\n{2,}")).map { it.trim() }.filter { it.isNotBlank() }
             if (lines.isNotEmpty()) {
                 val rawHeader = lines[0]
-                val title = if (rawHeader.startsWith("Section ") && rawHeader.contains(":")) {
-                    rawHeader.substringAfter(":").trim()
-                } else rawHeader
+                val isNumbered = rawHeader.startsWith("Section ") && rawHeader.contains(":")
+                val title = when {
+                    isNumbered -> rawHeader.substringAfter(":").trim()
+                    rawHeader.startsWith("* ") -> rawHeader.removePrefix("* ").trim()
+                    rawHeader.startsWith("• ") -> rawHeader.removePrefix("• ").trim()
+                    else -> rawHeader
+                }
 
-                val secNumber = Regex("Section (\\d+)").find(rawHeader)?.groupValues?.get(1)?.toIntOrNull() ?: (idx + 1)
+                val secNumber = if (isNumbered) {
+                    Regex("Section (\\d+)").find(rawHeader)?.groupValues?.get(1)?.toIntOrNull()
+                } else null
                 val paras = lines.drop(1)
                 sectionItems.add(TafsirSectionItem(secNumber, title, paras))
             }
@@ -687,7 +701,7 @@ private fun TafsirCard(
     isDark: Boolean,
     maxWidth: androidx.compose.ui.unit.Dp,
 ) {
-    var expandedSections by remember { mutableStateOf(setOf(1)) }
+    var expandedSections by remember { mutableStateOf(setOf(0)) }
     val allExpanded = expandedSections.size == tafsir.sections.size
 
     Column(
@@ -794,7 +808,7 @@ private fun TafsirCard(
                             expandedSections = if (allExpanded) {
                                 emptySet()
                             } else {
-                                tafsir.sections.map { it.number }.toSet()
+                                tafsir.sections.indices.toSet()
                             }
                         }
                         .padding(4.dp),
@@ -807,8 +821,8 @@ private fun TafsirCard(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
-            tafsir.sections.forEach { section ->
-                val isExpanded = expandedSections.contains(section.number)
+            tafsir.sections.forEachIndexed { index, section ->
+                val isExpanded = expandedSections.contains(index)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -831,15 +845,15 @@ private fun TafsirCard(
                             .fillMaxWidth()
                             .clickable {
                                 expandedSections = if (isExpanded) {
-                                    expandedSections - section.number
+                                    expandedSections - index
                                 } else {
-                                    expandedSections + section.number
+                                    expandedSections + index
                                 }
                             }
                             .padding(horizontal = 10.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Section Number Badge
+                        // Section Badge: Numbered for major topics, bullet for subtopics
                         Box(
                             modifier = Modifier
                                 .size(22.dp)
@@ -848,9 +862,12 @@ private fun TafsirCard(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "${section.number}",
+                                text = if (section.number != null) "${section.number}" else "•",
                                 color = if (isDark) Color(0xFF98E2A7) else Color(0xFF1F583F),
-                                style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold),
+                                style = TextStyle(
+                                    fontSize = if (section.number != null) 11.sp else 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
                             )
                         }
                         Spacer(Modifier.width(8.dp))
@@ -897,13 +914,38 @@ private fun TafsirCard(
                                             )
                                         }
                                     }
-                                    para.startsWith("• ") -> {
+                                    para.startsWith("• ") || para.startsWith("* ") -> {
+                                        // Bullet sub-point with indent for visual hierarchy
+                                        val bulletText = if (para.startsWith("* ")) "• " + para.removePrefix("* ").trim() else para
                                         Text(
-                                            text = para,
+                                            text = bulletText,
                                             color = if (isDark) Color(0xFFD6DDD7) else Color(0xFF233B31),
                                             style = TextStyle(fontSize = 12.sp, lineHeight = 18.sp),
-                                            modifier = Modifier.padding(start = 4.dp),
+                                            modifier = Modifier.padding(start = 8.dp),
                                         )
+                                    }
+                                    isVerseExplanation(para) -> {
+                                        // Verse explanation — distinct left accent bar so the
+                                        // user can see "this is explaining a specific ayah"
+                                        // vs general commentary.
+                                        Row(modifier = Modifier.fillMaxWidth()) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(3.dp)
+                                                    .height(40.dp)
+                                                    .clip(RoundedCornerShape(2.dp))
+                                                    .background(
+                                                        if (isDark) Color(0xFF8ED676).copy(alpha = 0.5f)
+                                                        else Color(0xFF245847).copy(alpha = 0.3f)
+                                                    )
+                                            )
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                text = para,
+                                                color = if (isDark) Color(0xFFE4EDE5) else Color(0xFF1B3B2F),
+                                                style = TextStyle(fontSize = 12.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium),
+                                            )
+                                        }
                                     }
                                     else -> {
                                         Text(

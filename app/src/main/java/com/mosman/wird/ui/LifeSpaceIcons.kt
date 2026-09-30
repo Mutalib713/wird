@@ -183,3 +183,31 @@ fun ManualScheduleGlyph(
         drawCircle(tint, radius = 2.dp.toPx(), center = Offset(w * 0.64f, h * 0.68f))
     }
 }
+
+/**
+ * Vector pencil / edit glyph for rename actions. Sacred Rule 6.
+ */
+@Composable
+fun EditPencilGlyph(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier = modifier.size(14.dp)) {
+        val w = size.width
+        val h = size.height
+        val stroke = Stroke(width = 1.4.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+        // Pencil body (diagonal line with tip)
+        val pencil = Path().apply {
+            moveTo(w * 0.75f, h * 0.15f)
+            lineTo(w * 0.85f, h * 0.25f)
+            lineTo(w * 0.35f, h * 0.75f)
+            lineTo(w * 0.18f, h * 0.82f)
+            lineTo(w * 0.25f, h * 0.65f)
+            close()
+        }
+        drawPath(pencil, color = tint, style = stroke)
+        // Base line
+        drawLine(tint, Offset(w * 0.30f, h * 0.88f), Offset(w * 0.85f, h * 0.88f), strokeWidth = stroke.width, cap = StrokeCap.Round)
+    }
+}

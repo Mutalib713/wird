@@ -84,6 +84,7 @@ import com.mosman.wird.ui.CheckState
 import com.mosman.wird.ui.OpenElsewhere
 import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
+import com.mosman.wird.ui.SettingsDialog
 import com.mosman.wird.ui.SurahsTab
 import com.mosman.wird.ui.WirdTab
 import com.mosman.wird.ui.FloatingIslandDock
@@ -134,6 +135,7 @@ class MainActivity : ComponentActivity() {
             var activeSpace by remember { mutableStateOf(store.activeSpace()) }
             var activeTrack by remember { mutableStateOf(store.activeTrack(today)) }
             var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
+            var settingsInitialDialog by remember { mutableStateOf<SettingsDialog?>(null) }
             var turns by remember { mutableStateOf(chat.all()) }
             var saved by remember { mutableStateOf(bookmarks.all()) }
             /** What is on the phone, for the "Your data" row. Refreshed after either action. */
@@ -504,6 +506,7 @@ class MainActivity : ComponentActivity() {
                             spoken,
                             progress,
                             positionLabelFor(startVerse, Mushaf.pageOf(position)),
+                            isDone = doneMethod != null,
                         ),
                     )
                 }
@@ -807,10 +810,6 @@ class MainActivity : ComponentActivity() {
                                                 screen = Screen.BOOKMARKS
                                             },
                                             onSettings = { menuOpen = false; screen = Screen.SETTINGS },
-                                            onToolkitTour = {
-                                                menuOpen = false
-                                                showToolkitTour = true
-                                            },
                                             onDismiss = { menuOpen = false },
                                         )
                                     }
@@ -876,7 +875,8 @@ class MainActivity : ComponentActivity() {
                                     position = activeTrack.positionUnit
                                     direction = activeTrack.direction
                                 },
-                                onOpenSettings = {
+                                onOpenSettings = { dialog ->
+                                    settingsInitialDialog = dialog
                                     screen = Screen.SETTINGS
                                 },
                                 showToolkitTour = showToolkitTour,
@@ -1077,7 +1077,15 @@ class MainActivity : ComponentActivity() {
                             position = activeTrack.positionUnit
                             direction = activeTrack.direction
                         },
-                        onBack = { screen = Screen.TODAY },
+                        onToolkitTour = {
+                            store.hasSeenToolkitTour = false
+                            showToolkitTour = true
+                        },
+                        initialDialog = settingsInitialDialog,
+                        onBack = {
+                            settingsInitialDialog = null
+                            screen = Screen.TODAY
+                        },
                     )
                 }
 
@@ -1163,7 +1171,6 @@ private fun HomeMenu(
     onNightMode: () -> Unit,
     onBookmarks: () -> Unit,
     onSettings: () -> Unit,
-    onToolkitTour: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
@@ -1196,10 +1203,6 @@ private fun HomeMenu(
                 )
             },
             onClick = onNightMode,
-        )
-        DropdownMenuItem(
-            text = { Text("App Toolkit Tour", color = colors.onSurfaceRaised) },
-            onClick = onToolkitTour,
         )
         DropdownMenuItem(
             text = { Text("Settings", color = colors.onSurfaceRaised) },

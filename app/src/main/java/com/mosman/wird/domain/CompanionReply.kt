@@ -31,10 +31,26 @@ fun replyFor(
     progress: Progress?,
     positionLabel: String,
     today: LocalDate = LocalDate.now(),
+    isDone: Boolean = false,
 ): String = when (action) {
-    is CompanionAction.CommitTo -> "Alright. I'll ask again ${action.spoken}."
-    is CompanionAction.NotToday -> "That's fine. It'll be here tomorrow."
-    is CompanionAction.MarkDone -> "Good. Marked as read."
+    // When the wird is already done, commitment / decline / mark-done replies acknowledge
+    // that rather than responding as if the day is still open. Sacred Rule 3: never make
+    // someone feel they did something wrong by tapping a button after finishing.
+    is CompanionAction.CommitTo -> if (isDone) {
+        "You've already completed today's portion, masha'Allah! No reminder needed."
+    } else {
+        "Alright. I'll ask again ${action.spoken}."
+    }
+    is CompanionAction.NotToday -> if (isDone) {
+        "You've already done today's wird — rest easy."
+    } else {
+        "That's fine. It'll be here tomorrow."
+    }
+    is CompanionAction.MarkDone -> if (isDone) {
+        "Today's portion is already done, alhamdulillah."
+    } else {
+        "Good. Marked as read."
+    }
     is CompanionAction.Listen -> "Playing today's portion."
     is CompanionAction.OpenSurah -> "Opening ${action.surah.name}."
     is CompanionAction.WhereAmI ->
@@ -111,16 +127,17 @@ fun replyForAll(
     progress: Progress?,
     positionLabel: String,
     today: LocalDate = LocalDate.now(),
+    isDone: Boolean = false,
 ): String {
     if (actions.size <= 1) {
         val only = actions.firstOrNull() ?: return replyFor(
-            CompanionAction.NotUnderstood(""), progress, positionLabel, today,
+            CompanionAction.NotUnderstood(""), progress, positionLabel, today, isDone,
         )
-        return replyFor(only, progress, positionLabel, today)
+        return replyFor(only, progress, positionLabel, today, isDone)
     }
 
     val (missed, understood) = actions.partition { it is CompanionAction.NotUnderstood }
-    val done = understood.joinToString(" ") { replyFor(it, progress, positionLabel, today) }
+    val done = understood.joinToString(" ") { replyFor(it, progress, positionLabel, today, isDone) }
     if (missed.isEmpty()) return done
 
     val quoted = missed

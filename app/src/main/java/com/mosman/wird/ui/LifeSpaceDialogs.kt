@@ -73,12 +73,14 @@ fun LifeSpaceManagerDialog(
     onToggleFreezeSpace: (String, Boolean) -> Unit,
     onAddSpace: (String, String?) -> Unit,
     onDeleteSpace: (String) -> Unit,
+    onRenameSpace: (String, String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     var showCreateModeDialog by remember { mutableStateOf(false) }
     var spacePendingDelete by remember { mutableStateOf<LifeSpace?>(null) }
+    var spacePendingRename by remember { mutableStateOf<LifeSpace?>(null) }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -150,7 +152,14 @@ fun LifeSpaceManagerDialog(
 
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Reading modes keep different reading routines separated. For instance, you can keep Home tracks separate from School tracks. When you go to school or travel, freeze Home so your streaks stay protected.",
+                        text = "A reading mode is a routine for a part of your life. " +
+                            "For example, a \"School\" mode might have a lighter daily target " +
+                            "because classes take your time, while a \"Home\" mode has a " +
+                            "longer one. Each mode has its own reading track — your " +
+                            "place in the Qur'an, your pace, and your streak.\n\n" +
+                            "When you switch between modes (going back to campus, or " +
+                            "coming home for break), the mode you leave can be frozen " +
+                            "so its streak stays protected until you come back to it.",
                         color = if (isDark) Color(0xFF9CAFA4) else Color(0xFF6A7C73),
                         fontSize = 12.sp,
                         lineHeight = 16.5.sp,
@@ -192,6 +201,20 @@ fun LifeSpaceManagerDialog(
                                         fontWeight = FontWeight.Bold,
                                         color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
                                     )
+                                    // Edit (rename) icon
+                                    Box(
+                                        modifier = Modifier
+                                            .size(22.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isDark) Color(0xFF1E3A2E) else Color(0xFFE3EDE6))
+                                            .clickable { spacePendingRename = space },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        EditPencilGlyph(
+                                            tint = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                                            modifier = Modifier.size(12.dp),
+                                        )
+                                    }
                                     if (space.isFrozen) {
                                         Box(
                                             modifier = Modifier
@@ -398,6 +421,17 @@ fun LifeSpaceManagerDialog(
                 spacePendingDelete = null
             },
             onDismiss = { spacePendingDelete = null },
+        )
+    }
+
+    spacePendingRename?.let { space ->
+        RenameModeDialog(
+            currentName = space.name,
+            onConfirm = { newName ->
+                onRenameSpace(space.id, newName)
+                spacePendingRename = null
+            },
+            onDismiss = { spacePendingRename = null },
         )
     }
 }
@@ -1189,16 +1223,15 @@ fun CreateModeDialog(
                             )
                         }
 
-                        val canCreate = name.trim().isNotEmpty()
                         Box(
                             modifier = Modifier
                                 .weight(1.5f)
                                 .clayPill(
-                                    backgroundColor = if (canCreate) Color(0xFF2D6B52) else Color(0xFF8FA597).copy(alpha = 0.4f),
-                                    elevation = if (canCreate) 3.dp else 0.dp,
+                                    backgroundColor = Color(0xFF2D6B52),
+                                    elevation = 3.dp,
                                 )
-                                .clickable(enabled = canCreate) {
-                                    val trimmedName = name.trim()
+                                .clickable {
+                                    val trimmedName = name.trim().ifEmpty { "Mode" }
                                     val trimmedGoal = goal.trim().ifEmpty { null }
                                     onConfirm(trimmedName, trimmedGoal)
                                 }
@@ -1311,6 +1344,125 @@ fun DeleteConfirmDialog(
                         ) {
                             Text(
                                 text = confirmLabel,
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Dialog to rename a reading mode. Simple text field + confirm/cancel.
+ */
+@Composable
+fun RenameModeDialog(
+    currentName: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+    var name by remember { mutableStateOf(currentName) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.55f))
+                .clickable(onClick = onDismiss)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(24.dp),
+                        backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.95f),
+                        shadowColor = Color.Black.copy(alpha = 0.35f),
+                        elevation = 16.dp,
+                    )
+                    .clickable(enabled = false) {}
+                    .padding(22.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        text = "Rename Mode",
+                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clayPill(
+                                backgroundColor = if (isDark) Color(0xFF0F1613) else Color(0xFFF1EDE3),
+                                elevation = 2.dp,
+                            )
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        BasicTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            singleLine = true,
+                            textStyle = TextStyle(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                            ),
+                            cursorBrush = SolidColor(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clayPill(
+                                    backgroundColor = if (isDark) Color(0xFF1A2A22) else Color(0xFFEDE8DD),
+                                    elevation = 2.dp,
+                                )
+                                .clickable(onClick = onDismiss)
+                                .padding(vertical = 11.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Cancel",
+                                color = if (isDark) Color(0xFFB0C4B8) else Color(0xFF556C60),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clayPill(
+                                    backgroundColor = Color(0xFF2D6B52),
+                                    elevation = 3.dp,
+                                )
+                                .clickable(enabled = name.isNotBlank()) {
+                                    onConfirm(name.trim())
+                                }
+                                .padding(vertical = 11.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Rename",
                                 color = Color.White,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
@@ -1819,6 +1971,19 @@ fun ManageTracksDialog(
                                             fontWeight = FontWeight.Bold,
                                             color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
                                         )
+                                        Box(
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isDark) Color(0xFF1E3A2E) else Color(0xFFE3EDE6))
+                                                .clickable { onEditTrack(track) },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            EditPencilGlyph(
+                                                tint = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                                                modifier = Modifier.size(11.dp),
+                                            )
+                                        }
                                     }
 
                                     Box(

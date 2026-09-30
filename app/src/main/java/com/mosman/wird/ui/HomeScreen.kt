@@ -132,7 +132,7 @@ fun HomeScreen(
     onSelectTrack: (ReadingTrack) -> Unit = {},
     onSelectSpace: (LifeSpace) -> Unit = {},
     onToggleScheduleMode: () -> Unit = {},
-    onOpenSettings: () -> Unit = {},
+    onOpenSettings: (SettingsDialog?) -> Unit = {},
     showToolkitTour: Boolean = false,
     onDismissToolkitTour: () -> Unit = {},
 ) {
@@ -157,9 +157,9 @@ fun HomeScreen(
                 onSelectTrack(it)
                 showModeDialog = false
             },
-            onOpenSettings = {
+            onOpenSettings = { dialog ->
                 showModeDialog = false
-                onOpenSettings()
+                onOpenSettings(dialog)
             },
             onDismiss = { showModeDialog = false },
         )
@@ -201,14 +201,14 @@ fun HomeScreen(
             if (allSpaces.isEmpty() || activeSpace == null) {
                 StaggeredEnter(index = cardIndex++) {
                     EmptyReadingModeGuideCard(
-                        onAddMode = onOpenSettings,
+                        onAddMode = { onOpenSettings(SettingsDialog.LIFE_SPACE_MANAGER) },
                     )
                 }
             } else if (activeSpace.tracks.isEmpty()) {
                 StaggeredEnter(index = cardIndex++) {
                     EmptyTracksGuideCard(
                         modeName = activeSpace.name,
-                        onAddTrack = onOpenSettings,
+                        onAddTrack = { onOpenSettings(SettingsDialog.MANAGE_TRACKS) },
                     )
                 }
             } else {

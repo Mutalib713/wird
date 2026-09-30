@@ -594,20 +594,30 @@ class WirdStore(context: Context) {
         saveLifeSpaces(spaces)
     }
 
+    fun renameSpace(spaceId: String, newName: String) {
+        val spaces = getLifeSpaces().map {
+            if (it.id == spaceId) it.copy(name = newName.ifBlank { "Mode" }) else it
+        }
+        saveLifeSpaces(spaces)
+    }
+
     fun addLifeSpace(name: String, goal: String? = null): LifeSpace {
         val id = "space_" + System.currentTimeMillis()
+        val trackName = if (name.isBlank() || name == "Mode") "Track" else "$name Track"
         val defaultTrack = ReadingTrack(
             id = "track_${id}_1",
-            name = "$name Track",
+            name = trackName,
             type = TrackType.TILAWAH,
             activeDays = DayOfWeek.entries.toSet(),
-            positionUnit = positionUnit,
-            direction = readingDirection,
-            dailyUnits = plan.defaultUnits,
-            startVerseSurah = startVerse?.first,
-            startVerseAyah = startVerse?.second,
+            // New mode starts at the beginning, not at the active track's position.
+            // Bug fix: previously inherited positionUnit from the current track, so a
+            // "Campus" mode would show School's reading position.
+            positionUnit = 0,
+            direction = ReadingDirection.TOWARDS_NAS,
+            dailyUnits = 2,
         )
-        val newSpace = LifeSpace(id = id, name = name, isFrozen = false, tracks = listOf(defaultTrack), goal = goal)
+        val spaceName = name.ifBlank { "Mode" }
+        val newSpace = LifeSpace(id = id, name = spaceName, isFrozen = false, tracks = listOf(defaultTrack), goal = goal)
         saveLifeSpaces(getLifeSpaces() + newSpace)
         return newSpace
     }

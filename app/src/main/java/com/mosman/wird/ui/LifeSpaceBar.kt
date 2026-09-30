@@ -289,7 +289,7 @@ fun LifeSpacePickerDialog(
     allSpaces: List<LifeSpace>,
     onSelectSpace: (LifeSpace) -> Unit,
     onSelectTrack: (ReadingTrack) -> Unit = {},
-    onOpenSettings: () -> Unit,
+    onOpenSettings: (SettingsDialog?) -> Unit = {},
     onDismiss: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
@@ -347,7 +347,78 @@ fun LifeSpacePickerDialog(
                 }
             }
 
-            // Active Reading Mode Summary Card with Goal & Switch action
+            // Quick mode switch selector if multiple modes exist
+            if (allSpaces.size > 1) {
+                Text(
+                    text = "SWITCH READING MODE",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp,
+                    color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    allSpaces.forEach { space ->
+                        val isCurrent = space.id == currentSpace.id
+                        Box(
+                            modifier = Modifier
+                                .clayPill(
+                                    shape = RoundedCornerShape(999.dp),
+                                    backgroundColor = if (isCurrent) {
+                                        if (isDark) Color(0xFF1B4D36) else Color(0xFFC7EBD5)
+                                    } else {
+                                        if (isDark) Color(0xFF101C16) else Color(0xFFEFECE1)
+                                    },
+                                    elevation = if (isCurrent) 2.dp else 1.dp,
+                                )
+                                .clickable {
+                                    if (!isCurrent) {
+                                        onSelectSpace(space)
+                                    }
+                                }
+                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                LifeSpaceGlyph(
+                                    tint = if (isCurrent) {
+                                        if (isDark) Color(0xFF8ED676) else Color(0xFF1E5638)
+                                    } else {
+                                        if (isDark) Color(0xFF7E978B) else Color(0xFF678174)
+                                    },
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Text(
+                                    text = space.name,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isCurrent) {
+                                        if (isDark) Color(0xFF8ED676) else Color(0xFF1E5638)
+                                    } else {
+                                        if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D)
+                                    },
+                                )
+                                if (isCurrent) {
+                                    Text(
+                                        text = "✓",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color(0xFF8ED676) else Color(0xFF1E5638),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Active Reading Mode Summary Card with Goal & Manage action
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -416,12 +487,12 @@ fun LifeSpacePickerDialog(
                             )
                             .clickable {
                                 onDismiss()
-                                onOpenSettings()
+                                onOpenSettings(SettingsDialog.LIFE_SPACE_MANAGER)
                             }
                             .padding(horizontal = 9.dp, vertical = 6.dp),
                     ) {
                         Text(
-                            text = "Switch Mode ›",
+                            text = "Manage Modes ›",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isDark) Color(0xFF8ED676) else Color(0xFF17382D),
@@ -561,7 +632,7 @@ fun LifeSpacePickerDialog(
                     )
                     .clickable {
                         onDismiss()
-                        onOpenSettings()
+                        onOpenSettings(SettingsDialog.LIFE_SPACE_MANAGER)
                     }
                     .padding(vertical = 11.dp, horizontal = 14.dp),
                 contentAlignment = Alignment.Center,

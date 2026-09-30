@@ -84,18 +84,15 @@ class TafsirRepository(private val context: Context) {
             val paras = cleanBody.split(Regex("\n{2,}"))
                 .map { it.replace(Regex("[ \\t]+"), " ").trim() }
                 .filter { it.isNotBlank() }
+                .take(MAX_PARAS_PER_SECTION)
+                .map { trimParagraph(it) }
 
             if (paras.isEmpty()) return ""
-            if (paras.size <= 3) {
-                return "§ Section 1: Commentary\n\n" + paras.joinToString("\n\n")
-            }
-            val mid = (paras.size + 1) / 2
-            val sec1 = paras.subList(0, mid).joinToString("\n\n")
-            val sec2 = paras.subList(mid, paras.size).joinToString("\n\n")
-            return "§ Section 1: Overview & Commentary\n\n$sec1\n\n§ Section 2: Scholarly Insights\n\n$sec2"
+            return "§ Section 1: Commentary\n\n" + paras.joinToString("\n\n")
         }
 
-        val sections = mutableListOf<Pair<String, List<String>>>()
+        data class RawSection(val title: String, val paras: List<String>, val isMajor: Boolean)
+        val sections = mutableListOf<RawSection>()
         val pendingTitles = mutableListOf<String>()
 
         // Check if there was text before the first heading
@@ -106,14 +103,16 @@ class TafsirRepository(private val context: Context) {
                 .map { it.replace(Regex("[ \\t]+"), " ").trim() }
                 .filter { it.isNotBlank() }
             if (preParas.isNotEmpty()) {
-                sections.add("Overview" to preParas)
+                sections.add(RawSection("Overview", preParas, isMajor = true))
             }
         }
 
         for (i in headings.indices) {
             val hMatch = headings[i]
-            val rawTitle = hMatch.groupValues[1]
+            val level = hMatch.groupValues[1].toIntOrNull() ?: 2
+            val rawTitle = hMatch.groupValues[2]
             val cleanTitle = unescapeHtml(rawTitle.replace(HTML_TAG_REGEX, " ")).trim()
+            val isMajor = level <= 2
 
             val contentStart = hMatch.range.last + 1
             val contentEnd = if (i + 1 < headings.size) headings[i + 1].range.first else html.length
@@ -136,19 +135,44 @@ class TafsirRepository(private val context: Context) {
                 } else {
                     cleanTitle
                 }
-                sections.add(fullTitle to paras)
+                sections.add(RawSection(fullTitle, paras, isMajor = isMajor))
             }
         }
 
+        // Reduce content: cap sections and paragraphs per section, trim long paragraphs.
+        // User feedback: tafsir was too lengthy — keep what's essential.
+        val trimmed = sections.take(MAX_SECTIONS).map { raw ->
+            raw.copy(paras = raw.paras.take(MAX_PARAS_PER_SECTION).map { trimParagraph(it) })
+        }
+
         val result = StringBuilder()
-        sections.forEachIndexed { index, (title, paras) ->
+        var majorCount = 0
+        trimmed.forEachIndexed { index, raw ->
             if (index > 0) result.append("\n\n")
-            val sectionNum = index + 1
-            result.append("§ Section $sectionNum: $title\n\n")
-            result.append(paras.joinToString("\n\n"))
+            if (raw.isMajor || majorCount == 0) {
+                majorCount++
+                result.append("§ Section $majorCount: ${raw.title}\n\n")
+            } else {
+                // Sub-point under the same topic: use * with space before per user directive
+                result.append("§ * ${raw.title}\n\n")
+            }
+            result.append(raw.paras.joinToString("\n\n"))
         }
 
         return result.toString().trim()
+    }
+
+    /** Trim a paragraph that is too long, cutting at the last sentence boundary. */
+    private fun trimParagraph(para: String): String {
+        if (para.length <= MAX_PARA_LENGTH) return para
+        // Cut at the last sentence-ending punctuation before the limit.
+        val cut = para.substring(0, MAX_PARA_LENGTH)
+        val lastSentence = cut.lastIndexOfAny(charArrayOf('.', '!', '?'))
+        return if (lastSentence > MAX_PARA_LENGTH / 2) {
+            cut.substring(0, lastSentence + 1)
+        } else {
+            cut.trimEnd() + "…"
+        }
     }
 
     private fun stripAndUnescape(raw: String): String {
@@ -189,7 +213,10 @@ class TafsirRepository(private val context: Context) {
 
     companion object {
         private const val TAG = "WirdTafsir"
-        private val HEADER_REGEX = Regex("<h[1-6][^>]*>(.*?)</h[1-6]>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        private const val MAX_SECTIONS = 5
+        private const val MAX_PARAS_PER_SECTION = 4
+        private const val MAX_PARA_LENGTH = 400
+        private val HEADER_REGEX = Regex("<h([1-6])[^>]*>(.*?)</h[1-6]>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
         private val ARABIC_DIV_REGEX = Regex("<div[^>]*class=[\"'][^\"']*arabic[^\"']*[\"'][^>]*>(.*?)</div>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
         private val HTML_TAG_REGEX = Regex("<[^>]+>")
     }
