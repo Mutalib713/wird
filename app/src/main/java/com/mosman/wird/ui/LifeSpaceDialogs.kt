@@ -287,8 +287,12 @@ fun LifeSpaceManagerDialog(
 
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                text = "${space.tracks.size} reading track${if (space.tracks.size != 1) "s" else ""}: " +
-                                    space.tracks.joinToString(", ") { it.name },
+                                text = if (space.tracks.isEmpty()) {
+                                    "No tracks yet · Tap Manage to add a track"
+                                } else {
+                                    "${space.tracks.size} reading track${if (space.tracks.size != 1) "s" else ""}: " +
+                                        space.tracks.joinToString(", ") { it.name }
+                                },
                                 fontSize = 11.5.sp,
                                 color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                             )

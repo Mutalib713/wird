@@ -94,6 +94,7 @@ fun ChatScreen(
     onSend: (String) -> Unit,
     onBack: () -> Unit,
     onNewChat: () -> Unit = {},
+    onOpenPortion: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -277,6 +278,7 @@ fun ChatScreen(
                         text = initialGreeting,
                         time = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a")),
                         isDark = isDark,
+                        onOpenPortion = onOpenPortion,
                     )
                 }
             } else {
@@ -292,6 +294,7 @@ fun ChatScreen(
                             text = turn.text,
                             time = whenSaid(turn.at),
                             isDark = isDark,
+                            onOpenPortion = onOpenPortion,
                         )
                     }
                 }

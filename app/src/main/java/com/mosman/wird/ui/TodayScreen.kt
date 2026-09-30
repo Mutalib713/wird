@@ -1843,10 +1843,12 @@ private fun HamburgerIcon(
 }
 
 
-/** Same rules as the foot of the page: never the streak alone, never a nought. */
+/** Streak, total days, and aloud ratio synchronized with the home screen stats. */
 private fun streakLine(p: com.mosman.wird.domain.Progress): String {
+    val streak = if (p.currentStreak == 1) "1-day streak" else "${p.currentStreak} in a row"
     val total = if (p.totalDaysRead == 1) "1 day read" else "${p.totalDaysRead} days read"
-    return if (p.currentStreak <= 1) total else "${p.currentStreak} in a row, $total"
+    val aloudRatio = if (p.totalDaysRead > 0) (p.recitedDays * 100) / p.totalDaysRead else 0
+    return "$streak · $total · $aloudRatio% aloud"
 }
 
 /**

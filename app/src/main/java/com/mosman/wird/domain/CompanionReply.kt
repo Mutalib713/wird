@@ -49,7 +49,7 @@ fun replyFor(
     is CompanionAction.MarkDone -> if (isDone) {
         "Today's portion is already done, alhamdulillah."
     } else {
-        "Good. Marked as read."
+        "You haven't recited today's portion yet. Tap below to go to your portion and recite, and make sure to confirm."
     }
     is CompanionAction.Listen -> "Playing today's portion."
     is CompanionAction.OpenSurah -> "Opening ${action.surah.name}."

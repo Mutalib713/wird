@@ -404,25 +404,67 @@ private fun NotYet(
                 }
             }
 
-            // Streak & reading info line
+            // Streak & reading info line - synchronized with home screen journey stats
             progress?.takeIf { it.totalDaysRead > 0 }?.let { p ->
+                val aloudRatio = if (p.totalDaysRead > 0) (p.recitedDays * 100) / p.totalDaysRead else 0
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        FlameVectorIcon(tint = Color(0xFFD35400), modifier = Modifier.size(13.dp))
+                        Text(
+                            text = if (p.currentStreak == 1) "1 Day Streak" else "${p.currentStreak} Days Streak",
+                            style = TextStyle(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                            ),
+                        )
+                    }
                     Text(
-                        text = if (p.currentStreak > 1) {
-                            "🔥 ${p.currentStreak} in a row · ${p.totalDaysRead} days read in total"
-                        } else {
-                            "📖 ${p.totalDaysRead} day read"
-                        },
-                        style = TextStyle(
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = colors.textSecondary,
-                        ),
+                        text = " · ",
+                        style = TextStyle(fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.5f)),
                     )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        CompanionBookVectorIcon(tint = colors.accent, modifier = Modifier.size(13.dp))
+                        val totalStr = if (p.totalDaysRead == 1) "1 Total Day" else "${p.totalDaysRead} Total Days"
+                        Text(
+                            text = totalStr,
+                            style = TextStyle(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                            ),
+                        )
+                    }
+                    Text(
+                        text = " · ",
+                        style = TextStyle(fontSize = 11.sp, color = colors.textSecondary.copy(alpha = 0.5f)),
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        MicVectorIcon(tint = colors.accent, modifier = Modifier.size(13.dp))
+                        Text(
+                            text = "$aloudRatio% Aloud",
+                            style = TextStyle(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -767,27 +809,135 @@ private fun AlreadyDone(
                     )
                 }
                 is CheckState.Heard -> {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = checkState.summary.ifEmpty { checkState.text },
-                        color = emeraldText,
-                        style = TextStyle(fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium),
-                    )
-                    if (checkState.marked > 0) {
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = if (checkState.marked == 1) "One ayah is marked on the page above for review."
-                            else "${checkState.marked} ayahs are marked on the page above for review.",
-                            color = emeraldText,
-                            style = TextStyle(fontSize = Scale.caption, fontWeight = FontWeight.SemiBold),
-                        )
+                    Spacer(Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clayCard(
+                                shape = RoundedCornerShape(16.dp),
+                                backgroundColor = if (isDark) Color(0xFF13281E) else Color(0xFFE2F0E7),
+                                elevation = 2.dp,
+                                strokeWidth = 1.dp,
+                            )
+                            .padding(14.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            // Header: "See what you recited" with audio playback button
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    SparkleVectorIcon(
+                                        tint = Color(0xFFD4AF37),
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Text(
+                                        text = "See what you recited",
+                                        style = TextStyle(
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = emeraldText,
+                                        ),
+                                    )
+                                }
+
+                                if (hasRecording) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clayPill(
+                                                shape = RoundedCornerShape(999.dp),
+                                                backgroundColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                                                elevation = 1.dp,
+                                            )
+                                            .clickable(onClick = onPlay)
+                                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PlayArrow,
+                                                contentDescription = "Hear your voice",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(14.dp),
+                                            )
+                                            Text(
+                                                text = "Hear audio",
+                                                style = TextStyle(
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color.White,
+                                                ),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Transcribed Text Container
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isDark) Color(0xFF0C1B14) else Color.White)
+                                    .padding(12.dp),
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        text = "TRANSCRIPTION",
+                                        style = TextStyle(
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 1.sp,
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                        ),
+                                    )
+                                    Text(
+                                        text = checkState.text.ifEmpty { checkState.summary },
+                                        style = TextStyle(
+                                            fontSize = 14.5.sp,
+                                            lineHeight = 22.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (isDark) Color(0xFFE4F2E7) else Color(0xFF143326),
+                                        ),
+                                    )
+                                }
+                            }
+
+                            // Verdict / Audit details
+                            if (checkState.summary.isNotEmpty() && checkState.summary != checkState.text) {
+                                Text(
+                                    text = checkState.summary,
+                                    color = emeraldText,
+                                    style = TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold),
+                                )
+                            }
+
+                            if (checkState.marked > 0) {
+                                Text(
+                                    text = if (checkState.marked == 1) "One ayah is marked on the page above for review."
+                                    else "${checkState.marked} ayahs are marked on the page above for review.",
+                                    color = Color(0xFFD97706),
+                                    style = TextStyle(fontSize = Scale.caption, fontWeight = FontWeight.Bold),
+                                )
+                            }
+
+                            Text(
+                                text = "${checkState.seconds}s audio · verified in ${checkState.took}s with offline Whisper AI.",
+                                color = emeraldText.copy(alpha = 0.75f),
+                                style = TextStyle(fontSize = 10.5.sp),
+                            )
+                        }
                     }
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = "${checkState.seconds}s of audio, checked in ${checkState.took}s. It compares words, not tajweed.",
-                        color = emeraldText.copy(alpha = 0.8f),
-                        style = TextStyle(fontSize = Scale.caption),
-                    )
                 }
                 is CheckState.Nothing -> {
                     Spacer(Modifier.height(2.dp))

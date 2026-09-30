@@ -84,6 +84,7 @@ fun HomeHabitClarityCard(
     onNotToday: () -> Unit,
     onOpenChat: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenPortion: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -386,6 +387,7 @@ fun Companion(
     onOpenChat: () -> Unit,
     modifier: Modifier = Modifier,
     isDone: Boolean = false,
+    onOpenPortion: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     var typed by remember { mutableStateOf("") }
@@ -443,6 +445,7 @@ fun Companion(
                     text = question,
                     time = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a")),
                     isDark = isDark,
+                    onOpenPortion = onOpenPortion,
                 )
             } else {
                 val recent = turns.takeLast(3)
@@ -458,6 +461,7 @@ fun Companion(
                             text = turn.text,
                             time = whenSaid(turn.at),
                             isDark = isDark,
+                            onOpenPortion = onOpenPortion,
                         )
                     }
                 }
@@ -551,7 +555,12 @@ fun Companion(
 }
 
 @Composable
-internal fun BotBubble(text: String, time: String, isDark: Boolean) {
+internal fun BotBubble(
+    text: String,
+    time: String,
+    isDark: Boolean,
+    onOpenPortion: (() -> Unit)? = null,
+) {
     val tafsir = remember(text) { parseTafsirMessage(text) }
 
     Row(
@@ -596,6 +605,25 @@ internal fun BotBubble(text: String, time: String, isDark: Boolean) {
                         color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
                         style = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
                     )
+                    if (onOpenPortion != null && (text.contains("go to your portion", ignoreCase = true) || text.contains("open your portion", ignoreCase = true))) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(if (isDark) Color(0xFF245847) else Color(0xFF1B4E3B))
+                                .clickable(onClick = onOpenPortion)
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            CompanionBookVectorIcon(tint = Color.White, modifier = Modifier.size(12.dp))
+                            Text(
+                                text = "Go to Today's Portion ›",
+                                color = Color.White,
+                                style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold),
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(3.dp))
                     Text(
                         text = time,

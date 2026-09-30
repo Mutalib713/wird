@@ -25,12 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.mosman.wird.domain.LifeSpace
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.TrackScheduleMode
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,7 +41,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.LocalTime
@@ -546,91 +540,47 @@ fun AtmosphericHeader(
 
                     Spacer(Modifier.width(8.dp))
 
-                    // Tactile Segmented Toggle Switch for Auto / Manual with sliding animation
+                    // Compact Tactile Auto / Manual pill nestled in the corner
                     val isAuto = scheduleMode == TrackScheduleMode.AUTOMATIC
-                    val switchOffset by animateFloatAsState(
-                        targetValue = if (isAuto) 0f else 1f,
-                        animationSpec = tween(durationMillis = 240),
-                        label = "modeSwitchOffset",
-                    )
-
-                    BoxWithConstraints(
+                    Box(
                         modifier = Modifier
                             .clayPill(
                                 shape = RoundedCornerShape(999.dp),
-                                backgroundColor = Color(0xFF10261E).copy(alpha = 0.95f),
-                                highlightColor = Color.White.copy(alpha = 0.15f),
-                                shadowColor = Color.Black.copy(alpha = 0.45f),
+                                backgroundColor = Color(0xFF142B21).copy(alpha = 0.90f),
+                                highlightColor = Color.White.copy(alpha = 0.22f),
+                                shadowColor = Color.Black.copy(alpha = 0.4f),
+                                elevation = 1.dp,
                             )
-                            .padding(2.5.dp),
+                            .clickable(onClick = onToggleScheduleMode)
+                            .padding(horizontal = 9.dp, vertical = 5.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        val pillWidth = maxWidth / 2
-                        // Sliding indicator pill that moves smoothly to that side
-                        Box(
-                            modifier = Modifier
-                                .offset { IntOffset(x = (pillWidth * switchOffset).roundToPx(), y = 0) }
-                                .width(pillWidth)
-                                .matchParentSize()
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color(0xFF204D39)),
-                        )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            // Auto segment
-                            Box(
-                                modifier = Modifier
-                                    .width(pillWidth)
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .clickable {
-                                        if (!isAuto) onToggleScheduleMode()
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.5.dp),
-                                ) {
-                                    AutoScheduleGlyph(
-                                        tint = if (isAuto) Color(0xFF8DE0A6) else Color(0xFF6B8A7A),
-                                        modifier = Modifier.size(10.dp),
-                                    )
-                                    Text(
-                                        text = "Auto",
-                                        fontSize = 10.5.sp,
-                                        fontWeight = if (isAuto) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isAuto) Color(0xFF8DE0A6) else Color(0xFF6B8A7A),
-                                    )
-                                }
-                            }
-
-                            // Manual segment
-                            Box(
-                                modifier = Modifier
-                                    .width(pillWidth)
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .clickable {
-                                        if (isAuto) onToggleScheduleMode()
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.5.dp),
-                                ) {
-                                    ManualScheduleGlyph(
-                                        tint = if (!isAuto) Color(0xFFF9C86A) else Color(0xFF6B8A7A),
-                                        modifier = Modifier.size(10.dp),
-                                    )
-                                    Text(
-                                        text = "Manual",
-                                        fontSize = 10.5.sp,
-                                        fontWeight = if (!isAuto) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (!isAuto) Color(0xFFF9C86A) else Color(0xFF6B8A7A),
-                                    )
-                                }
+                            if (isAuto) {
+                                AutoScheduleGlyph(
+                                    tint = Color(0xFF8DE0A6),
+                                    modifier = Modifier.size(11.dp),
+                                )
+                                Text(
+                                    text = "Auto",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF8DE0A6),
+                                )
+                            } else {
+                                ManualScheduleGlyph(
+                                    tint = Color(0xFFF9C86A),
+                                    modifier = Modifier.size(11.dp),
+                                )
+                                Text(
+                                    text = "Manual",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFF9C86A),
+                                )
                             }
                         }
                     }

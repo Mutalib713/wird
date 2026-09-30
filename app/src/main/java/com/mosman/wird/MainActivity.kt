@@ -475,6 +475,8 @@ class MainActivity : ComponentActivity() {
                     defaultAyah = curAyah,
                 )
 
+                val isPortionDone = (trackDoneMethod != null || isTrackDoneToday || doneMethod != null)
+
                 actions.forEach { action ->
                     when (action) {
                         // A commitment becomes a real alarm. This is the whole point: task
@@ -485,36 +487,24 @@ class MainActivity : ComponentActivity() {
                         // ⚠ It rides inside the commitment rather than being written into
                         // the daily reminder, so it expires with the day. PLAN task 22.
                         is CompanionAction.CommitTo -> {
-                            commitment = Commitment(
-                                spoken = action.spoken,
-                                madeAt = LocalDateTime.now(),
-                                schedule = action.schedule,
-                            )
-                            store.commitment = commitment
-                            reArm()
+                            if (!isPortionDone) {
+                                commitment = Commitment(
+                                    spoken = action.spoken,
+                                    madeAt = LocalDateTime.now(),
+                                    schedule = action.schedule,
+                                )
+                                store.commitment = commitment
+                                reArm()
+                            }
                         }
                         is CompanionAction.MarkDone -> {
-                            days.markDone(
-                                date = today,
-                                method = Method.TAPPED,
-                                audio = null,
-                                startUnit = assignment.startUnit,
-                                units = assignment.units,
-                            )
-                            doneMethod = days.methodFor(today)
-                            nudgeWidget()
-                            progress = progressOf(days.all(), today)
-                            store.recordTrackDone(activeTrack.id, assignment.nextStartUnit, today)
-                            lifeSpaces = store.getLifeSpaces()
-                            activeSpace = store.activeSpace()
-                            activeTrack = store.activeTrack(today)
-                            position = activeTrack.positionUnit
-                            store.startVerse = null
-                            startVerse = null
-                            // The promise is spent. Leaving it pinned would have the app
-                            // still holding you to something you have already done.
-                            commitment = null
-                            store.commitment = null
+                            if (isPortionDone) {
+                                // Already marked done today; keep position stable.
+                            } else {
+                                // Sacred Rule 5: Reading position NEVER creeps or advances automatically
+                                // without user reading and confirming it from the daily portion.
+                                // We do NOT advance position or mark done in database from chat quick replies.
+                            }
                         }
                         is CompanionAction.OpenSurah -> {
                             openPage = action.surah.firstPage
@@ -591,7 +581,7 @@ class MainActivity : ComponentActivity() {
                             spoken,
                             progress,
                             positionLabelFor(startVerse, Mushaf.pageOf(position)),
-                            isDone = doneMethod != null,
+                            isDone = isPortionDone,
                         ),
                     )
                 }
@@ -630,6 +620,12 @@ class MainActivity : ComponentActivity() {
                             val page = assignment.pages.firstOrNull() ?: Mushaf.pageOf(position)
                             val greeting = "Assalamu Alaikum! Fresh reflection started for Page $page ($surah). How did your recitation go today, and what would you like to reflect on?"
                             turns = chat.say(Speaker.WIRD, greeting)
+                        },
+                        onOpenPortion = {
+                            onChat = false
+                            onPage = true
+                            pageSource = PageSource.HOME
+                            isWirdSession = true
                         },
                     )
                 } else if (screen == Screen.SETUP) {

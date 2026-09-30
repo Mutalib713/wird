@@ -554,7 +554,11 @@ class WirdStore(context: Context) {
 
         val dow = date.dayOfWeek
         val matching = space.tracks.firstOrNull { dow in it.activeDays }
-        return matching ?: space.tracks.first()
+        return matching ?: space.tracks.firstOrNull() ?: ReadingTrack(
+            id = "track_default",
+            name = "Reading Track",
+            type = TrackType.TILAWAH,
+        )
     }
 
     fun setActiveSpace(spaceId: String) {
@@ -603,21 +607,9 @@ class WirdStore(context: Context) {
 
     fun addLifeSpace(name: String, goal: String? = null): LifeSpace {
         val id = "space_" + System.currentTimeMillis()
-        val trackName = if (name.isBlank() || name == "Mode") "Track" else "$name Track"
-        val defaultTrack = ReadingTrack(
-            id = "track_${id}_1",
-            name = trackName,
-            type = TrackType.TILAWAH,
-            activeDays = DayOfWeek.entries.toSet(),
-            // New mode starts at the beginning, not at the active track's position.
-            // Bug fix: previously inherited positionUnit from the current track, so a
-            // "Campus" mode would show School's reading position.
-            positionUnit = 0,
-            direction = ReadingDirection.TOWARDS_NAS,
-            dailyUnits = 2,
-        )
         val spaceName = name.ifBlank { "Mode" }
-        val newSpace = LifeSpace(id = id, name = spaceName, isFrozen = false, tracks = listOf(defaultTrack), goal = goal)
+        // New life space starts with an empty tracks list so the user sees a clean empty state with a "Create track" CTA.
+        val newSpace = LifeSpace(id = id, name = spaceName, isFrozen = false, tracks = emptyList(), goal = goal)
         saveLifeSpaces(getLifeSpaces() + newSpace)
         return newSpace
     }

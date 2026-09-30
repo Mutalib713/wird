@@ -258,6 +258,7 @@ fun HomeScreen(
                         onSaid("Not today")
                     },
                     onOpenChat = onOpenChat,
+                    onOpenPortion = onOpenPage,
                 )
             }
 
