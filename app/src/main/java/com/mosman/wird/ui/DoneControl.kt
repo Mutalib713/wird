@@ -28,11 +28,24 @@ import androidx.compose.ui.text.TextStyle
 import androidx.core.content.ContextCompat
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.mosman.wird.audio.AudioState
+import com.mosman.wird.audio.RecitationModel
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Progress
@@ -76,13 +89,40 @@ fun DoneControl(
     ayahCount: Int = 0,
     surahName: String = "",
     progress: Progress? = null,
+    onDownloadModel: ((RecitationModel) -> Unit)? = null,
+    isModelReady: Boolean = false,
 ) {
     val colors = LocalWirdColors.current
     val context = LocalContext.current
+    var showModelDialog by remember { mutableStateOf(false) }
 
     val askMic = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> if (granted) onStartRecording() else onMicRefused() }
+
+    if (showModelDialog) {
+        ClayOptionDialog(
+            title = "Offline Recitation Checker",
+            options = listOf(
+                DialogOption(
+                    RecitationModel.TINY,
+                    "Whisper Compact (42 MB)",
+                    "Faster on-device model, uses less RAM. Recommended.",
+                ),
+                DialogOption(
+                    RecitationModel.BASE,
+                    "Whisper Accurate (78 MB)",
+                    "Higher precision Arabic phoneme recognition.",
+                ),
+            ),
+            selected = RecitationModel.TINY,
+            onSelect = { chosen ->
+                showModelDialog = false
+                onDownloadModel?.invoke(chosen)
+            },
+            onDismiss = { showModelDialog = false },
+        )
+    }
 
     Column(modifier = Modifier.fillMaxWidth().padding(top = Scale.space6)) {
         when {
@@ -101,6 +141,8 @@ fun DoneControl(
                     onUndo = onUndo,
                     onCheck = onCheck,
                     checkState = checkState,
+                    isModelReady = isModelReady,
+                    onRequestModelDialog = { showModelDialog = true },
                 )
 
             else -> NotYet(
@@ -117,6 +159,8 @@ fun DoneControl(
                 onTap = onTap,
                 audio = audio,
                 onListen = onListen,
+                isModelReady = isModelReady,
+                onDownloadPrompt = { showModelDialog = true },
             )
         }
 
@@ -137,6 +181,8 @@ private fun NotYet(
     onTap: () -> Unit,
     audio: AudioState,
     onListen: () -> Unit,
+    isModelReady: Boolean = false,
+    onDownloadPrompt: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -215,9 +261,9 @@ private fun NotYet(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(
-                        text = "🎙",
-                        style = TextStyle(fontSize = 16.sp),
+                    MicVectorIcon(
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
                     )
                     Text(
                         text = reciteLabel(mode),
@@ -227,6 +273,51 @@ private fun NotYet(
                             color = Color.White,
                         ),
                     )
+                }
+            }
+
+            // Recitation review status helper badge
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (isModelReady) {
+                    SparkleVectorIcon(
+                        tint = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                        modifier = Modifier.size(13.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "100% offline Whisper AI voice check ready",
+                        color = colors.textSecondary,
+                        style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
+                    )
+                } else {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClick = onDownloadPrompt)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) {
+                        DownloadVectorIcon(
+                            tint = colors.textSecondary,
+                            modifier = Modifier.size(13.dp),
+                        )
+                        Text(
+                            text = "Offline voice review available · Tap to get model (42 MB)",
+                            color = colors.textSecondary,
+                            style = TextStyle(
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                textDecoration = TextDecoration.Underline,
+                            ),
+                        )
+                    }
                 }
             }
 
@@ -255,13 +346,11 @@ private fun NotYet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text(
-                            text = "✓",
-                            style = TextStyle(
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.textPrimary,
-                            ),
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = colors.textPrimary,
+                            modifier = Modifier.size(15.dp),
                         )
                         Text(
                             text = tapLabel(mode),
@@ -294,9 +383,9 @@ private fun NotYet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text(
-                            text = "🎧",
-                            style = TextStyle(fontSize = 13.sp),
+                        HeadphonesVectorIcon(
+                            tint = colors.textPrimary,
+                            modifier = Modifier.size(15.dp),
                         )
                         Text(
                             text = when (audio) {
@@ -349,6 +438,8 @@ private fun AlreadyDone(
     onUndo: () -> Unit,
     onCheck: (() -> Unit)?,
     checkState: CheckState,
+    isModelReady: Boolean = false,
+    onRequestModelDialog: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -378,14 +469,25 @@ private fun AlreadyDone(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column {
-                    Text(
-                        text = "✓ Today's Wird Completed!",
-                        style = TextStyle(
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = emeraldText,
-                        ),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            tint = emeraldText,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Text(
+                            text = "Today's Wird Completed!",
+                            style = TextStyle(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = emeraldText,
+                            ),
+                        )
+                    }
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = if (method == Method.RECITED) {
@@ -401,9 +503,9 @@ private fun AlreadyDone(
                     )
                 }
 
-                Text(
-                    text = "🏆",
-                    style = TextStyle(fontSize = 20.sp),
+                SparkleVectorIcon(
+                    tint = Color(0xFFD4AF37),
+                    modifier = Modifier.size(22.dp),
                 )
             }
 
@@ -424,36 +526,87 @@ private fun AlreadyDone(
                             .clickable(onClick = onPlay)
                             .padding(horizontal = 12.dp, vertical = 7.dp),
                     ) {
-                        Text(
-                            text = "▶ Hear back",
-                            style = TextStyle(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = emeraldText,
-                            ),
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Hear back",
+                                tint = emeraldText,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                text = "Hear back",
+                                style = TextStyle(
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = emeraldText,
+                                ),
+                            )
+                        }
                     }
                 }
 
-                if (hasRecording && onCheck != null && checkState !is CheckState.Working) {
-                    Box(
-                        modifier = Modifier
-                            .clayPill(
-                                shape = RoundedCornerShape(999.dp),
-                                backgroundColor = if (isDark) Color(0xFF294E3E) else Color(0xFFD6EAE0),
-                                elevation = 1.5.dp,
-                            )
-                            .clickable(onClick = onCheck)
-                            .padding(horizontal = 12.dp, vertical = 7.dp),
-                    ) {
-                        Text(
-                            text = if (checkState is CheckState.Idle) "✦ AI Check" else "✦ Check again",
-                            style = TextStyle(
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = emeraldText,
-                            ),
-                        )
+                if (hasRecording) {
+                    if (isModelReady && checkState !is CheckState.Working) {
+                        Box(
+                            modifier = Modifier
+                                .clayPill(
+                                    shape = RoundedCornerShape(999.dp),
+                                    backgroundColor = if (isDark) Color(0xFF294E3E) else Color(0xFFD6EAE0),
+                                    elevation = 1.5.dp,
+                                )
+                                .clickable(onClick = { onCheck?.invoke() })
+                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                SparkleVectorIcon(
+                                    tint = emeraldText,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Text(
+                                    text = if (checkState is CheckState.Idle) "AI Review" else "Review again",
+                                    style = TextStyle(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = emeraldText,
+                                    ),
+                                )
+                            }
+                        }
+                    } else if (!isModelReady && checkState !is CheckState.Working && checkState !is CheckState.DownloadingModel) {
+                        Box(
+                            modifier = Modifier
+                                .clayPill(
+                                    shape = RoundedCornerShape(999.dp),
+                                    backgroundColor = if (isDark) Color(0xFF2D5C46) else Color(0xFFC7E5D4),
+                                    elevation = 2.dp,
+                                )
+                                .clickable(onClick = onRequestModelDialog)
+                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                DownloadVectorIcon(
+                                    tint = emeraldText,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                                Text(
+                                    text = "Get Voice Reviewer (42 MB)",
+                                    style = TextStyle(
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = emeraldText,
+                                    ),
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -480,13 +633,137 @@ private fun AlreadyDone(
 
             // Recitation check state display
             when (checkState) {
-                is CheckState.Idle -> Unit
+                is CheckState.Idle -> {
+                    if (hasRecording && !isModelReady) {
+                        Spacer(Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clayCard(
+                                    shape = RoundedCornerShape(12.dp),
+                                    backgroundColor = if (isDark) Color(0xFF162B21) else Color(0xFFDCEDE3),
+                                    elevation = 1.dp,
+                                )
+                                .clickable(onClick = onRequestModelDialog)
+                                .padding(12.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                    Text(
+                                        text = "✦ Review recitation with Whisper AI",
+                                        color = emeraldText,
+                                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = "Download on-device voice checker (42 MB) to check your words offline.",
+                                        color = emeraldText.copy(alpha = 0.85f),
+                                        style = TextStyle(fontSize = 11.5.sp),
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .clayPill(
+                                            backgroundColor = Color(0xFF2D6B52),
+                                            elevation = 2.dp,
+                                        )
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                ) {
+                                    Text(
+                                        text = "DOWNLOAD",
+                                        color = Color.White,
+                                        style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                is CheckState.NeedsModel -> {
+                    Spacer(Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clayCard(
+                                shape = RoundedCornerShape(12.dp),
+                                backgroundColor = if (isDark) Color(0xFF162B21) else Color(0xFFDCEDE3),
+                                elevation = 1.dp,
+                            )
+                            .clickable(onClick = onRequestModelDialog)
+                            .padding(12.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                                Text(
+                                    text = "✦ Voice checker model required",
+                                    color = emeraldText,
+                                    style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Download on-device Whisper AI (42 MB) to verify today's recording. Zero data used.",
+                                    color = emeraldText.copy(alpha = 0.85f),
+                                    style = TextStyle(fontSize = 11.5.sp),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clayPill(
+                                        backgroundColor = Color(0xFF2D6B52),
+                                        elevation = 2.dp,
+                                    )
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                            ) {
+                                Text(
+                                    text = "DOWNLOAD",
+                                    color = Color.White,
+                                    style = TextStyle(fontSize = 10.5.sp, fontWeight = FontWeight.Bold),
+                                )
+                            }
+                        }
+                    }
+                }
+                is CheckState.DownloadingModel -> {
+                    val done = checkState.doneBytes
+                    val total = checkState.totalBytes
+                    val pct = if (total > 0) (done * 100 / total).toInt() else 0
+                    val mbDone = String.format(java.util.Locale.US, "%.1f", done.toFloat() / (1024 * 1024))
+                    val mbTotal = String.format(java.util.Locale.US, "%.1f", total.toFloat() / (1024 * 1024))
+                    Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                        Text(
+                            text = "Downloading offline Whisper AI model… $pct% ($mbDone / $mbTotal MB)",
+                            color = emeraldText,
+                            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Medium),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            progress = { if (total > 0) (done.toFloat() / total).coerceIn(0f, 1f) else 0f },
+                            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
+                            color = emeraldText,
+                            trackColor = emeraldText.copy(alpha = 0.2f),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "Your recitation will be reviewed automatically once download finishes.",
+                            color = emeraldText.copy(alpha = 0.75f),
+                            style = TextStyle(fontSize = 11.sp),
+                        )
+                    }
+                }
                 is CheckState.Working -> {
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Listening back… ${checkState.seconds}s. It runs offline on this phone.",
+                        text = "✦ Auditing recitation… ${checkState.seconds}s. Running offline on your phone.",
                         color = emeraldText,
-                        style = TextStyle(fontSize = Scale.caption),
+                        style = TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
                     )
                 }
                 is CheckState.Heard -> {
@@ -499,10 +776,10 @@ private fun AlreadyDone(
                     if (checkState.marked > 0) {
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            text = if (checkState.marked == 1) "One ayah is marked on the page above."
-                            else "${checkState.marked} ayahs are marked on the page above.",
+                            text = if (checkState.marked == 1) "One ayah is marked on the page above for review."
+                            else "${checkState.marked} ayahs are marked on the page above for review.",
                             color = emeraldText,
-                            style = TextStyle(fontSize = Scale.caption),
+                            style = TextStyle(fontSize = Scale.caption, fontWeight = FontWeight.SemiBold),
                         )
                     }
                     Spacer(Modifier.height(2.dp))
@@ -536,6 +813,10 @@ sealed interface CheckState {
     data object Idle : CheckState
     /** [seconds] ticks while it runs, because a still screen and a hung screen look alike. */
     data class Working(val seconds: Int) : CheckState
+    /** Model is currently downloading in the background. */
+    data class DownloadingModel(val doneBytes: Long, val totalBytes: Long) : CheckState
+    /** A recitation was recorded, but no offline model is installed to review it. */
+    data object NeedsModel : CheckState
     /**
      * The comparison came back. **This is what he asked for**, and [text] is kept only for the
      * log and for the case where there was nothing to compare against.
@@ -574,3 +855,130 @@ internal fun tapLabel(mode: ReadingMode): String = when (mode) {
     ReadingMode.READING -> "I read it"
     ReadingMode.MEMORISING -> "I revised it"
 }
+
+/** Crisp vector sparkle / 4-pointed star icon */
+@Composable
+private fun SparkleVectorIcon(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val cx = w * 0.5f
+        val cy = h * 0.5f
+        val star = androidx.compose.ui.graphics.Path().apply {
+            moveTo(cx, h * 0.05f)
+            quadraticTo(cx, cy, w * 0.95f, cy)
+            quadraticTo(cx, cy, cx, h * 0.95f)
+            quadraticTo(cx, cy, w * 0.05f, cy)
+            quadraticTo(cx, cy, cx, h * 0.05f)
+            close()
+        }
+        drawPath(star, color = tint, style = androidx.compose.ui.graphics.drawscope.Fill)
+    }
+}
+
+/** Crisp vector download icon */
+@Composable
+private fun DownloadVectorIcon(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stroke = 1.8.dp.toPx()
+        // Down arrow stem
+        drawLine(
+            color = tint,
+            start = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.12f),
+            end = androidx.compose.ui.geometry.Offset(w * 0.50f, h * 0.60f),
+            strokeWidth = stroke,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
+        // Arrowhead
+        val arrow = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 0.28f, h * 0.40f)
+            lineTo(w * 0.50f, h * 0.62f)
+            lineTo(w * 0.72f, h * 0.40f)
+        }
+        drawPath(
+            arrow,
+            color = tint,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = stroke,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                join = androidx.compose.ui.graphics.StrokeJoin.Round,
+            ),
+        )
+        // Bottom tray
+        val tray = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 0.20f, h * 0.72f)
+            lineTo(w * 0.20f, h * 0.88f)
+            lineTo(w * 0.80f, h * 0.88f)
+            lineTo(w * 0.80f, h * 0.72f)
+        }
+        drawPath(
+            tray,
+            color = tint,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = stroke,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                join = androidx.compose.ui.graphics.StrokeJoin.Round,
+            ),
+        )
+    }
+}
+
+/** Crisp vector headphones icon */
+@Composable
+private fun HeadphonesVectorIcon(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    androidx.compose.foundation.Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val stroke = 1.8.dp.toPx()
+        // Headband arc
+        val arcPath = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 0.18f, h * 0.60f)
+            cubicTo(
+                w * 0.18f, h * 0.15f,
+                w * 0.82f, h * 0.15f,
+                w * 0.82f, h * 0.60f,
+            )
+        }
+        drawPath(
+            arcPath,
+            color = tint,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = stroke,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+            ),
+        )
+        // Left and right earcups
+        val leftCup = androidx.compose.ui.graphics.Path().apply {
+            addRoundRect(
+                androidx.compose.ui.geometry.RoundRect(
+                    rect = androidx.compose.ui.geometry.Rect(w * 0.12f, h * 0.52f, w * 0.26f, h * 0.85f),
+                    radiusX = w * 0.07f,
+                    radiusY = w * 0.07f,
+                )
+            )
+        }
+        val rightCup = androidx.compose.ui.graphics.Path().apply {
+            addRoundRect(
+                androidx.compose.ui.geometry.RoundRect(
+                    rect = androidx.compose.ui.geometry.Rect(w * 0.74f, h * 0.52f, w * 0.88f, h * 0.85f),
+                    radiusX = w * 0.07f,
+                    radiusY = w * 0.07f,
+                )
+            )
+        }
+        drawPath(leftCup, color = tint, style = androidx.compose.ui.graphics.drawscope.Fill)
+        drawPath(rightCup, color = tint, style = androidx.compose.ui.graphics.drawscope.Fill)
+    }
+}
+

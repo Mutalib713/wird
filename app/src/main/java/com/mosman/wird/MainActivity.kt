@@ -85,6 +85,7 @@ import com.mosman.wird.ui.OpenElsewhere
 import com.mosman.wird.ui.RecitationsScreen
 import com.mosman.wird.ui.SettingsScreen
 import com.mosman.wird.ui.SettingsDialog
+import com.mosman.wird.ui.SettingsSubScreen
 import com.mosman.wird.ui.SurahsTab
 import com.mosman.wird.ui.WirdTab
 import com.mosman.wird.ui.FloatingIslandDock
@@ -136,6 +137,7 @@ class MainActivity : ComponentActivity() {
             var activeTrack by remember { mutableStateOf(store.activeTrack(today)) }
             var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
             var settingsInitialDialog by remember { mutableStateOf<SettingsDialog?>(null) }
+            var settingsInitialSubScreen by remember { mutableStateOf(SettingsSubScreen.MAIN) }
             var turns by remember { mutableStateOf(chat.all()) }
             var saved by remember { mutableStateOf(bookmarks.all()) }
             /** What is on the phone, for the "Your data" row. Refreshed after either action. */
@@ -150,7 +152,6 @@ class MainActivity : ComponentActivity() {
             var cachedPages by remember { mutableStateOf(0 to 0L) }
             val recogniser = remember { Recogniser(this@MainActivity) }
             var model by remember { mutableStateOf(recogniser.installed()) }
-            var fetchingModel by remember { mutableStateOf<Pair<Long, Long>?>(null) }
             var downloadedModels by remember { mutableStateOf(recogniser.downloaded()) }
             var checkState by remember { mutableStateOf<CheckState>(CheckState.Idle) }
             val arabic = remember { ArabicText(this@MainActivity) }
@@ -185,6 +186,9 @@ class MainActivity : ComponentActivity() {
 
             val liveMushafProgress by MushafDownloadService.mushafProgress.collectAsState()
             val downloading = liveMushafProgress?.let { it.done to it.total }
+
+            val liveModelProgress by MushafDownloadService.modelProgress.collectAsState()
+            val fetchingModel = liveModelProgress?.let { it.doneBytes to it.totalBytes }
 
             // Counted when Settings is opened or when background download completes
             LaunchedEffect(screen, liveMushafProgress) {
@@ -308,7 +312,11 @@ class MainActivity : ComponentActivity() {
             // Order matters: the innermost thing closes first, and Home falls through to the
             // system so back still leaves the app from where leaving makes sense.
             BackHandler(enabled = onChat) { onChat = false }
-            BackHandler(enabled = !onChat && screen == Screen.SETTINGS) { screen = Screen.TODAY }
+            BackHandler(enabled = !onChat && screen == Screen.SETTINGS) {
+                settingsInitialDialog = null
+                settingsInitialSubScreen = SettingsSubScreen.MAIN
+                screen = Screen.TODAY
+            }
             BackHandler(enabled = !onChat && screen == Screen.BOOKMARKS) {
                 tab = WirdTab.HOME
                 screen = Screen.TODAY
@@ -341,6 +349,83 @@ class MainActivity : ComponentActivity() {
                     date = today,
                     direction = activeTrack.direction,
                 )
+            }
+
+            fun runRecitationCheck(file: java.io.File) {
+                if (!recogniser.ready() || !file.exists()) return
+                widgetScope.launch {
+                    val started = System.currentTimeMillis()
+
+                    val ticker = launch {
+                        var n = 0
+                        while (true) {
+                            checkState = CheckState.Working(n)
+                            kotlinx.coroutines.delay(1_000)
+                            n++
+                        }
+                    }
+
+                    val heard = try {
+                        kotlinx.coroutines.withTimeoutOrNull(6 * 60 * 1000L) {
+                            recogniser.transcribe(file)
+                        }
+                    } finally {
+                        ticker.cancel()
+                    }
+
+                    val took = String.format(
+                        java.util.Locale.getDefault(),
+                        "%.1f",
+                        (System.currentTimeMillis() - started) / 1000.0,
+                    )
+                    if (heard.isNullOrBlank()) {
+                        reviewVerses = emptySet()
+                        checkState = CheckState.Nothing(
+                            "It couldn't make out any words after ${took}s. The " +
+                                "recording may be too quiet, or this model may not " +
+                                "be good enough."
+                        )
+                    } else {
+                        val expected = withContext(Dispatchers.IO) {
+                            arabic.wordsAcross(assignment.pages)
+                        }
+                        val verdict = checkRecitation(expected, heard)
+                        reviewVerses = verdict.versesToReview
+                        android.util.Log.i(
+                            "WirdWhisper",
+                            "verdict: ${verdict.coverage} covered, " +
+                                "confident=${verdict.confident}, " +
+                                "marked=${verdict.versesToReview} | heard: $heard",
+                        )
+                        checkState = CheckState.Heard(
+                            text = heard,
+                            seconds = (file.length() / 8000).toInt(),
+                            took = took,
+                            summary = verdict.summary,
+                            marked = verdict.versesToReview.size,
+                        )
+                    }
+                }
+            }
+
+            LaunchedEffect(liveModelProgress) {
+                val p = liveModelProgress
+                if (p != null) {
+                    checkState = CheckState.DownloadingModel(p.doneBytes, p.totalBytes)
+                } else {
+                    withContext(Dispatchers.IO) {
+                        downloadedModels = recogniser.downloaded()
+                        model = recogniser.installed()
+                    }
+                    if (checkState is CheckState.DownloadingModel) {
+                        val audioFile = days.audioFileFor(today)
+                        if (recogniser.ready() && audioFile.exists() && days.audioFor(today) != null) {
+                            runRecitationCheck(audioFile)
+                        } else {
+                            checkState = CheckState.Idle
+                        }
+                    }
+                }
             }
 
             /**
@@ -605,72 +690,17 @@ class MainActivity : ComponentActivity() {
                             // Null when the phone cannot do it, so no button appears rather than
                             // one that quietly does nothing.
                             onCheckRecitation = if (recogniser.ready()) ({
-                                widgetScope.launch {
-                                    val file = days.audioFileFor(today)
-                                    val started = System.currentTimeMillis()
-
-                                    // A ticking clock in its own coroutine. ⚠ **This is the fix for
-                                    // "it never worked":** the transcription was running fine and
-                                    // the screen simply never changed, which is indistinguishable
-                                    // from a hang. A moving number is the whole difference.
-                                    val ticker = launch {
-                                        var n = 0
-                                        while (true) {
-                                            checkState = CheckState.Working(n)
-                                            kotlinx.coroutines.delay(1_000)
-                                            n++
-                                        }
-                                    }
-
-                                    val heard = try {
-                                        // ⚠ Bounded, because native code that never returns would
-                                        // otherwise leave the screen waiting forever. Generous: a
-                                        // long portion on a slow phone is genuinely minutes.
-                                        kotlinx.coroutines.withTimeoutOrNull(6 * 60 * 1000L) {
-                                            recogniser.transcribe(file)
-                                        }
-                                    } finally {
-                                        ticker.cancel()
-                                    }
-
-                                    val took = String.format(
-                                        java.util.Locale.getDefault(),
-                                        "%.1f",
-                                        (System.currentTimeMillis() - started) / 1000.0,
-                                    )
-                                    if (heard.isNullOrBlank()) {
-                                        reviewVerses = emptySet()
-                                        checkState = CheckState.Nothing(
-                                            "It couldn't make out any words after ${took}s. The " +
-                                                "recording may be too quiet, or this model may not " +
-                                                "be good enough."
-                                        )
-                                    } else {
-                                        // ⚠ Compared against the page rather than shown raw. The
-                                        // expected words come from the ayahs today's portion
-                                        // actually covers, so a reader who stopped early is judged
-                                        // against what they set out to read and nothing more.
-                                        val expected = withContext(Dispatchers.IO) {
-                                            arabic.wordsAcross(assignment.pages)
-                                        }
-                                        val verdict = checkRecitation(expected, heard)
-                                        reviewVerses = verdict.versesToReview
-                                        android.util.Log.i(
-                                            "WirdWhisper",
-                                            "verdict: ${verdict.coverage} covered, " +
-                                                "confident=${verdict.confident}, " +
-                                                "marked=${verdict.versesToReview} | heard: $heard",
-                                        )
-                                        checkState = CheckState.Heard(
-                                            text = heard,
-                                            seconds = (file.length() / 8000).toInt(),
-                                            took = took,
-                                            summary = verdict.summary,
-                                            marked = verdict.versesToReview.size,
-                                        )
-                                    }
-                                }
+                                runRecitationCheck(days.audioFileFor(today))
                             }) else null,
+                            onDownloadModel = if (WhisperNative.available) ({ targetModel ->
+                                MushafDownloadService.startModel(this@MainActivity, targetModel)
+                            }) else null,
+                            isModelReady = recogniser.ready(),
+                            onOpenSettings = { sub, dialog ->
+                                settingsInitialSubScreen = sub
+                                settingsInitialDialog = dialog
+                                screen = Screen.SETTINGS
+                            },
                             audioFile = { days.audioFileFor(today) },
                             audioQuality = audioQuality,
                             readingMode = readingMode,
@@ -719,16 +749,11 @@ class MainActivity : ComponentActivity() {
                                 // It runs after the fact rather than blocking the screen because
                                 // a minute of audio takes real seconds, and the reader has
                                 // finished reciting — they should not be watching a spinner.
-                                if (method == Method.RECITED && file != null && recogniser.ready()) {
-                                    widgetScope.launch {
-                                        val heard = recogniser.transcribe(file)
-                                        // The measurement PLAN task 14 asks for. Logged rather
-                                        // than shown, because until the numbers exist nobody knows
-                                        // whether this is worth putting in front of a reader.
-                                        android.util.Log.i(
-                                            "WirdWhisper",
-                                            if (heard != null) "HEARD: $heard" else "HEARD: nothing usable",
-                                        )
+                                if (method == Method.RECITED && file != null) {
+                                    if (recogniser.ready()) {
+                                        runRecitationCheck(file)
+                                    } else {
+                                        checkState = CheckState.NeedsModel
                                     }
                                 }
 
@@ -1082,8 +1107,10 @@ class MainActivity : ComponentActivity() {
                             showToolkitTour = true
                         },
                         initialDialog = settingsInitialDialog,
+                        initialSubScreen = settingsInitialSubScreen,
                         onBack = {
                             settingsInitialDialog = null
+                            settingsInitialSubScreen = SettingsSubScreen.MAIN
                             screen = Screen.TODAY
                         },
                     )

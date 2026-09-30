@@ -69,10 +69,12 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.mosman.wird.audio.RecitationModel
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
@@ -169,6 +171,9 @@ fun TodayScreen(
     isWirdSession: Boolean = true,
     /** Navigates to the Sūrahs tab from the Wird hamburger menu. */
     onBrowseSurahs: (() -> Unit)? = null,
+    onDownloadModel: ((RecitationModel) -> Unit)? = null,
+    isModelReady: Boolean = false,
+    onOpenSettings: ((SettingsSubScreen, SettingsDialog?) -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     val todaysPages = remember(assignment) { assignment.pages }
@@ -666,6 +671,10 @@ fun TodayScreen(
                     }
                 },
                 onDismiss = { showReciterPicker = false },
+                onManageOfflineVoices = {
+                    showReciterPicker = false
+                    onOpenSettings?.invoke(SettingsSubScreen.AUDIO_MANAGER, null)
+                },
             )
         }
 
@@ -759,6 +768,8 @@ fun TodayScreen(
                         ayahCount = page.ayahCount(litFor(page)),
                         surahName = surahLabelFor(page, litFor(page)),
                         progress = progress,
+                        onDownloadModel = onDownloadModel,
+                        isModelReady = isModelReady,
                     )
                 }
             },
@@ -1527,6 +1538,7 @@ private fun ReciterPopDownMenu(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    onManageOfflineVoices: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -1624,6 +1636,35 @@ private fun ReciterPopDownMenu(
                         )
                     }
                 }
+            }
+
+            Spacer(Modifier.height(6.dp))
+            HorizontalDivider(color = colors.hairline, thickness = 0.5.dp)
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable {
+                        onDismiss()
+                        onManageOfflineVoices()
+                    }
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Download 114 Sūrahs offline",
+                    color = colors.accent,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Audio Manager →",
+                    color = colors.accent,
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Bold,
+                )
             }
         }
     }

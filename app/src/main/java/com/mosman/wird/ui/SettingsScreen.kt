@@ -189,6 +189,7 @@ fun SettingsScreen(
     onLifeSpacesChanged: () -> Unit = {},
     onToolkitTour: () -> Unit = {},
     initialDialog: SettingsDialog? = null,
+    initialSubScreen: SettingsSubScreen = SettingsSubScreen.MAIN,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -199,7 +200,7 @@ fun SettingsScreen(
     val liveMushafProgress by com.mosman.wird.mushaf.MushafDownloadService.mushafProgress.collectAsState()
 
     // Current sub-screen
-    var subScreen by remember { mutableStateOf(SettingsSubScreen.MAIN) }
+    var subScreen by remember(initialSubScreen) { mutableStateOf(initialSubScreen) }
     var currentPositionLabel by remember(positionLabel) { mutableStateOf(positionLabel) }
 
     // Life Spaces state

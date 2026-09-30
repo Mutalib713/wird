@@ -37,6 +37,15 @@ data class MushafProgress(
 )
 
 /**
+ * Progress details for on-device recitation checker model download.
+ */
+data class ModelProgress(
+    val model: RecitationModel,
+    val doneBytes: Long,
+    val totalBytes: Long,
+)
+
+/**
  * Fetching the whole mushaf, in the background, with a notification you can watch.
  *
  * **His instruction, 2026-08-19:** *"do the download, cos it's supposed to run in the background
@@ -130,6 +139,7 @@ class MushafDownloadService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         _mushafProgress.value = null
+        _modelProgress.value = null
         scope.cancel()
     }
 
@@ -138,6 +148,7 @@ class MushafDownloadService : Service() {
         if (job?.isActive == true) return
         createChannel()
         startForeground(NOTIFICATION_ID, modelNotification(model, 0, 0))
+        _modelProgress.value = ModelProgress(model, 0, 0)
 
         job = scope.launch {
             var lastPercent = -1
@@ -145,6 +156,7 @@ class MushafDownloadService : Service() {
                 model = model,
                 into = File(applicationContext.filesDir, "models"),
             ) { done, total ->
+                _modelProgress.value = ModelProgress(model, done, total)
                 // Percent rather than every buffer: a 78 MB file arrives in 64 KB pieces, and
                 // repainting the notification 1,200 times says nothing a bar does not.
                 val percent = if (total > 0) (done * 100 / total).toInt() else -1
@@ -153,6 +165,7 @@ class MushafDownloadService : Service() {
                     notify(modelNotification(model, done, total))
                 }
             }
+            _modelProgress.value = null
             notify(modelDone(model, ok))
             stopForeground(STOP_FOREGROUND_DETACH)
             stopSelf()
@@ -266,7 +279,10 @@ class MushafDownloadService : Service() {
         private val _mushafProgress = MutableStateFlow<MushafProgress?>(null)
         val mushafProgress: StateFlow<MushafProgress?> = _mushafProgress.asStateFlow()
 
-        fun isDownloading(): Boolean = _mushafProgress.value != null
+        private val _modelProgress = MutableStateFlow<ModelProgress?>(null)
+        val modelProgress: StateFlow<ModelProgress?> = _modelProgress.asStateFlow()
+
+        fun isDownloading(): Boolean = _mushafProgress.value != null || _modelProgress.value != null
 
         fun stop(context: Context) {
             context.startService(Intent(context, MushafDownloadService::class.java).setAction(ACTION_STOP))
