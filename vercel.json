@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/showcase/index.html" },
+    { "source": "/images/(.*)", "destination": "/showcase/images/$1" },
+    { "source": "/videos/(.*)", "destination": "/showcase/videos/$1" },
+    { "source": "/downloads/(.*)", "destination": "/showcase/downloads/$1" },
+    { "source": "/(.*)", "destination": "/showcase/$1" }
+  ],
+  "headers": [
+    {
+      "source": "/showcase/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/showcase/videos/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}
