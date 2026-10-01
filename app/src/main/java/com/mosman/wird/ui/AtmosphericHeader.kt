@@ -468,6 +468,7 @@ fun AtmosphericHeader(
                             color = Color(0xFFE2EBE5),
                         )
                     }
+                    Spacer(Modifier.height(4.dp))
                     // Greeting comes SECOND
                     Text(
                         text = "$greeting, $readerName",
@@ -546,53 +547,6 @@ fun AtmosphericHeader(
                                 tint = Color(0xFF8DE0A6),
                                 modifier = Modifier.size(13.dp),
                             )
-                        }
-                    }
-
-                    Spacer(Modifier.width(8.dp))
-
-                    // Compact Tactile Auto / Manual pill nestled in the corner
-                    val isAuto = scheduleMode == TrackScheduleMode.AUTOMATIC
-                    Box(
-                        modifier = Modifier
-                            .clayPill(
-                                shape = RoundedCornerShape(999.dp),
-                                backgroundColor = Color(0xFF142B21).copy(alpha = 0.90f),
-                                highlightColor = Color.White.copy(alpha = 0.22f),
-                                shadowColor = Color.Black.copy(alpha = 0.4f),
-                                elevation = 1.dp,
-                            )
-                            .clickable(onClick = onToggleScheduleMode)
-                            .padding(horizontal = 9.dp, vertical = 5.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            if (isAuto) {
-                                AutoScheduleGlyph(
-                                    tint = Color(0xFF8DE0A6),
-                                    modifier = Modifier.size(11.dp),
-                                )
-                                Text(
-                                    text = "Auto",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF8DE0A6),
-                                )
-                            } else {
-                                ManualScheduleGlyph(
-                                    tint = Color(0xFFF9C86A),
-                                    modifier = Modifier.size(11.dp),
-                                )
-                                Text(
-                                    text = "Manual",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFF9C86A),
-                                )
-                            }
                         }
                     }
                 }

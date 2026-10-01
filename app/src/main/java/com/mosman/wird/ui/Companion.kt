@@ -132,16 +132,9 @@ fun HomeHabitClarityCard(
                     .border(0.8.dp, gold.copy(alpha = 0.35f), CircleShape)
                     .padding(horizontal = 9.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Icon(
-                    painter = painterResource(com.mosman.wird.R.drawable.ic_flame),
-                    contentDescription = null,
-                    tint = if (isDark) Color(0xFFF0D590) else Color(0xFF8A6418),
-                    modifier = Modifier.size(13.dp),
-                )
                 Text(
-                    text = if (streak > 0) "$streak Day Streak" else "Start Streak",
+                    text = if (streak > 0) "🔥 $streak Day Streak" else "🔥 Start Streak",
                     color = if (isDark) Color(0xFFF0D590) else Color(0xFF8A6418),
                     style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold),
                 )

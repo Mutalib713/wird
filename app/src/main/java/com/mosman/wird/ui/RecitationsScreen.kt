@@ -49,6 +49,7 @@ import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.progressOf
 import com.mosman.wird.ui.theme.LocalWirdColors
+import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 import java.io.File
@@ -77,6 +78,8 @@ fun RecitationsScreen(
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
+
+    SetStatusBarAppearance(isLightBackground = !isDark)
 
     // Handle system back gesture to return to Home
     BackHandler(onBack = onBack)

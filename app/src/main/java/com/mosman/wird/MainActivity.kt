@@ -132,7 +132,7 @@ class MainActivity : ComponentActivity() {
 
             LaunchedEffect(tourStep, showToolkitTour) {
                 if (showToolkitTour) {
-                    if (tourStep == 4) {
+                    if (tourStep == 3) {
                         homeScrollState.animateScrollTo(720)
                     } else {
                         homeScrollState.animateScrollTo(0)

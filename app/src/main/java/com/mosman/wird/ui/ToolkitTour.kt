@@ -154,24 +154,7 @@ fun ToolkitSpotlightOverlay(
                 pointingUp = true,
                 textTop = 300.dp,
             ),
-            // 4. Auto vs Manual Scheduling
-            SpotlightStep(
-                title = "Auto & Manual Scheduling",
-                description = "In Auto mode, Wird rotates your tracks according to your daily schedule. In Manual mode, you choose and lock which track is active.",
-                accentColor = coral,
-                cutoutLeft = 320.dp,
-                cutoutTop = 196.dp,
-                cutoutRight = 396.dp,
-                cutoutBottom = 236.dp,
-                cornerRadius = 999.dp,
-                targetX = 358.dp,
-                targetY = 236.dp,
-                arrowStartX = 300.dp,
-                arrowStartY = 295.dp,
-                pointingUp = true,
-                textTop = 300.dp,
-            ),
-            // 5. Wird AI Companion & Tafsir (Today's Check-in Card - auto-scrolled into view)
+            // 4. Wird AI Companion & Tafsir (Today's Check-in Card - auto-scrolled into view)
             SpotlightStep(
                 title = "Wird AI Companion & Tafsir",
                 description = "Daily check-in and reflection. Tap 'Open Chat' to explore numbered Tafsir Ibn Kathir, translations, or pause without streak guilt.",
