@@ -50,11 +50,16 @@ class NudgeReceiver : BroadcastReceiver() {
             return
         }
 
-        // Sacred Rule 3. Someone who has already read today does not need reminding that
-        // they read today — that is a notification whose only content is a small demand
-        // for attention, which is the thing this app promised not to be.
-        if (days.isDone(today)) {
-            Log.i(TAG, "already read today, staying quiet")
+        val trackId = intent.getStringExtra(Nudge.EXTRA_TRACK_ID)
+        val trackName = intent.getStringExtra(Nudge.EXTRA_TRACK_NAME)
+
+        val allTracks = store.getReadingTracks()
+        val targetTrack = if (trackId != null) allTracks.firstOrNull { it.id == trackId } else null
+        val activeTrack = targetTrack ?: store.activeTrack(today)
+
+        // Sacred Rule 3. If this track is already completed today, stay quiet.
+        if (activeTrack.isCompletedToday(today) || (trackId == null && days.isDone(today))) {
+            Log.i(TAG, "track '${activeTrack.name}' already read today, staying quiet")
             return
         }
 
@@ -66,8 +71,8 @@ class NudgeReceiver : BroadcastReceiver() {
         }
 
         val assignment = todaysAssignment(
-            startUnit = store.positionUnit,
-            plan = store.plan,
+            startUnit = activeTrack.positionUnit,
+            plan = com.mosman.wird.domain.ReadingPlan(defaultUnits = activeTrack.dailyUnits),
             date = today,
         )
         val surahs = com.mosman.wird.domain.SurahIndex.across(assignment.pages)
@@ -95,13 +100,16 @@ class NudgeReceiver : BroadcastReceiver() {
             0,
             Intent(context, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                .putExtra(Nudge.EXTRA_FROM_NUDGE, true),
+                .putExtra(Nudge.EXTRA_FROM_NUDGE, true)
+                .putExtra(Nudge.EXTRA_TRACK_ID, activeTrack.id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+        val notificationTitle = "Your Daily Wırd · ${activeTrack.name}"
+
         val builder = NotificationCompat.Builder(context, Nudge.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
-            .setContentTitle("Your Daily Wırd")
+            .setContentTitle(notificationTitle)
             .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)

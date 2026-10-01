@@ -6,7 +6,12 @@ import java.time.LocalDate
 enum class Method { RECITED, TAPPED }
 
 /** A day that was completed. Missed days are simply absent — there is no row for them. */
-data class DayLog(val date: LocalDate, val method: Method)
+data class DayLog(
+    val date: LocalDate,
+    val method: Method,
+    val trackId: String? = null,
+    val trackName: String? = null,
+)
 
 /**
  * Streak and totals, returned together on purpose.

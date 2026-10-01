@@ -23,8 +23,23 @@ sealed interface NudgeSchedule {
         val offsetMinutes: Int = 30,
     ) : NudgeSchedule
 
-    /** A fixed hour, for a reader who wants one. */
-    data class AtClockTime(val time: LocalTime) : NudgeSchedule
+    /**
+     * Reminders anchored to one or more daily prayers (e.g. Fajr, Asr, Isha),
+     * with [offsetMinutes] after each prayer.
+     */
+    data class AfterPrayers(
+        val prayers: Set<Prayer> = setOf(Prayer.MAGHRIB),
+        val offsetMinutes: Int = 15,
+    ) : NudgeSchedule
+
+    /**
+     * A fixed hour on the clock, with optional repeating reminders if not yet read today.
+     * [repeatIntervalHours]: 0 for once (no repeat), 1 for every 1 hr, 2 for every 2 hrs, 3 for every 3 hrs.
+     */
+    data class AtClockTime(
+        val time: LocalTime,
+        val repeatIntervalHours: Int = 0,
+    ) : NudgeSchedule
 
     /**
      * No reminder at all.
@@ -57,15 +72,6 @@ private const val SEARCH_DAYS = 7L
 
 /**
  * The next moment this schedule calls for, or null if there isn't one.
- *
- * Null means one of three things, and the caller has to handle all of them out loud: the
- * reminder is switched off, we do not know where the phone is ([at] is null), or the
- * chosen prayer genuinely has no time at this latitude right now.
- *
- * A prayer that has already passed today rolls to tomorrow rather than firing late. That
- * matters more than it looks — this function runs every time the app opens, and someone
- * who opens Wird at nine in the evening must not be handed a reminder for the Maghrib
- * that went three hours ago.
  */
 fun NudgeSchedule.nextAfter(
     now: ZonedDateTime,
@@ -77,12 +83,23 @@ fun NudgeSchedule.nextAfter(
 
     is NudgeSchedule.AtClockTime -> {
         val todayAt = now.toLocalDate().atTime(time).atZone(now.zone)
-        if (todayAt.isAfter(now)) todayAt else todayAt.plusDays(1)
+        if (todayAt.isAfter(now)) {
+            todayAt
+        } else if (repeatIntervalHours > 0) {
+            var candidate = todayAt
+            while (!candidate.isAfter(now) && candidate.toLocalDate() == now.toLocalDate()) {
+                candidate = candidate.plusHours(repeatIntervalHours.toLong())
+            }
+            if (candidate.isAfter(now) && candidate.toLocalDate() == now.toLocalDate()) {
+                candidate
+            } else {
+                todayAt.plusDays(1)
+            }
+        } else {
+            todayAt.plusDays(1)
+        }
     }
 
-    // Without coordinates there is no sunset to offset from, and guessing one would put
-    // the reminder confidently in the wrong hour. The caller falls back to a fixed time
-    // and says that is what it did.
     is NudgeSchedule.AfterPrayer -> {
         if (at == null) {
             null
@@ -90,9 +107,6 @@ fun NudgeSchedule.nextAfter(
             (0L..SEARCH_DAYS).firstNotNullOfOrNull { dayOffset ->
                 val date = now.toLocalDate().plusDays(dayOffset)
                 PrayerTimes.compute(date, at, now.zone, method)[prayer]
-                    // Built from the prayer's own date and then offset, so an offset
-                    // large enough to cross midnight lands on the right day instead of
-                    // wrapping back round to the morning.
                     ?.let {
                         date.atTime(it).atZone(now.zone)
                             .plusMinutes(offsetMinutes.toLong())
@@ -101,19 +115,30 @@ fun NudgeSchedule.nextAfter(
             }
         }
     }
+
+    is NudgeSchedule.AfterPrayers -> {
+        if (at == null || prayers.isEmpty()) {
+            null
+        } else {
+            (0L..SEARCH_DAYS).firstNotNullOfOrNull { dayOffset ->
+                val date = now.toLocalDate().plusDays(dayOffset)
+                val times = PrayerTimes.compute(date, at, now.zone, method)
+                prayers
+                    .mapNotNull { p ->
+                        times[p]?.let {
+                            date.atTime(it).atZone(now.zone)
+                                .plusMinutes(offsetMinutes.toLong())
+                        }
+                    }
+                    .filter { it.isAfter(now) }
+                    .minOrNull()
+            }
+        }
+    }
 }
 
 /**
  * The next reminder, with a stretch of away days stepped over. **PLAN task 22.**
- *
- * **The reminder has to come back on its own.** Someone who says "I'm travelling till Sunday"
- * and then does not open the app for four days must still be asked on Sunday evening — so
- * this does not switch the alarm off, it sets it for the far side of the trip. An alarm is an
- * absolute moment on the phone's clock; nothing has to be running for it to arrive.
- *
- * The first candidate is computed normally, and only if it lands inside the away days is a
- * second one computed from the morning of the return. That order matters: "travelling next
- * week" must leave *this* week's reminders exactly where they are.
  */
 fun NudgeSchedule.nextAwake(
     now: ZonedDateTime,
@@ -128,18 +153,22 @@ fun NudgeSchedule.nextAwake(
 
 /**
  * The schedule in words, for the settings screen.
- *
- * Deliberately never shows a prayer time. PROFILE.md § 5 keeps prayer times out of v1 as
- * a feature, and "18:44" on screen is a timetable however it got there. The reader picks
- * a landmark they already know; the app does the arithmetic and keeps it.
  */
 fun NudgeSchedule.label(): String = when (this) {
     is NudgeSchedule.Off -> "No reminder"
-    is NudgeSchedule.AtClockTime -> "At ${clockLabel(time)}"
+    is NudgeSchedule.AtClockTime -> {
+        val rep = if (repeatIntervalHours > 0) " (repeats every ${repeatIntervalHours}h)" else ""
+        "At ${clockLabel(time)}$rep"
+    }
     is NudgeSchedule.AfterPrayer -> when {
         offsetMinutes == 0 -> "At ${prayer.label}"
         offsetMinutes < 0 -> "${minutesLabel(-offsetMinutes)} before ${prayer.label}"
         else -> "${minutesLabel(offsetMinutes)} after ${prayer.label}"
+    }
+    is NudgeSchedule.AfterPrayers -> {
+        val prayerNames = prayers.sortedBy { it.ordinal }.joinToString(", ") { it.label }
+        if (offsetMinutes == 0) "At $prayerNames"
+        else "${minutesLabel(offsetMinutes)} after $prayerNames"
     }
 }
 

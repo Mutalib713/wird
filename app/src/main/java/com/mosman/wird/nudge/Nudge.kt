@@ -24,6 +24,8 @@ object Nudge {
     const val CHANNEL_ID = "wird_daily"
     const val NOTIFICATION_ID = 1
     const val EXTRA_FROM_NUDGE = "com.mosman.wird.FROM_NUDGE"
+    const val EXTRA_TRACK_ID = "com.mosman.wird.TRACK_ID"
+    const val EXTRA_TRACK_NAME = "com.mosman.wird.TRACK_NAME"
 
     private const val PREFS = "wird_nudge"
     private const val KEY_NEXT_AT = "next_at"
@@ -61,18 +63,23 @@ object Nudge {
     }
 
     /**
-     * Schedule the nudge for [triggerAtMillis].
-     *
-     * Returns true if it was scheduled exactly, false if Android downgraded it to an
-     * inexact alarm. The caller is expected to tell the user which one they got —
-     * silently drifting is the failure mode that makes people think the app is broken.
+     * Schedule the nudge for [triggerAtMillis], optionally associated with a specific reading track.
      */
-    fun schedule(context: Context, triggerAtMillis: Long): Boolean {
+    fun schedule(
+        context: Context,
+        triggerAtMillis: Long,
+        trackId: String? = null,
+        trackName: String? = null,
+    ): Boolean {
         val am = context.getSystemService(AlarmManager::class.java)
+        val intent = Intent(context, NudgeReceiver::class.java).apply {
+            if (trackId != null) putExtra(EXTRA_TRACK_ID, trackId)
+            if (trackName != null) putExtra(EXTRA_TRACK_NAME, trackName)
+        }
         val pending = PendingIntent.getBroadcast(
             context,
             0,
-            Intent(context, NudgeReceiver::class.java),
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
@@ -80,12 +87,9 @@ object Nudge {
         if (exact) {
             am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pending)
         } else {
-            // Still fires in Doze, just not at a precise minute. Better than nothing and
-            // far better than crashing, which is what setExact does without permission.
             am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pending)
         }
 
-        // Alarms do not survive a reboot, so remember when this one was for.
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit { putLong(KEY_NEXT_AT, triggerAtMillis) }
 

@@ -109,13 +109,30 @@ private enum class Screen { SETUP, TODAY, SETTINGS, BOOKMARKS }
 private enum class PageSource { HOME, SURAHS, BOOKMARKS }
 
 class MainActivity : ComponentActivity() {
+    private var onNewTrackSelected: ((String) -> Unit)? = null
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val nudgeTrackId = intent.getStringExtra(com.mosman.wird.nudge.Nudge.EXTRA_TRACK_ID)
+        if (nudgeTrackId != null) {
+            val store = WirdStore(this)
+            store.setActiveTrack(nudgeTrackId)
+            onNewTrackSelected?.invoke(nudgeTrackId)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Nudge.createChannel(this)
         val store = WirdStore(this)
         val days = DayLogStore(this)
-        val chat = ConversationStore(filesDir)
         val bookmarks = BookmarkStore(filesDir)
+
+        val initialNudgeTrackId = intent?.getStringExtra(com.mosman.wird.nudge.Nudge.EXTRA_TRACK_ID)
+        if (initialNudgeTrackId != null) {
+            store.setActiveTrack(initialNudgeTrackId)
+        }
 
         setContent {
             var screen by remember {
@@ -152,7 +169,29 @@ class MainActivity : ComponentActivity() {
             var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
             var settingsInitialDialog by remember { mutableStateOf<SettingsDialog?>(null) }
             var settingsInitialSubScreen by remember { mutableStateOf(SettingsSubScreen.MAIN) }
-            var turns by remember { mutableStateOf(chat.all()) }
+            val chat = remember(activeTrack.id) { ConversationStore(filesDir, activeTrack.id) }
+            var turns by remember(activeTrack.id) { mutableStateOf(chat.all()) }
+
+            LaunchedEffect(activeTrack.id) {
+                if (chat.all().isEmpty()) {
+                    val page = Mushaf.pageOf(activeTrack.positionUnit)
+                    val surah = SurahIndex.on(page).firstOrNull()?.name ?: "Page $page"
+                    val greeting = "Assalamu Alaikum! Reflection space for '${activeTrack.name}' ready (Page $page, $surah). How did your recitation go today, and what would you like to reflect on?"
+                    turns = chat.say(Speaker.WIRD, greeting)
+                }
+            }
+
+            androidx.compose.runtime.DisposableEffect(Unit) {
+                onNewTrackSelected = { newTrackId ->
+                    activeTrack = store.activeTrack(today)
+                    allTracks = store.getReadingTracks()
+                    position = activeTrack.positionUnit
+                    direction = activeTrack.direction
+                }
+                onDispose {
+                    onNewTrackSelected = null
+                }
+            }
             var saved by remember { mutableStateOf(bookmarks.all()) }
             /** What is on the phone, for the "Your data" row. Refreshed after either action. */
             var onDevice by remember { mutableStateOf<DataOnDevice?>(null) }
@@ -633,7 +672,7 @@ class MainActivity : ComponentActivity() {
                             chat.clear()
                             val surah = assignment.surahs.firstOrNull()?.name ?: "your daily portion"
                             val page = assignment.pages.firstOrNull() ?: Mushaf.pageOf(position)
-                            val greeting = "Assalamu Alaikum! Fresh reflection started for Page $page ($surah). How did your recitation go today, and what would you like to reflect on?"
+                            val greeting = "Assalamu Alaikum! Fresh reflection started for '${activeTrack.name}' (Page $page, $surah). How did your recitation go today, and what would you like to reflect on?"
                             turns = chat.say(Speaker.WIRD, greeting)
                         },
                         onOpenPortion = {
@@ -744,6 +783,8 @@ class MainActivity : ComponentActivity() {
                                     audio = file,
                                     startUnit = assignment.startUnit,
                                     units = assignment.units,
+                                    trackId = activeTrack.id,
+                                    trackName = activeTrack.name,
                                 )
                                 doneMethod = days.methodFor(today)
                                 nudgeWidget()
@@ -869,6 +910,8 @@ class MainActivity : ComponentActivity() {
                                         audio = null,
                                         startUnit = assignment.startUnit,
                                         units = assignment.units,
+                                        trackId = activeTrack.id,
+                                        trackName = activeTrack.name,
                                     )
                                     doneMethod = days.methodFor(today)
                                     nudgeWidget()
@@ -956,9 +999,10 @@ class MainActivity : ComponentActivity() {
 
                             WirdTab.HISTORY -> RecitationsScreen(
                                 logs = days.all(),
-                                audioFor = { d -> days.audioFor(d) },
-                                coveredFor = { d -> days.coveredOn(d) },
-                                transcriptionFor = { d -> days.transcriptionFor(d) },
+                                allTracks = allTracks,
+                                audioFor = { d, tid -> days.audioFor(d, tid) },
+                                coveredFor = { d, tid -> days.coveredOn(d, tid) },
+                                transcriptionFor = { d, tid -> days.transcriptionFor(d, tid) },
                                 onPlay = { f -> playback.play(f) },
                                 onStop = { playback.stopPlaying() },
                                 onBack = { tab = WirdTab.HOME },

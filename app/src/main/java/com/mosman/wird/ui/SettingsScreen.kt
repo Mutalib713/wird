@@ -101,6 +101,9 @@ import com.mosman.wird.domain.TrackType
 import com.mosman.wird.domain.TrackScheduleMode
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
+import com.mosman.wird.data.decodeSchedule
+import com.mosman.wird.data.encodeSchedule
 
 /** Sub-screens within the Settings flow. */
 enum class SettingsSubScreen {
@@ -775,9 +778,10 @@ fun SettingsScreen(
 
                         // 5. Reminders
                         ClaySection(title = "Reminders") {
+                            val activeTrackSchedule = activeTrack.reminderScheduleRaw?.let(::decodeSchedule) ?: schedule
                             ClaySettingRow(
                                 title = "Notification schedule",
-                                subtitle = schedule.label(),
+                                subtitle = "${activeTrack.name}: ${activeTrackSchedule.label()}",
                                 onClick = { activeDialog = SettingsDialog.REMINDER },
                             )
 
@@ -1541,39 +1545,20 @@ fun SettingsScreen(
             }
 
             SettingsDialog.REMINDER -> {
-                val currentRemIndex = when (schedule) {
-                    is NudgeSchedule.AfterPrayer -> when (schedule.prayer) {
-                        Prayer.MAGHRIB -> 0
-                        Prayer.ISHA -> 1
-                        Prayer.FAJR -> 2
-                        else -> 0
-                    }
-                    is NudgeSchedule.AtClockTime -> if (schedule.time.hour == 20) 3 else 4
-                    is NudgeSchedule.Off -> 5
-                }
-                val activeTrackName = store.activeTrack().name
-                ClayOptionDialog(
-                    title = "Reminder schedule ($activeTrackName)",
-                    options = listOf(
-                        DialogOption(0, "After Maghrib", "15 minutes after sunset"),
-                        DialogOption(1, "After 'Isha", "Quiet night reading before sleep"),
-                        DialogOption(2, "After Fajr", "Start of the morning"),
-                        DialogOption(3, "Fixed time: 8:00 PM", "Every day at 8:00 PM"),
-                        DialogOption(4, "Fixed time: 9:00 PM", "Every day at 9:00 PM"),
-                        DialogOption(5, "Off", "No reminders"),
-                    ),
-                    selected = currentRemIndex,
-                    onSelect = { idx ->
-                        val newSchedule = when (idx) {
-                            0 -> NudgeSchedule.AfterPrayer(Prayer.MAGHRIB, 15)
-                            1 -> NudgeSchedule.AfterPrayer(Prayer.ISHA, 15)
-                            2 -> NudgeSchedule.AfterPrayer(Prayer.FAJR, 15)
-                            3 -> NudgeSchedule.AtClockTime(java.time.LocalTime.of(20, 0))
-                            4 -> NudgeSchedule.AtClockTime(java.time.LocalTime.of(21, 0))
-                            else -> NudgeSchedule.Off
+                AdvancedReminderDialog(
+                    initialTrack = activeTrack,
+                    allTracks = readingTracks,
+                    initialSchedule = activeTrack.reminderScheduleRaw?.let(::decodeSchedule) ?: schedule,
+                    onSave = { track, newSchedule ->
+                        val updated = track.copy(reminderScheduleRaw = encodeSchedule(newSchedule))
+                        store.updateTrack(updated)
+                        readingTracks = store.getReadingTracks()
+                        if (activeTrack.id == updated.id) {
+                            activeTrack = updated
+                            onSchedule(newSchedule)
                         }
-                        store.updateActiveSpaceReminder(newSchedule)
-                        onSchedule(newSchedule)
+                        com.mosman.wird.nudge.NudgeScheduler.arm(context)
+                        activeDialog = null
                     },
                     onDismiss = { activeDialog = null },
                 )

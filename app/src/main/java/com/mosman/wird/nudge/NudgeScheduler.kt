@@ -5,6 +5,7 @@ import android.util.Log
 import com.mosman.wird.data.PlaceSource
 import com.mosman.wird.data.Where
 import com.mosman.wird.data.WirdStore
+import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.nextAwake
 import java.time.LocalTime
@@ -67,45 +68,84 @@ object NudgeScheduler {
 
     fun arm(context: Context, now: ZonedDateTime = ZonedDateTime.now()): Armed {
         val store = WirdStore(context)
+        val today = now.toLocalDate()
+        val away = store.away?.takeIf { !it.isPast(today) }
+        val place = Where.best(context)
+        val tracks = store.getReadingTracks().filter { !it.isFrozen }
 
-        // **A promise made today outranks the routine, for today only.** PLAN task 22: this
-        // is where "in an hour" stopped being a permanent move of the reminder. The routine
-        // is untouched underneath and comes back by itself tomorrow.
-        val schedule = store.scheduleFor(now.toLocalDate())
+        data class ScheduledCandidate(
+            val track: com.mosman.wird.domain.ReadingTrack,
+            val time: ZonedDateTime,
+            val isFallback: Boolean,
+        )
 
-        // Away days are stepped over rather than switched off, so the reminder returns on
-        // its own without the app being opened. See [nextAwake].
-        val away = store.away?.takeIf { !it.isPast(now.toLocalDate()) }
+        val candidates = mutableListOf<ScheduledCandidate>()
 
-        if (schedule is NudgeSchedule.Off) {
+        if (tracks.isEmpty()) {
+            val schedule = store.scheduleFor(today)
+            if (schedule !is NudgeSchedule.Off) {
+                val wanted = schedule.nextAwake(now, place?.coordinates, away)
+                if (wanted != null && place != null) {
+                    val exact = Nudge.schedule(context, wanted.toInstant().toEpochMilli())
+                    store.lastArmedFor = wanted.toLocalDateTime()
+                    return Armed.At(wanted, exact, place.source)
+                }
+            }
             Nudge.cancel(context)
-            Log.i(NudgeReceiver.TAG, "reminder is off, nothing scheduled")
             return Armed.OffByChoice
         }
 
-        val place = Where.best(context)
-        val wanted = schedule.nextAwake(now, place?.coordinates, away)
+        for (track in tracks) {
+            val schedule = track.reminderScheduleRaw?.let(::decodeSchedule) ?: store.scheduleFor(today)
+            if (schedule is NudgeSchedule.Off) continue
 
-        if (wanted != null && place != null) {
-            val exact = Nudge.schedule(context, wanted.toInstant().toEpochMilli())
-            Log.i(
-                NudgeReceiver.TAG,
-                "next nudge $wanted (${if (exact) "exact" else "inexact"}, ${place.source})",
-            )
-            // Remembered so the self-check can compare it against when the alarm actually
-            // ran. PLAN task 15.
-            store.lastArmedFor = wanted.toLocalDateTime()
-            return Armed.At(wanted, exact, place.source)
+            // If already completed today, look ahead starting tomorrow morning
+            val checkFrom = if (track.isCompletedToday(today)) {
+                today.plusDays(1).atStartOfDay(now.zone)
+            } else {
+                now
+            }
+
+            val wanted = schedule.nextAwake(checkFrom, place?.coordinates, away)
+            if (wanted != null && place != null) {
+                candidates.add(ScheduledCandidate(track, wanted, isFallback = false))
+            } else if (schedule is NudgeSchedule.AtClockTime) {
+                val clockTime = schedule.nextAwake(checkFrom, null, away)
+                if (clockTime != null) {
+                    candidates.add(ScheduledCandidate(track, clockTime, isFallback = true))
+                }
+            } else {
+                val fallbackAt = NudgeSchedule.AtClockTime(FALLBACK_TIME).nextAwake(checkFrom, null, away)
+                if (fallbackAt != null) {
+                    candidates.add(ScheduledCandidate(track, fallbackAt, isFallback = true))
+                }
+            }
         }
 
-        // Either no coordinates, or a prayer with no time this week. Say which.
-        val fallbackAt = NudgeSchedule.AtClockTime(FALLBACK_TIME).nextAwake(now, null, away)!!
-        val exact = Nudge.schedule(context, fallbackAt.toInstant().toEpochMilli())
-        Log.w(
-            NudgeReceiver.TAG,
-            "no prayer time available (place=$place), falling back to $fallbackAt",
+        val earliest = candidates.minByOrNull { it.time }
+        if (earliest == null) {
+            Nudge.cancel(context)
+            Log.i(NudgeReceiver.TAG, "no upcoming track reminders scheduled")
+            return Armed.OffByChoice
+        }
+
+        val exact = Nudge.schedule(
+            context = context,
+            triggerAtMillis = earliest.time.toInstant().toEpochMilli(),
+            trackId = earliest.track.id,
+            trackName = earliest.track.name,
         )
-        store.lastArmedFor = fallbackAt.toLocalDateTime()
-        return Armed.AtFallback(fallbackAt, exact)
+        store.lastArmedFor = earliest.time.toLocalDateTime()
+
+        Log.i(
+            NudgeReceiver.TAG,
+            "next nudge for track '${earliest.track.name}' at ${earliest.time} (exact=$exact, fallback=${earliest.isFallback})",
+        )
+
+        return if (earliest.isFallback || place == null) {
+            Armed.AtFallback(earliest.time, exact)
+        } else {
+            Armed.At(earliest.time, exact, place.source)
+        }
     }
 }

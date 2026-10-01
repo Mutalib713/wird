@@ -21,10 +21,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import com.mosman.wird.domain.ReadingTrack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,9 +76,10 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun RecitationsScreen(
     logs: List<DayLog>,
-    audioFor: (LocalDate) -> File?,
-    coveredFor: (LocalDate) -> Pair<Int, Int>? = { null },
-    transcriptionFor: (LocalDate) -> String? = { null },
+    allTracks: List<ReadingTrack> = emptyList(),
+    audioFor: (LocalDate, String?) -> File? = { d, _ -> null },
+    coveredFor: (LocalDate, String?) -> Pair<Int, Int>? = { _, _ -> null },
+    transcriptionFor: (LocalDate, String?) -> String? = { _, _ -> null },
     onPlay: (File) -> Unit,
     onStop: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -84,8 +93,14 @@ fun RecitationsScreen(
     // Handle system back gesture to return to Home
     BackHandler(onBack = onBack)
 
+    var selectedTrackIdFilter by remember { mutableStateOf<String?>(null) }
+    var expandedKeys by remember { mutableStateOf(setOf<String>()) }
+
     // Newest first: the thing you did most recently is the thing you want to hear back.
-    val ordered = remember(logs) { logs.sortedByDescending { it.date } }
+    val ordered = remember(logs, selectedTrackIdFilter) {
+        val base = if (selectedTrackIdFilter == null) logs else logs.filter { it.trackId == selectedTrackIdFilter }
+        base.sortedByDescending { it.date }
+    }
     val progress = remember(logs) { progressOf(logs, LocalDate.now()) }
     var playingFile by remember { mutableStateOf<File?>(null) }
 
@@ -258,6 +273,64 @@ fun RecitationsScreen(
 
         Spacer(Modifier.height(8.dp))
 
+        // Horizontal Track Filter Pills
+        val filterOptions = remember(logs, allTracks) {
+            val list = mutableListOf<Pair<String?, String>>()
+            list.add(null to "All (${logs.size})")
+            val trackMap = allTracks.associateBy { it.id }
+            val presentTrackIds = (logs.mapNotNull { it.trackId } + allTracks.map { it.id }).distinct()
+            for (tid in presentTrackIds) {
+                val name = trackMap[tid]?.name
+                    ?: logs.firstOrNull { it.trackId == tid }?.trackName
+                    ?: "Track"
+                val count = logs.count { it.trackId == tid }
+                list.add(tid to "$name ($count)")
+            }
+            list
+        }
+
+        if (filterOptions.size > 2) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                filterOptions.forEach { (tid, label) ->
+                    val isSelected = selectedTrackIdFilter == tid
+                    Box(
+                        modifier = Modifier
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = if (isSelected) {
+                                    if (isDark) Color(0xFF1E3F32) else Color(0xFFDCEDE3)
+                                } else {
+                                    if (isDark) Color(0xFF14221B) else Color(0xFFEFECE1)
+                                },
+                                elevation = if (isSelected) 2.dp else 1.dp,
+                            )
+                            .clickable { selectedTrackIdFilter = tid }
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = label,
+                            fontSize = 11.5.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) {
+                                if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32)
+                            } else {
+                                if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                            },
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(4.dp))
+        }
+
         if (ordered.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -310,9 +383,11 @@ fun RecitationsScreen(
             contentPadding = PaddingValues(bottom = 110.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(ordered, key = { it.date.toString() }) { log ->
-                val audio = audioFor(log.date)
-                val coverage = coverageLabel(coveredFor(log.date))
+            items(ordered, key = { "${it.date}_${it.trackId.orEmpty()}" }) { log ->
+                val itemKey = "${log.date}_${log.trackId.orEmpty()}"
+                val isExpanded = itemKey in expandedKeys
+                val audio = audioFor(log.date, log.trackId)
+                val coverage = coverageLabel(coveredFor(log.date, log.trackId))
                 val isPlaying = playingFile == audio
 
                 Box(
@@ -351,6 +426,24 @@ fun RecitationsScreen(
                                         fontSize = 12.sp,
                                     )
                                 }
+                                val displayTrackName = log.trackName
+                                    ?: allTracks.firstOrNull { it.id == log.trackId }?.name
+                                if (!displayTrackName.isNullOrBlank()) {
+                                    Spacer(Modifier.height(3.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(if (isDark) Color(0xFF162B21) else Color(0xFFE5EFE9))
+                                            .padding(horizontal = 7.dp, vertical = 2.dp),
+                                    ) {
+                                        Text(
+                                            text = "📖 $displayTrackName",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (isDark) Color(0xFF8ED676) else Color(0xFF1F6B47),
+                                        )
+                                    }
+                                }
                             }
 
                             // Badge
@@ -382,9 +475,9 @@ fun RecitationsScreen(
                             }
                         }
 
-                        // Inline Audio Player & Text if audio exists (clean, no bulky nested container)
+                        // Collapsible Recitation Section
                         val hasAudio = audio != null && audio.exists() && audio.length() > 0
-                        val transcription = transcriptionFor(log.date)
+                        val transcription = transcriptionFor(log.date, log.trackId)
                         if (hasAudio) {
                             Spacer(Modifier.height(10.dp))
                             val durationSecs = (audio.length() / 8000L).toInt().coerceAtLeast(1)
@@ -395,79 +488,144 @@ fun RecitationsScreen(
                                 durationSecs % 60,
                             )
 
-                            Box(
+                            // Accordion Toggle Pill Button
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(40.dp)
-                                    .clayCard(
-                                        shape = RoundedCornerShape(10.dp),
-                                        backgroundColor = if (isDark) Color(0xFF182820) else Color(0xFFF7F5EE),
-                                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.85f),
-                                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.15f),
+                                    .clayPill(
+                                        shape = RoundedCornerShape(12.dp),
+                                        backgroundColor = if (isExpanded) {
+                                            if (isDark) Color(0xFF1D382B) else Color(0xFFDCEDE3)
+                                        } else {
+                                            if (isDark) Color(0xFF16251E) else Color(0xFFECE7DB)
+                                        },
                                         elevation = 1.dp,
                                     )
                                     .clickable {
-                                        if (isPlaying) {
-                                            onStop()
-                                            playingFile = null
-                                        } else {
-                                            playingFile = audio
-                                            onPlay(audio)
-                                        }
+                                        expandedKeys = if (isExpanded) expandedKeys - itemKey else expandedKeys + itemKey
                                     }
-                                    .padding(horizontal = 10.dp),
-                                contentAlignment = Alignment.CenterStart,
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
+                                Text(
+                                    text = if (isExpanded) "🎙️ Recitation recording & text" else "🎙️ See what you recited ($durationStr)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32),
+                                )
+                                Text(
+                                    text = if (isExpanded) "▴" else "▾",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32),
+                                )
+                            }
+
+                            AnimatedVisibility(
+                                visible = isExpanded,
+                                enter = fadeIn() + expandVertically(),
+                                exit = fadeOut() + shrinkVertically(),
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
                                 ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(26.dp)
-                                            .background(
-                                                color = if (isDark) Color(0xFF2D694E) else Color(0xFF1E3F32),
-                                                shape = CircleShape,
-                                            ),
-                                        contentAlignment = Alignment.Center,
+                                            .fillMaxWidth()
+                                            .height(40.dp)
+                                            .clayCard(
+                                                shape = RoundedCornerShape(10.dp),
+                                                backgroundColor = if (isDark) Color(0xFF182820) else Color(0xFFF7F5EE),
+                                                highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.85f),
+                                                shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.15f),
+                                                elevation = 1.dp,
+                                            )
+                                            .clickable {
+                                                if (isPlaying) {
+                                                    onStop()
+                                                    playingFile = null
+                                                } else {
+                                                    playingFile = audio
+                                                    onPlay(audio)
+                                                }
+                                            }
+                                            .padding(horizontal = 10.dp),
+                                        contentAlignment = Alignment.CenterStart,
                                     ) {
-                                        Text(
-                                            text = if (isPlaying) "■" else "▶",
-                                            color = Color.White,
-                                            fontSize = if (isPlaying) 9.sp else 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                        )
-                                    }
-
-                                    Spacer(Modifier.width(10.dp))
-
-                                    Row(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalArrangement = Arrangement.spacedBy(3.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        val waveHeights = listOf(6, 12, 16, 10, 18, 14, 8, 15, 12, 6, 14, 9, 16, 7)
-                                        waveHeights.forEach { h ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
                                             Box(
                                                 modifier = Modifier
-                                                    .width(3.dp)
-                                                    .height(h.dp)
+                                                    .size(26.dp)
                                                     .background(
-                                                        color = if (isPlaying) Color(0xFF50A773) else Color(0xFF50A773).copy(alpha = 0.6f),
-                                                        shape = RoundedCornerShape(2.dp),
+                                                        color = if (isDark) Color(0xFF2D694E) else Color(0xFF1E3F32),
+                                                        shape = CircleShape,
                                                     ),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Text(
+                                                    text = if (isPlaying) "■" else "▶",
+                                                    color = Color.White,
+                                                    fontSize = if (isPlaying) 9.sp else 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                )
+                                            }
+
+                                            Spacer(Modifier.width(10.dp))
+
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                val waveHeights = listOf(6, 12, 16, 10, 18, 14, 8, 15, 12, 6, 14, 9, 16, 7)
+                                                waveHeights.forEach { h ->
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .width(3.dp)
+                                                            .height(h.dp)
+                                                            .background(
+                                                                color = if (isPlaying) Color(0xFF50A773) else Color(0xFF50A773).copy(alpha = 0.6f),
+                                                                shape = RoundedCornerShape(2.dp),
+                                                            ),
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(Modifier.width(8.dp))
+
+                                            Text(
+                                                text = durationStr,
+                                                color = if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
                                             )
                                         }
                                     }
 
-                                    Spacer(Modifier.width(8.dp))
-
-                                    Text(
-                                        text = durationStr,
-                                        color = if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                    )
+                                    if (!transcription.isNullOrBlank()) {
+                                        Spacer(Modifier.height(8.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(if (isDark) Color(0xFF101C16) else Color(0xFFF3EFE7))
+                                                .padding(10.dp),
+                                        ) {
+                                            Text(
+                                                text = transcription,
+                                                fontSize = 13.5.sp,
+                                                lineHeight = 20.sp,
+                                                fontWeight = FontWeight.Normal,
+                                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

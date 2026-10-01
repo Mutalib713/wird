@@ -728,11 +728,12 @@ class WirdStore(context: Context) {
     }
 }
 
-/** "PRAYER MAGHRIB 30", "CLOCK 20:00", or "OFF". Readable on purpose — see DayLogStore. */
+/** "PRAYER MAGHRIB 30", "PRAYERS FAJR,ASR,ISHA 15", "CLOCK 20:00 2", or "OFF". Readable on purpose — see DayLogStore. */
 internal fun encodeSchedule(schedule: NudgeSchedule): String = when (schedule) {
     is NudgeSchedule.Off -> "OFF"
-    is NudgeSchedule.AtClockTime -> "CLOCK ${schedule.time}"
+    is NudgeSchedule.AtClockTime -> "CLOCK ${schedule.time} ${schedule.repeatIntervalHours}"
     is NudgeSchedule.AfterPrayer -> "PRAYER ${schedule.prayer.name} ${schedule.offsetMinutes}"
+    is NudgeSchedule.AfterPrayers -> "PRAYERS ${schedule.prayers.joinToString(",") { it.name }} ${schedule.offsetMinutes}"
 }
 
 internal fun decodeSchedule(raw: String?): NudgeSchedule {
@@ -741,11 +742,22 @@ internal fun decodeSchedule(raw: String?): NudgeSchedule {
     return runCatching {
         when (parts[0]) {
             "OFF" -> NudgeSchedule.Off
-            "CLOCK" -> NudgeSchedule.AtClockTime(LocalTime.parse(parts[1]))
+            "CLOCK" -> {
+                val time = LocalTime.parse(parts[1])
+                val repeat = parts.getOrNull(2)?.toIntOrNull() ?: 0
+                NudgeSchedule.AtClockTime(time, repeat)
+            }
             "PRAYER" -> NudgeSchedule.AfterPrayer(
                 prayer = Prayer.valueOf(parts[1]),
-                offsetMinutes = parts[2].toInt(),
+                offsetMinutes = parts.getOrNull(2)?.toIntOrNull() ?: 30,
             )
+            "PRAYERS" -> {
+                val prayers = parts.getOrNull(1)?.split(",")?.mapNotNull {
+                    runCatching { Prayer.valueOf(it) }.getOrNull()
+                }?.toSet() ?: setOf(Prayer.MAGHRIB)
+                val offset = parts.getOrNull(2)?.toIntOrNull() ?: 15
+                NudgeSchedule.AfterPrayers(prayers, offset)
+            }
             else -> NudgeSchedule.Default
         }
     }.getOrDefault(NudgeSchedule.Default)

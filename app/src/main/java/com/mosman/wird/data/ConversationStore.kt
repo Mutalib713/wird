@@ -20,9 +20,14 @@ import java.time.LocalDateTime
  * are dropped, which is the right end to lose: this is a running check-in, not an archive,
  * and § 5m's design note is explicit that the companion *"only speaks twice"* a day.
  */
-class ConversationStore(private val filesDir: File) {
+class ConversationStore(private val filesDir: File, val trackId: String? = null) {
 
-    private val file = File(filesDir, "chat.json")
+    private val file: File
+        get() = if (trackId.isNullOrBlank() || trackId == "default") {
+            File(filesDir, "chat.json")
+        } else {
+            File(filesDir, "chat_$trackId.json")
+        }
 
     fun all(): List<Turn> = read()
 

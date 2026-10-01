@@ -23,41 +23,74 @@ class DayLogStore(context: Context) {
     private val file = File(context.filesDir, "days.json")
     private val audioDir = File(context.filesDir, "recitations").apply { mkdirs() }
 
-    /** One entry per day, newest last. */
+    /** One entry per day session, newest last. */
     fun all(): List<DayLog> = read().map { it.log }
 
-    /** The recording for a day, if that day was recited and the file is still there. */
-    fun audioFor(date: LocalDate): File? =
-        read().firstOrNull { it.log.date == date }
-            ?.audio
+    /** The recording for a day and track, if that day was recited and the file is still there. */
+    fun audioFor(date: LocalDate, trackId: String? = null): File? {
+        val rows = read()
+        val matchingRow = if (trackId != null) {
+            rows.firstOrNull { it.log.date == date && it.log.trackId == trackId }
+                ?: rows.firstOrNull { it.log.date == date }
+        } else {
+            rows.firstOrNull { it.log.date == date }
+        }
+        return matchingRow?.audio
             ?.let { File(audioDir, it) }
             ?.takeIf { it.exists() && it.length() > 0 }
+    }
 
     fun isDone(date: LocalDate): Boolean = read().any { it.log.date == date }
 
-    fun methodFor(date: LocalDate): Method? = read().firstOrNull { it.log.date == date }?.log?.method
+    fun isDone(date: LocalDate, trackId: String?): Boolean =
+        if (trackId == null) isDone(date) else read().any { it.log.date == date && it.log.trackId == trackId }
+
+    fun methodFor(date: LocalDate, trackId: String? = null): Method? {
+        val rows = read()
+        return if (trackId != null) {
+            rows.firstOrNull { it.log.date == date && it.log.trackId == trackId }?.log?.method
+                ?: rows.firstOrNull { it.log.date == date }?.log?.method
+        } else {
+            rows.firstOrNull { it.log.date == date }?.log?.method
+        }
+    }
 
     /**
      * What a finished day actually covered.
-     *
-     * Recorded because "today's portion" must not change the moment you finish it. The
-     * position advances on done, and if the screen recomputed from the live position the
-     * page you had just read would go pale and the confirmation would vanish — which is
-     * precisely what happened the first time this was tested.
      */
-    fun coveredOn(date: LocalDate): Pair<Int, Int>? =
-        read().firstOrNull { it.log.date == date }
-            ?.let { row -> row.startUnit?.let { s -> row.units?.let { u -> s to u } } }
+    fun coveredOn(date: LocalDate, trackId: String? = null): Pair<Int, Int>? {
+        val rows = read()
+        val row = if (trackId != null) {
+            rows.firstOrNull { it.log.date == date && it.log.trackId == trackId }
+                ?: rows.firstOrNull { it.log.date == date }
+        } else {
+            rows.firstOrNull { it.log.date == date }
+        }
+        return row?.let { r -> r.startUnit?.let { s -> r.units?.let { u -> s to u } } }
+    }
 
-    /** Where a new recording should be written. Named by date, so a day has one. */
-    fun audioFileFor(date: LocalDate): File = File(audioDir, "recitation-$date.m4a")
+    /** Where a new recording should be written. Named by date and track so each track has its own. */
+    fun audioFileFor(date: LocalDate, trackId: String? = null): File =
+        if (trackId != null) File(audioDir, "recitation-$date-$trackId.m4a") else File(audioDir, "recitation-$date.m4a")
 
-    fun transcriptionFor(date: LocalDate): String? =
-        read().firstOrNull { it.log.date == date }?.transcription
+    fun transcriptionFor(date: LocalDate, trackId: String? = null): String? {
+        val rows = read()
+        return if (trackId != null) {
+            rows.firstOrNull { it.log.date == date && it.log.trackId == trackId }?.transcription
+                ?: rows.firstOrNull { it.log.date == date }?.transcription
+        } else {
+            rows.firstOrNull { it.log.date == date }?.transcription
+        }
+    }
 
-    fun saveTranscription(date: LocalDate, text: String) {
+    fun saveTranscription(date: LocalDate, text: String, trackId: String? = null) {
         val rows = read().toMutableList()
-        val existing = rows.indexOfFirst { it.log.date == date }
+        val existing = if (trackId != null) {
+            val idx = rows.indexOfFirst { it.log.date == date && it.log.trackId == trackId }
+            if (idx >= 0) idx else rows.indexOfFirst { it.log.date == date }
+        } else {
+            rows.indexOfFirst { it.log.date == date }
+        }
         if (existing >= 0) {
             rows[existing] = rows[existing].copy(transcription = text)
             write(rows)
@@ -67,9 +100,7 @@ class DayLogStore(context: Context) {
     /**
      * Mark a day done.
      *
-     * Reciting wins over tapping, and marking a day twice does not create a second row —
-     * the same rule `progressOf` applies to the maths, applied here so the file on disk
-     * never disagrees with the numbers on screen.
+     * Reciting wins over tapping, and marking a day twice for the same track does not create a second row.
      */
     fun markDone(
         date: LocalDate,
@@ -77,11 +108,17 @@ class DayLogStore(context: Context) {
         audio: File? = null,
         startUnit: Int? = null,
         units: Int? = null,
+        trackId: String? = null,
+        trackName: String? = null,
     ) {
         val rows = read().toMutableList()
-        val existing = rows.indexOfFirst { it.log.date == date }
+        val existing = if (trackId != null) {
+            rows.indexOfFirst { it.log.date == date && (it.log.trackId == trackId || it.log.trackId == null) }
+        } else {
+            rows.indexOfFirst { it.log.date == date }
+        }
         val row = Row(
-            log = DayLog(date, method),
+            log = DayLog(date, method, trackId, trackName),
             audio = audio?.name,
             startUnit = startUnit,
             units = units,
@@ -103,9 +140,11 @@ class DayLogStore(context: Context) {
     }
 
     /** Undo today. For the moment someone taps by accident. */
-    fun clear(date: LocalDate) {
-        val rows = read().filterNot { it.log.date == date }
-        audioFileFor(date).delete()
+    fun clear(date: LocalDate, trackId: String? = null) {
+        val rows = read().filterNot {
+            it.log.date == date && (trackId == null || it.log.trackId == null || it.log.trackId == trackId)
+        }
+        audioFileFor(date, trackId).delete()
         write(rows)
     }
 
@@ -131,6 +170,8 @@ class DayLogStore(context: Context) {
                             log = DayLog(
                                 date = LocalDate.parse(o.getString("date")),
                                 method = Method.valueOf(o.getString("method")),
+                                trackId = o.optString("trackId").ifEmpty { null },
+                                trackName = o.optString("trackName").ifEmpty { null },
                             ),
                             audio = o.optString("audio").ifEmpty { null },
                             startUnit = if (o.has("startUnit")) o.getInt("startUnit") else null,
@@ -157,6 +198,8 @@ class DayLogStore(context: Context) {
                     .put("date", r.log.date.toString())
                     .put("method", r.log.method.name)
                     .apply {
+                        r.log.trackId?.let { put("trackId", it) }
+                        r.log.trackName?.let { put("trackName", it) }
                         r.audio?.let { put("audio", it) }
                         r.startUnit?.let { put("startUnit", it) }
                         r.units?.let { put("units", it) }
