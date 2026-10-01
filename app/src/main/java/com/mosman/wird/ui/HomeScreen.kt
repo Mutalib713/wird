@@ -135,6 +135,7 @@ fun HomeScreen(
     onOpenSettings: (SettingsDialog?) -> Unit = {},
     showToolkitTour: Boolean = false,
     onDismissToolkitTour: () -> Unit = {},
+    scrollState: androidx.compose.foundation.ScrollState = androidx.compose.foundation.rememberScrollState(),
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -170,7 +171,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(groundColor)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState),
         ) {
             // Atmospheric Dawn Mosque Header (Option C with unified Reading Mode & Track pill)
             AtmosphericHeader(
@@ -978,18 +979,12 @@ private fun NumbersCard(p: Progress) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    FlameGlyph(tint = streakColor, modifier = Modifier.size(16.dp))
-                    Text(
-                        text = "${p.currentStreak}",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = streakColor,
-                    )
-                }
+                Text(
+                    text = "🔥 ${p.currentStreak}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = streakColor,
+                )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Day Streak",
@@ -1013,18 +1008,12 @@ private fun NumbersCard(p: Progress) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    BookGlyph(tint = daysColor)
-                    Text(
-                        text = "${p.totalDaysRead}",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = daysColor,
-                    )
-                }
+                Text(
+                    text = "📖 ${p.totalDaysRead}",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = daysColor,
+                )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Total Days",
@@ -1048,18 +1037,12 @@ private fun NumbersCard(p: Progress) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    MicGlyph(tint = aloudColor)
-                    Text(
-                        text = "$aloudRatio%",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = aloudColor,
-                    )
-                }
+                Text(
+                    text = "🎙️ $aloudRatio%",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = aloudColor,
+                )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Aloud Ratio",

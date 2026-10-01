@@ -177,18 +177,12 @@ fun RecitationsScreen(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        FlameGlyph(tint = streakColor, modifier = Modifier.size(16.dp))
-                        Text(
-                            text = "${progress.currentStreak}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = streakColor,
-                        )
-                    }
+                    Text(
+                        text = "🔥 ${progress.currentStreak}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = streakColor,
+                    )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = "Day Streak",
@@ -212,18 +206,12 @@ fun RecitationsScreen(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        BookGlyph(tint = daysColor)
-                        Text(
-                            text = "${progress.totalDaysRead}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = daysColor,
-                        )
-                    }
+                    Text(
+                        text = "📖 ${progress.totalDaysRead}",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = daysColor,
+                    )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = "Total Days",
@@ -248,18 +236,12 @@ fun RecitationsScreen(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        MicGlyph(tint = aloudColor)
-                        Text(
-                            text = "$aloudRatio%",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = aloudColor,
-                        )
-                    }
+                    Text(
+                        text = "🎙️ $aloudRatio%",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = aloudColor,
+                    )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = "Aloud Ratio",
@@ -384,205 +366,118 @@ fun RecitationsScreen(
                                     )
                                     .padding(horizontal = 10.dp, vertical = 5.dp),
                             ) {
+                                Text(
+                                    text = if (isRecited) "🎙️ Recited aloud" else "✓ Read (tapped)",
+                                    color = if (isRecited) {
+                                        if (isDark) Color(0xFF93DB7A) else Color(0xFF245847)
+                                    } else {
+                                        if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                    },
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
+
+                        // Inline Audio Player & Text if audio exists (clean, no bulky nested container)
+                        val hasAudio = audio != null && audio.exists() && audio.length() > 0
+                        val transcription = transcriptionFor(log.date)
+                        if (hasAudio) {
+                            Spacer(Modifier.height(10.dp))
+                            val durationSecs = (audio.length() / 8000L).toInt().coerceAtLeast(1)
+                            val durationStr = String.format(
+                                java.util.Locale.getDefault(),
+                                "%d:%02d",
+                                durationSecs / 60,
+                                durationSecs % 60,
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                                    .clayCard(
+                                        shape = RoundedCornerShape(10.dp),
+                                        backgroundColor = if (isDark) Color(0xFF182820) else Color(0xFFF7F5EE),
+                                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.85f),
+                                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.15f),
+                                        elevation = 1.dp,
+                                    )
+                                    .clickable {
+                                        if (isPlaying) {
+                                            onStop()
+                                            playingFile = null
+                                        } else {
+                                            playingFile = audio
+                                            onPlay(audio)
+                                        }
+                                    }
+                                    .padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.CenterStart,
+                            ) {
                                 Row(
+                                    modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 ) {
-                                    if (isRecited) {
-                                        MicGlyph(
-                                            tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF245847),
-                                            modifier = Modifier.size(12.dp),
+                                    Box(
+                                        modifier = Modifier
+                                            .size(26.dp)
+                                            .background(
+                                                color = if (isDark) Color(0xFF2D694E) else Color(0xFF1E3F32),
+                                                shape = CircleShape,
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = if (isPlaying) "■" else "▶",
+                                            color = Color.White,
+                                            fontSize = if (isPlaying) 9.sp else 10.sp,
+                                            fontWeight = FontWeight.Bold,
                                         )
                                     }
+
+                                    Spacer(Modifier.width(10.dp))
+
+                                    Row(
+                                        modifier = Modifier.weight(1f),
+                                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        val waveHeights = listOf(6, 12, 16, 10, 18, 14, 8, 15, 12, 6, 14, 9, 16, 7)
+                                        waveHeights.forEach { h ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(3.dp)
+                                                    .height(h.dp)
+                                                    .background(
+                                                        color = if (isPlaying) Color(0xFF50A773) else Color(0xFF50A773).copy(alpha = 0.6f),
+                                                        shape = RoundedCornerShape(2.dp),
+                                                    ),
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(Modifier.width(8.dp))
+
                                     Text(
-                                        text = if (isRecited) "Recited aloud" else "✓ Read (tapped)",
-                                        color = if (isRecited) {
-                                            if (isDark) Color(0xFF93DB7A) else Color(0xFF245847)
-                                        } else {
-                                            if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
-                                        },
+                                        text = durationStr,
+                                        color = if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32),
                                         fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
+                                        fontWeight = FontWeight.Bold,
                                     )
                                 }
                             }
                         }
 
-                        // "See what you recited" review card (audio + text review)
-                        val hasAudio = audio != null && audio.exists() && audio.length() > 0
-                        val transcription = transcriptionFor(log.date)
-                        if (isRecited || hasAudio) {
-                            Spacer(Modifier.height(12.dp))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clayCard(
-                                        shape = RoundedCornerShape(14.dp),
-                                        backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFFAF7F0),
-                                        highlightColor = Color.White.copy(alpha = if (isDark) 0.12f else 0.85f),
-                                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
-                                        elevation = 2.dp,
-                                    )
-                                    .padding(14.dp),
-                            ) {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        ) {
-                                            MicGlyph(
-                                                tint = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
-                                                modifier = Modifier.size(13.dp),
-                                            )
-                                            Text(
-                                                text = "See what you recited",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
-                                            )
-                                        }
-                                    }
-
-                                    // Audio player bar
-                                    if (hasAudio && audio != null) {
-                                        Spacer(Modifier.height(10.dp))
-                                        val durationSecs = (audio.length() / 8000L).toInt().coerceAtLeast(1)
-                                        val durationStr = String.format(
-                                            java.util.Locale.getDefault(),
-                                            "%d:%02d",
-                                            durationSecs / 60,
-                                            durationSecs % 60,
-                                        )
-
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(44.dp)
-                                                .clayCard(
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    backgroundColor = if (isDark) Color(0xFF1A2B23) else Color(0xFFFFFFFF),
-                                                    highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.85f),
-                                                    shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.2f),
-                                                    elevation = 2.dp,
-                                                )
-                                                .clickable {
-                                                    if (isPlaying) {
-                                                        onStop()
-                                                        playingFile = null
-                                                    } else {
-                                                        playingFile = audio
-                                                        onPlay(audio)
-                                                    }
-                                                }
-                                                .padding(horizontal = 12.dp),
-                                            contentAlignment = Alignment.CenterStart,
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                            ) {
-                                                // Play / Stop button circle
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(28.dp)
-                                                        .background(
-                                                            color = if (isDark) Color(0xFF2D694E) else Color(0xFF1E3F32),
-                                                            shape = CircleShape,
-                                                        ),
-                                                    contentAlignment = Alignment.Center,
-                                                ) {
-                                                    Text(
-                                                        text = if (isPlaying) "■" else "▶",
-                                                        color = Color.White,
-                                                        fontSize = if (isPlaying) 10.sp else 11.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                    )
-                                                }
-
-                                                Spacer(Modifier.width(10.dp))
-
-                                                // Tactile Audio Waveform lines
-                                                Row(
-                                                    modifier = Modifier.weight(1f),
-                                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                ) {
-                                                    val waveHeights = listOf(6, 12, 16, 10, 18, 14, 8, 15, 12, 6, 14, 9, 16, 7)
-                                                    waveHeights.forEach { h ->
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .width(3.dp)
-                                                                .height(h.dp)
-                                                                .background(
-                                                                    color = if (isPlaying) Color(0xFF50A773) else Color(0xFF50A773).copy(alpha = 0.6f),
-                                                                    shape = RoundedCornerShape(2.dp),
-                                                                ),
-                                                        )
-                                                    }
-                                                }
-
-                                                Spacer(Modifier.width(8.dp))
-
-                                                Text(
-                                                    text = durationStr,
-                                                    color = if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32),
-                                                    fontSize = 11.5.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    // Recited text section
-                                    Spacer(Modifier.height(10.dp))
-                                    if (!transcription.isNullOrBlank()) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(if (isDark) Color(0xFF0F1A15) else Color(0xFFF0ECE1))
-                                                .padding(12.dp),
-                                        ) {
-                                            Column {
-                                                Text(
-                                                    text = "RECITED TEXT (WHISPER AI)",
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    letterSpacing = 0.8.sp,
-                                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
-                                                )
-                                                Spacer(Modifier.height(6.dp))
-                                                Text(
-                                                    text = transcription,
-                                                    fontSize = 15.sp,
-                                                    lineHeight = 24.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(if (isDark) Color(0xFF0F1A15) else Color(0xFFF0ECE1))
-                                                .padding(10.dp),
-                                        ) {
-                                            Text(
-                                                text = if (hasAudio) "Recitation audio recorded. Tap play to listen." else "Recitation portion logged for this day.",
-                                                fontSize = 12.sp,
-                                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                        if (!transcription.isNullOrBlank()) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = transcription,
+                                fontSize = 13.5.sp,
+                                lineHeight = 20.sp,
+                                fontWeight = FontWeight.Normal,
+                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                            )
                         }
                     }
                 }

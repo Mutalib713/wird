@@ -8,6 +8,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -126,6 +127,18 @@ class MainActivity : ComponentActivity() {
             var startVerse by remember { mutableStateOf(store.startVerse) }
             var seenChrome by remember { mutableStateOf(store.hasSeenChrome) }
             var showToolkitTour by remember { mutableStateOf(!store.hasSeenToolkitTour && store.isSetUp) }
+            var tourStep by remember { mutableIntStateOf(0) }
+            val homeScrollState = rememberScrollState()
+
+            LaunchedEffect(tourStep, showToolkitTour) {
+                if (showToolkitTour) {
+                    if (tourStep == 4) {
+                        homeScrollState.animateScrollTo(720)
+                    } else {
+                        homeScrollState.animateScrollTo(0)
+                    }
+                }
+            }
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var readerName by remember { mutableStateOf(store.readerName) }
@@ -906,6 +919,7 @@ class MainActivity : ComponentActivity() {
                                     store.hasSeenToolkitTour = true
                                     showToolkitTour = false
                                 },
+                                scrollState = homeScrollState,
                             )
 
                             WirdTab.SURAHS -> SurahsTab(
@@ -957,6 +971,9 @@ class MainActivity : ComponentActivity() {
                                 onDismiss = {
                                     store.hasSeenToolkitTour = true
                                     showToolkitTour = false
+                                },
+                                onStepChanged = { step ->
+                                    tourStep = step
                                 },
                             )
                         }

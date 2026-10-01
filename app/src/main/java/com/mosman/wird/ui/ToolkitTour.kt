@@ -32,6 +32,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -75,9 +76,14 @@ import kotlin.math.sin
 @Composable
 fun ToolkitSpotlightOverlay(
     onDismiss: () -> Unit,
+    onStepChanged: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var stepIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(stepIndex) {
+        onStepChanged(stepIndex)
+    }
 
     val coral = Color(0xFFFB7185) // Reference warm coral/rose accent
     val textTint = Color(0xFFFECDD3) // Soft rose description text
@@ -165,22 +171,22 @@ fun ToolkitSpotlightOverlay(
                 pointingUp = true,
                 textTop = 300.dp,
             ),
-            // 5. Wird AI Companion & Tafsir (Today's Check-in Card)
+            // 5. Wird AI Companion & Tafsir (Today's Check-in Card - auto-scrolled into view)
             SpotlightStep(
                 title = "Wird AI Companion & Tafsir",
                 description = "Daily check-in and reflection. Tap 'Open Chat' to explore numbered Tafsir Ibn Kathir, translations, or pause without streak guilt.",
                 accentColor = coral,
                 cutoutLeft = 16.dp,
-                cutoutTop = 642.dp,
+                cutoutTop = 140.dp,
                 cutoutRight = 395.dp,
-                cutoutBottom = 770.dp,
+                cutoutBottom = 335.dp,
                 cornerRadius = 24.dp,
                 targetX = 206.dp,
-                targetY = 642.dp,
+                targetY = 335.dp,
                 arrowStartX = 206.dp,
-                arrowStartY = 580.dp,
-                pointingUp = false,
-                textTop = 390.dp,
+                arrowStartY = 415.dp,
+                pointingUp = true,
+                textTop = 430.dp,
             ),
             // 6. Floating Navigation Dock (Bottom Capsule)
             SpotlightStep(
