@@ -35,17 +35,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.mosman.wird.data.decodeSchedule
+import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.NudgeSchedule
+import com.mosman.wird.domain.PageVerses
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingTrack
-import com.mosman.wird.domain.label
+import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
@@ -58,14 +61,133 @@ private enum class ReminderMode {
 }
 
 /**
+ * Prompt dialog shown immediately upon creating a new reading track,
+ * allowing the user to either customize its notification schedule right away
+ * or keep the current default schedule.
+ */
+@Composable
+fun TrackReminderPromptDialog(
+    track: ReadingTrack,
+    onCustomize: () -> Unit,
+    onKeepCurrent: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.55f))
+                .clickable(onClick = onDismiss)
+                .padding(20.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        backgroundColor = if (isDark) Color(0xFF14241C) else Color(0xFFFAF7EE),
+                        shape = RoundedCornerShape(24.dp),
+                        elevation = 6.dp,
+                    )
+                    .clickable(enabled = false) {}
+                    .padding(22.dp),
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(if (isDark) Color(0xFF1C3A29) else Color(0xFFD6EDE0)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = null,
+                            tint = if (isDark) Color(0xFF86E39D) else Color(0xFF245847),
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = "Reminders for ${track.name}",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.textPrimary,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "Track created! Would you like to customize notification reminders for this track or keep your current schedule?",
+                        fontSize = 12.5.sp,
+                        color = colors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 17.sp,
+                    )
+                    Spacer(Modifier.height(20.dp))
+
+                    // Customize Button
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clayPill(
+                                backgroundColor = if (isDark) Color(0xFF1E4531) else Color(0xFF245847),
+                                elevation = 3.dp,
+                            )
+                            .clickable(onClick = onCustomize)
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Customize Notification",
+                            color = Color.White,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
+                    // Keep Current Button
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isDark) Color(0xFF162A1F) else Color(0xFFE4EDE5))
+                            .clickable(onClick = onKeepCurrent)
+                            .padding(vertical = 11.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "Keep Current Schedule",
+                            color = colors.textPrimary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
  * Advanced tactile modal dialog for configuring per-track reminders.
  *
  * Supports:
  * - Switching tracks directly at the top.
- * - Multi-prayer selection (e.g. Fajr, Asr, Isha) with customizable delay offset (10m, 15m, 20m, 30m, 45m, 60m).
- * - Fixed clock time with repeat nag intervals (Once, Every 1 hr, Every 2 hrs, Every 3 hrs) until recited today.
+ * - Multi-prayer selection with 10, 15, 30 min presets and Custom minutes.
+ * - Fixed clock time with Once, 1 hr, 2 hrs, 3 hrs presets and Custom hours repeat nag.
  * - Silence mode (Off).
- * - Real-time notification preview card showing the track name and message.
+ * - Real-time notification preview card showing the exact Surah and Ayahs to recite.
  */
 @Composable
 fun AdvancedReminderDialog(
@@ -75,6 +197,7 @@ fun AdvancedReminderDialog(
     onSave: (ReadingTrack, NudgeSchedule) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val context = LocalContext.current
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
 
@@ -114,6 +237,9 @@ fun AdvancedReminderDialog(
             }
         )
     }
+    var isCustomOffset by remember(trackSchedule) {
+        mutableStateOf(offsetMinutes !in listOf(10, 15, 30))
+    }
 
     // Clock Time state
     var clockHour by remember(trackSchedule) {
@@ -139,6 +265,9 @@ fun AdvancedReminderDialog(
                 else -> 0
             }
         )
+    }
+    var isCustomRepeat by remember(trackSchedule) {
+        mutableStateOf(repeatInterval !in listOf(0, 1, 2, 3))
     }
 
     Dialog(
@@ -397,7 +526,7 @@ fun AdvancedReminderDialog(
 
                             Spacer(Modifier.height(14.dp))
 
-                            // Delay offset selector
+                            // Delay offset selector with 10, 15, 30, and Custom
                             Text(
                                 text = "DELAY AFTER PRAYER",
                                 fontSize = 10.5.sp,
@@ -408,15 +537,14 @@ fun AdvancedReminderDialog(
                             Spacer(Modifier.height(8.dp))
 
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                listOf(10, 15, 20, 30, 45, 60).forEach { mins ->
-                                    val isSelected = offsetMinutes == mins
+                                listOf(10, 15, 30).forEach { mins ->
+                                    val isSelected = !isCustomOffset && offsetMinutes == mins
                                     Box(
                                         modifier = Modifier
+                                            .weight(1f)
                                             .clip(RoundedCornerShape(10.dp))
                                             .background(
                                                 if (isSelected) {
@@ -425,8 +553,12 @@ fun AdvancedReminderDialog(
                                                     if (isDark) Color(0xFF1B2F23) else Color(0xFFE4EDE5)
                                                 }
                                             )
-                                            .clickable { offsetMinutes = mins }
-                                            .padding(horizontal = 11.dp, vertical = 7.dp),
+                                            .clickable {
+                                                offsetMinutes = mins
+                                                isCustomOffset = false
+                                            }
+                                            .padding(vertical = 7.dp),
+                                        contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
                                             text = "+$mins min",
@@ -438,6 +570,89 @@ fun AdvancedReminderDialog(
                                                 colors.textSecondary
                                             },
                                         )
+                                    }
+                                }
+
+                                // Custom Chip
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            if (isCustomOffset) {
+                                                if (isDark) Color(0xFF86E39D) else Color(0xFF245847)
+                                            } else {
+                                                if (isDark) Color(0xFF1B2F23) else Color(0xFFE4EDE5)
+                                            }
+                                        )
+                                        .clickable { isCustomOffset = true }
+                                        .padding(vertical = 7.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "Custom",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = if (isCustomOffset) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isCustomOffset) {
+                                            if (isDark) Color(0xFF0C2417) else Color.White
+                                        } else {
+                                            colors.textSecondary
+                                        },
+                                    )
+                                }
+                            }
+
+                            // Custom delay stepper when Custom is chosen
+                            if (isCustomOffset) {
+                                Spacer(Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isDark) Color(0xFF102017) else Color(0xFFE5EDE6))
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = "Custom delay:",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.textPrimary,
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isDark) Color(0xFF1D3B2B) else Color(0xFFD3E4D7))
+                                            .clickable {
+                                                offsetMinutes = (offsetMinutes - 5).coerceAtLeast(1)
+                                            },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text("-", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                                        }
+                                        Spacer(Modifier.width(10.dp))
+                                        Text(
+                                            text = "$offsetMinutes min",
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textPrimary,
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isDark) Color(0xFF1D3B2B) else Color(0xFFD3E4D7))
+                                                .clickable {
+                                                    offsetMinutes = (offsetMinutes + 5).coerceAtMost(180)
+                                                },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text("+", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                                        }
                                     }
                                 }
                             }
@@ -565,7 +780,7 @@ fun AdvancedReminderDialog(
 
                             Spacer(Modifier.height(14.dp))
 
-                            // Repeat until recited chips
+                            // Repeat until recited chips with Custom
                             Text(
                                 text = "REPEAT IF NOT RECITED TODAY",
                                 fontSize = 10.5.sp,
@@ -584,15 +799,15 @@ fun AdvancedReminderDialog(
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(5.dp),
                             ) {
                                 listOf(
                                     0 to "Once",
-                                    1 to "Every 1 hr",
-                                    2 to "Every 2 hrs",
-                                    3 to "Every 3 hrs",
+                                    1 to "1 hr",
+                                    2 to "2 hrs",
+                                    3 to "3 hrs",
                                 ).forEach { (rep, label) ->
-                                    val isSelected = repeatInterval == rep
+                                    val isSelected = !isCustomRepeat && repeatInterval == rep
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
@@ -604,7 +819,10 @@ fun AdvancedReminderDialog(
                                                     if (isDark) Color(0xFF1B2F23) else Color(0xFFE4EDE5)
                                                 }
                                             )
-                                            .clickable { repeatInterval = rep }
+                                            .clickable {
+                                                repeatInterval = rep
+                                                isCustomRepeat = false
+                                            }
                                             .padding(vertical = 7.dp),
                                         contentAlignment = Alignment.Center,
                                     ) {
@@ -618,6 +836,89 @@ fun AdvancedReminderDialog(
                                                 colors.textSecondary
                                             },
                                         )
+                                    }
+                                }
+
+                                // Custom Repeat Chip
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(
+                                            if (isCustomRepeat) {
+                                                if (isDark) Color(0xFF86E39D) else Color(0xFF245847)
+                                            } else {
+                                                if (isDark) Color(0xFF1B2F23) else Color(0xFFE4EDE5)
+                                            }
+                                        )
+                                        .clickable { isCustomRepeat = true }
+                                        .padding(vertical = 7.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "Custom",
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isCustomRepeat) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isCustomRepeat) {
+                                            if (isDark) Color(0xFF0C2417) else Color.White
+                                        } else {
+                                            colors.textSecondary
+                                        },
+                                    )
+                                }
+                            }
+
+                            // Custom repeat stepper when Custom is chosen
+                            if (isCustomRepeat) {
+                                Spacer(Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isDark) Color(0xFF102017) else Color(0xFFE5EDE6))
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = "Repeat interval:",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.textPrimary,
+                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isDark) Color(0xFF1D3B2B) else Color(0xFFD3E4D7))
+                                                .clickable {
+                                                    repeatInterval = (repeatInterval - 1).coerceAtLeast(1)
+                                                },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text("-", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                                        }
+                                        Spacer(Modifier.width(10.dp))
+                                        Text(
+                                            text = "Every $repeatInterval hrs",
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textPrimary,
+                                        )
+                                        Spacer(Modifier.width(10.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isDark) Color(0xFF1D3B2B) else Color(0xFFD3E4D7))
+                                                .clickable {
+                                                    repeatInterval = (repeatInterval + 1).coerceAtMost(12)
+                                                },
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text("+", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                                        }
                                     }
                                 }
                             }
@@ -653,6 +954,19 @@ fun AdvancedReminderDialog(
                             letterSpacing = 0.8.sp,
                         )
                         Spacer(Modifier.height(6.dp))
+
+                        val trackPage = currentTrack.pageNumber
+                        val surahs = remember(trackPage) { SurahIndex.on(trackPage) }
+                        val primarySurah = surahs.firstOrNull() ?: SurahIndex.on(1).first()
+                        val ayahRange = remember(trackPage, primarySurah) {
+                            PageVerses.ayahRange(context, listOf(trackPage), primarySurah.number)
+                        }
+                        val recitationPortionText = if (ayahRange != null) {
+                            "Time to recite ${primarySurah.name} ($ayahRange) · Page $trackPage"
+                        } else {
+                            "Time to recite ${primarySurah.name} · Page $trackPage"
+                        }
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -685,14 +999,21 @@ fun AdvancedReminderDialog(
                                     )
                                 }
                                 Spacer(Modifier.height(4.dp))
-                                val previewText = when (mode) {
+                                Text(
+                                    text = recitationPortionText,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.textPrimary,
+                                )
+                                Spacer(Modifier.height(3.dp))
+                                val timingLabel = when (mode) {
                                     ReminderMode.AFTER_PRAYERS -> {
                                         val pList = selectedPrayers.sortedBy { it.ordinal }.joinToString(", ") { it.label }
-                                        "Time for your ${currentTrack.name} portion · $offsetMinutes min after $pList"
+                                        "Scheduled $offsetMinutes min after $pList"
                                     }
                                     ReminderMode.CLOCK_TIME -> {
-                                        val repLabel = if (repeatInterval > 0) " (repeats every ${repeatInterval}h if unread)" else ""
-                                        "Time for your ${currentTrack.name} portion · Scheduled for %02d:%02d%s".format(
+                                        val repLabel = if (repeatInterval > 0) " · Repeats every ${repeatInterval}h if unread" else ""
+                                        "Scheduled for %02d:%02d%s".format(
                                             clockHour,
                                             clockMinute,
                                             repLabel,
@@ -701,8 +1022,8 @@ fun AdvancedReminderDialog(
                                     ReminderMode.OFF -> ""
                                 }
                                 Text(
-                                    text = previewText,
-                                    fontSize = 11.sp,
+                                    text = timingLabel,
+                                    fontSize = 10.5.sp,
                                     color = colors.textSecondary,
                                 )
                             }

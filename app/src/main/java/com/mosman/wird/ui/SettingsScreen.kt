@@ -134,6 +134,7 @@ enum class SettingsDialog {
     LIFE_SPACE_MANAGER,
     EDIT_TRACK,
     MANAGE_TRACKS,
+    TRACK_REMINDER_PROMPT,
 }
 
 data class DialogOption<T>(
@@ -214,6 +215,7 @@ fun SettingsScreen(
     var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
     var editingTrack by remember { mutableStateOf<ReadingTrack?>(null) }
     var editingSpaceId by remember { mutableStateOf<String?>(null) }
+    var trackPendingReminderPrompt by remember { mutableStateOf<ReadingTrack?>(null) }
 
     // Store-backed state
     var lockOrientation by remember { mutableStateOf(store.lockOrientation) }
@@ -489,6 +491,18 @@ fun SettingsScreen(
 
                         // 2. Reading Tracks & Schedules
                         ClaySection(title = "Reading Tracks & Schedules") {
+                            val tracksCount = readingTracks.size
+                            val tracksSummary = if (tracksCount == 0) {
+                                "No tracks yet · Tap to add your first track"
+                            } else {
+                                "$tracksCount track${if (tracksCount != 1) "s" else ""} (${readingTracks.joinToString(", ") { it.name }}) · Manage & edit"
+                            }
+                            ClaySettingRow(
+                                title = "Reading tracks",
+                                subtitle = tracksSummary,
+                                onClick = { activeDialog = SettingsDialog.MANAGE_TRACKS },
+                            )
+
                             ClaySettingRow(
                                 title = "Schedule mode",
                                 subtitle = if (trackScheduleMode == TrackScheduleMode.AUTOMATIC) {
@@ -497,18 +511,6 @@ fun SettingsScreen(
                                     "Manual · You choose the active track"
                                 },
                                 onClick = { activeDialog = SettingsDialog.SCHEDULE_MODE },
-                            )
-
-                            val tracksCount = readingTracks.size
-                            val tracksSummary = if (tracksCount == 0) {
-                                "No tracks yet · Tap to add your first track"
-                            } else {
-                                "$tracksCount track${if (tracksCount != 1) "s" else ""} (${readingTracks.joinToString(", ") { it.name }}) · Manage & edit"
-                            }
-                            ClaySettingRow(
-                                title = "Recitation tracks",
-                                subtitle = tracksSummary,
-                                onClick = { activeDialog = SettingsDialog.MANAGE_TRACKS },
                                 showDivider = false,
                             )
                         }
@@ -2218,12 +2220,16 @@ fun SettingsScreen(
                                 store.updateTrack(updated)
                             } else {
                                 store.addTrack(updated)
+                                trackPendingReminderPrompt = updated
                             }
                             readingTracks = store.getReadingTracks()
                             activeTrack = store.activeTrack()
                             lifeSpaces = store.getLifeSpaces()
                             activeSpace = store.activeSpace()
                             onLifeSpacesChanged()
+                            if (!isExisting) {
+                                activeDialog = SettingsDialog.TRACK_REMINDER_PROMPT
+                            }
                         },
                         onDeleteTrack = {
                             store.deleteTrack(trackToEdit.id)
@@ -2240,6 +2246,26 @@ fun SettingsScreen(
                         },
                     )
                 }
+            }
+
+            SettingsDialog.TRACK_REMINDER_PROMPT -> {
+                val promptTrack = trackPendingReminderPrompt ?: activeTrack
+                TrackReminderPromptDialog(
+                    track = promptTrack,
+                    onCustomize = {
+                        activeTrack = promptTrack
+                        activeDialog = SettingsDialog.REMINDER
+                        trackPendingReminderPrompt = null
+                    },
+                    onKeepCurrent = {
+                        activeDialog = null
+                        trackPendingReminderPrompt = null
+                    },
+                    onDismiss = {
+                        activeDialog = null
+                        trackPendingReminderPrompt = null
+                    },
+                )
             }
 
             null -> Unit

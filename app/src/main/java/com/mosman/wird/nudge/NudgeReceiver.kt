@@ -88,11 +88,11 @@ class NudgeReceiver : BroadcastReceiver() {
         }
 
         val contentText = if (primarySurah != null && ayahRange != null) {
-            "${primarySurah.name} · $ayahRange ($pageSpan)"
+            "Time to recite ${primarySurah.name} ($ayahRange) · $pageSpan"
         } else if (primarySurah != null) {
-            "${primarySurah.name} · $pageSpan"
+            "Time to recite ${primarySurah.name} · $pageSpan"
         } else {
-            pageSpan
+            "Time to recite $pageSpan"
         }
 
         val open = PendingIntent.getActivity(
