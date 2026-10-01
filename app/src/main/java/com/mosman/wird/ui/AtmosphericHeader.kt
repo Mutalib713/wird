@@ -424,20 +424,31 @@ fun AtmosphericHeader(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top,
             ) {
-                if (isDaytime) {
-                    SunriseGlyph(
-                        tint = Color(0xFFF9C86A),
-                        modifier = Modifier
-                            .size(24.dp)
-                            .padding(top = 2.dp),
-                    )
-                } else {
-                    EveningMoonGlyph(
-                        tint = Color(0xFFFFF6DC),
-                        modifier = Modifier
-                            .size(24.dp)
-                            .padding(top = 2.dp),
-                    )
+                when (currentHour) {
+                    in 5..11 -> {
+                        IslamicDawnGlyph(
+                            tint = Color(0xFFF59E0B),
+                            modifier = Modifier
+                                .size(24.dp)
+                                .padding(top = 2.dp),
+                        )
+                    }
+                    in 12..16 -> {
+                        IslamicShamsGlyph(
+                            tint = Color(0xFFFBBF24),
+                            modifier = Modifier
+                                .size(24.dp)
+                                .padding(top = 2.dp),
+                        )
+                    }
+                    else -> {
+                        IslamicHilalGlyph(
+                            tint = Color(0xFFFFF6DC),
+                            modifier = Modifier
+                                .size(24.dp)
+                                .padding(top = 2.dp),
+                        )
+                    }
                 }
                 Spacer(Modifier.width(10.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -590,72 +601,140 @@ fun AtmosphericHeader(
     }
 }
 
-/** Vector sunrise on horizon glyph matching approved reference design */
+/**
+ * Option A: Islamic Geometric Craft - Morning (Subh Sadiq)
+ * Horizon line, luminous rising solar dome, and 5 tapered radiating rays.
+ */
 @Composable
-private fun SunriseGlyph(tint: Color, modifier: Modifier = Modifier) {
+private fun IslamicDawnGlyph(tint: Color = Color(0xFFF59E0B), modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val stroke = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round)
-        // Horizon line
+        val cx = w * 0.5f
+        val cy = h * 0.70f
+        val strokeWidth = 1.6.dp.toPx()
+
+        // 1. Horizon line
         drawLine(
             color = tint,
-            start = Offset(w * 0.10f, h * 0.75f),
-            end = Offset(w * 0.90f, h * 0.75f),
-            strokeWidth = 1.6.dp.toPx(),
+            start = Offset(w * 0.10f, cy),
+            end = Offset(w * 0.90f, cy),
+            strokeWidth = strokeWidth,
             cap = StrokeCap.Round,
         )
-        // Rising sun dome
+
+        // 2. Rising sun dome (semi-circle filled)
+        val sunRadius = w * 0.28f
         drawArc(
             color = tint,
             startAngle = 180f,
             sweepAngle = 180f,
-            useCenter = false,
-            topLeft = Offset(w * 0.30f, h * 0.45f),
-            size = Size(w * 0.40f, h * 0.60f),
-            style = stroke,
+            useCenter = true,
+            topLeft = Offset(cx - sunRadius, cy - sunRadius),
+            size = Size(sunRadius * 2, sunRadius * 2),
         )
-        // Top ray
-        drawLine(
-            color = tint,
-            start = Offset(w * 0.50f, h * 0.22f),
-            end = Offset(w * 0.50f, h * 0.36f),
-            strokeWidth = 1.6.dp.toPx(),
-            cap = StrokeCap.Round,
-        )
-        // Left diagonal ray
-        drawLine(
-            color = tint,
-            start = Offset(w * 0.24f, h * 0.34f),
-            end = Offset(w * 0.34f, h * 0.44f),
-            strokeWidth = 1.6.dp.toPx(),
-            cap = StrokeCap.Round,
-        )
-        // Right diagonal ray
-        drawLine(
-            color = tint,
-            start = Offset(w * 0.76f, h * 0.34f),
-            end = Offset(w * 0.66f, h * 0.44f),
-            strokeWidth = 1.6.dp.toPx(),
-            cap = StrokeCap.Round,
+
+        // 3. Five geometric radiant rays
+        val angles = listOf(-150.0, -120.0, -90.0, -60.0, -30.0)
+        val rInner = sunRadius + 2.dp.toPx()
+        val rOuter = w * 0.44f
+        for (deg in angles) {
+            val rad = Math.toRadians(deg)
+            val x1 = cx + (rInner * kotlin.math.cos(rad)).toFloat()
+            val y1 = cy + (rInner * kotlin.math.sin(rad)).toFloat()
+            val x2 = cx + (rOuter * kotlin.math.cos(rad)).toFloat()
+            val y2 = cy + (rOuter * kotlin.math.sin(rad)).toFloat()
+            drawLine(
+                color = tint,
+                start = Offset(x1, y1),
+                end = Offset(x2, y2),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}
+
+/**
+ * Option A: Islamic Geometric Craft - Afternoon (8-point Islamic Shams)
+ * Overlapping rotated geometric squares forming the sacred 8-point solar star.
+ */
+@Composable
+private fun IslamicShamsGlyph(tint: Color = Color(0xFFFBBF24), modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val cx = w * 0.5f
+        val cy = h * 0.5f
+        val rShams = w * 0.44f
+
+        // Draw two overlapping squares rotated by 45 degrees
+        for (rotDeg in listOf(0.0, 45.0)) {
+            val rotRad = Math.toRadians(rotDeg)
+            val path = Path()
+            for (k in 0..3) {
+                val angle = rotRad + k * (Math.PI / 2.0)
+                val px = cx + (rShams * kotlin.math.cos(angle)).toFloat()
+                val py = cy + (rShams * kotlin.math.sin(angle)).toFloat()
+                if (k == 0) path.moveTo(px, py) else path.lineTo(px, py)
+            }
+            path.close()
+            drawPath(path, color = tint)
+        }
+
+        // Inner luminous solar disk
+        drawCircle(
+            color = Color(0xFFFFE88A),
+            radius = w * 0.18f,
+            center = Offset(cx, cy),
         )
     }
 }
 
-/** Vector crescent moon glyph for evening hours */
+/**
+ * Option A: Islamic Geometric Craft - Evening (Ottoman Hilal & 8-point Najm)
+ * Slender Ottoman crescent paired with a geometric 8-point star.
+ */
 @Composable
-private fun EveningMoonGlyph(tint: Color, modifier: Modifier = Modifier) {
+private fun IslamicHilalGlyph(tint: Color = Color(0xFFFFF6DC), modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-        val path = Path().apply {
-            moveTo(w * 0.65f, h * 0.15f)
-            cubicTo(w * 0.25f, h * 0.20f, w * 0.25f, h * 0.80f, w * 0.65f, h * 0.85f)
-            cubicTo(w * 0.42f, h * 0.70f, w * 0.42f, h * 0.30f, w * 0.65f, h * 0.15f)
+
+        // 1. Crescent Moon (Hilal) using smooth cubic beziers
+        val crescent = Path().apply {
+            moveTo(w * 0.52f, h * 0.10f)
+            cubicTo(
+                w * 0.05f, h * 0.18f,
+                w * 0.05f, h * 0.82f,
+                w * 0.52f, h * 0.90f,
+            )
+            cubicTo(
+                w * 0.24f, h * 0.72f,
+                w * 0.24f, h * 0.28f,
+                w * 0.52f, h * 0.10f,
+            )
             close()
         }
-        drawPath(path, color = tint)
-        drawCircle(color = tint, radius = 1.5.dp.toPx(), center = Offset(w * 0.78f, h * 0.35f))
+        drawPath(crescent, color = tint)
+
+        // 2. 8-Point Najm (Star) in the upper right
+        val starCx = w * 0.72f
+        val starCy = h * 0.38f
+        val starR = w * 0.16f
+
+        for (rotDeg in listOf(0.0, 45.0)) {
+            val rotRad = Math.toRadians(rotDeg)
+            val starPath = Path()
+            for (k in 0..3) {
+                val angle = rotRad + k * (Math.PI / 2.0)
+                val px = starCx + (starR * kotlin.math.cos(angle)).toFloat()
+                val py = starCy + (starR * kotlin.math.sin(angle)).toFloat()
+                if (k == 0) starPath.moveTo(px, py) else starPath.lineTo(px, py)
+            }
+            starPath.close()
+            drawPath(starPath, color = tint)
+        }
     }
 }
 
