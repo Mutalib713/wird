@@ -49,6 +49,10 @@ data class ReadingTrack(
     val startVerseSurah: Int? = null,
     /** Optional starting Ayah number */
     val startVerseAyah: Int? = null,
+    /** Optional independent reminder schedule for this track */
+    val reminderScheduleRaw: String? = null,
+    /** When frozen, track streak remains protected and dormant */
+    val isFrozen: Boolean = false,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("id", id)
@@ -63,6 +67,8 @@ data class ReadingTrack(
         put("lastCompletedDate", lastCompletedDate ?: "")
         if (startVerseSurah != null) put("startVerseSurah", startVerseSurah)
         if (startVerseAyah != null) put("startVerseAyah", startVerseAyah)
+        if (reminderScheduleRaw != null) put("reminderScheduleRaw", reminderScheduleRaw)
+        put("isFrozen", isFrozen)
     }
 
     val pageNumber: Int get() = Mushaf.pageOf(positionUnit)
@@ -118,6 +124,8 @@ data class ReadingTrack(
                 lastCompletedDate = json.optString("lastCompletedDate").takeIf { it.isNotEmpty() },
                 startVerseSurah = sSurah,
                 startVerseAyah = sAyah,
+                reminderScheduleRaw = json.optString("reminderScheduleRaw").takeIf { it.isNotEmpty() },
+                isFrozen = json.optBoolean("isFrozen", false),
             )
         }
     }

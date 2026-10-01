@@ -63,6 +63,7 @@ import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.LifeSpace
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.TrackScheduleMode
+import com.mosman.wird.domain.TrackType
 import com.mosman.wird.domain.Progress
 import com.mosman.wird.domain.Turn
 import com.mosman.wird.domain.surahs
@@ -128,6 +129,7 @@ fun HomeScreen(
     activeSpace: LifeSpace? = null,
     activeTrack: ReadingTrack? = null,
     allSpaces: List<LifeSpace> = emptyList(),
+    allTracks: List<ReadingTrack> = emptyList(),
     scheduleMode: TrackScheduleMode = TrackScheduleMode.AUTOMATIC,
     onSelectTrack: (ReadingTrack) -> Unit = {},
     onSelectSpace: (LifeSpace) -> Unit = {},
@@ -143,27 +145,35 @@ fun HomeScreen(
 
     SetStatusBarAppearance(isLightBackground = false)
 
-    var showModeDialog by remember { mutableStateOf(false) }
+    var showTrackDialog by remember { mutableStateOf(false) }
 
-    if (showModeDialog && activeSpace != null) {
-        LifeSpacePickerDialog(
-            currentSpace = activeSpace,
-            activeTrack = activeTrack,
-            allSpaces = allSpaces,
-            onSelectSpace = {
-                onSelectSpace(it)
-                showModeDialog = false
-            },
+    val effectiveTracks = remember(allTracks, allSpaces) {
+        if (allTracks.isNotEmpty()) allTracks else allSpaces.flatMap { it.tracks }
+    }
+
+    if (showTrackDialog) {
+        TrackPickerDialog(
+            currentTrack = activeTrack,
+            allTracks = effectiveTracks,
             onSelectTrack = {
                 onSelectTrack(it)
-                showModeDialog = false
+                showTrackDialog = false
             },
-            onOpenSettings = { dialog ->
-                showModeDialog = false
-                onOpenSettings(dialog)
+            onAddNewTrack = {
+                showTrackDialog = false
+                onOpenSettings(SettingsDialog.EDIT_TRACK)
             },
-            onDismiss = { showModeDialog = false },
+            onManageTracks = {
+                showTrackDialog = false
+                onOpenSettings(SettingsDialog.MANAGE_TRACKS)
+            },
+            onDismiss = { showTrackDialog = false },
         )
+    }
+
+    val dueTracks = remember(effectiveTracks) { effectiveTracks.filter { it.isDueToday() } }
+    val dueIndex = remember(dueTracks, activeTrack) {
+        if (activeTrack != null) dueTracks.indexOfFirst { it.id == activeTrack.id } else -1
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -173,73 +183,65 @@ fun HomeScreen(
                 .background(groundColor)
                 .verticalScroll(scrollState),
         ) {
-            // Atmospheric Dawn Mosque Header (Option C with unified Reading Mode & Track pill)
+            // Atmospheric Dawn Mosque Header
             AtmosphericHeader(
                 readerName = readerName ?: "Mutalib",
                 positionText = if (positionLabel.isNotEmpty()) positionLabel else "Al-Fātihah 1, page 1",
-            onOpenPosition = onOpenPage,
-            onOpenBookmarks = onOpenBookmarks,
-            onMenu = onMenu,
-            menu = menu,
-            activeSpace = activeSpace,
-            activeTrack = activeTrack,
-            scheduleMode = scheduleMode,
-            onOpenModePicker = { showModeDialog = true },
-            onToggleScheduleMode = onToggleScheduleMode,
-        )
+                onOpenPosition = onOpenPage,
+                onOpenBookmarks = onOpenBookmarks,
+                onMenu = onMenu,
+                menu = menu,
+                activeTrack = activeTrack,
+                totalDueTracksCount = dueTracks.size,
+                activeTrackDueIndex = dueIndex,
+                onOpenTrackPicker = { showTrackDialog = true },
+            )
 
-        // Cards body with soft rounded overlap
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(y = (-14).dp)
-                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .background(groundColor)
-                .padding(horizontal = 16.dp, vertical = 6.dp),
-        ) {
-            var cardIndex = 0
+            // Cards body with soft rounded overlap
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y = (-14).dp)
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(groundColor)
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+            ) {
+                var cardIndex = 0
 
-            if (allSpaces.isEmpty() || activeSpace == null) {
-                StaggeredEnter(index = cardIndex++) {
-                    EmptyReadingModeGuideCard(
-                        onAddMode = { onOpenSettings(SettingsDialog.LIFE_SPACE_MANAGER) },
-                    )
-                }
-            } else if (activeSpace.tracks.isEmpty()) {
-                StaggeredEnter(index = cardIndex++) {
-                    EmptyTracksGuideCard(
-                        modeName = activeSpace.name,
-                        onAddTrack = { onOpenSettings(SettingsDialog.MANAGE_TRACKS) },
-                    )
-                }
-            } else {
-                StaggeredEnter(index = cardIndex++) {
-                    PortionCard(
-                        assignment = assignment,
-                        doneMethod = doneMethod,
-                        onOpenPage = onOpenPage,
-                        onMarkRead = onMarkRead,
-                        mode = mode,
-                        onOpenInQuran = onOpenInQuran,
-                        activeTrack = activeTrack,
-                    )
-                }
-
-                // If active track is completed today and another track in this mode is due today, show sequential banner
-                val nextDueTrack = if (activeTrack?.isCompletedToday() == true || doneMethod != null) {
-                    activeSpace.tracks.firstOrNull { it.id != activeTrack?.id && it.isDueToday() && !it.isCompletedToday() }
-                } else null
-
-                if (nextDueTrack != null) {
-                    Spacer(Modifier.height(Scale.space3))
+                if (effectiveTracks.isEmpty()) {
                     StaggeredEnter(index = cardIndex++) {
-                        NextDueTrackBanner(
-                            nextTrack = nextDueTrack,
-                            onContinueTrack = { onSelectTrack(nextDueTrack) },
+                        EmptyTracksGuideCard(
+                            onAddTrack = { onOpenSettings(SettingsDialog.EDIT_TRACK) },
                         )
                     }
+                } else {
+                    StaggeredEnter(index = cardIndex++) {
+                        PortionCard(
+                            assignment = assignment,
+                            doneMethod = doneMethod,
+                            onOpenPage = onOpenPage,
+                            onMarkRead = onMarkRead,
+                            mode = mode,
+                            onOpenInQuran = onOpenInQuran,
+                            activeTrack = activeTrack,
+                        )
+                    }
+
+                    // If active track is completed today and another track is due today, show sequential banner
+                    val nextDueTrack = if (activeTrack?.isCompletedToday() == true || doneMethod != null) {
+                        effectiveTracks.firstOrNull { it.id != activeTrack?.id && it.isDueToday() && !it.isCompletedToday() }
+                    } else null
+
+                    if (nextDueTrack != null) {
+                        Spacer(Modifier.height(Scale.space3))
+                        StaggeredEnter(index = cardIndex++) {
+                            NextDueTrackBanner(
+                                nextTrack = nextDueTrack,
+                                onContinueTrack = { onSelectTrack(nextDueTrack) },
+                            )
+                        }
+                    }
                 }
-            }
 
             // Today's Habit Clarity Card + Reflection Capsule (Option A)
             Spacer(Modifier.height(Scale.space4))
@@ -1378,76 +1380,10 @@ private fun NextDueTrackBanner(
 }
 
 /**
- * Welcoming guide card shown when no reading modes exist yet.
- */
-@Composable
-private fun EmptyReadingModeGuideCard(
-    onAddMode: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = LocalWirdColors.current
-    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clayCard(
-                shape = RoundedCornerShape(20.dp),
-                backgroundColor = if (isDark) Color(0xFF15261F) else Color(0xFFFBF8F1),
-                elevation = 4.dp,
-            )
-            .padding(20.dp),
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            LifeSpaceGlyph(
-                tint = if (isDark) Color(0xFF8DE0A6) else Color(0xFF245847),
-                modifier = Modifier.size(36.dp),
-            )
-            Text(
-                text = "Set Up Your Reading Modes",
-                fontSize = 16.5.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-            )
-            Text(
-                text = "Wird adapts to your real life. Add reading modes (like Ramadan, Madrasa, or Home) with parallel recitation tracks, independent goals, and schedules.",
-                fontSize = 12.5.sp,
-                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
-                textAlign = TextAlign.Center,
-                lineHeight = 17.sp,
-            )
-            Spacer(Modifier.height(4.dp))
-            Box(
-                modifier = Modifier
-                    .clayPill(
-                        shape = RoundedCornerShape(999.dp),
-                        backgroundColor = if (isDark) Color(0xFF1F4837) else Color(0xFF245847),
-                        elevation = 2.dp,
-                    )
-                    .clickable(onClick = onAddMode)
-                    .padding(horizontal = 18.dp, vertical = 10.dp),
-            ) {
-                Text(
-                    text = "+ Add Your First Reading Mode",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                )
-            }
-        }
-    }
-}
-
-/**
- * Guide card shown when active mode has no recitation tracks yet.
+ * Guide card shown when user has no recitation tracks yet.
  */
 @Composable
 private fun EmptyTracksGuideCard(
-    modeName: String,
     onAddTrack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1469,14 +1405,19 @@ private fun EmptyTracksGuideCard(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth(),
         ) {
+            TrackTypeGlyph(
+                type = TrackType.TILAWAH,
+                tint = if (isDark) Color(0xFF8DE0A6) else Color(0xFF245847),
+                modifier = Modifier.size(36.dp),
+            )
             Text(
-                text = "No Tracks in \"$modeName\"",
+                text = "Set Up Your Reading Tracks",
                 fontSize = 16.5.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
             )
             Text(
-                text = "Add a recitation track to this mode to track your daily portion, target, and recitation position.",
+                text = "Wird adapts to your real life. Add parallel reading tracks (like Daily Tilāwah, Weekend Ḥifẓ, or Ramadan Khatmah) with independent schedules and daily targets.",
                 fontSize = 12.5.sp,
                 color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                 textAlign = TextAlign.Center,
@@ -1494,7 +1435,7 @@ private fun EmptyTracksGuideCard(
                     .padding(horizontal = 18.dp, vertical = 10.dp),
             ) {
                 Text(
-                    text = "+ Add Recitation Track",
+                    text = "+ Add Your First Reading Track",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,

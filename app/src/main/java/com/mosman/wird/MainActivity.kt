@@ -145,6 +145,7 @@ class MainActivity : ComponentActivity() {
             var readingMode by remember { mutableStateOf(store.readingMode) }
             var direction by remember { mutableStateOf(store.readingDirection) }
             val today = LocalDate.now()
+            var allTracks by remember { mutableStateOf(store.getReadingTracks()) }
             var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
             var activeSpace by remember { mutableStateOf(store.activeSpace()) }
             var activeTrack by remember { mutableStateOf(store.activeTrack(today)) }
@@ -665,6 +666,7 @@ class MainActivity : ComponentActivity() {
                                 startVerseSurah = verse?.first,
                                 startVerseAyah = verse?.second,
                             ))
+                            allTracks = store.getReadingTracks()
                             lifeSpaces = store.getLifeSpaces()
                             activeSpace = store.activeSpace()
                             activeTrack = store.activeTrack(today)
@@ -772,6 +774,7 @@ class MainActivity : ComponentActivity() {
                                 // finishing does. That is the whole reason the portion is
                                 // stable within a day.
                                 store.recordTrackDone(activeTrack.id, assignment.nextStartUnit, today)
+                                allTracks = store.getReadingTracks()
                                 lifeSpaces = store.getLifeSpaces()
                                 activeSpace = store.activeSpace()
                                 activeTrack = store.activeTrack(today)
@@ -795,6 +798,7 @@ class MainActivity : ComponentActivity() {
                                     currentStreak = (activeTrack.currentStreak - 1).coerceAtLeast(0),
                                 )
                                 store.updateTrack(revertedTrack)
+                                allTracks = store.getReadingTracks()
                                 lifeSpaces = store.getLifeSpaces()
                                 activeSpace = store.activeSpace()
                                 activeTrack = store.activeTrack(today)
@@ -870,6 +874,7 @@ class MainActivity : ComponentActivity() {
                                     nudgeWidget()
                                     progress = progressOf(days.all(), today)
                                     store.recordTrackDone(activeTrack.id, assignment.nextStartUnit, today)
+                                    allTracks = store.getReadingTracks()
                                     lifeSpaces = store.getLifeSpaces()
                                     activeSpace = store.activeSpace()
                                     activeTrack = store.activeTrack(today)
@@ -883,6 +888,7 @@ class MainActivity : ComponentActivity() {
                                 activeSpace = activeSpace,
                                 activeTrack = activeTrack,
                                 allSpaces = lifeSpaces,
+                                allTracks = allTracks,
                                 scheduleMode = trackScheduleMode,
                                 onSelectTrack = { track ->
                                     store.setActiveTrack(track.id)
@@ -1110,6 +1116,7 @@ class MainActivity : ComponentActivity() {
                             activeTrack = store.activeTrack(today)
                         },
                         onLifeSpacesChanged = {
+                            allTracks = store.getReadingTracks()
                             lifeSpaces = store.getLifeSpaces()
                             activeSpace = store.activeSpace()
                             activeTrack = store.activeTrack(today)

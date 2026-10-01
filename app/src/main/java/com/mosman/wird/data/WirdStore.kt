@@ -471,32 +471,60 @@ class WirdStore(context: Context) {
         get() = prefs.getString(KEY_ACTIVE_TRACK_ID, null)
         set(value) = prefs.edit { putString(KEY_ACTIVE_TRACK_ID, value) }
 
-    fun getLifeSpaces(): List<LifeSpace> {
-        val raw = prefs.getString(KEY_LIFE_SPACES, null)
-        if (raw.isNullOrBlank()) {
-            val initial = createDefaultLifeSpaces()
-            saveLifeSpaces(initial)
-            return initial
-        }
-        return runCatching {
-            val arr = org.json.JSONArray(raw)
-            val list = mutableListOf<LifeSpace>()
-            for (i in 0 until arr.length()) {
-                arr.optJSONObject(i)?.let { list.add(LifeSpace.fromJson(it)) }
+    fun getReadingTracks(): List<ReadingTrack> {
+        val raw = prefs.getString(KEY_READING_TRACKS, null)
+        if (!raw.isNullOrBlank()) {
+            return runCatching {
+                val arr = org.json.JSONArray(raw)
+                val list = mutableListOf<ReadingTrack>()
+                for (i in 0 until arr.length()) {
+                    arr.optJSONObject(i)?.let { list.add(ReadingTrack.fromJson(it)) }
+                }
+                if (list.isNotEmpty()) list else createDefaultReadingTracks()
+            }.getOrElse {
+                createDefaultReadingTracks()
             }
-            if (list.isEmpty()) createDefaultLifeSpaces() else list
-        }.getOrElse {
-            createDefaultLifeSpaces()
         }
+
+        // Migrate from old KEY_LIFE_SPACES if present
+        val oldSpacesRaw = prefs.getString(KEY_LIFE_SPACES, null)
+        if (!oldSpacesRaw.isNullOrBlank()) {
+            val migrated = runCatching {
+                val arr = org.json.JSONArray(oldSpacesRaw)
+                val list = mutableListOf<ReadingTrack>()
+                for (i in 0 until arr.length()) {
+                    arr.optJSONObject(i)?.let { spaceJson ->
+                        val space = LifeSpace.fromJson(spaceJson)
+                        space.tracks.forEach { track ->
+                            val updatedTrack = track.copy(
+                                isFrozen = track.isFrozen || space.isFrozen,
+                                reminderScheduleRaw = track.reminderScheduleRaw ?: space.reminderScheduleRaw,
+                            )
+                            list.add(updatedTrack)
+                        }
+                    }
+                }
+                list
+            }.getOrDefault(emptyList())
+
+            if (migrated.isNotEmpty()) {
+                saveReadingTracks(migrated)
+                return migrated
+            }
+        }
+
+        val initial = createDefaultReadingTracks()
+        saveReadingTracks(initial)
+        return initial
     }
 
-    fun saveLifeSpaces(spaces: List<LifeSpace>) {
+    fun saveReadingTracks(tracks: List<ReadingTrack>) {
         val arr = org.json.JSONArray()
-        spaces.forEach { arr.put(it.toJson()) }
-        prefs.edit { putString(KEY_LIFE_SPACES, arr.toString()) }
+        tracks.forEach { arr.put(it.toJson()) }
+        prefs.edit { putString(KEY_READING_TRACKS, arr.toString()) }
     }
 
-    private fun createDefaultLifeSpaces(): List<LifeSpace> {
+    private fun createDefaultReadingTracks(): List<ReadingTrack> {
         val currentPos = positionUnit
         val currentDir = readingDirection
         val currentUnits = plan.defaultUnits
@@ -513,29 +541,12 @@ class WirdStore(context: Context) {
             startVerseSurah = sVerse?.first,
             startVerseAyah = sVerse?.second,
         )
-
-        val defaultSpace = LifeSpace(
-            id = "mode_daily",
-            name = "Daily Reading",
-            isFrozen = false,
-            tracks = listOf(mainTrack),
-            goal = null,
-        )
-
-        return listOf(defaultSpace)
-    }
-
-    fun activeSpace(): LifeSpace {
-        val spaces = getLifeSpaces()
-        if (spaces.isEmpty()) {
-            return LifeSpace(id = "mode_default", name = "Daily Reading", isFrozen = false, tracks = emptyList())
-        }
-        return spaces.firstOrNull { it.id == activeSpaceId } ?: spaces.first()
+        return listOf(mainTrack)
     }
 
     fun activeTrack(date: LocalDate = LocalDate.now()): ReadingTrack {
-        val space = activeSpace()
-        if (space.tracks.isEmpty()) {
+        val tracks = getReadingTracks()
+        if (tracks.isEmpty()) {
             return ReadingTrack(
                 id = "track_default",
                 name = "Daily Quran",
@@ -548,118 +559,73 @@ class WirdStore(context: Context) {
         }
 
         if (trackScheduleMode == TrackScheduleMode.MANUAL && manualActiveTrackId != null) {
-            val manual = space.tracks.firstOrNull { it.id == manualActiveTrackId }
+            val manual = tracks.firstOrNull { it.id == manualActiveTrackId }
             if (manual != null) return manual
         }
 
-        val dow = date.dayOfWeek
-        val matching = space.tracks.firstOrNull { dow in it.activeDays }
-        return matching ?: space.tracks.firstOrNull() ?: ReadingTrack(
-            id = "track_default",
-            name = "Reading Track",
-            type = TrackType.TILAWAH,
-        )
-    }
+        // Automatic scheduling based on DayOfWeek
+        val todayTracks = tracks.filter { it.isDueToday(date) }
 
-    fun setActiveSpace(spaceId: String) {
-        activeSpaceId = spaceId
-        manualActiveTrackId = null
-        val space = activeSpace()
-        val track = activeTrack()
-        positionUnit = track.positionUnit
-        readingDirection = track.direction
-        // Apply this mode's reminder schedule if configured
-        space.reminderScheduleRaw?.let { raw ->
-            prefs.edit { putString(KEY_NUDGE, raw) }
-        }
-    }
+        // 1. First priority: Due today, not frozen, and not completed yet today
+        val uncompletedDue = todayTracks.firstOrNull { !it.isFrozen && !it.isCompletedToday(date) }
+        if (uncompletedDue != null) return uncompletedDue
 
-    fun updateActiveSpaceReminder(schedule: NudgeSchedule) {
-        val raw = encodeSchedule(schedule)
-        nudgeSchedule = schedule
-        val spaces = getLifeSpaces().map {
-            if (it.id == activeSpaceId) it.copy(reminderScheduleRaw = raw) else it
-        }
-        saveLifeSpaces(spaces)
+        // 2. Second priority: Any unfrozen track due today
+        val dueUnfrozen = todayTracks.firstOrNull { !it.isFrozen }
+        if (dueUnfrozen != null) return dueUnfrozen
+
+        // 3. Third priority: Any unfrozen track
+        val anyUnfrozen = tracks.firstOrNull { !it.isFrozen }
+        if (anyUnfrozen != null) return anyUnfrozen
+
+        return tracks.first()
     }
 
     fun setActiveTrack(trackId: String) {
         manualActiveTrackId = trackId
         trackScheduleMode = TrackScheduleMode.MANUAL
-        val track = activeTrack()
+        val track = getReadingTracks().firstOrNull { it.id == trackId } ?: activeTrack()
         positionUnit = track.positionUnit
         readingDirection = track.direction
-    }
-
-    fun setSpaceFrozen(spaceId: String, frozen: Boolean) {
-        val spaces = getLifeSpaces().map {
-            if (it.id == spaceId) it.copy(isFrozen = frozen) else it
+        track.reminderScheduleRaw?.let { raw ->
+            prefs.edit { putString(KEY_NUDGE, raw) }
         }
-        saveLifeSpaces(spaces)
     }
 
-    fun renameSpace(spaceId: String, newName: String) {
-        val spaces = getLifeSpaces().map {
-            if (it.id == spaceId) it.copy(name = newName.ifBlank { "Mode" }) else it
+    fun addTrack(track: ReadingTrack) {
+        val current = getReadingTracks()
+        saveReadingTracks(current + track)
+    }
+
+    fun updateTrack(updated: ReadingTrack) {
+        val tracks = getReadingTracks().map { if (it.id == updated.id) updated else it }
+        saveReadingTracks(tracks)
+        if (manualActiveTrackId == updated.id) {
+            positionUnit = updated.positionUnit
+            readingDirection = updated.direction
         }
-        saveLifeSpaces(spaces)
     }
 
-    fun addLifeSpace(name: String, goal: String? = null): LifeSpace {
-        val id = "space_" + System.currentTimeMillis()
-        val spaceName = name.ifBlank { "Mode" }
-        // New life space starts with an empty tracks list so the user sees a clean empty state with a "Create track" CTA.
-        val newSpace = LifeSpace(id = id, name = spaceName, isFrozen = false, tracks = emptyList(), goal = goal)
-        saveLifeSpaces(getLifeSpaces() + newSpace)
-        return newSpace
-    }
-
-    fun deleteLifeSpace(spaceId: String): Boolean {
-        val current = getLifeSpaces()
-        val filtered = current.filter { it.id != spaceId }
-        saveLifeSpaces(filtered)
-        if (activeSpaceId == spaceId) {
-            activeSpaceId = filtered.firstOrNull()?.id ?: ""
-        }
-        return true
-    }
-
-    fun addTrackToSpace(spaceId: String, track: ReadingTrack) {
-        val spaces = getLifeSpaces().map { space ->
-            if (space.id == spaceId) {
-                space.copy(tracks = space.tracks + track)
-            } else space
-        }
-        saveLifeSpaces(spaces)
-    }
-
-    fun deleteTrackFromSpace(spaceId: String, trackId: String): Boolean {
-        val spaces = getLifeSpaces().map { space ->
-            if (space.id == spaceId) {
-                space.copy(tracks = space.tracks.filter { it.id != trackId })
-            } else space
-        }
-        saveLifeSpaces(spaces)
+    fun deleteTrack(trackId: String): Boolean {
+        val current = getReadingTracks()
+        val filtered = current.filter { it.id != trackId }
+        saveReadingTracks(filtered)
         if (manualActiveTrackId == trackId) {
             manualActiveTrackId = null
         }
         return true
     }
 
-    fun updateTrack(updated: ReadingTrack) {
-        val spaces = getLifeSpaces().map { space ->
-            if (space.tracks.any { it.id == updated.id }) {
-                space.copy(tracks = space.tracks.map { if (it.id == updated.id) updated else it })
-            } else {
-                space
-            }
+    fun setTrackFrozen(trackId: String, frozen: Boolean) {
+        val tracks = getReadingTracks().map {
+            if (it.id == trackId) it.copy(isFrozen = frozen) else it
         }
-        saveLifeSpaces(spaces)
+        saveReadingTracks(tracks)
     }
 
     fun recordTrackDone(trackId: String, nextStartUnit: Int, today: LocalDate = LocalDate.now()) {
-        val space = activeSpace()
-        val track = space.tracks.firstOrNull { it.id == trackId } ?: return
+        val tracks = getReadingTracks()
+        val track = tracks.firstOrNull { it.id == trackId } ?: return
 
         val isAlreadyCompletedToday = track.lastCompletedDate == today.toString()
         if (isAlreadyCompletedToday) {
@@ -672,7 +638,7 @@ class WirdStore(context: Context) {
         // Streak progression respecting active days and freeze state
         val isConsecutive = if (track.lastCompletedDate == null) {
             false
-        } else if (space.isFrozen) {
+        } else if (track.isFrozen) {
             true
         } else if (track.activeDays.isNotEmpty()) {
             var checkDate = today.minusDays(1)
@@ -696,6 +662,25 @@ class WirdStore(context: Context) {
         updateTrack(updated)
         positionUnit = nextStartUnit
     }
+
+    // Backwards-compatible stubs for LifeSpace
+    fun getLifeSpaces(): List<LifeSpace> {
+        val tracks = getReadingTracks()
+        return listOf(LifeSpace(id = "default", name = "Reading Tracks", isFrozen = false, tracks = tracks))
+    }
+    fun activeSpace(): LifeSpace = getLifeSpaces().first()
+    fun saveLifeSpaces(spaces: List<LifeSpace>) {
+        val allTracks = spaces.flatMap { it.tracks }
+        saveReadingTracks(allTracks)
+    }
+    fun addTrackToSpace(spaceId: String, track: ReadingTrack) = addTrack(track)
+    fun deleteTrackFromSpace(spaceId: String, trackId: String) = deleteTrack(trackId)
+    fun addLifeSpace(name: String, goal: String? = null): LifeSpace = activeSpace()
+    fun deleteLifeSpace(spaceId: String): Boolean = true
+    fun renameSpace(spaceId: String, newName: String) {}
+    fun setSpaceFrozen(spaceId: String, frozen: Boolean) {}
+    fun setActiveSpace(spaceId: String) {}
+    fun updateActiveSpaceReminder(schedule: NudgeSchedule) {}
 
     private companion object {
         const val PREFS = "wird_position"
@@ -731,6 +716,7 @@ class WirdStore(context: Context) {
         const val KEY_NIGHT_TEXT_BRIGHTNESS = "night_text_brightness"
         const val KEY_NIGHT_BG_BRIGHTNESS = "night_bg_brightness"
         const val KEY_RECENT_PAGES = "recent_pages"
+        const val KEY_READING_TRACKS = "reading_tracks_v2"
         const val KEY_LIFE_SPACES = "life_spaces_json"
         const val KEY_ACTIVE_SPACE_ID = "active_space_id"
         const val KEY_ACTIVE_TRACK_ID = "active_track_id"

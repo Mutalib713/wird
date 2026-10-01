@@ -21,10 +21,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.ui.text.style.TextOverflow
-import com.mosman.wird.domain.LifeSpace
 import com.mosman.wird.domain.ReadingTrack
-import com.mosman.wird.domain.TrackScheduleMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -65,11 +62,10 @@ fun AtmosphericHeader(
     onOpenBookmarks: () -> Unit,
     modifier: Modifier = Modifier,
     positionText: String = "Al-Fātihah 1, page 1",
-    activeSpace: LifeSpace? = null,
     activeTrack: ReadingTrack? = null,
-    scheduleMode: TrackScheduleMode = TrackScheduleMode.AUTOMATIC,
-    onOpenModePicker: () -> Unit = {},
-    onToggleScheduleMode: () -> Unit = {},
+    totalDueTracksCount: Int = 1,
+    activeTrackDueIndex: Int = 0,
+    onOpenTrackPicker: () -> Unit = {},
     onMenu: (() -> Unit)? = null,
     menu: @Composable () -> Unit = {},
 ) {
@@ -274,9 +270,7 @@ fun AtmosphericHeader(
                 ) {
                     // Reading Track Pill with due count badge (e.g. 1 of 3)
                     if (activeTrack != null) {
-                        val dueTracks = activeSpace?.tracks?.filter { it.isDueToday() } ?: emptyList()
-                        val dueIndex = dueTracks.indexOfFirst { it.id == activeTrack.id }
-                        val badgeText = if (dueTracks.size > 1 && dueIndex >= 0) "${dueIndex + 1} of ${dueTracks.size}" else null
+                        val badgeText = if (totalDueTracksCount > 1 && activeTrackDueIndex >= 0) "${activeTrackDueIndex + 1} of $totalDueTracksCount" else null
 
                         Box(
                             modifier = Modifier
@@ -286,7 +280,7 @@ fun AtmosphericHeader(
                                     highlightColor = Color.White.copy(alpha = 0.35f),
                                     shadowColor = Color.Black.copy(alpha = 0.4f),
                                 )
-                                .clickable(onClick = onOpenModePicker)
+                                .clickable(onClick = onOpenTrackPicker)
                                 .padding(horizontal = 11.dp, vertical = 7.dp),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -300,7 +294,7 @@ fun AtmosphericHeader(
                                     modifier = Modifier.size(13.dp),
                                 )
                                 Text(
-                                    text = activeTrack.name.take(13).trimEnd(),
+                                    text = activeTrack.name.take(14).trimEnd(),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
@@ -321,41 +315,6 @@ fun AtmosphericHeader(
                                 Icon(
                                     imageVector = Icons.Filled.KeyboardArrowDown,
                                     contentDescription = "Switch Track",
-                                    tint = Color(0xFF90A99C),
-                                    modifier = Modifier.size(14.dp),
-                                )
-                            }
-                        }
-                    } else if (activeSpace != null) {
-                        Box(
-                            modifier = Modifier
-                                .clayPill(
-                                    shape = RoundedCornerShape(999.dp),
-                                    backgroundColor = Color(0xFF16382D).copy(alpha = 0.88f),
-                                    highlightColor = Color.White.copy(alpha = 0.35f),
-                                    shadowColor = Color.Black.copy(alpha = 0.4f),
-                                )
-                                .clickable(onClick = onOpenModePicker)
-                                .padding(horizontal = 11.dp, vertical = 7.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            ) {
-                                LifeSpaceGlyph(
-                                    tint = Color(0xFF8DE0A6),
-                                    modifier = Modifier.size(13.dp),
-                                )
-                                Text(
-                                    text = activeSpace.name.take(14).trimEnd(),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                )
-                                Icon(
-                                    imageVector = Icons.Filled.KeyboardArrowDown,
-                                    contentDescription = "Switch",
                                     tint = Color(0xFF90A99C),
                                     modifier = Modifier.size(14.dp),
                                 )
@@ -481,74 +440,6 @@ fun AtmosphericHeader(
                         fontSize = 11.sp,
                         color = Color(0xFFA5BAAF),
                     )
-                }
-            }
-
-            // Reading Mode & Goal status row underneath greeting - Tactile Clay Capsule & Segmented Switch
-            if (activeSpace != null) {
-                Spacer(Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // Prominent Mode Capsule Button
-                    Box(
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .clayPill(
-                                shape = RoundedCornerShape(999.dp),
-                                backgroundColor = Color(0xFF16382D).copy(alpha = 0.92f),
-                                highlightColor = Color.White.copy(alpha = 0.22f),
-                                shadowColor = Color.Black.copy(alpha = 0.35f),
-                            )
-                            .clickable(onClick = onOpenModePicker)
-                            .padding(horizontal = 11.dp, vertical = 6.dp),
-                        contentAlignment = Alignment.CenterStart,
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            LifeSpaceGlyph(
-                                tint = Color(0xFF8DE0A6),
-                                modifier = Modifier.size(12.dp),
-                            )
-                            Text(
-                                text = "Mode: ${activeSpace.name}",
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (!activeSpace.goal.isNullOrBlank()) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(Color(0xFFF9C86A).copy(alpha = 0.15f))
-                                        .padding(horizontal = 5.dp, vertical = 1.dp)
-                                ) {
-                                    Text(
-                                        text = activeSpace.goal,
-                                        fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = Color(0xFFF9C86A),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                            }
-                            Icon(
-                                imageVector = Icons.Filled.KeyboardArrowDown,
-                                contentDescription = "Switch Mode",
-                                tint = Color(0xFF8DE0A6),
-                                modifier = Modifier.size(13.dp),
-                            )
-                        }
-                    }
                 }
             }
         }

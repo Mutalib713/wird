@@ -1832,11 +1832,11 @@ fun TrackPositionPickerDialog(
 }
 
 /**
- * Dialog for managing recitation tracks within a reading mode (Option C).
+ * Dialog for managing recitation tracks (Option C).
  */
 @Composable
 fun ManageTracksDialog(
-    space: LifeSpace,
+    tracks: List<ReadingTrack>,
     onEditTrack: (ReadingTrack) -> Unit,
     onAddNewTrack: () -> Unit,
     onDeleteTrack: (String) -> Unit,
@@ -1893,7 +1893,7 @@ fun ManageTracksDialog(
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                text = "Mode: ${space.name}",
+                                text = "Manage your parallel recitation journeys",
                                 color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
@@ -1923,7 +1923,7 @@ fun ManageTracksDialog(
                     )
 
                     // Track Cards
-                    if (space.tracks.isEmpty()) {
+                    if (tracks.isEmpty()) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1943,7 +1943,7 @@ fun ManageTracksDialog(
                             )
                         }
                     } else {
-                        space.tracks.forEach { track ->
+                        tracks.forEach { track ->
                             val trackBg = if (isDark) Color(0xFF16251E) else Color(0xFFF7F4EB)
                             Column(
                                 modifier = Modifier
@@ -2041,7 +2041,7 @@ fun ManageTracksDialog(
                                         )
                                     }
 
-                                    if (space.tracks.size > 1) {
+                                    if (tracks.size > 1) {
                                         Box(
                                             modifier = Modifier
                                                 .clayPill(
@@ -2122,5 +2122,23 @@ fun ManageTracksDialog(
             onDismiss = { trackPendingDelete = null },
         )
     }
+}
+
+/** Backwards-compatible overload for ManageTracksDialog with space parameter */
+@Composable
+fun ManageTracksDialog(
+    space: LifeSpace,
+    onEditTrack: (ReadingTrack) -> Unit,
+    onAddNewTrack: () -> Unit,
+    onDeleteTrack: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ManageTracksDialog(
+        tracks = space.tracks,
+        onEditTrack = onEditTrack,
+        onAddNewTrack = onAddNewTrack,
+        onDeleteTrack = onDeleteTrack,
+        onDismiss = onDismiss,
+    )
 }
 

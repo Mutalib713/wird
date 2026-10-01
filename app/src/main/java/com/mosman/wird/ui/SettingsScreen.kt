@@ -203,7 +203,9 @@ fun SettingsScreen(
     var subScreen by remember(initialSubScreen) { mutableStateOf(initialSubScreen) }
     var currentPositionLabel by remember(positionLabel) { mutableStateOf(positionLabel) }
 
-    // Life Spaces state
+    // Reading Tracks & Schedules state
+    var readingTracks by remember { mutableStateOf(store.getReadingTracks()) }
+    var activeTrack by remember { mutableStateOf(store.activeTrack()) }
     var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
     var activeSpace by remember { mutableStateOf(store.activeSpace()) }
     var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
@@ -482,8 +484,8 @@ fun SettingsScreen(
                             }
                         }
 
-                        // 2. Reading Modes & Tracks
-                        ClaySection(title = "Reading Modes & Tracks") {
+                        // 2. Reading Tracks & Schedules
+                        ClaySection(title = "Reading Tracks & Schedules") {
                             ClaySettingRow(
                                 title = "Schedule mode",
                                 subtitle = if (trackScheduleMode == TrackScheduleMode.AUTOMATIC) {
@@ -494,16 +496,11 @@ fun SettingsScreen(
                                 onClick = { activeDialog = SettingsDialog.SCHEDULE_MODE },
                             )
 
-                            ClaySettingRow(
-                                title = "Active reading mode",
-                                subtitle = "${activeSpace.name} ${if (activeSpace.isFrozen) "(Paused & Protected)" else "(Active)"} · Tap to switch or pause",
-                                onClick = { activeDialog = SettingsDialog.LIFE_SPACE_MANAGER },
-                            )
-
-                            val tracksSummary = if (activeSpace.tracks.isEmpty()) {
+                            val tracksCount = readingTracks.size
+                            val tracksSummary = if (tracksCount == 0) {
                                 "No tracks yet · Tap to add your first track"
                             } else {
-                                "${activeSpace.tracks.size} track${if (activeSpace.tracks.size != 1) "s" else ""} (${activeSpace.tracks.joinToString(", ") { it.name }}) · Manage & edit"
+                                "$tracksCount track${if (tracksCount != 1) "s" else ""} (${readingTracks.joinToString(", ") { it.name }}) · Manage & edit"
                             }
                             ClaySettingRow(
                                 title = "Recitation tracks",
@@ -1554,9 +1551,9 @@ fun SettingsScreen(
                     is NudgeSchedule.AtClockTime -> if (schedule.time.hour == 20) 3 else 4
                     is NudgeSchedule.Off -> 5
                 }
-                val activeModeName = store.activeSpace().name
+                val activeTrackName = store.activeTrack().name
                 ClayOptionDialog(
-                    title = "Reminder schedule ($activeModeName)",
+                    title = "Reminder schedule ($activeTrackName)",
                     options = listOf(
                         DialogOption(0, "After Maghrib", "15 minutes after sunset"),
                         DialogOption(1, "After 'Isha", "Quiet night reading before sleep"),
@@ -2195,14 +2192,12 @@ fun SettingsScreen(
 
             SettingsDialog.MANAGE_TRACKS -> {
                 ManageTracksDialog(
-                    space = activeSpace,
-                    onEditTrack = { track ->
-                        editingSpaceId = activeSpace.id
+                    tracks = readingTracks,
+                    onEditTrack = { track: ReadingTrack ->
                         editingTrack = track
                         activeDialog = SettingsDialog.EDIT_TRACK
                     },
                     onAddNewTrack = {
-                        editingSpaceId = activeSpace.id
                         editingTrack = ReadingTrack(
                             id = "track_${System.currentTimeMillis()}",
                             name = "New Reading Track",
@@ -2214,8 +2209,10 @@ fun SettingsScreen(
                         )
                         activeDialog = SettingsDialog.EDIT_TRACK
                     },
-                    onDeleteTrack = { trackId ->
-                        store.deleteTrackFromSpace(activeSpace.id, trackId)
+                    onDeleteTrack = { trackId: String ->
+                        store.deleteTrack(trackId)
+                        readingTracks = store.getReadingTracks()
+                        activeTrack = store.activeTrack()
                         lifeSpaces = store.getLifeSpaces()
                         activeSpace = store.activeSpace()
                         onLifeSpacesChanged()
@@ -2226,25 +2223,27 @@ fun SettingsScreen(
 
             SettingsDialog.EDIT_TRACK -> {
                 val trackToEdit = editingTrack
-                val spaceId = editingSpaceId ?: activeSpace.id
                 if (trackToEdit != null) {
-                    val currentSpace = lifeSpaces.firstOrNull { it.id == spaceId } ?: activeSpace
-                    val isExisting = currentSpace.tracks.any { it.id == trackToEdit.id }
+                    val isExisting = readingTracks.any { it.id == trackToEdit.id }
                     EditTrackDialog(
                         track = trackToEdit,
-                        canDelete = isExisting && currentSpace.tracks.size > 1,
+                        canDelete = isExisting && readingTracks.size > 1,
                         onSaveTrack = { updated ->
                             if (isExisting) {
                                 store.updateTrack(updated)
                             } else {
-                                store.addTrackToSpace(spaceId, updated)
+                                store.addTrack(updated)
                             }
+                            readingTracks = store.getReadingTracks()
+                            activeTrack = store.activeTrack()
                             lifeSpaces = store.getLifeSpaces()
                             activeSpace = store.activeSpace()
                             onLifeSpacesChanged()
                         },
                         onDeleteTrack = {
-                            store.deleteTrackFromSpace(spaceId, trackToEdit.id)
+                            store.deleteTrack(trackToEdit.id)
+                            readingTracks = store.getReadingTracks()
+                            activeTrack = store.activeTrack()
                             lifeSpaces = store.getLifeSpaces()
                             activeSpace = store.activeSpace()
                             onLifeSpacesChanged()
