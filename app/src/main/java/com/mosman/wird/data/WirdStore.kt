@@ -480,7 +480,7 @@ class WirdStore(context: Context) {
                 for (i in 0 until arr.length()) {
                     arr.optJSONObject(i)?.let { list.add(ReadingTrack.fromJson(it)) }
                 }
-                if (list.isNotEmpty()) list else createDefaultReadingTracks()
+                if (list.isNotEmpty()) deduplicateTrackNames(list) else createDefaultReadingTracks()
             }.getOrElse {
                 createDefaultReadingTracks()
             }
@@ -508,14 +508,52 @@ class WirdStore(context: Context) {
             }.getOrDefault(emptyList())
 
             if (migrated.isNotEmpty()) {
-                saveReadingTracks(migrated)
-                return migrated
+                val deduplicated = deduplicateTrackNames(migrated)
+                saveReadingTracks(deduplicated)
+                return deduplicated
             }
         }
 
         val initial = createDefaultReadingTracks()
         saveReadingTracks(initial)
         return initial
+    }
+
+    fun generateUniqueTrackName(baseName: String = "Reading Track"): String {
+        val tracks = getReadingTracks()
+        val existingNames = tracks.map { it.name.trim().lowercase() }.toSet()
+        val cleanBase = baseName.trim().ifEmpty { "Reading Track" }
+        if (cleanBase.lowercase() !in existingNames) {
+            return cleanBase
+        }
+        var counter = 2
+        while ("$cleanBase $counter".lowercase() in existingNames) {
+            counter++
+        }
+        return "$cleanBase $counter"
+    }
+
+    private fun deduplicateTrackNames(tracks: List<ReadingTrack>): List<ReadingTrack> {
+        val seen = mutableSetOf<String>()
+        var modified = false
+        val result = tracks.map { track ->
+            val trimmed = track.name.trim().ifEmpty { "Reading Track" }
+            var uniqueName = trimmed
+            var counter = 2
+            while (uniqueName.lowercase() in seen) {
+                uniqueName = "$trimmed $counter"
+                counter++
+            }
+            if (uniqueName != track.name) {
+                modified = true
+            }
+            seen.add(uniqueName.lowercase())
+            track.copy(name = uniqueName)
+        }
+        if (modified) {
+            saveReadingTracks(result)
+        }
+        return result
     }
 
     fun saveReadingTracks(tracks: List<ReadingTrack>) {
@@ -594,15 +632,25 @@ class WirdStore(context: Context) {
 
     fun addTrack(track: ReadingTrack) {
         val current = getReadingTracks()
-        saveReadingTracks(current + track)
+        val existingNames = current.map { it.name.trim().lowercase() }.toSet()
+        val cleanName = track.name.trim().ifEmpty { "Reading Track" }
+        var uniqueName = cleanName
+        var counter = 2
+        while (uniqueName.lowercase() in existingNames) {
+            uniqueName = "$cleanName $counter"
+            counter++
+        }
+        saveReadingTracks(current + track.copy(name = uniqueName))
     }
 
     fun updateTrack(updated: ReadingTrack) {
         val tracks = getReadingTracks().map { if (it.id == updated.id) updated else it }
-        saveReadingTracks(tracks)
+        val deduplicated = deduplicateTrackNames(tracks)
+        saveReadingTracks(deduplicated)
         if (manualActiveTrackId == updated.id) {
-            positionUnit = updated.positionUnit
-            readingDirection = updated.direction
+            val savedTrack = deduplicated.firstOrNull { it.id == updated.id } ?: updated
+            positionUnit = savedTrack.positionUnit
+            readingDirection = savedTrack.direction
         }
     }
 

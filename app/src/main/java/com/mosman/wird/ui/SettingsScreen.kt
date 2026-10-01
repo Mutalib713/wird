@@ -2187,7 +2187,7 @@ fun SettingsScreen(
                     onAddNewTrack = {
                         editingTrack = ReadingTrack(
                             id = "track_${System.currentTimeMillis()}",
-                            name = "New Reading Track",
+                            name = store.generateUniqueTrackName("Reading Track"),
                             type = TrackType.HIFZ,
                             activeDays = DayOfWeek.entries.toSet(),
                             positionUnit = 0,
@@ -2211,15 +2211,17 @@ fun SettingsScreen(
             SettingsDialog.EDIT_TRACK -> {
                 val trackToEdit = editingTrack ?: ReadingTrack(
                     id = "track_${System.currentTimeMillis()}",
-                    name = "New Reading Track",
+                    name = store.generateUniqueTrackName("Reading Track"),
                     type = TrackType.HIFZ,
                     activeDays = DayOfWeek.entries.toSet(),
                     dailyUnits = 2,
                 )
                 val isExisting = readingTracks.any { it.id == trackToEdit.id }
+                val otherTrackNames = readingTracks.filter { it.id != trackToEdit.id }.map { it.name }
                 EditTrackDialog(
                     track = trackToEdit,
                     canDelete = isExisting && readingTracks.size > 1,
+                    existingTrackNames = otherTrackNames,
                     onSaveTrack = { updated ->
                         if (isExisting) {
                             store.updateTrack(updated)

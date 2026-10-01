@@ -447,6 +447,7 @@ fun LifeSpaceManagerDialog(
 fun EditTrackDialog(
     track: ReadingTrack,
     canDelete: Boolean,
+    existingTrackNames: List<String> = emptyList(),
     onSaveTrack: (ReadingTrack) -> Unit,
     onDeleteTrack: () -> Unit,
     onDismiss: () -> Unit,
@@ -455,6 +456,11 @@ fun EditTrackDialog(
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
 
     var name by remember { mutableStateOf(track.name) }
+    val trimmedName = name.trim()
+    val isNameDuplicate = trimmedName.isNotEmpty() && existingTrackNames.any { it.trim().equals(trimmedName, ignoreCase = true) }
+    val isNameBlank = trimmedName.isEmpty()
+    val isNameValid = !isNameBlank && !isNameDuplicate
+
     var type by remember { mutableStateOf(track.type) }
     var activeDays by remember { mutableStateOf(track.activeDays) }
     var startPage by remember { mutableIntStateOf(track.pageNumber) }
@@ -566,6 +572,23 @@ fun EditTrackDialog(
                                 ),
                                 cursorBrush = SolidColor(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
                                 modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                        if (isNameDuplicate) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "A track with this name already exists",
+                                color = if (isDark) Color(0xFFFF8B8B) else Color(0xFFC0392B),
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        } else if (isNameBlank) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "Track name cannot be blank",
+                                color = if (isDark) Color(0xFFFF8B8B) else Color(0xFFC0392B),
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.SemiBold,
                             )
                         }
                     }
@@ -1005,28 +1028,38 @@ fun EditTrackDialog(
                             modifier = Modifier
                                 .weight(if (canDelete) 1.5f else 1f)
                                 .clayPill(
-                                    backgroundColor = Color(0xFF2D6B52),
-                                    elevation = 3.dp,
+                                    backgroundColor = if (isNameValid) {
+                                        Color(0xFF2D6B52)
+                                    } else {
+                                        if (isDark) Color(0xFF1C2C23) else Color(0xFFD6DFD9)
+                                    },
+                                    elevation = if (isNameValid) 3.dp else 0.dp,
                                 )
-                                .clickable {
-                                    val updated = track.copy(
-                                        name = name.trim().ifEmpty { track.name },
-                                        type = type,
-                                        activeDays = activeDays,
-                                        positionUnit = (startPage - 1) * Mushaf.UNITS_PER_PAGE,
-                                        dailyUnits = dailyUnits,
-                                        direction = direction,
-                                        startVerseSurah = startSurahNumber,
-                                        startVerseAyah = startAyahNumber,
-                                    )
-                                    onSaveTrack(updated)
+                                .clickable(enabled = isNameValid) {
+                                    if (isNameValid) {
+                                        val updated = track.copy(
+                                            name = trimmedName,
+                                            type = type,
+                                            activeDays = activeDays,
+                                            positionUnit = (startPage - 1) * Mushaf.UNITS_PER_PAGE,
+                                            dailyUnits = dailyUnits,
+                                            direction = direction,
+                                            startVerseSurah = startSurahNumber,
+                                            startVerseAyah = startAyahNumber,
+                                        )
+                                        onSaveTrack(updated)
+                                    }
                                 }
                                 .padding(vertical = 12.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 text = "SAVE TRACK",
-                                color = Color.White,
+                                color = if (isNameValid) {
+                                    Color.White
+                                } else {
+                                    if (isDark) Color(0xFF5A7265) else Color(0xFF8C9E94)
+                                },
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.5.sp,
