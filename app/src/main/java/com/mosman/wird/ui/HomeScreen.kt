@@ -224,6 +224,7 @@ fun HomeScreen(
                             mode = mode,
                             onOpenInQuran = onOpenInQuran,
                             activeTrack = activeTrack,
+                            onOpenTrackPicker = { showTrackDialog = true },
                         )
                     }
 
@@ -366,6 +367,7 @@ private fun PortionCard(
     mode: ReadingMode,
     onOpenInQuran: (() -> Unit)?,
     activeTrack: ReadingTrack? = null,
+    onOpenTrackPicker: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -403,6 +405,11 @@ private fun PortionCard(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
                             .background(if (isDark) Color(0xFF1E382B) else Color(0xFFD6EDE0))
+                            .then(
+                                if (onOpenTrackPicker != null) {
+                                    Modifier.clickable(onClick = onOpenTrackPicker)
+                                } else Modifier
+                            )
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(

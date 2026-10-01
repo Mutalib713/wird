@@ -851,7 +851,10 @@ fun AdvancedReminderDialog(
                                                 if (isDark) Color(0xFF1B2F23) else Color(0xFFE4EDE5)
                                             }
                                         )
-                                        .clickable { isCustomRepeat = true }
+                                        .clickable {
+                                            isCustomRepeat = true
+                                            if (repeatInterval < 1) repeatInterval = 2
+                                        }
                                         .padding(vertical = 7.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -901,7 +904,7 @@ fun AdvancedReminderDialog(
                                         }
                                         Spacer(Modifier.width(10.dp))
                                         Text(
-                                            text = "Every $repeatInterval hrs",
+                                            text = if (repeatInterval == 1) "Every 1 hr" else "Every $repeatInterval hrs",
                                             fontSize = 13.5.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = colors.textPrimary,
