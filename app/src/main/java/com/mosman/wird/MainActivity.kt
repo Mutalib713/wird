@@ -386,6 +386,7 @@ class MainActivity : ComponentActivity() {
                                 "be good enough."
                         )
                     } else {
+                        days.saveTranscription(today, heard)
                         val expected = withContext(Dispatchers.IO) {
                             arabic.wordsAcross(assignment.pages)
                         }
@@ -475,7 +476,7 @@ class MainActivity : ComponentActivity() {
                     defaultAyah = curAyah,
                 )
 
-                val isPortionDone = (trackDoneMethod != null || isTrackDoneToday || doneMethod != null)
+                val isPortionDone = (trackDoneMethod != null || isTrackDoneToday)
 
                 actions.forEach { action ->
                     when (action) {
@@ -937,6 +938,7 @@ class MainActivity : ComponentActivity() {
                                 logs = days.all(),
                                 audioFor = { d -> days.audioFor(d) },
                                 coveredFor = { d -> days.coveredOn(d) },
+                                transcriptionFor = { d -> days.transcriptionFor(d) },
                                 onPlay = { f -> playback.play(f) },
                                 onStop = { playback.stopPlaying() },
                                 onBack = { tab = WirdTab.HOME },

@@ -52,6 +52,18 @@ class DayLogStore(context: Context) {
     /** Where a new recording should be written. Named by date, so a day has one. */
     fun audioFileFor(date: LocalDate): File = File(audioDir, "recitation-$date.m4a")
 
+    fun transcriptionFor(date: LocalDate): String? =
+        read().firstOrNull { it.log.date == date }?.transcription
+
+    fun saveTranscription(date: LocalDate, text: String) {
+        val rows = read().toMutableList()
+        val existing = rows.indexOfFirst { it.log.date == date }
+        if (existing >= 0) {
+            rows[existing] = rows[existing].copy(transcription = text)
+            write(rows)
+        }
+    }
+
     /**
      * Mark a day done.
      *
@@ -82,6 +94,7 @@ class DayLogStore(context: Context) {
                 audio = row.audio ?: was.audio,
                 startUnit = row.startUnit ?: was.startUnit,
                 units = row.units ?: was.units,
+                transcription = was.transcription,
             )
         } else {
             rows += row
@@ -103,6 +116,7 @@ class DayLogStore(context: Context) {
         val audio: String?,
         val startUnit: Int? = null,
         val units: Int? = null,
+        val transcription: String? = null,
     )
 
     private fun read(): List<Row> {
@@ -121,6 +135,7 @@ class DayLogStore(context: Context) {
                             audio = o.optString("audio").ifEmpty { null },
                             startUnit = if (o.has("startUnit")) o.getInt("startUnit") else null,
                             units = if (o.has("units")) o.getInt("units") else null,
+                            transcription = o.optString("transcription").ifEmpty { null },
                         )
                     )
                 }
@@ -145,6 +160,7 @@ class DayLogStore(context: Context) {
                         r.audio?.let { put("audio", it) }
                         r.startUnit?.let { put("startUnit", it) }
                         r.units?.let { put("units", it) }
+                        r.transcription?.let { put("transcription", it) }
                     }
             )
         }
