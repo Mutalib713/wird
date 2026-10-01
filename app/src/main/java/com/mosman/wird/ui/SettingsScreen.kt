@@ -2209,43 +2209,51 @@ fun SettingsScreen(
             }
 
             SettingsDialog.EDIT_TRACK -> {
-                val trackToEdit = editingTrack
-                if (trackToEdit != null) {
-                    val isExisting = readingTracks.any { it.id == trackToEdit.id }
-                    EditTrackDialog(
-                        track = trackToEdit,
-                        canDelete = isExisting && readingTracks.size > 1,
-                        onSaveTrack = { updated ->
-                            if (isExisting) {
-                                store.updateTrack(updated)
-                            } else {
-                                store.addTrack(updated)
-                                trackPendingReminderPrompt = updated
-                            }
-                            readingTracks = store.getReadingTracks()
-                            activeTrack = store.activeTrack()
-                            lifeSpaces = store.getLifeSpaces()
-                            activeSpace = store.activeSpace()
-                            onLifeSpacesChanged()
-                            if (!isExisting) {
-                                activeDialog = SettingsDialog.TRACK_REMINDER_PROMPT
-                            }
-                        },
-                        onDeleteTrack = {
-                            store.deleteTrack(trackToEdit.id)
-                            readingTracks = store.getReadingTracks()
-                            activeTrack = store.activeTrack()
-                            lifeSpaces = store.getLifeSpaces()
-                            activeSpace = store.activeSpace()
-                            onLifeSpacesChanged()
-                        },
-                        onDismiss = {
-                            editingTrack = null
-                            editingSpaceId = null
+                val trackToEdit = editingTrack ?: ReadingTrack(
+                    id = "track_${System.currentTimeMillis()}",
+                    name = "New Reading Track",
+                    type = TrackType.HIFZ,
+                    activeDays = DayOfWeek.entries.toSet(),
+                    dailyUnits = 2,
+                )
+                val isExisting = readingTracks.any { it.id == trackToEdit.id }
+                EditTrackDialog(
+                    track = trackToEdit,
+                    canDelete = isExisting && readingTracks.size > 1,
+                    onSaveTrack = { updated ->
+                        if (isExisting) {
+                            store.updateTrack(updated)
                             activeDialog = null
-                        },
-                    )
-                }
+                        } else {
+                            store.addTrack(updated)
+                            trackPendingReminderPrompt = updated
+                            activeDialog = SettingsDialog.TRACK_REMINDER_PROMPT
+                        }
+                        readingTracks = store.getReadingTracks()
+                        activeTrack = store.activeTrack()
+                        lifeSpaces = store.getLifeSpaces()
+                        activeSpace = store.activeSpace()
+                        onLifeSpacesChanged()
+                        editingTrack = null
+                        editingSpaceId = null
+                    },
+                    onDeleteTrack = {
+                        store.deleteTrack(trackToEdit.id)
+                        readingTracks = store.getReadingTracks()
+                        activeTrack = store.activeTrack()
+                        lifeSpaces = store.getLifeSpaces()
+                        activeSpace = store.activeSpace()
+                        onLifeSpacesChanged()
+                        editingTrack = null
+                        editingSpaceId = null
+                        activeDialog = null
+                    },
+                    onDismiss = {
+                        editingTrack = null
+                        editingSpaceId = null
+                        activeDialog = null
+                    },
+                )
             }
 
             SettingsDialog.TRACK_REMINDER_PROMPT -> {

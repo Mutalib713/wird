@@ -1020,7 +1020,6 @@ fun EditTrackDialog(
                                         startVerseAyah = startAyahNumber,
                                     )
                                     onSaveTrack(updated)
-                                    onDismiss()
                                 }
                                 .padding(vertical = 12.dp),
                             contentAlignment = Alignment.Center,
