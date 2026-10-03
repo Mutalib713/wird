@@ -1552,13 +1552,15 @@ fun SettingsScreen(
                     allTracks = readingTracks,
                     initialSchedule = activeTrack.reminderScheduleRaw?.let(::decodeSchedule) ?: schedule,
                     onSave = { track, newSchedule ->
+                        // The track's own reminder, and nothing else. This used to also call
+                        // onSchedule(), which overwrote the DEFAULT reminder every other track
+                        // follows: saving 2 pm for a new track moved Daily Reading to 2 pm too.
+                        // Found on the emulator, 2026-10-03.
                         val updated = track.copy(reminderScheduleRaw = encodeSchedule(newSchedule))
                         store.updateTrack(updated)
                         readingTracks = store.getReadingTracks()
-                        if (activeTrack.id == updated.id) {
-                            activeTrack = updated
-                            onSchedule(newSchedule)
-                        }
+                        if (activeTrack.id == updated.id) activeTrack = updated
+                        onLifeSpacesChanged()
                         com.mosman.wird.nudge.NudgeScheduler.arm(context)
                         activeDialog = null
                     },

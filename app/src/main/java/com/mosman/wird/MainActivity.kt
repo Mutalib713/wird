@@ -158,7 +158,6 @@ class MainActivity : ComponentActivity() {
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var readerName by remember { mutableStateOf(store.readerName) }
-            var readingMode by remember { mutableStateOf(store.readingMode) }
             val today = LocalDate.now()
             var allTracks by remember { mutableStateOf(store.getReadingTracks()) }
             var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
@@ -177,6 +176,9 @@ class MainActivity : ComponentActivity() {
             val startVerse: Pair<Int, Int>? = activeTrack.startVerseSurah?.let { s ->
                 activeTrack.startVerseAyah?.let { a -> s to a }
             }
+            // Reading from the page or reciting from memory follows the track's own type. A
+            // separate global setting used to say "Memorize" in Settings while Home said "Read".
+            val readingMode = if (activeTrack.type == TrackType.TILAWAH) ReadingMode.READING else ReadingMode.MEMORISING
 
             /**
              * Bumped after every write to the day log. Anything read from the log is keyed on
@@ -751,7 +753,6 @@ class MainActivity : ComponentActivity() {
                             store.readerName = name
                             readerName = store.readerName
                             store.readingMode = mode
-                            readingMode = mode
                             store.markSetUp()
                             refresh()
                             store.hasSeenToolkitTour = false
@@ -1147,7 +1148,15 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         onTheme = { store.themeMode = it; theme = it },
-                        onReadingMode = { store.readingMode = it; readingMode = it },
+                        onReadingMode = { mode ->
+                            val type = when {
+                                mode == ReadingMode.READING -> TrackType.TILAWAH
+                                activeTrack.type == TrackType.REVISION -> TrackType.REVISION
+                                else -> TrackType.HIFZ
+                            }
+                            store.updateTrack(activeTrack.copy(type = type))
+                            refresh()
+                        },
                         onPlan = {
                             // Settings' daily target. It used to save to the global plan too.
                             store.updateTrack(
