@@ -76,8 +76,8 @@ import kotlin.math.sin
 @Composable
 fun ToolkitSpotlightOverlay(
     onDismiss: () -> Unit,
-    onStepChanged: (Int) -> Unit = {},
     modifier: Modifier = Modifier,
+    onStepChanged: (Int) -> Unit = {},
 ) {
     var stepIndex by remember { mutableIntStateOf(0) }
 

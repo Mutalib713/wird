@@ -1,5 +1,5 @@
 # Wird — Session Handoff Notes
-# Last updated: 2026-09-28
+# Last updated: 2026-10-03 (corrected — see the note at the top of § 1)
 
 **Read CLAUDE.md, PROFILE.md, and PLAN.md before this file.** Those are canonical.
 This file records volatile session knowledge that doesn't belong in those three.
@@ -8,22 +8,29 @@ This file records volatile session knowledge that doesn't belong in those three.
 
 ## 1. Who is the user
 
-**Mutalib Osman** — a Ghanaian student at UPSA. This is his personal Qur'an companion
-app. He is a beginner developer who ships real projects but is still learning vocabulary.
+> **Corrected 2026-10-03.** The 2026-09-28 version of this file had wrong facts: his
+> university, the palette, the tab names and the speech engine. Fixed below. When this file
+> and PROFILE.md disagree, PROFILE.md wins.
+
+**Mutalib Osman** — a Ghanaian student (Information Technology, KNUST). This is his personal
+Qur'an companion app. He is a beginner developer who ships real projects but is still learning vocabulary.
 **Never infer his expertise from his output.** Plain words first, always.
 
 - The app greets **"Osman"** — that is the reader name he set in settings, not a different
   person.
 - Device: **Pixel 6 Pro**, Android 17, model `raven`, display 1440×3120.
-- Wireless ADB at `10.0.0.114:44053` (address may change between sessions — re-check).
+- Wireless ADB address changes between sessions — find it with `adb devices` / `adb mdns services`.
+  (The address used to be written here; removed 2026-10-03 because the repo is public.)
 - **$0/month infra** is the assumption for any tech stack decisions.
 
 ## 2. Repository state as of this handoff
 
 - **Repo:** `c:\Users\USER\MyClaudeProjects\wird`
 - **Remote:** `git@github.com:Mutalib713/wird.git` → branch `main`
-- **HEAD:** `04eed06` — "Refine Tafsir accordion to heading-based sections and polish
-  coachmark tour arrows"
+- **HEAD:** check `git log -1` — this file no longer pins a commit, because it went stale
+  within days last time.
+- **⚠ The repo is PUBLIC** (confirmed 2026-10-03). Nothing personal or secret goes in any
+  committed file from here on.
 - **Working tree is clean** (tracked files). Untracked scratch files exist:
   `reset_prefs.py`, `scratch_uidump*.xml`, `tafsir_*.json`, `temp_wird_pos.xml` — all
   debug artifacts, safe to ignore or `.gitignore`.
@@ -62,9 +69,9 @@ When the user taps "Tafsir & Translation" chip in the AI Companion chat:
 - **Life Spaces & parallel reading tracks** — School Mode / Home Mode
 - **Auto schedule** with prayer-time-based reminders
 - **Atmospheric gradient header** with Canvas mosque silhouette, crescent, flying birds
-- **Floating island dock** — bottom navigation with 3 tabs (Home, Reader, History)
+- **Floating island dock** — bottom navigation with 3 tabs (Home, Sūrahs, History)
 - **Streaming audio** with floating listen bar, per-ayah repeat
-- **On-device recitation checker** via whisper.cpp (built but unmeasured)
+- **On-device recitation checker** via whisper.cpp + ggml Tarteel models (built but unmeasured)
 - **10-step beginner onboarding** (SetupScreen)
 - **Home screen widget** showing today's portion
 - **Privacy Pledge** card in settings
@@ -101,9 +108,14 @@ app/src/main/java/com/mosman/wird/
 | ToolkitTour.kt | 497 | Feature tour overlay |
 
 ### Theme/palette
-- **Dark app, cream reading surface.** Gold `#C9A24B` on cream `#FBF9F3`, midnight `#14101F`.
-- Palette pinned by Mutalib, Sacred Rule 8. Don't change without explicit approval.
-- Fonts: Cinzel/Playfair Display/EB Garamond/Oswald for Latin, **Amiri** for Arabic.
+- **Forest green and cream**, pinned by Mutalib 2026-10-03 — PROFILE.md § 6f has the values
+  and the measured contrast. Green `#245847` on cream `#F7F5ED`; dark ground `#191A1E` with
+  light green `#8ED676`; gold `#C9A24B` as ornament only.
+- ⚠ The colours are hard-coded in the screens; `ui/theme/Palette.kt` still holds the old
+  teal tokens. See PROFILE.md § 6f before touching colour.
+- Fonts: the system default plus `FontFamily.Serif` in four places. No Latin display font and no
+  Amiri are bundled (checked 2026-10-03; the earlier line here was wrong). The mushaf uses the
+  per-page QCF glyph fonts, downloaded on demand.
 - Clay composable = the card container used everywhere on Home.
 
 ### ADB patterns (CRITICAL for device work)
@@ -181,7 +193,8 @@ Tasks 1-10, 18, 19, 22, 25 — all core features.
 - **ZERO AI attribution** in commits, PRs, or anything in the repo. Ever.
 - **Design Studio skill** auto-applies for any UI work. Palette Picker must run first.
 - Color is always Mutalib's choice. Never pick colors for him.
-- Vector icons only — no emojis in UI. Material Icons or Lucide drawables.
+- Vector icons for controls; emojis allowed on streak/stats figures (Sacred Rule 6, amended
+  2026-10-03 at his word).
 - **PowerShell** commands only (Windows OS).
 - **Weak build machine** — avoid heavy parallel compilation.
 

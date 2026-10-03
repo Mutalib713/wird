@@ -278,12 +278,6 @@ Decisions no future session may reopen without Mutalib's explicit approval.
 4. **The streak is always shown next to total days read**, which never resets. The day
    after a streak breaks is when people delete habit apps.
 5. **This is a habit tool, not a Qur'an reader.** Reading features link out.
-6. **Iconography Standard — Google Material & Lucide Vector Icons Only.**
-   Strictly NO raw or informal emojis in UI components, dialogs, buttons, empty states, or
-   indicators (e.g. no 📖, 🧭, ✨, 📍). Use authentic Google Material Icons (`androidx.compose.material.icons`)
-   or Lucide-style vector drawables exclusively. Added 2026-09-18 by Mutalib's explicit instruction.
-
-
    **Refined 2026-08-15, with Mutalib's explicit approval.** He asked for full browsing
    and a home screen; we settled on the smaller version and he chose it knowingly:
 
@@ -322,6 +316,23 @@ Decisions no future session may reopen without Mutalib's explicit approval.
    top-tab variant on the neighbouring screen. He also said "we will change the designs
    tho" — so **the mockups are a direction, not a specification.** What is fixed is what is
    written here; the pixels are expected to move.
+
+6. **Iconography — vector icons for controls, emojis allowed on stats.**
+   Buttons, dialogs, empty states and status indicators use Google Material Icons
+   (`androidx.compose.material.icons`) or Lucide-style vector drawables.
+   **Streak and stats figures may carry an emoji marker** (🔥 📖 🎙️ ❄️).
+   *History:* added 2026-09-18 as "no emojis anywhere" by Mutalib's instruction. **Amended
+   2026-10-03 by Mutalib's explicit choice** ("keep emojis") after the Home emojis were restored
+   in `4988eea`; the stats emojis are now his decision, not drift.
+
+   *Moved here from between rule 5 and rule 5's history on 2026-10-03 — it had been inserted
+   in the middle of rule 5's text, which made rule 5's refinements read as rule 6's.*
+
+   **⚠ Rule 5's "still refused" list is out of date (noted 2026-10-03, not decided).** It
+   refuses bookmarks, translations and tafsir. Bookmarks (§ 5aa) and translations (§ 5ab) were
+   built in August with his approval, and Ibn Kathir tafsir in the companion was built in
+   September. The rule text has not been changed, because changing a sacred rule needs his
+   word — it needs one sentence from him saying what rule 5 means now.
 
 ### 5c. Verified against the design, 2026-08-17
 
@@ -2730,3 +2741,70 @@ letter-perfect recitation of that page would have been met with four ayahs marke
 proves the *model* is accurate enough for any of it to be safe. The 70% threshold is a guess.
 **Until a full portion has been through it, this is a feature that has never met its own
 problem.**
+
+## 6f. PALETTE — forest green and cream. Pinned 2026-10-03
+
+**This replaces § 6d (teal + white) and § 6e as the palette.** Mutalib's explicit choice on
+2026-10-03 (*"green is my pick"*), made after being shown that the app had been painting green
+since the September redesign while this file still pinned teal. § 6d and § 6e stay as a record.
+
+What is painted, read from the code on 2026-10-03 (counts are uses across `ui/`):
+
+| Role | Light | Dark |
+|---|---|---|
+| Ground | cream `#F7F5ED` | `#191A1E` (some screens still `#212121`) |
+| Primary / accent | forest green `#245847` (×162) | light green `#8ED676` |
+| Strong text / headings | deep green `#17382D` | `#E4E9E5` |
+| Secondary text | `#6F8378` | `#8FA597` |
+| Ornament | gold `#C9A24B` | gold `#C9A24B` |
+| App icon background | emerald gradient `#1A382C` → `#0D2018` | same |
+
+### Measured contrast (WCAG ratio, computed 2026-10-03)
+
+- green `#245847` on cream: **7.51:1** (AAA) · deep green on cream: **11.73:1**
+- white on green: **8.20:1** · light green on `#191A1E`: **9.96:1** · `#E4E9E5` on dark: **14.15:1**
+- ⚠ **secondary text `#6F8378` on cream: 3.70:1, which fails AA (4.5) for body text.** Used 57
+  times as the light-mode secondary colour.
+- ⚠ **gold `#C9A24B` on cream: 2.20:1.** Fine as an ornament; not readable as text. Same
+  failure as the August gold (2.06:1, § 6d).
+
+Fixing those two means darkening them, which is a colour change. **Colour is his call** (the
+global rule), so they are recorded here, not silently fixed.
+
+### ⚠ The palette lives in the screens, not in the theme
+
+`ui/theme/Palette.kt` still defines the **teal** tokens, and `LightColors`/`DarkColors` still
+map to them. The green is typed as raw hex about 1,500 times across the screens, and 67 places
+work out "is it dark?" by comparing `colors.surface` to a hex value. Consequences:
+- any screen that reads `colors.accent` still paints **teal**;
+- changing one green means editing hundreds of lines.
+
+The refactor (move the green into `Palette.kt`, add an `isDark` flag to `WirdColors`, replace
+the raw hex) has **not been done**. It is listed in the 2026-10-03 audit.
+
+## 5bc. What landed 2026-09-07 → 2026-10-03, recorded after the fact
+
+About 70 commits in other agent sessions (Gemini/Antigravity) never reached this file. It was
+reconstructed on 2026-10-03 from the code and the commit log, so treat it as a summary:
+
+- **Reading tracks** (`domain/LifeSpace.kt`, `ReadingTrack`): name, type
+  (Tilāwah / Ḥifẓ / Murāja'ah), weekdays, its own position, direction, daily amount, streak,
+  reminder, and freeze. Automatic mode picks today's track by weekday; manual mode keeps the
+  one you tapped. "Life Spaces" (School / Home) was built 2026-09-23 and **flattened 2026-10-01**;
+  `LifeSpace` now survives only as no-op stubs in `WirdStore`.
+- **Redesign**: claymorphism cards, atmospheric mosque/moon header, floating bottom dock, Islamic
+  geometric time-of-day marks, riḥāl app icon (task 16), 10-step setup, coachmark tour.
+- **Companion**: per-track chats; Ibn Kathir tafsir fetched from Quran.com and shown as
+  expandable sections (shortened to 5 sections × 4 paragraphs × 400 characters).
+- **Audio**: four reciters, streaming, listen bar, range repeat.
+- **Reminders**: per-track schedules, several prayers at once, clock time with repeats, OEM
+  battery guide and self-check (task 15).
+- **Privacy Pledge** (task 18). In-app WhatsApp feedback removed at his word (2026-09-17).
+- **Showcase site** deployed at `wird-showcase.vercel.app` with a public APK download.
+- **The repo became public.** Personal details in this file and the code are now readable by
+  anyone; see the 2026-10-03 audit.
+
+⚠ **Known defects found 2026-10-03, not yet fixed:** see the audit. The headline ones are that
+undo wipes every track's day and leaves the track's total too high, that Home's streak never
+drops after a missed day, and that the companion's plan changes ("half on Fridays") no longer
+reach the portion.

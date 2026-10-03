@@ -98,7 +98,7 @@ The interface uses tactile claymorphism with physical depth, soft debossed surfa
   * **Warm Cream:** A calm daytime palette with natural forest green accents.
   * **Night Dark:** A deep green nocturnal palette with high-contrast text.
 * **Night mode brightness sliders:** Tailor your reading comfort with an ayah text contrast slider and a deep black OLED background toggle.
-* **Clean vector iconography:** All icons are clean vector drawables from Google Material Icons and Font Awesome vectors. The app strictly avoids informal emojis in UI components, dialogs, buttons, and status indicators.
+* **Icons and emojis:** Buttons, dialogs and indicators use vector icons from Google Material Icons and Font Awesome. Streak and stats figures use a small emoji marker (🔥 📖 🎙️), by Mutalib's choice on 2026-10-03.
 * **Adaptive layout:** Built with responsive spacing that scales properly from 320px compact screens to high-density modern displays.
 
 ### 8. Complete privacy and data sovereignty
@@ -133,7 +133,7 @@ External Sources (Download Only):
 |---|---|---|
 | **Language** | Kotlin 2.x | Safe, concise application logic |
 | **UI Framework** | Jetpack Compose | Declarative UI with tactile claymorphism styling |
-| **Speech AI** | TFLite / ONNX Runtime | On-device Arabic speech-to-text inference |
+| **Speech AI** | whisper.cpp (ggml, built with the NDK) | On-device Arabic speech-to-text inference |
 | **Audio** | Android MediaPlayer & MediaRecorder | Offline recitations and local voice capture |
 | **Background Alarms** | AlarmManager & BroadcastReceiver | Battery-efficient solar and clock reminders |
 | **Data Storage** | Android SharedPreferences & JSON | Fast, zero-overhead local data persistence |
@@ -143,8 +143,9 @@ External Sources (Download Only):
 
 ### Prerequisites
 * Android Studio Ladybug or newer
-* Android SDK 35 (compileSdk 35, minSdk 26)
-* JDK 17 or JDK 21 (configured in Android Studio)
+* Android SDK 36 (compileSdk 36, targetSdk 36, minSdk 26)
+* JDK 21 (Android Studio's bundled JBR; `check.ps1` sets `JAVA_HOME` to it)
+* Android NDK (for the whisper.cpp native library)
 * Gradle 8.x+ (bundled via `gradlew`)
 
 ### Quick commands

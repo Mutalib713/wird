@@ -10,7 +10,8 @@ Also read `HANDOFF.md` for volatile session context (recent work, ADB patterns, 
 - **NEVER add AI attribution** to commits, PRs, or anything landing in this repo. No
   `Co-Authored-By`, no "Generated with Claude Code".
 - Sacred Rules in PROFILE.md § 6 need Mutalib's explicit approval to change.
-- **Vector iconography only:** Strictly NO raw or informal emojis in UI components, dialogs, buttons, empty states, or indicators (e.g. no 📖, 🧭, ✨, 📍). Use authentic Google Material Icons (`androidx.compose.material.icons`) or Lucide-style vector drawables exclusively. Sacred Rule 6.
+- **Iconography:** vector icons (Google Material Icons or Lucide-style drawables) for buttons, dialogs, empty states and indicators. Emojis are allowed on streak and stats figures only (🔥 📖 🎙️ ❄️). Sacred Rule 6, amended 2026-10-03 at Mutalib's word.
+- **The repo is public.** No personal details (home area, device serials, LAN addresses, phone numbers) and no secrets in any committed file.
 - `DRY_RUN=1` is the default for anything that sends or uploads.
 - **Never link a personal WhatsApp number to an unofficial gateway.** (2026-07: Green
   API got his personal number temp-restricted for ~6h with zero messages sent.)

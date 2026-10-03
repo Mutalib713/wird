@@ -451,7 +451,7 @@ fun AtmosphericHeader(
  * Horizon line, luminous rising solar dome, and 5 tapered radiating rays.
  */
 @Composable
-private fun IslamicDawnGlyph(tint: Color = Color(0xFFF59E0B), modifier: Modifier = Modifier) {
+private fun IslamicDawnGlyph(modifier: Modifier = Modifier, tint: Color = Color(0xFFF59E0B)) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
@@ -505,7 +505,7 @@ private fun IslamicDawnGlyph(tint: Color = Color(0xFFF59E0B), modifier: Modifier
  * Overlapping rotated geometric squares forming the sacred 8-point solar star.
  */
 @Composable
-private fun IslamicShamsGlyph(tint: Color = Color(0xFFFBBF24), modifier: Modifier = Modifier) {
+private fun IslamicShamsGlyph(modifier: Modifier = Modifier, tint: Color = Color(0xFFFBBF24)) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
@@ -541,7 +541,7 @@ private fun IslamicShamsGlyph(tint: Color = Color(0xFFFBBF24), modifier: Modifie
  * Slender Ottoman crescent paired with a geometric 8-point star.
  */
 @Composable
-private fun IslamicHilalGlyph(tint: Color = Color(0xFFFFF6DC), modifier: Modifier = Modifier) {
+private fun IslamicHilalGlyph(modifier: Modifier = Modifier, tint: Color = Color(0xFFFFF6DC)) {
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
