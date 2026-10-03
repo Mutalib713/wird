@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wird onboarding flow</title>
+<link rel="icon" href="wird-icon-288.png">
+<meta property="og:title" content="Wird onboarding flow">
+<meta property="og:image" content="onboarding-flow.webp">
+<!--
+  Wird: onboarding and setup as one Figma-style flow board. 2026-10-03.
+  A design file for Antigravity to implement. Nothing in the app changes because of this file.
+
+  Frames are 411 x 891 px = 411 x 891 dp (Pixel 6 Pro). 1 px on the board is 1 dp; font px is sp.
+  Colour: Mutalib's pinned palette (PROFILE 6f) plus tints mixed from two of its colours.
+  build.py computes every tint and writes the recipe into the token panel and tokens.json.
+  Fonts: the phone's own. Noto Serif = Compose FontFamily.Serif, Roboto = FontFamily.Default,
+  Noto Naskh Arabic = Android's default Arabic. The app gains no font files.
+  Arabic and English verses are filled in by build.py from app/src/main/assets. Never typed.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600&family=Noto+Serif:ital,wght@0,600;0,700;1,400&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root { --cream:#F7F5ED; --green:#245847; --deep:#17382D; --ink2:#4B5551; --gold:#C9A24B; --goldtext:#8E6900; --sky-top:#4E7768; --sky-upper:#819D90; --sky-glow:#EFE6D0; --sky-bottom:#B6C4BA; --mosque:#597F70; --tile:#F5F1E5; --chip:#DEE2D9; --bubble-me:#D1D9CF; --rule:#E2E2DA; --dot-off:#C7C8C1; --soon-edge:#E2D0A4; --sky-mid:#D2D5C5; --white:#FFFFFF; --leaf:#7EBB6A; --review:rgba(217,164,65,.25); --figma:#0D99FF; --figma-ink:#0A66C2; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#1E1E1E; color:#E6E6E6; font-family:Roboto, "Segoe UI", sans-serif; }
+  #board { position:relative; width:4060px; height:3760px; }
+  .head { position:absolute; left:110px; top:56px; width:2700px; }
+  .head h1 { font:700 46px/1.1 "Noto Serif", Georgia, serif; color:#F2F2F2; }
+  .head p { margin-top:16px; font-size:19px; line-height:1.55; color:#B8B8B8; max-width:128ch; }
+  .head b { color:#F0F0F0; }
+
+  /* ---------- board chrome, Figma style ---------- */
+  .fname { position:absolute; font-size:15px; color:#B3B3B3; white-space:nowrap; display:flex; gap:12px; align-items:center; }
+  .fname b { color:#E6E6E6; font-weight:500; }
+  .tag { font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:4px 8px; border-radius:4px; }
+  .t-first { background:#2E3A2C; color:#A8D59B; } .t-redo { background:#3A3520; color:#E5CE6A; }
+  .t-new { background:#24323F; color:#8CC4F0; } .t-yes { background:var(--figma-ink); color:#fff; }
+  .t-keep { background:#333; color:#BDBDBD; } .t-sys { background:#3A2A3F; color:#D6A8F0; }
+  #wires { position:absolute; inset:0; pointer-events:none; overflow:visible; }
+  .hot { position:absolute; border:2px solid var(--figma); border-radius:12px; pointer-events:none; }
+  .hot.grey { border:2px dashed #9A9A9A; }
+  .wtag { position:absolute; transform:translate(-50%,-50%); max-width:170px; padding:4px 8px; border-radius:6px; background:var(--figma-ink); color:#fff; font-size:13px; font-weight:700; line-height:1.3; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,.35); }
+  .wtag.auto { background:#2C2C2C; color:#CFCFCF; font-weight:400; font-style:italic; border:1px dashed #6A6A6A; }
+  .callout { position:absolute; width:132px; padding:8px 8px; border-radius:6px; background:#2C2C2C; border:1px solid #555; color:#D8D8D8; font-size:12.5px; line-height:1.4; }
+  .callout.wide { width:300px; }
+  .anchor { position:absolute; width:1px; height:1px; }
+  .sticky { position:absolute; width:411px; padding:28px 28px 32px; background:#F3E59A; color:#1E1E1E; border-radius:4px; box-shadow:0 6px 18px rgba(0,0,0,.35); font-size:16px; line-height:1.5; }
+  .sticky h3 { font:700 22px/1.25 "Noto Serif", Georgia, serif; margin-bottom:12px; }
+  .sticky h4 { font-size:15px; font-weight:700; margin:16px 0 4px; }
+  .sticky p + p { margin-top:8px; }
+  .sticky ol, .sticky ul { padding-left:20px; } .sticky li + li { margin-top:8px; }
+  .sticky .k { display:inline-block; width:26px; height:3px; vertical-align:middle; margin-right:8px; background:var(--figma); }
+  .sticky .k.d { background:none; border-top:2px dashed #555; }
+
+  /* ---------- the phone frames: everything inside is the app ---------- */
+  .frame { position:absolute; width:411px; height:891px; border-radius:32px; overflow:hidden; background:var(--cream); color:var(--deep); box-shadow:0 0 0 1px #3A3A3A; font-family:Roboto, "Segoe UI", sans-serif; }
+  .serif { font-family:Noto Serif, Georgia, serif; }
+  .ar { font-family:Noto Naskh Arabic, Segoe UI, serif; direction:rtl; unicode-bidi:isolate; }
+  .status { position:absolute; left:0; right:0; top:0; height:32px; padding:0 20px 0 24px; display:flex; align-items:center; justify-content:space-between; font-size:14px; font-weight:500; color:#fff; z-index:6; }
+  .homebar { position:absolute; bottom:8px; left:50%; width:108px; height:4px; transform:translateX(-50%); border-radius:2px; background:var(--deep); opacity:.5; z-index:6; }
+  .shot { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .scrim { position:absolute; inset:0; background:rgba(0,0,0,.45); }
+
+  /* the sky */
+  .sky { position:absolute; inset:0; }
+  .sky.full { background:
+      radial-gradient(ellipse 70% 38% at 50% 50%, rgb(247 245 237 / .95) 0%, rgb(247 245 237 / .55) 45%, rgb(247 245 237 / 0) 75%),
+      linear-gradient(180deg, var(--sky-top) 0%, var(--sky-upper) 11%, var(--sky-glow) 24%, var(--sky-glow) 56%, var(--sky-mid) 78%, var(--sky-bottom) 100%); }
+  .orb { position:absolute; left:35%; top:13.5%; width:30%; aspect-ratio:1; border-radius:50%;
+         background:radial-gradient(circle, rgb(247 245 237 / .95) 0%, color-mix(in srgb, var(--sky-glow) 70%, transparent) 45%, transparent 72%); }
+  .crescent { position:absolute; left:48.5%; top:10.5%; width:20px; height:20px; }
+  .mosque { position:absolute; inset:0; width:100%; height:100%; }
+  .fog { position:absolute; left:0; right:0; top:52%; height:30%;
+         background:linear-gradient(180deg, transparent, color-mix(in srgb, var(--sky-glow) 75%, transparent) 55%, color-mix(in srgb, var(--sky-mid) 20%, transparent)); }
+
+  /* splash, positions measured from Mutalib's reference (percent of screen height) */
+  .appicon { position:absolute; left:50%; top:33.6%; height:15.1%; aspect-ratio:1; transform:translateX(-50%); border-radius:24%; box-shadow:0 8px 22px rgb(23 56 45 / .22); }
+  .splash-word { position:absolute; left:0; right:0; top:50.5%; display:flex; justify-content:center; align-items:flex-end; font-weight:700; font-size:56px; line-height:1.362; color:var(--deep); height:76px; }
+  .splash-word .dot { color:var(--gold); }
+  .splash-sub { position:absolute; left:0; right:0; top:59.4%; text-align:center; font-size:19px; color:var(--deep); }
+  .hadith { position:absolute; left:44px; right:44px; top:64.5%; text-align:center; }
+  .hadith blockquote { font:italic 400 16px/1.5 "Noto Serif", Georgia, serif; color:var(--ink2); }
+  .hadith figcaption { margin-top:8px; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink2); }
+  .cta { position:absolute; left:34px; right:34px; top:79.7%; height:64px; border-radius:32px; background:var(--green); color:#fff; font-size:17px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:12px; }
+
+  /* the wordmark: a dotless i with the leaf sprout, as AtmosphericHeader draws it on Home */
+  .wm { position:absolute; left:24px; top:42px; display:flex; align-items:flex-end; font-weight:700; font-size:24px; line-height:1.362; color:#fff; }
+  .i { position:relative; display:inline-block; width:12px; text-align:center; }
+  .i svg { position:absolute; left:0; bottom:0; width:12px; height:24px; }
+  .i56 { width:28px; } .i56 svg { width:28px; height:56px; left:9px; bottom:14px; }
+
+  /* direction B: the same sky as a header band */
+  .band { position:absolute; left:0; right:0; top:0; overflow:hidden; }
+  .band.intro { height:276px; } .band.setup { height:220px; }
+  .bandsky { background:
+      radial-gradient(ellipse 60% 55% at 60% 78%, rgb(247 245 237 / .9) 0%, rgb(247 245 237 / 0) 70%),
+      linear-gradient(180deg, var(--sky-top) 0%, var(--sky-upper) 28%, var(--sky-glow) 70%, var(--sky-glow) 100%); }
+  .setup .bandsky { background:
+      radial-gradient(ellipse 60% 55% at 60% 82%, rgb(247 245 237 / .9) 0%, rgb(247 245 237 / 0) 70%),
+      linear-gradient(180deg, var(--sky-top) 0%, var(--sky-upper) 25%, var(--sky-glow) 56%, var(--sky-glow) 100%); }
+  .moon { position:absolute; left:63%; top:44px; width:18px; height:18px; }
+  .skip { position:absolute; right:10px; top:36px; min-width:64px; height:48px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:500; color:#fff; }
+  .back { position:absolute; left:6px; top:36px; }
+  .hg { position:absolute; left:24px; right:44px; bottom:20px; display:flex; flex-direction:column; gap:8px; }
+  .eyebrow { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); }
+  .hg h2 { font-weight:600; font-size:28px; line-height:1.15; color:var(--deep); text-wrap:balance; }
+  .top { position:absolute; left:6px; right:10px; top:36px; height:48px; display:flex; align-items:center; gap:8px; }
+  .iconbtn { width:48px; height:48px; display:flex; align-items:center; justify-content:center; flex:none; }
+  .prog { flex:1; display:flex; gap:8px; }
+  .prog i { flex:1; height:4px; border-radius:2px; background:rgb(255 255 255 / .35); }
+  .prog i.done { background:#fff; } .prog i.on { background:var(--gold); }
+  .toptext { min-width:64px; height:48px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; font-weight:500; }
+  .toptext.ghost { visibility:hidden; }
+
+  /* the card under the band */
+  .card { position:absolute; left:16px; right:16px; top:290px; bottom:124px; background:var(--white); border:1px solid var(--rule); border-radius:24px;
+          box-shadow:0 6px 18px rgb(23 56 45 / .08); padding:20px; display:flex; flex-direction:column; gap:12px; overflow:hidden; }
+  .card.setup { top:232px; bottom:108px; }
+  .card.gw { bottom:176px; }
+  .card.s5 { bottom:160px; }
+  .card.fit { bottom:auto; }
+  .q { font-weight:600; font-size:20px; line-height:1.3; color:var(--deep); }
+  .q .ar { font-weight:600; font-size:20px; }
+  .card p { font-size:16px; line-height:1.5; color:var(--ink2); }
+  .card p.note, .card .note { font-size:14px; line-height:1.45; color:var(--ink2); }
+  .tile { background:var(--tile); border-radius:14px; padding:12px 16px 12px; }
+  .card p.mus { font-size:22px; line-height:2; text-align:center; color:rgb(23 56 45 / .32); }
+  .card p.mus .lit, .card p.mus.lit { color:var(--deep); }
+  .mus .rev { color:var(--deep); background:var(--review); border-radius:6px; padding:0 4px; -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+  .mk { display:inline-flex; align-items:center; justify-content:center; width:1.15em; height:1.15em; border:1.5px solid currentColor; border-radius:50%; font-size:.62em; line-height:1; vertical-align:.18em; margin:0 .25em; }
+  .tile .tr { font:italic 400 14px/1.5 "Noto Serif", Georgia, serif; color:var(--ink2); text-align:center; }
+  .tile .cap { font-size:13px; line-height:1.4; color:var(--ink2); text-align:center; margin-top:4px; }
+  .legend { display:flex; align-items:center; justify-content:center; gap:8px; font-size:13px; color:var(--ink2); margin-top:2px; }
+  .legend i { width:18px; height:12px; border-radius:3px; background:var(--review); }
+  .trk { display:flex; justify-content:space-between; align-items:center; gap:12px; background:var(--tile); border-radius:14px; padding:12px 16px; min-height:52px; }
+  .trk b { font-size:15px; color:var(--deep); font-weight:700; white-space:nowrap; } .trk span { font-size:14px; color:var(--ink2); white-space:nowrap; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chips.row { flex-wrap:nowrap; overflow:hidden; margin-right:-20px; -webkit-mask-image:linear-gradient(90deg, #000 80%, transparent); mask-image:linear-gradient(90deg, #000 80%, transparent); }
+  .chip { font-size:13px; font-weight:500; color:var(--deep); background:var(--chip); border-radius:999px; padding:8px 12px; white-space:nowrap; }
+  .chat { display:flex; flex-direction:column; gap:8px; }
+  .bubble { max-width:86%; padding:8px 12px; border-radius:16px; font-size:15px; line-height:1.4; }
+  .bubble.me { align-self:flex-end; background:var(--bubble-me); color:var(--deep); border-bottom-right-radius:5px; }
+  .bubble.wird { align-self:flex-start; background:var(--tile); color:var(--deep); border-bottom-left-radius:5px; }
+  .bubble small { display:block; font-size:12px; color:var(--ink2); margin-top:4px; }
+  .soon { border:1.5px dashed var(--soon-edge); border-radius:14px; padding:12px 16px; }
+  .soon b { display:block; font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--goldtext); }
+  .card .soon p { font-size:14px; line-height:1.45; margin-top:2px; }
+
+  /* setup controls */
+  .opts { display:flex; flex-direction:column; gap:12px; }
+  .opt { display:flex; gap:16px; align-items:flex-start; padding:12px 16px; border:1.5px solid var(--rule); border-radius:16px; }
+  .opt.sel { border:2px solid var(--green); background:color-mix(in srgb, var(--chip) 55%, var(--white)); }
+  .radio { flex:none; width:22px; height:22px; border-radius:50%; border:2px solid var(--ink2); margin-top:1px; position:relative; }
+  .opt.sel .radio { border-color:var(--green); } .opt.sel .radio::after { content:""; position:absolute; inset:3px; border-radius:50%; background:var(--green); }
+  .opt .t, .preset .t, .ayahrow .t { font-size:16px; font-weight:700; color:var(--deep); }
+  .opt .t em { font-style:normal; font-weight:400; color:var(--ink2); }
+  .opt .d, .preset .d, .ayahrow .d { font-size:14px; line-height:1.4; color:var(--ink2); margin-top:2px; }
+  .lbl { font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--ink2); margin-top:4px; }
+  .lbl em { font-style:normal; font-weight:400; letter-spacing:0; text-transform:none; }
+  .field { border:1.5px solid var(--rule); border-radius:12px; padding:8px 16px 12px; }
+  .field.focus { border:2px solid var(--green); }
+  .field .fl { font-size:12px; color:var(--green); font-weight:500; }
+  .field .fv { font-size:17px; color:var(--deep); margin-top:2px; display:flex; align-items:center; min-height:24px; }
+  .caret { display:inline-block; width:2px; height:21px; background:var(--green); margin-left:1px; }
+  .seg { display:flex; padding:4px; background:var(--tile); border-radius:14px; gap:4px; }
+  .seg span { flex:1; min-height:52px; display:flex; align-items:center; justify-content:center; text-align:center; border-radius:10px; font-size:14px; font-weight:700; color:var(--ink2); padding:4px 8px; line-height:1.25; }
+  .seg span.on { background:var(--white); color:var(--deep); box-shadow:0 1px 3px rgb(23 56 45 / .18); }
+  .preset { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border:1.5px solid var(--rule); border-radius:14px; min-height:56px; }
+  .preset.sel { border:2px solid var(--green); background:color-mix(in srgb, var(--chip) 55%, var(--white)); }
+  .badge { flex:none; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--green); background:var(--chip); border-radius:999px; padding:4px 8px; }
+  .search { display:flex; align-items:center; gap:12px; min-height:48px; padding:0 16px; border:1.5px solid var(--rule); border-radius:12px; font-size:15px; color:var(--ink2); }
+  .ayahrow { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .numbox { flex:none; width:64px; height:48px; border:2px solid var(--green); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:var(--deep); }
+  .linkbtn { align-self:flex-start; min-height:44px; display:inline-flex; align-items:center; gap:8px; font-size:15px; font-weight:700; color:var(--green); margin-top:-8px; }
+  .amount { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .amount span { min-height:48px; border:1.5px solid var(--rule); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:var(--deep); text-align:center; padding:0 8px; }
+  .amount span.on { border:2px solid var(--green); background:color-mix(in srgb, var(--chip) 55%, var(--white)); color:var(--green); }
+  .first { background:var(--tile); border-radius:14px; padding:12px 16px; font-size:14px; color:var(--ink2); line-height:1.45; }
+  .first b { color:var(--deep); }
+  .end { margin-top:auto; }
+  .slist { display:flex; flex-direction:column; -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent); mask-image:linear-gradient(180deg,#000 55%,transparent); }
+  .srow { display:flex; align-items:center; gap:16px; min-height:52px; border-bottom:1px solid var(--rule); }
+  .srow .sn { flex:none; width:32px; height:32px; border-radius:50%; background:var(--tile); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--ink2); }
+  .srow b { display:block; font-size:15px; color:var(--deep); } .srow em { display:block; font-style:normal; font-size:13px; color:var(--ink2); }
+  .sum { display:flex; flex-direction:column; margin-top:-4px; }
+  .sum div { display:flex; justify-content:space-between; gap:16px; padding:8px 0; border-bottom:1px solid var(--rule); font-size:14px; line-height:1.35; }
+  .sum div:last-child { border-bottom:0; }
+  .sum div span:first-child { color:var(--ink2); flex:none; } .sum div span:last-child { color:var(--deep); font-weight:500; text-align:right; }
+  .dua { text-align:center; padding:2px 0 4px; border-bottom:1px solid var(--rule); }
+  .dua .ar { font-size:24px; line-height:1.8; color:var(--goldtext); font-weight:600; }
+  .card .dua p.tr { font:italic 400 15px/1.45 "Noto Serif", Georgia, serif; color:var(--ink2); margin:2px 0 8px; }
+  .fact { display:flex; gap:12px; align-items:flex-start; font-size:14px; line-height:1.45; color:var(--ink2); }
+  .fact svg { flex:none; margin-top:1px; }
+  .qs { background:var(--tile); border-radius:14px; padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
+  .qs .lbl { margin-top:0; }
+  .qs ul { list-style:none; display:flex; flex-direction:column; gap:4px; }
+  .qs li { font-size:15px; line-height:1.4; color:var(--deep); padding-left:16px; position:relative; }
+  .qs li::before { content:""; position:absolute; left:1px; top:8px; width:6px; height:6px; border-radius:50%; background:var(--gold); }
+
+  /* footers */
+  .foot { position:absolute; left:16px; right:16px; bottom:28px; display:flex; flex-direction:column; gap:12px; }
+  .foot.gw { gap:12px; }
+  .foot.ime { bottom:306px; }
+  .dots { display:flex; gap:8px; justify-content:center; margin-bottom:2px; }
+  .dots i { width:6px; height:6px; border-radius:3px; background:var(--dot-off); } .dots i.on { width:20px; background:var(--green); }
+  .pill { height:56px; border-radius:28px; background:var(--green); color:#fff; font-size:16px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .pill.tonal { background:var(--chip); color:var(--deep); }
+  .textbtn { height:48px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:var(--green); }
+
+  /* keyboard (Gboard, light) so the build knows Continue rides above it */
+  .kbd { position:absolute; left:0; right:0; bottom:0; height:290px; background:#E8EAED; padding:12px 4px 32px; display:flex; flex-direction:column; gap:8px; }
+  .kr { display:flex; gap:4px; justify-content:center; }
+  .kr b { flex:1; max-width:36px; height:46px; border-radius:7px; background:#fff; display:flex; align-items:center; justify-content:center; font-weight:400; font-size:20px; color:#202124; }
+  .kr b.w { max-width:54px; background:#D3D6DB; font-size:15px; } .kr b.sp { max-width:190px; } .kr b.go { background:#C2D7F3; }
+
+  /* reminder sheet */
+  .sheet { position:absolute; left:0; right:0; bottom:0; background:var(--cream); border-radius:28px 28px 0 0; padding:12px 24px 32px; }
+  .grip { width:36px; height:4px; border-radius:2px; background:var(--dot-off); margin:0 auto 24px; }
+  .sheet h3 { font-weight:600; font-size:24px; line-height:1.25; color:var(--deep); margin-top:8px; text-wrap:balance; }
+  .sheet p { font-size:16px; line-height:1.5; color:var(--ink2); margin-top:12px; }
+  .sheet p.small { font-size:14px; line-height:1.45; }
+  .sheet .pill { margin-top:24px; }
+  .sheet .textbtn { margin-top:4px; }
+  .sheet .fine { font-size:13px; color:var(--ink2); text-align:center; margin-top:2px; }
+
+  /* Android's own permission dialogs (system UI: not Wird's colours, Wird cannot style them) */
+  .sysdlg { position:absolute; left:28px; right:28px; top:50%; transform:translateY(-50%); background:#F1F1F8; border-radius:28px; padding:28px 24px 24px; text-align:center; color:#1B1B1F; font-family:Roboto, sans-serif; }
+  .sysdlg h4 { font-size:22px; font-weight:400; line-height:1.32; margin:16px 0 24px; }
+  .sysdlg h4 b { font-weight:700; }
+  .sb { height:56px; border-radius:16px; background:#DCE2F9; display:flex; align-items:center; justify-content:center; font-size:16px; color:#1B1B1F; margin-top:8px; }
+
+  /* token panel */
+  .panel { position:absolute; height:891px; background:var(--cream); color:var(--deep); border-radius:16px; padding:36px 40px; font-size:15px; line-height:1.5; overflow:hidden; }
+  .panel h3 { font:700 28px/1.2 "Noto Serif", Georgia, serif; }
+  .panel h4 { font:700 18px/1.3 "Noto Serif", Georgia, serif; margin:24px 0 12px; }
+  .panel .pl { color:var(--ink2); margin-top:8px; max-width:110ch; }
+  .sw-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:12px 24px; margin-top:16px; }
+  .sw { display:flex; gap:12px; align-items:flex-start; }
+  .sw i { flex:none; width:44px; height:44px; border-radius:10px; box-shadow:inset 0 0 0 1px rgb(23 56 45 / .15); }
+  .sw b { font-size:14px; } .sw code { font:12.5px/1 Consolas, monospace; color:var(--ink2); }
+  .sw span { display:block; font-size:12.5px; color:var(--deep); } .sw em { display:block; font-style:normal; font-size:12.5px; line-height:1.35; color:var(--ink2); }
+  .cols { display:grid; grid-template-columns:1.25fr 1fr; gap:40px; }
+  .panel table { border-collapse:collapse; width:100%; font-size:13.5px; }
+  .panel td, .panel th { text-align:left; padding:4px 12px 4px 0; border-bottom:1px solid var(--rule); vertical-align:top; }
+  .panel th { font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink2); }
+  .panel ul { padding-left:20px; font-size:13.5px; } .panel li + li { margin-top:4px; }
+</style>
+</head>
+<body>
+<div id="board">
+  <div class="head">
+    <h1>Wird · onboarding and setup</h1>
+    <p>Every screen a new reader meets, from the splash to their first reminder, laid out the way Figma shows a prototype. <b>Blue lines are taps</b>: the outlined control leads where the arrow points. <b>Dashed grey lines</b> happen by themselves. Grey notes point at things that already exist and are not redrawn here. Frames are 411 × 891, the Pixel 6 Pro in dp, so 1 px on this board is 1 dp in the app and font sizes are sp. This is the design for the build. Nothing in the app has changed yet.</p>
+  </div>
+
+  <!-- ================= ROW 1: the splash and the five intro screens ================= -->
+  <div class="frame" id="splash" data-col="1" data-row="1" data-name="Splash" data-tags="first redo">
+    <div class="sky full"></div>
+    <div class="orb"></div>
+    <svg class="crescent" viewBox="0 0 16 16"><path d="M7.67 1.01A7 7 0 1 0 14.33 10.99A6 6 0 0 1 7.67 1.01Z" fill="#F7F5ED"/></svg>
+    <svg class="mosque" viewBox="0 0 320 693" preserveAspectRatio="none">
+      <defs><linearGradient id="fadeS" x1="0" y1="0" x2="0" y2="1"><stop offset="0.43" stop-color="#fff" stop-opacity="1"/><stop offset="0.60" stop-color="#fff" stop-opacity="0"/></linearGradient>
+        <mask id="mistS" maskUnits="userSpaceOnUse" x="0" y="0" width="320" height="693"><rect width="320" height="693" fill="url(#fadeS)"/></mask></defs>
+      <g fill="var(--mosque)" opacity=".7" mask="url(#mistS)">
+        <path d="M86 146 l5 -16 l5 16 z"/><rect x="83" y="146" width="16" height="10" rx="2"/>
+        <rect x="80" y="156" width="22" height="7" rx="2"/><rect x="82" y="163" width="18" height="70"/>
+        <rect x="79" y="233" width="24" height="7" rx="2"/><rect x="81" y="240" width="20" height="160"/>
+        <path d="M10 330 q0 -74 57 -74 q57 0 57 74 z" opacity=".9"/><rect x="6" y="326" width="122" height="80"/>
+        <path d="M262 340 q0 -26 14 -26 q14 0 14 26 z" opacity=".45"/><rect x="259" y="338" width="34" height="50" opacity=".45"/>
+        <rect x="282" y="300" width="6" height="40" opacity=".45"/>
+      </g>
+    </svg>
+    <div class="fog"></div>
+    <div class="status"></div>
+    <img class="appicon" src="wird-icon-288.png" alt="">
+    <div class="splash-word serif">W<span class="i i56">ı<svg viewBox="0 0 12 24"><path d="M2 10C3 4 6 1 11 .5C11 6 7 9.5 2 10Z" fill="var(--green)"/></svg></span>rd<span class="dot">.</span></div>
+    <div class="splash-sub">Your daily Qur'an companion</div>
+    <figure class="hadith"><blockquote>“The most beloved deed to Allah is the most regular and constant even if it were little.”</blockquote><figcaption>Sahih al-Bukhari 6464</figcaption></figure>
+    <span class="cta" data-to="i1" data-label="See how Wird works">See how Wird works <span data-icon="arrow"></span></span>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="i1" data-col="2" data-row="1" data-name="1 · What a wird is" data-tags="first redo">
+    <div class="band intro"><div class="sky bandsky"></div><span data-icon="moon"></span>
+      <div class="status"></div>
+      <div class="wm serif" data-wordmark></div>
+      <span class="skip" data-to="gateway" data-label="Skip (on every intro screen)" data-tx=".28">Skip</span>
+      <div class="hg"><div class="eyebrow">Welcome to Wird</div><h2 class="serif">A little Qur'an, every day.</h2></div>
+    </div>
+    <div class="card">
+      <h3 class="q serif">What is a wird (<span class="ar">وِرْد</span>)?</h3>
+      <p>Your wird is the portion of Qur'an you promise to read each day. It can be two pages, one page or a few verses. Small and steady is the point.</p>
+      <div class="tile"><p class="ar mus">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ<span class="mk">١</span> <span class="lit">الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ<span class="mk">٢</span> الرَّحْمَٰنِ الرَّحِيمِ<span class="mk">٣</span> مَالِكِ يَوْمِ الدِّينِ<span class="mk">٤</span></span> إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ<span class="mk">٥</span></p><p class="cap">Wird lights up today's portion on the page.</p></div>
+      <p class="note">Miss a day and your streak starts again. Your total days read never goes down.</p>
+    </div>
+    <div class="foot"><div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div><span class="pill" data-to="i2" data-label="Continue">Continue</span></div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="i2" data-col="3" data-row="1" data-name="2 · Reading tracks" data-tags="first redo">
+    <div class="band intro"><div class="sky bandsky"></div><span data-icon="moon"></span>
+      <div class="status"></div>
+      <div class="wm serif" data-wordmark></div>
+      <span class="skip">Skip</span>
+      <div class="hg"><div class="eyebrow">Reading tracks</div><h2 class="serif">A routine that fits your life.</h2></div>
+    </div>
+    <div class="card">
+      <h3 class="q serif">What is a reading track?</h3>
+      <p>One goal with its own days, starting point, daily amount and reminder. Have as many as you like. Each one keeps its own streak.</p>
+      <div class="trk"><b>Daily Reading</b><span>Every day · 1 page · 🔥 12</span></div>
+      <div class="trk"><b>Juz' ʿAmma</b><span>Mon–Thu · 10 verses · 🔥 24</span></div>
+      <div class="trk"><b>Weekend Review</b><span>Sat–Sun · 2 pages · 🔥 8</span></div>
+      <p class="note">Read from Al‑Fātiḥah forward, or from An‑Nās back the way many madrasas teach.</p>
+    </div>
+    <div class="foot"><div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i></div><span class="pill" data-to="i3" data-label="Continue">Continue</span></div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="i3" data-col="4" data-row="1" data-name="3 · The whole Qur'an" data-tags="first redo">
+    <div class="band intro"><div class="sky bandsky"></div><span data-icon="moon"></span>
+      <div class="status"></div>
+      <div class="wm serif" data-wordmark></div>
+      <span class="skip">Skip</span>
+      <div class="hg"><div class="eyebrow">The whole Qur'an</div><h2 class="serif">Read any sūrah, any time.</h2></div>
+    </div>
+    <div class="card">
+      <h3 class="q serif">Your track keeps its place</h3>
+      <p>Want Al‑Kahf on Friday or Al‑Mulk at night? Open it from the Sūrahs tab and read freely. Your track's place doesn't move.</p>
+      <div class="tile"><p class="ar mus lit">قُلْ هُوَ اللَّهُ أَحَدٌ<span class="mk">١</span> اللَّهُ الصَّمَدُ<span class="mk">٢</span></p><p class="tr">Say, "He is Allāh, [who is] One, Allāh, the Eternal Refuge.</p><p class="cap">Saheeh International</p></div>
+      <div class="chips"><span class="chip">4 reciters</span><span class="chip">English · Hausa</span><span class="chip">Transliteration</span><span class="chip">Bookmarks</span></div>
+    </div>
+    <div class="foot"><div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i></div><span class="pill" data-to="i4" data-label="Continue">Continue</span></div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="i4" data-col="5" data-row="1" data-name="4 · Recite &amp; Review" data-tags="first redo">
+    <div class="band intro"><div class="sky bandsky"></div><span data-icon="moon"></span>
+      <div class="status"></div>
+      <div class="wm serif" data-wordmark></div>
+      <span class="skip">Skip</span>
+      <div class="hg"><div class="eyebrow">Recite &amp; Review</div><h2 class="serif">Say your portion out loud.</h2></div>
+    </div>
+    <div class="card">
+      <h3 class="q serif">How Recite &amp; Review works</h3>
+      <p>Read aloud from the page or from memory, at home or on a trotro. Wird listens on your phone and marks any verse that may need another look.</p>
+      <div class="tile"><p class="ar mus"><span class="lit">قُلْ هُوَ اللَّهُ أَحَدٌ<span class="mk">١</span> اللَّهُ الصَّمَدُ<span class="mk">٢</span></span> <span class="rev">لَمْ يَلِدْ وَلَمْ يُولَدْ<span class="mk">٣</span></span></p><p class="legend"><i></i>May need another look</p></div>
+      <p>It works offline after a one-time download: 42 MB, or 78 MB for the more accurate model. Wird never uploads your voice.</p>
+      <p class="note">Read it another way? Tap Mark done. Both count, and your history keeps them apart.</p>
+    </div>
+    <div class="foot"><div class="dots"><i></i><i></i><i></i><i class="on"></i><i></i></div><span class="pill" data-to="i5" data-label="Continue">Continue</span></div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="i5" data-col="6" data-row="1" data-name="5 · The Companion" data-tags="first redo">
+    <div class="band intro"><div class="sky bandsky"></div><span data-icon="moon"></span>
+      <div class="status"></div>
+      <div class="wm serif" data-wordmark></div>
+      <span class="skip">Skip</span>
+      <div class="hg"><div class="eyebrow">The Companion</div><h2 class="serif">Ask, and plan in plain words.</h2></div>
+    </div>
+    <div class="card">
+      <h3 class="q serif">What can the Companion do?</h3>
+      <p>Ask about any ayah, or change your plan by saying it.</p>
+      <div class="chat">
+        <div class="bubble me">What does Al‑Ikhlas verse 1 mean?</div>
+        <div class="bubble wird">Say, "He is Allāh, [who is] One,<small>Saheeh International · Tafsir Ibn Kathir when online ›</small></div>
+        <div class="bubble me">half a page on Fridays</div>
+        <div class="bubble wird">Fridays are half a page now.</div>
+      </div>
+      <div class="soon"><b>Coming soon</b><p>Answers that show the verses, hadith and sources behind them, so you can check them yourself.</p></div>
+    </div>
+    <div class="foot"><div class="dots"><i></i><i></i><i></i><i></i><i class="on"></i></div><span class="pill" data-to="gateway" data-label="Set up my wird" data-tx=".72">Set up my wird</span></div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="sticky" id="legend" data-col="7" data-row="1">
+    <h3>How to read this board</h3>
+    <p><span class="k"></span>A tap. The blue outline is the button.</p>
+    <p><span class="k d"></span>Happens by itself.</p>
+    <p><b>Tags:</b> First time · Redesigned (an old step, new look) · New · Exists (not redrawn) · Android's own (Wird can't style it) · <b>Needs your yes</b>.</p>
+    <h4>Four things need Mutalib's yes before the build</h4>
+    <ol>
+      <li>Quick start begins at An‑Nās and works back. Today it begins at An‑Naba' and walks away from Juz' ʿAmma, so sūrahs 79 to 114 never come up.</li>
+      <li>"Which way" and "where to start" share one screen, because the way decides where the start is.</li>
+      <li>The splash button says "See how Wird works", so it names where it goes. The reference's button used a generic label.</li>
+      <li>The phone's own fonts: Noto Serif and Noto Naskh Arabic. The mockups used Literata and Amiri, which the app doesn't have.</li>
+    </ol>
+    <h4>Sample data</h4>
+    <p>Amina, the streak numbers and the three example tracks are made up for the picture. Every Arabic line and translation is copied by a script from the app's own files.</p>
+  </div>
+
+  <!-- ================= ROW 2: the gateway and the five setup steps ================= -->
+  <div class="frame" id="gateway" data-col="1" data-row="2" data-name="Gateway · two ways to begin" data-tags="first redo">
+    <div class="band intro"><div class="sky bandsky"></div><span data-icon="moon"></span>
+      <div class="status"></div>
+      <span class="iconbtn back" data-icon="back"></span>
+      <div class="hg"><div class="eyebrow">Set up your wird</div><h2 class="serif">Two ways to begin.</h2></div>
+    </div>
+    <div class="card gw">
+      <p>Step by step is five short screens: your name, what the track is for, where you start and how much each day.</p>
+      <div class="qs"><div class="lbl">Quick start uses</div>
+        <ul><li>Read, 1 page a day</li><li>Juz' ʿAmma, from An‑Nās back towards Al‑Fātiḥah</li><li>A reminder after Maghrib, if you want one</li></ul>
+        <p class="note">Change any of it later in Settings.</p></div>
+      <div class="fact"><span data-icon="lock"></span><span>No account and no email. Your name, plans and recordings stay on this phone.</span></div>
+      <div class="fact"><span data-icon="data"></span><span>Some things use data: mushaf pages as you open them, and audio, the review model and tafsir when you ask for them.</span></div>
+    </div>
+    <div class="foot gw">
+      <span class="pill" data-to="s1" data-label="Set it up step by step">Set it up step by step</span>
+      <span class="pill tonal" data-to="s5" data-label="Quick start with defaults" data-route="under" data-tx=".22">Quick start with defaults</span>
+    </div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="s1" data-col="2" data-row="2" data-name="Setup 1 · Your name" data-tags="first redo">
+    <div class="band setup"><div class="sky bandsky"></div>
+      <div class="status"></div>
+      <div class="top"><span class="iconbtn" data-icon="back"></span><div class="prog"><i class="on"></i><i></i><i></i><i></i><i></i></div><span class="toptext">Skip</span></div>
+      <div class="hg"><div class="eyebrow">Step 1 of 5</div><h2 class="serif">What should Wird call you?</h2></div>
+    </div>
+    <div class="card setup fit">
+      <div class="field focus"><div class="fl">Your name</div><div class="fv">Amina<i class="caret"></i></div></div>
+      <p class="note">Wird uses it to greet you on Home. It stays on this phone.</p>
+    </div>
+    <div class="foot ime"><span class="pill" data-to="s2" data-label="Continue">Continue</span></div>
+    <div class="kbd">
+      <div class="kr"><b>q</b><b>w</b><b>e</b><b>r</b><b>t</b><b>y</b><b>u</b><b>i</b><b>o</b><b>p</b></div>
+      <div class="kr"><b>a</b><b>s</b><b>d</b><b>f</b><b>g</b><b>h</b><b>j</b><b>k</b><b>l</b></div>
+      <div class="kr"><b class="w">⇧</b><b>z</b><b>x</b><b>c</b><b>v</b><b>b</b><b>n</b><b>m</b><b class="w">⌫</b></div>
+      <div class="kr"><b class="w">?123</b><b>,</b><b class="sp"></b><b>.</b><b class="w go">↵</b></div>
+    </div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="s2" data-col="3" data-row="2" data-name="Setup 2 · What it's for" data-tags="first redo">
+    <div class="band setup"><div class="sky bandsky"></div>
+      <div class="status"></div>
+      <div class="top"><span class="iconbtn" data-icon="back"></span><div class="prog"><i class="done"></i><i class="on"></i><i></i><i></i><i></i></div><span class="toptext ghost">Skip</span></div>
+      <div class="hg"><div class="eyebrow">Step 2 of 5</div><h2 class="serif">What is this track for?</h2></div>
+    </div>
+    <div class="card setup">
+      <div class="opts">
+        <div class="opt sel"><i class="radio"></i><div><div class="t">Read <em>· Tilāwah</em></div><div class="d">A portion a day, with the mushaf open.</div></div></div>
+        <div class="opt"><i class="radio"></i><div><div class="t">Memorize <em>· Ḥifẓ</em></div><div class="d">Learn new verses by heart, then say them back.</div></div></div>
+        <div class="opt"><i class="radio"></i><div><div class="t">Review <em>· Murāja'ah</em></div><div class="d">Keep what you've memorized fresh.</div></div></div>
+      </div>
+      <div class="lbl">Your intention <em>(optional)</em></div>
+      <div class="field"><div class="fv">Build a daily Qur'an habit</div></div>
+      <div class="chips row"><span class="chip">Read consistently</span><span class="chip">Memorize new verses</span><span class="chip">Finish the whole Qur'an</span></div>
+      <p class="note end">You can add more tracks later, each with its own goal.</p>
+    </div>
+    <div class="foot"><span class="pill" data-to="s3" data-label="Continue">Continue</span></div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="s3" data-col="4" data-row="2" data-name="Setup 3 · Where you start" data-tags="redo yes">
+    <div class="band setup"><div class="sky bandsky"></div>
+      <div class="status"></div>
+      <div class="top"><span class="iconbtn" data-icon="back"></span><div class="prog"><i class="done"></i><i class="done"></i><i class="on"></i><i></i><i></i></div><span class="toptext ghost">Skip</span></div>
+      <div class="hg"><div class="eyebrow">Step 3 of 5</div><h2 class="serif">Where do you start?</h2></div>
+    </div>
+    <div class="card setup">
+      <div class="lbl">Which way?</div>
+      <div class="seg"><span class="on">An‑Nās → Al‑Fātiḥah</span><span>Al‑Fātiḥah → An‑Nās</span></div>
+      <p class="note">Madrasa order: the short sūrahs first, working back. Each sūrah is still read from its first ayah.</p>
+      <div class="lbl">Start from</div>
+      <div class="preset sel"><div><div class="t">Juz' ʿAmma, from An‑Nās</div><div class="d">Page 604 · the short sūrahs</div></div><span class="badge">Recommended</span></div>
+      <div class="preset"><div><div class="t">Yā‑Sīn</div><div class="d">Page 440</div></div></div>
+      <div class="search"><span data-icon="search"></span><span>Search any sūrah by name or number</span></div>
+      <div class="slist"><div class="lbl">Juz' 1</div><div class="srow"><span class="sn">1</span><span><b>Al‑Fātiḥah</b><em>7 ayahs · page 1</em></span></div><div class="srow"><span class="sn">2</span><span><b>Al‑Baqarah</b><em>286 ayahs · page 2</em></span></div></div>
+    </div>
+    <div class="foot"><span class="pill" data-to="s4" data-label="Continue">Continue with Juz' ʿAmma</span></div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="s4" data-col="5" data-row="2" data-name="Setup 4 · How much a day" data-tags="first redo">
+    <div class="band setup"><div class="sky bandsky"></div>
+      <div class="status"></div>
+      <div class="top"><span class="iconbtn" data-icon="back"></span><div class="prog"><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i><i></i></div><span class="toptext ghost">Skip</span></div>
+      <div class="hg"><div class="eyebrow">Step 4 of 5</div><h2 class="serif">How much each day?</h2></div>
+    </div>
+    <div class="card setup">
+      <div class="lbl">Starting ayah</div>
+      <div class="ayahrow"><div><div class="t">An‑Nās</div><div class="d">Ayah 1 of 6 · page 604</div></div><span class="numbox">1</span></div>
+      <span class="linkbtn" data-callout="Opens the page picker that exists today. Unchanged."><span data-icon="book"></span>Pick it on the page instead</span>
+      <div class="lbl">Each day</div>
+      <div class="amount"><span>Half a page</span><span class="on">1 page</span><span>2 pages</span><span>A number of verses</span></div>
+      <p class="note">A page is 15 lines of the mushaf.</p>
+      <div class="first end"><b>Your first day:</b> page 604, which holds Al‑Ikhlāṣ, Al‑Falaq and An‑Nās.</div>
+    </div>
+    <div class="foot"><span class="pill" data-to="s5" data-label="Continue">Continue</span></div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="s5" data-col="6" data-row="2" data-name="Setup 5 · Bismillah" data-tags="first redo">
+    <div class="band setup"><div class="sky bandsky"></div>
+      <div class="status"></div>
+      <div class="top"><span class="iconbtn" data-icon="back"></span><div class="prog"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="on"></i></div><span class="toptext ghost">Skip</span></div>
+      <div class="hg"><div class="eyebrow">Step 5 of 5</div><h2 class="serif">Bismillah, Amina.</h2></div>
+    </div>
+    <div class="card setup s5">
+      <div class="dua"><p class="ar">اللَّهُمَّ اجْعَلِ القُرْآنَ رَبِيعَ قُلُوبِنَا</p><p class="tr">“O Allah, make the Qur'an the spring of our hearts.”</p></div>
+      <div class="lbl">Your wird</div>
+      <div class="sum">
+        <div><span>Track</span><span>Daily Reading · Read</span></div>
+        <div><span>Starts</span><span>Page 604, Juz' ʿAmma</span></div>
+        <div><span>Order</span><span>An‑Nās → Al‑Fātiḥah</span></div>
+        <div><span>Each day</span><span>1 page</span></div>
+        <div><span>Intention</span><span>Build a daily Qur'an habit</span></div>
+        <div><span>Reminder</span><span>Wird asks after your first day</span></div>
+      </div>
+      <p class="note">Mushaf pages download as you open them. To read with no data at all, download all 604 once in Settings.</p>
+    </div>
+    <div class="foot"><span class="textbtn">Change something</span><span class="pill" data-to="home" data-label="Start reading">Start reading</span></div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="sticky" id="fixes" data-col="7" data-row="2">
+    <h3>Fixed on the way</h3>
+    <ul>
+      <li>The gateway promised "100% offline… never consumes data". Pages, audio, the review model and tafsir all use data, so it now says which.</li>
+      <li>The name step showed readers "Sacred Rule 1", an internal note.</li>
+      <li>"Takes under 45 seconds" was never measured. Gone.</li>
+      <li>The Bismillah translation added two phrases the Arabic above it doesn't say. It now translates only what is shown.</li>
+      <li>The Yā‑Sīn shortcut opened page 442, two pages into the sūrah. Yā‑Sīn starts on page 440.</li>
+      <li>The splash hadith is quoted word for word, with its number.</li>
+      <li>No emoji on buttons: the lightning bolt on Quick start is gone (Sacred Rule 6).</li>
+      <li>Notifications are asked after the first finished day, not at the end of setup (Mutalib's call, 3 Oct).</li>
+    </ul>
+  </div>
+
+  <!-- ================= ROW 3: tokens, then after setup ================= -->
+  <div class="panel" id="tokens" data-col="1" data-row="3" data-span="3">
+    <h3>Tokens for the build</h3>
+    <p class="pl">Colour is Mutalib's pinned palette (PROFILE § 6f) and tints mixed from two of its colours. Define these once in the theme. No hex inside a composable.</p>
+    <div class="sw-grid"><div class="sw"><i style="background:#F7F5ED"></i><div><b>cream</b> <code>#F7F5ED</code><span>pinned</span><em>the ground under everything</em></div></div>
+<div class="sw"><i style="background:#17382D"></i><div><b>deep</b> <code>#17382D</code><span>pinned</span><em>headlines and body ink</em></div></div>
+<div class="sw"><i style="background:#4B5551"></i><div><b>ink2</b> <code>#4B5551</code><span>pinned</span><em>secondary text (7.5:1 on white)</em></div></div>
+<div class="sw"><i style="background:#245847"></i><div><b>green</b> <code>#245847</code><span>pinned</span><em>buttons, selection, progress</em></div></div>
+<div class="sw"><i style="background:#C9A24B"></i><div><b>gold</b> <code>#C9A24B</code><span>pinned</span><em>ornament only: never text on a light ground</em></div></div>
+<div class="sw"><i style="background:#8E6900"></i><div><b>goldtext</b> <code>#8E6900</code><span>pinned</span><em>gold text on light grounds (5.1:1)</em></div></div>
+<div class="sw"><i style="background:#4E7768"></i><div><b>sky-top</b> <code>#4E7768</code><span>green + 20% cream</span><em>top of the sky, behind the white wordmark</em></div></div>
+<div class="sw"><i style="background:#819D90"></i><div><b>sky-upper</b> <code>#819D90</code><span>green + 44% cream</span><em>sky, a third of the way down</em></div></div>
+<div class="sw"><i style="background:#EFE6D0"></i><div><b>sky-glow</b> <code>#EFE6D0</code><span>cream + 18% gold</span><em>the dawn glow behind the logo and headlines</em></div></div>
+<div class="sw"><i style="background:#B6C4BA"></i><div><b>sky-bottom</b> <code>#B6C4BA</code><span>cream + 31% green</span><em>mist at the bottom of the splash</em></div></div>
+<div class="sw"><i style="background:#597F70"></i><div><b>mosque</b> <code>#597F70</code><span>cream + 75% green</span><em>mosque and minaret silhouette</em></div></div>
+<div class="sw"><i style="background:#F5F1E5"></i><div><b>tile</b> <code>#F5F1E5</code><span>cream + 5% gold</span><em>inner tiles: verses, tracks, summaries</em></div></div>
+<div class="sw"><i style="background:#DEE2D9"></i><div><b>chip</b> <code>#DEE2D9</code><span>cream + 12% green</span><em>chips, selected fills, the tonal button</em></div></div>
+<div class="sw"><i style="background:#D1D9CF"></i><div><b>bubble-me</b> <code>#D1D9CF</code><span>cream + 18% green</span><em>the reader's own chat bubbles</em></div></div>
+<div class="sw"><i style="background:#E2E2DA"></i><div><b>rule</b> <code>#E2E2DA</code><span>cream + 12% ink2</span><em>hairlines and unselected outlines (an edge, never text)</em></div></div>
+<div class="sw"><i style="background:#C7C8C1"></i><div><b>dot-off</b> <code>#C7C8C1</code><span>cream + 28% ink2</span><em>inactive pager dots, the sheet grip</em></div></div>
+<div class="sw"><i style="background:#E2D0A4"></i><div><b>soon-edge</b> <code>#E2D0A4</code><span>cream + 45% gold</span><em>dashed edge of the Coming soon box</em></div></div>
+<div class="sw"><i style="background:#D2D5C5"></i><div><b>sky-mid</b> <code>#D2D5C5</code><span>sky-glow + 50% sky-bottom</span><em>where the glow meets the mist</em></div></div></div>
+    <div class="cols">
+      <div>
+        <h4>Type · the phone's own fonts, no files added</h4>
+        <table>
+          <tr><th>Role</th><th>Face</th><th>Size / line</th><th>Weight</th></tr>
+          <tr><td>Splash wordmark</td><td>Noto Serif = FontFamily.Serif</td><td>56</td><td>700</td></tr>
+          <tr><td>Band headline</td><td>Noto Serif</td><td>28 / 32</td><td>600</td></tr>
+          <tr><td>Card question, sheet title</td><td>Noto Serif</td><td>20 / 26 · 24 / 30</td><td>600</td></tr>
+          <tr><td>Body</td><td>Roboto = FontFamily.Default</td><td>16 / 24</td><td>400</td></tr>
+          <tr><td>Notes, rows</td><td>Roboto</td><td>14 / 20</td><td>400</td></tr>
+          <tr><td>Eyebrow, labels</td><td>Roboto caps, +0.12 em</td><td>12 / 16</td><td>700</td></tr>
+          <tr><td>Buttons</td><td>Roboto</td><td>16</td><td>700</td></tr>
+          <tr><td>Qur'an in tiles</td><td>Noto Naskh Arabic (Android's Arabic)</td><td>22 / 44</td><td>400</td></tr>
+          <tr><td>Hadith, translations</td><td>Noto Serif italic</td><td>14–16 / 1.5</td><td>400</td></tr>
+        </table>
+      </div>
+      <div>
+        <h4>Shape and space</h4>
+        <ul>
+          <li>Cards: 16 from the screen edge, radius 24, padding 20, a 1 dp <i>rule</i> edge, shadow 0 6 18 at deep 8%.</li>
+          <li>Tiles radius 14; inputs and options 12 to 16; buttons 56 tall and fully round.</li>
+          <li>Every tap target at least 48 dp. 12 between items in a card, 8 between chips.</li>
+          <li>Intro band 276 tall (31%), setup band 220. Card starts 14 below the band.</li>
+          <li>Band sky: sky-top 0%, sky-upper 28%, sky-glow 70%, plus a cream radial glow at 60% across, 78% down.</li>
+          <li>Splash, measured from Mutalib's reference: icon top 33.6% and 15.1% tall; wordmark 50.5%; tagline 59.4%; hadith 64.5%; button 79.7%, 64 tall, 34 from each side.</li>
+          <li>Review mark: the app's own <i>review</i> token, #D9A441 at 25%.</li>
+          <li>Leaf on the wordmark: #7EBB6A on dark sky, as Home draws it; green on the light splash.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame" id="home" data-col="4" data-row="3" data-name="Home · the tour starts" data-tags="keep">
+    <img class="shot" src="home-tour.webp" alt="">
+    <i class="anchor" style="right:0;top:600px" data-auto="sheet" data-label="After the first day is marked done"></i>
+  </div>
+
+  <div class="frame" id="sheet" data-col="5" data-row="3" data-name="After day 1 · the reminder" data-tags="new">
+    <img class="shot" src="home-done.webp" alt=""><div class="scrim"></div>
+    <div class="sheet">
+      <div class="grip"></div>
+      <div class="eyebrow">Your first day is done</div>
+      <h3 class="serif">Want a reminder tomorrow?</h3>
+      <p>Wird can send one notification a day for Daily Reading, about 30 minutes after Maghrib, with that day's portion in it. Nothing else.</p>
+      <p class="small">To work out when Maghrib is, Wird asks for your rough location once. Without it, the reminder comes at 8:00 pm.</p>
+      <span class="pill" data-to="perm1" data-label="Remind me after Maghrib">Remind me after Maghrib</span>
+      <span class="textbtn" data-callout="Not now closes the sheet. Reminders stay off and Wird doesn't ask again by itself. Settings has the switch." data-side="below">Not now</span>
+    </div>
+    <div class="homebar"></div>
+  </div>
+
+  <div class="frame" id="perm1" data-col="6" data-row="3" data-name="Android · notifications" data-tags="sys">
+    <img class="shot" src="home-done.webp" alt=""><div class="scrim"></div>
+    <div class="sysdlg"><span data-icon="bell"></span><h4>Allow <b>Wird</b> to send you notifications?</h4><span class="sb">Allow</span><span class="sb">Don't allow</span></div>
+    <i class="anchor" style="right:0;top:560px" data-auto="perm2" data-label="Then, once, for Maghrib time"></i>
+  </div>
+
+  <div class="frame" id="perm2" data-col="7" data-row="3" data-name="Android · location" data-tags="sys">
+    <img class="shot" src="home-done.webp" alt=""><div class="scrim"></div>
+    <div class="sysdlg"><span data-icon="pin"></span><h4>Allow <b>Wird</b> to access this device's approximate location?</h4><span class="sb">While using the app</span><span class="sb">Only this time</span><span class="sb" data-callout="Refused? The reminder comes at 8:00 pm and Settings says so." data-side="below">Don't allow</span></div>
+  </div>
+
+  <svg id="wires"></svg>
+</div>
+
+<script>
+  const FW = 411, FH = 891, GX = 150, GY = 230, M = 110, TOP = 330, LBL = 40;
+  const board = document.getElementById("board");
+  const TAGS = {
+    first: '<span class="tag t-first">First time</span>', redo: '<span class="tag t-redo">Redesigned</span>',
+    new: '<span class="tag t-new">New</span>', yes: '<span class="tag t-yes">Needs your yes</span>',
+    keep: '<span class="tag t-keep">Exists · not redrawn</span>', sys: '<span class="tag t-sys">Android\'s own</span>',
+  };
+
+  // ---- place frames, panels and stickies on the board ----
+  document.querySelectorAll("[data-col]").forEach(f => {
+    const c = +f.dataset.col, r = +f.dataset.row, span = +(f.dataset.span || 1);
+    f.style.left = (M + (c - 1) * (FW + GX)) + "px";
+    f.style.top = (TOP + (r - 1) * (FH + LBL + GY) + LBL) + "px";
+    if (span > 1) f.style.width = (span * FW + (span - 1) * GX) + "px";
+    if (!f.dataset.name) return;
+    const n = document.createElement("div");
+    n.className = "fname";
+    n.style.left = f.style.left; n.style.top = (parseFloat(f.style.top) - 30) + "px";
+    n.innerHTML = `<b>${f.dataset.name}</b>` + (f.dataset.tags || "").split(" ").filter(Boolean).map(t => TAGS[t]).join("");
+    board.appendChild(n);
+  });
+
+  // ---- one icon set, outlined, no emoji in chrome ----
+  const G = "#245847";
+  const ICON = {
+    arrow: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>',
+    back: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    moon: '<svg class="moon" viewBox="0 0 16 16" opacity=".92"><path d="M7.67 1.01A7 7 0 1 0 14.33 10.99A6 6 0 0 1 7.67 1.01Z" fill="#F7F5ED"/></svg>',
+    lock: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${G}" stroke-width="1.9" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>`,
+    data: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${G}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14"/></svg>`,
+    search: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4B5551" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>',
+    book: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${G}" stroke-width="1.9" stroke-linejoin="round"><path d="M12 6.5C10 5 7 4.5 3.5 5v13c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5z"/><path d="M12 6.5v13"/></svg>`,
+    bell: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#3D5BA9"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></svg>',
+    pin: '<svg width="30" height="30" viewBox="0 0 24 24" fill="#3D5BA9"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>',
+  };
+  const STATUS = '<span>7:30</span><svg width="58" height="14" viewBox="0 0 58 14" fill="#fff"><path d="M1 12.5L8 3l7 9.5z" opacity=".95"/><path d="M19 12h3v-3h-3zM24 12h3V7h-3zM29 12h3V4.5h-3zM34 12h3V2h-3z"/><rect x="42" y="2" width="9" height="11" rx="1.6"/><rect x="45" y=".6" width="3" height="2" rx=".6"/></svg>';
+  const WORDMARK = 'W<span class="i">ı<svg viewBox="0 0 12 24"><path d="M2 10C3 4 6 1 11 .5C11 6 7 9.5 2 10Z" fill="var(--leaf)"/></svg></span>rd';
+
+  // ---- the wires: Figma prototype noodles ----
+  const svg = document.getElementById("wires");
+  const NS = "http://www.w3.org/2000/svg";
+  function rel(el) { const b = board.getBoundingClientRect(), r = el.getBoundingClientRect(); return { l: r.left - b.left, t: r.top - b.top, r: r.right - b.left, b: r.bottom - b.top, cx: (r.left + r.right) / 2 - b.left, cy: (r.top + r.bottom) / 2 - b.top }; }
+  function bez(p0, p1, p2, p3, t) { const u = 1 - t; return [0, 1].map(k => u*u*u*p0[k] + 3*u*u*t*p1[k] + 3*u*t*t*p2[k] + t*t*t*p3[k]); }
+  function add(tag, attrs) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); svg.appendChild(e); return e; }
+  function hot(e, grey) { const h = document.createElement("div"); h.className = "hot" + (grey ? " grey" : ""); Object.assign(h.style, { left: (e.l - 4) + "px", top: (e.t - 4) + "px", width: (e.r - e.l + 8) + "px", height: (e.b - e.t + 8) + "px" }); board.appendChild(h); }
+
+  function wires() {
+    svg.setAttribute("width", board.clientWidth); svg.setAttribute("height", board.clientHeight);
+    add("defs", {}).innerHTML =
+      '<marker id="ah" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#0D99FF"/></marker>' +
+      '<marker id="ag" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8A8A8A"/></marker>';
+    document.querySelectorAll("[data-to],[data-auto]").forEach(el => {
+      const auto = !!el.dataset.auto, src = el.closest(".frame"), tgt = document.getElementById(el.dataset.to || el.dataset.auto);
+      const sc = +src.dataset.col, sr = +src.dataset.row, tc = +tgt.dataset.col, tr = +tgt.dataset.row;
+      const dir = el.dataset.route === "under" ? "under" : tr > sr ? "down" : tr < sr ? "up" : tc > sc ? "right" : "left";
+      const s = rel(src), t = rel(tgt), e = rel(el);
+      let p0, p1, p2, p3;
+      if (dir === "right" || dir === "left") {
+        const y = Math.min(Math.max(e.cy, t.t + 60), t.b - 60);
+        p0 = [dir === "right" ? s.r : s.l, e.cy]; p3 = [dir === "right" ? t.l : t.r, y];
+        const mx = (p0[0] + p3[0]) / 2; p1 = [mx, p0[1]]; p2 = [mx, p3[1]];
+      } else if (dir === "under") {
+        const dip = s.b + 165;
+        p0 = [e.cx, s.b]; p3 = [t.l + FW * +(el.dataset.tx || .3), t.b + 4];
+        p1 = [p0[0], dip]; p2 = [p3[0], dip];
+      } else {
+        const x = auto ? s.cx : e.cx;
+        const tx = el.dataset.tx ? t.l + FW * +el.dataset.tx : Math.min(Math.max(x, t.l + 70), t.r - 70);
+        p0 = [x, dir === "down" ? s.b : s.t - LBL - 6]; p3 = [tx, dir === "down" ? t.t - LBL - 6 : t.b];
+        const my = (p0[1] + p3[1]) / 2; p1 = [p0[0], my]; p2 = [p3[0], my];
+      }
+      add("path", { d: `M${p0}C${p1} ${p2} ${p3}`, fill: "none", stroke: auto ? "#8A8A8A" : "#0D99FF", "stroke-width": 2.5,
+        "stroke-dasharray": auto ? "7 6" : "", "marker-end": `url(#${auto ? "ag" : "ah"})` });
+      add("circle", { cx: p0[0], cy: p0[1], r: 5, fill: auto ? "#8A8A8A" : "#0D99FF" });
+      if (!auto) hot(e);
+      const m = bez(p0, p1, p2, p3, +(el.dataset.t || .5));
+      const tag = document.createElement("div"); tag.className = "wtag" + (auto ? " auto" : "");
+      tag.style.left = m[0] + "px"; tag.style.top = m[1] + "px"; tag.textContent = el.dataset.label;
+      board.appendChild(tag);
+    });
+    // grey notes: things that exist already, or what a control does when it leads nowhere new
+    document.querySelectorAll("[data-callout]").forEach(el => {
+      const f = el.closest(".frame"), fr = rel(f), e = rel(el);
+      const tag = document.createElement("div"); tag.className = "callout"; tag.textContent = el.dataset.callout;
+      board.appendChild(tag);
+      let x0, y0, x1, y1;
+      if (el.dataset.side === "below") {
+        tag.classList.add("wide");
+        tag.style.left = (fr.l + (fr.r - fr.l) / 2 - 150) + "px"; tag.style.top = (fr.b + 36) + "px";
+        x0 = e.cx; y0 = e.b; x1 = e.cx; y1 = fr.b + 36;
+      } else {
+        x0 = e.r + 4; y0 = e.cy; x1 = fr.r + 16; y1 = e.cy;
+        tag.style.left = x1 + "px"; tag.style.top = (y1 - tag.offsetHeight / 2) + "px";
+      }
+      add("path", { d: `M${x0},${y0}L${x1},${y1}`, stroke: "#9A9A9A", "stroke-width": 1.5, "stroke-dasharray": "4 4", fill: "none" });
+      hot(e, true);
+    });
+  }
+
+  document.querySelectorAll(".status").forEach(e => e.innerHTML = STATUS);
+  document.querySelectorAll("[data-wordmark]").forEach(e => e.innerHTML = WORDMARK);
+  document.querySelectorAll("[data-icon]").forEach(e => e.innerHTML = ICON[e.dataset.icon]);
+  document.fonts.ready.then(() => { wires(); document.body.dataset.ready = "1"; });
+</script>
+</body>
+</html>

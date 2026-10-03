@@ -2863,3 +2863,13 @@ Made after reviewing two ChatGPT conversations about onboarding (links in the 20
   and links so the reader can check the answer themselves. Not built. Until it is, onboarding and the
   README describe only what the Companion does today. When it ships, the Privacy Pledge wording must
   change, because questions will go to Google's servers.
+- **Onboarding: splash S1 (traced from his reference, with the real app icon) and direction B**
+  (the Home sky as a header band over white cards), five intro screens, the gateway with Quick
+  start kept, five setup steps, and the notification ask moved to after the first finished day.
+  The full design and the build brief are in `design-source/onboarding/`; Antigravity builds it.
+  Waiting on his yes: Quick start from An-Nās (page 604) instead of An-Naba', "which way" and
+  "where to start" on one screen, the splash button "See how Wird works", and the phone's own fonts
+  (Noto Serif, Noto Naskh Arabic) instead of Literata and Amiri.
+- **The splash hadith is quoted word for word**: "The most beloved deed to Allah is the most
+  regular and constant even if it were little." (Sahih al-Bukhari 6464). Never paraphrase a hadith
+  inside quotation marks.

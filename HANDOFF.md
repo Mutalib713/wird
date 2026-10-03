@@ -160,6 +160,11 @@ Tasks 1-10, 18, 19, 22, 25 — all core features.
 
 ## 6. Things the next session should NOT forget
 
+0. **Work in flight (2026-10-03): the onboarding redesign is being built by Antigravity** from
+   `design-source/onboarding/IMPLEMENT.md`. It owns `ui/SetupScreen.kt`, the new day-1 reminder
+   sheet and the wiring listed in that brief. **Don't edit those files until it lands**, or the two
+   sets of commits collide. Four items in that brief need Mutalib's yes before they are built.
+
 1. **The user's most recent feedback was about the ToolkitTour arrows:** he wanted
    "thought-map style curly loop arrows pointing directly at features, descriptions close
    to where they point." He provided a reference image (`media_1790606187452.jpg`). This

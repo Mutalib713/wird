@@ -78,3 +78,35 @@ own assets.
 Type: Literata for headlines (a face designed for long reading, made for Google Play Books) over
 the system sans for body; Amiri for Arabic in the mockups (the app uses the QCF page fonts on the
 real mushaf).
+
+## Phase 2 — Decision (Mutalib, 2026-10-03)
+
+**Direction B**, with the splash added. He picked **S1** of three splash options: his ChatGPT
+reference traced (element positions and the sky's light measured from the image, colours rebuilt from
+the pinned palette, the real app icon in place of AI calligraphy). He also asked for the setup screens
+in the same style.
+
+Direction line: **calm and plain / Noto Serif over Roboto, the phone's own fonts / a dawn sky in
+forest green, cream and gold / the Home sky carried into every screen as a header band, with today's
+portion lit inside a dimmed passage.**
+
+## Phases 3–6 — System, build, gates
+
+The whole flow, its tokens and the build brief are in `onboarding/`: `onboarding-flow.html` (the
+board), `frames/` (each screen at 2×), `tokens.json`, and `IMPLEMENT.md` (exact words, behaviour,
+wiring and acceptance checks).
+
+Gate results, 2026-10-03:
+
+- `design-studio/gate.py`: **PASS**, 0 block, 3 warn. The warnings are the 🔥 on streak figures,
+  which Sacred Rule 6 allows. Fixed on the way: a generic button label, a missing favicon, white on
+  Figma blue at 2.99:1 (board chrome, now 5.7:1), off-grid spacing.
+- Humanizer on every reader-facing string: **75.9 → 96.5 / 100**, gate PASS (ux-microcopy), rhythm
+  100/100. The two findings left are the quotation marks around the hadith, which are deliberate.
+- impeccable `detect` (this board is HTML, so it applies): 5 findings, all defended. Roboto ×4 is
+  Android's own body font, and choosing it means no font file ships. "Dark glow" is the board's dark
+  canvas being read as the page: in the app that shadow falls on the light sky.
+
+Fixed on the way, in the copy: the false "100% offline / never consumes data" claim, "Sacred Rule 1"
+shown to readers, the unmeasured "under 45 seconds", a Bismillah translation longer than its Arabic,
+and the Yā-Sīn preset on page 442 (it starts on 440).
