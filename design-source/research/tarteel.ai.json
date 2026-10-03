@@ -1,0 +1,59 @@
+{
+  "source": "https://tarteel.ai",
+  "tokens": {
+    "spacing": {
+      "scale": [4, 8, 12, 16, 24, 32, 64],
+      "base_unit": 4
+    },
+    "typography": {
+      "families": ["Open Sauce Sans", "Inter"],
+      "scale": [
+        { "role": "hero", "size": "96px", "weight": "400", "family": "Open Sauce Sans" },
+        { "role": "h2", "size": "48px", "weight": "400", "family": "Open Sauce Sans" },
+        { "role": "lead", "size": "24px", "weight": "500", "family": "Inter" },
+        { "role": "body", "size": "16px", "weight": "600", "family": "Inter" },
+        { "role": "small", "size": "14px", "weight": "500", "family": "Inter" },
+        { "role": "caption", "size": "12px", "weight": "500", "family": "Inter" }
+      ]
+    },
+    "colors": [
+      { "role": "background", "value": "#FFFFFF" },
+      { "role": "band", "value": "#F3F4F6" },
+      { "role": "hero-ground", "value": "#000000" },
+      { "role": "text-primary", "value": "#09090B" },
+      { "role": "text-secondary", "value": "#6B7280" },
+      { "role": "border", "value": "#E5E7EB" }
+    ],
+    "radius": ["8px", "12px", "9999px"],
+    "shadows": [],
+    "image_ratios": [
+      { "usage": "hero", "ratio": "full-bleed video, 1440x900 viewport" },
+      { "usage": "video thumbnail", "ratio": "4:3" },
+      { "usage": "feature card", "ratio": "~0.88:1" }
+    ],
+    "grid": { "max_width": "~1155px", "columns": 2, "gutter": "32px" }
+  },
+  "taste": [
+    {
+      "name": "Let the Qur'an carry the colour",
+      "trigger": "When choosing a brand colour for a Qur'an app",
+      "decision": "Chose a black, white and cool-grey interface where the only colour is the green highlight inside the recorded app, over a brand green spread across buttons and headings",
+      "reason": "Because the text being memorised is the subject, and the highlight that tells a reciter where they are is the one place colour carries meaning",
+      "evidence": ["CSS accents only #09090B and #FFFFFF", "grey bands #F3F4F6 at 15.6% of surface", "green appears only in the hero footage"]
+    },
+    {
+      "name": "No shadows, no illustrations: photography does the depth",
+      "trigger": "When building a page in a category full of floating mockups and drop-shadowed cards",
+      "decision": "Chose zero box-shadows and a full-bleed video of a real phone in a real hand, over rendered device frames and elevated cards",
+      "reason": "Because a real hand on a real mushaf screen says people use this, and flat cards keep the page from reading as an advert",
+      "evidence": ["0 box-shadows detected", "hero footage covers 30.8% of measured surface", "cards are white 12px on a #F3F4F6 band with no elevation"]
+    },
+    {
+      "name": "Headline set light, not loud",
+      "trigger": "When the hero needed one line to land at 1440px",
+      "decision": "Chose 96px at weight 400 with line-height 1.0, over a bold 700 display",
+      "reason": "Because large-and-light reads as calm confidence, while large-and-bold reads as a sales pitch, which is the wrong tone for a devotional product",
+      "evidence": ["h1 96px/96px weight 400 Open Sauce Sans", "next display step 48px (x2.0)", "body Inter 16px at 500-600"]
+    }
+  ]
+}
