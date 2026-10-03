@@ -947,7 +947,7 @@ fun SettingsScreen(
 
                                     Column {
                                         Text(
-                                            text = "Reading Position",
+                                            text = "Starting Point",
                                             color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
                                             fontSize = 20.sp,
                                             fontWeight = FontWeight.Bold,

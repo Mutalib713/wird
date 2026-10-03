@@ -1573,14 +1573,14 @@ private fun Step6ReadingGoalAndOrder(
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Continue to Starting Position ›", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Continue to Starting Point ›", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
     }
 }
 
 // ============================================================================
-// STEP 7: STARTING POSITION (Searchable Sūrahs + African Madrasa Presets)
+// STEP 7: STARTING POINT (Searchable Sūrahs + African Madrasa Presets)
 // ============================================================================
 @Composable
 private fun Step7ReadingPosition(
@@ -1597,7 +1597,7 @@ private fun Step7ReadingPosition(
     Column(modifier = Modifier.fillMaxSize()) {
         HeroHeader(
             icon = { QuranVectorIcon(tint = gold) },
-            title = "Starting Position",
+            title = "Starting Point",
             subtitle = "Choose where your recitation journey begins:",
         )
 
@@ -1718,7 +1718,7 @@ private fun Step7ReadingPosition(
                     contentColor = Color.White,
                 ),
             ) {
-                Text("Confirm Position: ${chosenSurah?.name ?: "Page $startPage"}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Confirm Starting Point: ${chosenSurah?.name ?: "Page $startPage"}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,

@@ -1073,19 +1073,6 @@ private fun ChromeBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Back arrow
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-            contentDescription = "Back",
-            tint = colors.onSurfaceRaised,
-            modifier = Modifier
-                .clip(CircleShape)
-                .clickable(onClick = onBack)
-                .defaultMinSize(minWidth = Scale.minTarget, minHeight = Scale.minTarget)
-                .padding(Scale.space3),
-        )
-        Spacer(Modifier.width(Scale.space2))
-
         // Center: Surah title, page & juz, progress streak
         Column(modifier = Modifier.weight(1f)) {
             Text(

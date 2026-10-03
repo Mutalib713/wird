@@ -110,29 +110,6 @@ fun SurahsTab(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clayCard(
-                                shape = CircleShape,
-                                backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFFFFFFF),
-                                highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
-                                shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
-                                elevation = 3.dp,
-                            )
-                            .clickable(onClick = onBack),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back to Home",
-                            tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-
-                    Spacer(Modifier.width(14.dp))
-
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(

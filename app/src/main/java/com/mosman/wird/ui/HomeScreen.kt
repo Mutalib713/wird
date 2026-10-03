@@ -61,6 +61,7 @@ import com.mosman.wird.domain.DayLog
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.LifeSpace
+import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.TrackScheduleMode
 import com.mosman.wird.domain.TrackType
@@ -520,7 +521,7 @@ private fun PortionCard(
                 modifier = Modifier.weight(1f),
             )
             ClayStatPill(
-                value = "${activeTrack?.currentStreak ?: 0}d",
+                value = "${activeTrack?.currentStreak ?: 0}d 🔥",
                 label = "Track streak",
                 valueColor = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
                 modifier = Modifier.weight(1f),
@@ -529,12 +530,21 @@ private fun PortionCard(
 
         Spacer(Modifier.height(12.dp))
 
+        val done = doneMethod != null
+
         // Sūrah completion progress loader (measures progress through this sūrah rather than the whole mushaf)
         val surahSpan = surah?.let { (it.lastPage - it.firstPage + 1).coerceAtLeast(1) } ?: 1
-        val surahInto = surah?.let { (assignment.startPage - it.firstPage).coerceAtLeast(0) } ?: 0
-        val surahFraction = (surahInto.toFloat() / surahSpan).coerceIn(0f, 1f)
-        val surahPercentLeft = ((1f - surahFraction) * 100).toInt()
-        val surahPagesLeft = surah?.let { (it.lastPage - assignment.startPage).coerceAtLeast(0) } ?: 0
+        val direction = activeTrack?.direction ?: ReadingDirection.TOWARDS_NAS
+        val baseInto = when (direction) {
+            ReadingDirection.TOWARDS_FATIHAH -> surah?.let { (it.lastPage - assignment.startPage).coerceAtLeast(0) } ?: 0
+            ReadingDirection.TOWARDS_NAS -> surah?.let { (assignment.startPage - it.firstPage).coerceAtLeast(0) } ?: 0
+        }
+        val pagesDoneToday = if (done) (assignment.units / 2).coerceAtLeast(1) else 0
+        val pagesCompleted = (baseInto + pagesDoneToday).coerceIn(0, surahSpan)
+        val isSurahComplete = done && pagesCompleted >= surahSpan
+        val surahFraction = if (isSurahComplete) 1f else (pagesCompleted.toFloat() / surahSpan).coerceIn(0f, 1f)
+        val surahPercentLeft = if (isSurahComplete) 0 else ((1f - surahFraction) * 100).toInt()
+        val surahPagesLeft = if (isSurahComplete) 0 else (surahSpan - pagesCompleted).coerceAtLeast(0)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -542,13 +552,13 @@ private fun PortionCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "📖 Sūrah ${surah?.name ?: "Completion"}",
+                text = if (isSurahComplete) "✓ Sūrah ${surah?.name ?: ""} Completed!" else "📖 Sūrah ${surah?.name ?: "Completion"}",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
             )
             Text(
-                text = "$surahPercentLeft% left",
+                text = if (isSurahComplete) "0% left" else "$surahPercentLeft% left",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
@@ -577,12 +587,24 @@ private fun PortionCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = if (surah != null) "Page ${assignment.startPage} of ${surah.lastPage} in this sūrah" else "Page ${assignment.startPage}",
+                text = if (isSurahComplete) {
+                    "All $surahSpan page${if (surahSpan != 1) "s" else ""} completed"
+                } else if (surah != null) {
+                    "$pagesCompleted of $surahSpan page${if (surahSpan != 1) "s" else ""} completed"
+                } else {
+                    "Page ${assignment.startPage}"
+                },
                 fontSize = 10.5.sp,
                 color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
             )
             Text(
-                text = if (surahPagesLeft == 0) "Last page of sūrah" else "$surahPagesLeft pages left",
+                text = if (isSurahComplete) {
+                    "Sūrah complete"
+                } else if (surahPagesLeft == 0) {
+                    "Last page of sūrah"
+                } else {
+                    "$surahPagesLeft page${if (surahPagesLeft != 1) "s" else ""} remaining"
+                },
                 fontSize = 10.5.sp,
                 color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
             )
@@ -591,7 +613,6 @@ private fun PortionCard(
         Spacer(Modifier.height(16.dp))
 
         // ---- the three tactile action tiles on the exact same row (Candidate 1) ----
-        val done = doneMethod != null
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1056,21 +1077,12 @@ private fun NumbersCard(p: Progress, activeTrack: ReadingTrack? = null) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_flame),
-                        contentDescription = null,
-                        tint = streakColor,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "$streakVal",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = streakColor,
-                    )
-                }
+                Text(
+                    text = "🔥 $streakVal",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = streakColor,
+                )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Day Streak",
@@ -1094,21 +1106,12 @@ private fun NumbersCard(p: Progress, activeTrack: ReadingTrack? = null) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_book_quran),
-                        contentDescription = null,
-                        tint = daysColor,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "$totalDaysVal",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = daysColor,
-                    )
-                }
+                Text(
+                    text = "📖 $totalDaysVal",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = daysColor,
+                )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Total Days",
@@ -1132,21 +1135,12 @@ private fun NumbersCard(p: Progress, activeTrack: ReadingTrack? = null) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_mic),
-                        contentDescription = null,
-                        tint = aloudColor,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = "$aloudRatio%",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = aloudColor,
-                    )
-                }
+                Text(
+                    text = "🎙️ $aloudRatio%",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = aloudColor,
+                )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Recited aloud",

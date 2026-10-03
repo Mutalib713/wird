@@ -1,6 +1,7 @@
 package com.mosman.wird.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -463,21 +464,18 @@ fun EditTrackDialog(
     val isNameValid = !isNameBlank && !isNameDuplicate
 
     var type by remember { mutableStateOf(track.type) }
-    val predefinedIntentions = listOf(
+    val intentionSuggestions = listOf(
         "Build a daily Qur'an habit",
-        "Read the Qur'an consistently",
+        "Read consistently",
         "Memorize new verses",
         "Review what I've memorized",
         "Complete more of the Qur'an",
-        "Stay connected to the Qur'an",
-        "Other",
+        "Stay connected",
     )
     var intention by remember {
         mutableStateOf(track.intention ?: "Build a daily Qur'an habit")
     }
-    var customIntentionText by remember {
-        mutableStateOf(if (track.intention != null && track.intention !in predefinedIntentions) track.intention ?: "" else "")
-    }
+    var isChangingOrder by remember { mutableStateOf(false) }
 
     var activeDays by remember { mutableStateOf(track.activeDays.ifEmpty { DayOfWeek.entries.toSet() }) }
     var startPage by remember { mutableIntStateOf(track.pageNumber) }
@@ -608,7 +606,7 @@ fun EditTrackDialog(
                         }
                     }
 
-                    // Field 2: READING GOAL (Renamed from DISCIPLINE, bilingual, duplicate removed)
+                    // Field 2: READING GOAL (Renamed from DISCIPLINE, rectangular clay cards, duplicate removed)
                     Column {
                         Text(
                             text = "READING GOAL",
@@ -629,39 +627,60 @@ fun EditTrackDialog(
                         ) {
                             TrackType.entries.forEach { t ->
                                 val isSelected = type == t
+                                val cardShape = RoundedCornerShape(14.dp)
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clayPill(
+                                        .clayCard(
+                                            shape = cardShape,
                                             backgroundColor = if (isSelected) {
                                                 if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
                                             } else {
-                                                if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
+                                                if (isDark) Color(0xFF13201A) else Color(0xFFFAF7EE)
                                             },
                                             elevation = if (isSelected) 3.dp else 1.dp,
                                         )
+                                        .then(
+                                            if (isSelected) {
+                                                Modifier.border(
+                                                    width = 2.dp,
+                                                    color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                                                    shape = cardShape,
+                                                )
+                                            } else {
+                                                Modifier.border(
+                                                    width = 1.dp,
+                                                    color = if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFF245847).copy(alpha = 0.12f),
+                                                    shape = cardShape,
+                                                )
+                                            }
+                                        )
                                         .clickable { type = t }
-                                        .padding(horizontal = 4.dp, vertical = 9.dp),
+                                        .padding(horizontal = 6.dp, vertical = 10.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                    ) {
                                         Text(
                                             text = t.englishLabel,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.Bold,
                                             color = if (isSelected) {
                                                 if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
                                             } else {
                                                 if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D)
                                             },
                                         )
+                                        Spacer(Modifier.height(1.dp))
                                         Text(
                                             text = t.arabicLabel,
                                             fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
+                                            fontWeight = FontWeight.SemiBold,
                                             color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
                                         )
-                                        Spacer(Modifier.height(2.dp))
+                                        Spacer(Modifier.height(4.dp))
                                         Text(
                                             text = t.description,
                                             fontSize = 9.5.sp,
@@ -675,7 +694,7 @@ fun EditTrackDialog(
                         }
                     }
 
-                    // Field 3: YOUR INTENTION (Meaningful habit anchors replacing generic motivation)
+                    // Field 3: YOUR INTENTION (Editable text box + quick suggestion chips)
                     Column {
                         Text(
                             text = "YOUR INTENTION",
@@ -689,90 +708,102 @@ fun EditTrackDialog(
                             fontSize = 11.5.sp,
                             color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                         )
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(8.dp))
+
+                        // Direct Editable Text Box
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clayCard(
+                                    shape = RoundedCornerShape(12.dp),
+                                    backgroundColor = if (isDark) Color(0xFF13201A) else Color.White,
+                                    elevation = 1.dp,
+                                )
+                                .border(
+                                    width = 1.5.dp,
+                                    color = if (isDark) Color(0xFF8ED676).copy(alpha = 0.4f) else Color(0xFF245847).copy(alpha = 0.25f),
+                                    shape = RoundedCornerShape(12.dp),
+                                )
+                                .padding(horizontal = 14.dp, vertical = 11.dp),
+                        ) {
+                            if (intention.isEmpty()) {
+                                Text(
+                                    text = "Type your intention or tap a suggestion below...",
+                                    color = if (isDark) Color(0xFF5D7569) else Color(0xFFA0B0A6),
+                                    fontSize = 13.sp,
+                                )
+                            }
+                            BasicTextField(
+                                value = intention,
+                                onValueChange = { intention = it },
+                                singleLine = true,
+                                textStyle = TextStyle(
+                                    fontSize = 13.5.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                ),
+                                cursorBrush = SolidColor(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+
+                        Text(
+                            text = "Tap to select or fill:",
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        )
+                        Spacer(Modifier.height(4.dp))
 
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            predefinedIntentions.chunked(2).forEach { pair ->
+                            intentionSuggestions.chunked(2).forEach { rowChips ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    pair.forEach { item ->
-                                        val isSelected = (item != "Other" && intention == item) ||
-                                            (item == "Other" && (intention == "Other" || intention !in predefinedIntentions))
+                                    rowChips.forEach { chipText ->
+                                        val isChipSelected = intention.trim().equals(chipText.trim(), ignoreCase = true)
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .clayPill(
-                                                    backgroundColor = if (isSelected) {
-                                                        if (isDark) Color(0xFF1E3A2E) else Color(0xFF245847)
+                                                .clip(RoundedCornerShape(999.dp))
+                                                .background(
+                                                    if (isChipSelected) {
+                                                        Color(0xFF245847)
                                                     } else {
-                                                        if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
-                                                    },
-                                                    elevation = if (isSelected) 2.dp else 1.dp,
+                                                        if (isDark) Color(0xFF13201A) else Color(0xFFFAF7EE)
+                                                    }
                                                 )
-                                                .clickable {
-                                                    intention = item
-                                                }
-                                                .padding(horizontal = 6.dp, vertical = 7.dp),
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = if (isChipSelected) {
+                                                        Color(0xFF245847)
+                                                    } else {
+                                                        if (isDark) Color.White.copy(alpha = 0.1f) else Color(0xFF245847).copy(alpha = 0.16f)
+                                                    },
+                                                    shape = RoundedCornerShape(999.dp),
+                                                )
+                                                .clickable { intention = chipText }
+                                                .padding(horizontal = 8.dp, vertical = 7.dp),
                                             contentAlignment = Alignment.Center,
                                         ) {
                                             Text(
-                                                text = item,
-                                                fontSize = 11.sp,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                textAlign = TextAlign.Center,
-                                                color = if (isSelected) {
-                                                    Color.White
-                                                } else {
-                                                    if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
-                                                },
+                                                text = if (isChipSelected) "✓ $chipText" else chipText,
+                                                fontSize = 10.5.sp,
+                                                fontWeight = if (isChipSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (isChipSelected) Color.White else (if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
+                                                maxLines = 1,
                                             )
                                         }
                                     }
-                                    if (pair.size == 1) {
-                                        Spacer(Modifier.weight(1f))
-                                    }
-                                }
-                            }
-
-                            if (intention == "Other" || intention !in predefinedIntentions) {
-                                Spacer(Modifier.height(2.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clayCard(
-                                            shape = RoundedCornerShape(12.dp),
-                                            backgroundColor = if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6),
-                                            elevation = 1.dp,
-                                        )
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                ) {
-                                    if (customIntentionText.isEmpty()) {
-                                        Text(
-                                            text = "e.g. Preparing for Ramadan, family khatmah",
-                                            color = if (isDark) Color(0xFF5D7569) else Color(0xFFA0B0A6),
-                                            fontSize = 12.sp,
-                                        )
-                                    }
-                                    BasicTextField(
-                                        value = customIntentionText,
-                                        onValueChange = { customIntentionText = it },
-                                        singleLine = true,
-                                        textStyle = TextStyle(
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                                        ),
-                                        cursorBrush = SolidColor(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
-                                        modifier = Modifier.fillMaxWidth(),
-                                    )
                                 }
                             }
                         }
                     }
 
-                    // Field 4: RECITATION DAYS (Renamed from Active Days, with Days Off helper)
+                    // Field 4: RECITATION DAYS (7 circular beads, NO "Every day" button, with dynamic days off helper)
                     Column {
                         Text(
                             text = "RECITATION DAYS",
@@ -786,96 +817,72 @@ fun EditTrackDialog(
                             fontSize = 11.5.sp,
                             color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                         )
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(8.dp))
+
+                        val daysList = listOf(
+                            "M" to DayOfWeek.MONDAY,
+                            "T" to DayOfWeek.TUESDAY,
+                            "W" to DayOfWeek.WEDNESDAY,
+                            "T" to DayOfWeek.THURSDAY,
+                            "F" to DayOfWeek.FRIDAY,
+                            "S" to DayOfWeek.SATURDAY,
+                            "S" to DayOfWeek.SUNDAY,
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            val isAllDays = activeDays.size == 7
-                            Box(
-                                modifier = Modifier
-                                    .clayPill(
-                                        backgroundColor = if (isAllDays) {
-                                            if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
-                                        } else {
-                                            if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
-                                        },
-                                        elevation = if (isAllDays) 2.dp else 1.dp,
-                                    )
-                                    .clickable { activeDays = daily }
-                                    .padding(horizontal = 10.dp, vertical = 7.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "Every day",
-                                    fontSize = 11.sp,
-                                    fontWeight = if (isAllDays) FontWeight.Bold else FontWeight.SemiBold,
-                                    color = if (isAllDays) {
-                                        if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
-                                    } else {
-                                        if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
-                                    },
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier.weight(1f),
-                                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                            ) {
-                                listOf(
-                                    "M" to DayOfWeek.MONDAY,
-                                    "T" to DayOfWeek.TUESDAY,
-                                    "W" to DayOfWeek.WEDNESDAY,
-                                    "T" to DayOfWeek.THURSDAY,
-                                    "F" to DayOfWeek.FRIDAY,
-                                    "S" to DayOfWeek.SATURDAY,
-                                    "S" to DayOfWeek.SUNDAY,
-                                ).forEach { (char, dow) ->
-                                    val isSelected = dow in activeDays
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clayPill(
-                                                backgroundColor = if (isSelected) {
-                                                    if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
-                                                } else {
-                                                    if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
-                                                },
-                                                elevation = if (isSelected) 2.dp else 1.dp,
-                                            )
-                                            .clickable {
-                                                activeDays = if (isSelected) {
-                                                    if (activeDays.size > 1) activeDays - dow else activeDays
-                                                } else activeDays + dow
-                                            }
-                                            .padding(vertical = 7.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            text = char,
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) {
-                                                if (isDark) Color(0xFF0D2720) else Color.White
+                            daysList.forEach { (char, dow) ->
+                                val isSelected = dow in activeDays
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clayPill(
+                                            shape = CircleShape,
+                                            backgroundColor = if (isSelected) {
+                                                if (isDark) Color(0xFF1E3A2E) else Color(0xFF245847)
                                             } else {
-                                                if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                                if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
                                             },
+                                            elevation = if (isSelected) 3.dp else 1.dp,
                                         )
-                                    }
+                                        .clickable {
+                                            activeDays = if (isSelected) {
+                                                if (activeDays.size > 1) activeDays - dow else activeDays
+                                            } else {
+                                                activeDays + dow
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = char,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) {
+                                            Color.White
+                                        } else {
+                                            if (isDark) Color(0xFF8FA597) else Color(0xFF8C7D6B)
+                                        },
+                                    )
                                 }
                             }
                         }
-                        Spacer(Modifier.height(4.dp))
-                        val excludedDays = DayOfWeek.entries.filter { it !in activeDays }
-                        val daysOffNote = if (excludedDays.isEmpty()) {
-                            "Reminders active every day"
+
+                        Spacer(Modifier.height(6.dp))
+
+                        val offDays = DayOfWeek.entries.filter { it !in activeDays }
+                        val daysOffNote = if (offDays.isEmpty()) {
+                            "All 7 days active · Reminders will sound daily"
                         } else {
-                            "Days off: Don't remind me on days I'm unavailable (${excludedDays.joinToString { it.name.take(3).lowercase().replaceFirstChar(Char::uppercase) }})"
+                            val offNames = offDays.joinToString(", ") { it.name.lowercase().replaceFirstChar(Char::uppercase) }
+                            "Days off: $offNames · Reminders won't disturb you"
                         }
                         Text(
                             text = daysOffNote,
                             fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
                             color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                         )
                     }
@@ -1155,7 +1162,7 @@ fun EditTrackDialog(
                         }
                     }
 
-                    // Field 7: READING ORDER (Renamed from Reading Direction, with plain explanations)
+                    // Field 7: READING ORDER (Default with expandable Change option)
                     Column {
                         Text(
                             text = "READING ORDER",
@@ -1171,141 +1178,230 @@ fun EditTrackDialog(
                         )
                         Spacer(Modifier.height(6.dp))
 
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // Option A: An-Nās → Al-Fātiḥah
-                            val isTowardsFatihah = direction == ReadingDirection.TOWARDS_FATIHAH
-                            Box(
+                        if (!isChangingOrder) {
+                            // Collapsed default card
+                            Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clayCard(
                                         shape = RoundedCornerShape(14.dp),
-                                        backgroundColor = if (isTowardsFatihah) {
-                                            if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
-                                        } else {
-                                            if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
-                                        },
-                                        elevation = if (isTowardsFatihah) 2.dp else 1.dp,
+                                        backgroundColor = if (isDark) Color(0xFF14241B) else Color(0xFFFAF7EE),
+                                        elevation = 1.dp,
                                     )
-                                    .clickable { direction = ReadingDirection.TOWARDS_FATIHAH }
-                                    .padding(12.dp),
+                                    .clickable { isChangingOrder = true }
+                                    .padding(14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = if (direction == ReadingDirection.TOWARDS_FATIHAH) {
+                                            "From An-Nās → Al-Fātiḥah (Default)"
+                                        } else {
+                                            "From Al-Fātiḥah → An-Nās"
+                                        },
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = if (direction == ReadingDirection.TOWARDS_FATIHAH) {
+                                            "Start from the end of the Qur'an and work toward the beginning."
+                                        } else {
+                                            "Start from the beginning and work toward the end."
+                                        },
+                                        fontSize = 11.sp,
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                    )
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isDark) Color(0xFF1E382B) else Color(0xFFE4EDE7))
+                                        .padding(horizontal = 9.dp, vertical = 5.dp),
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(18.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (isTowardsFatihah) {
-                                                    if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
-                                                } else Color.Transparent
-                                            )
-                                            .then(
-                                                if (!isTowardsFatihah) {
-                                                    Modifier.background(if (isDark) Color.White.copy(alpha = 0.2f) else Color(0xFF8C7D6B).copy(alpha = 0.3f))
-                                                } else Modifier
-                                            ),
-                                        contentAlignment = Alignment.Center,
+                                    Text(
+                                        text = "Change ▾",
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                                    )
+                                }
+                            }
+                        } else {
+                            // Expanded options matching sketch
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                // Option A: An-Nās → Al-Fātiḥah
+                                val isTowardsFatihah = direction == ReadingDirection.TOWARDS_FATIHAH
+                                val cardShapeA = RoundedCornerShape(14.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clayCard(
+                                            shape = cardShapeA,
+                                            backgroundColor = if (isTowardsFatihah) {
+                                                if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
+                                            } else {
+                                                if (isDark) Color(0xFF13201A) else Color(0xFFFAF7EE)
+                                            },
+                                            elevation = if (isTowardsFatihah) 2.dp else 1.dp,
+                                        )
+                                        .then(
+                                            if (isTowardsFatihah) {
+                                                Modifier.border(
+                                                    width = 2.dp,
+                                                    color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                                                    shape = cardShapeA,
+                                                )
+                                            } else {
+                                                Modifier.border(
+                                                    width = 1.dp,
+                                                    color = if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFF245847).copy(alpha = 0.12f),
+                                                    shape = cardShapeA,
+                                                )
+                                            }
+                                        )
+                                        .clickable {
+                                            direction = ReadingDirection.TOWARDS_FATIHAH
+                                            isChangingOrder = false
+                                        }
+                                        .padding(12.dp),
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     ) {
-                                        if (isTowardsFatihah) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(6.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color.White)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .border(
+                                                    width = 2.dp,
+                                                    color = if (isTowardsFatihah) {
+                                                        if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                                                    } else {
+                                                        if (isDark) Color.White.copy(alpha = 0.25f) else Color(0xFF8C7D6B).copy(alpha = 0.4f)
+                                                    },
+                                                    shape = CircleShape,
+                                                ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            if (isTowardsFatihah) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(10.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
+                                                )
+                                            }
+                                        }
+                                        Column {
+                                            Text(
+                                                text = "From An-Nās → Al-Fātiḥah",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                            )
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(
+                                                text = "Start from the end of the Qur'an and work toward the beginning. Common for memorization in West Africa.",
+                                                fontSize = 11.sp,
+                                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                                lineHeight = 15.sp,
                                             )
                                         }
                                     }
-                                    Column {
-                                        Text(
-                                            text = "From An-Nās → Al-Fātiḥah",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                                        )
-                                        Spacer(Modifier.height(2.dp))
-                                        Text(
-                                            text = "Start from the end of the Qur'an and work toward the beginning.",
-                                            fontSize = 11.sp,
-                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
-                                            lineHeight = 15.sp,
-                                        )
-                                    }
                                 }
-                            }
 
-                            // Option B: Al-Fātiḥah → An-Nās
-                            val isTowardsNas = direction == ReadingDirection.TOWARDS_NAS
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clayCard(
-                                        shape = RoundedCornerShape(14.dp),
-                                        backgroundColor = if (isTowardsNas) {
-                                            if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
-                                        } else {
-                                            if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
-                                        },
-                                        elevation = if (isTowardsNas) 2.dp else 1.dp,
-                                    )
-                                    .clickable { direction = ReadingDirection.TOWARDS_NAS }
-                                    .padding(12.dp),
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                // Option B: Al-Fātiḥah → An-Nās
+                                val isTowardsNas = direction == ReadingDirection.TOWARDS_NAS
+                                val cardShapeB = RoundedCornerShape(14.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clayCard(
+                                            shape = cardShapeB,
+                                            backgroundColor = if (isTowardsNas) {
+                                                if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
+                                            } else {
+                                                if (isDark) Color(0xFF13201A) else Color(0xFFFAF7EE)
+                                            },
+                                            elevation = if (isTowardsNas) 2.dp else 1.dp,
+                                        )
+                                        .then(
+                                            if (isTowardsNas) {
+                                                Modifier.border(
+                                                    width = 2.dp,
+                                                    color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                                                    shape = cardShapeB,
+                                                )
+                                            } else {
+                                                Modifier.border(
+                                                    width = 1.dp,
+                                                    color = if (isDark) Color.White.copy(alpha = 0.08f) else Color(0xFF245847).copy(alpha = 0.12f),
+                                                    shape = cardShapeB,
+                                                )
+                                            }
+                                        )
+                                        .clickable {
+                                            direction = ReadingDirection.TOWARDS_NAS
+                                            isChangingOrder = false
+                                        }
+                                        .padding(12.dp),
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(18.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (isTowardsNas) {
-                                                    if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
-                                                } else Color.Transparent
-                                            )
-                                            .then(
-                                                if (!isTowardsNas) {
-                                                    Modifier.background(if (isDark) Color.White.copy(alpha = 0.2f) else Color(0xFF8C7D6B).copy(alpha = 0.3f))
-                                                } else Modifier
-                                            ),
-                                        contentAlignment = Alignment.Center,
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     ) {
-                                        if (isTowardsNas) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(6.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color.White)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .border(
+                                                    width = 2.dp,
+                                                    color = if (isTowardsNas) {
+                                                        if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                                                    } else {
+                                                        if (isDark) Color.White.copy(alpha = 0.25f) else Color(0xFF8C7D6B).copy(alpha = 0.4f)
+                                                    },
+                                                    shape = CircleShape,
+                                                ),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            if (isTowardsNas) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(10.dp)
+                                                        .clip(CircleShape)
+                                                        .background(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
+                                                )
+                                            }
+                                        }
+                                        Column {
+                                            Text(
+                                                text = "From Al-Fātiḥah → An-Nās",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                            )
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(
+                                                text = "Start from the beginning and work toward the end. Standard recitation sequence.",
+                                                fontSize = 11.sp,
+                                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                                lineHeight = 15.sp,
                                             )
                                         }
                                     }
-                                    Column {
-                                        Text(
-                                            text = "From Al-Fātiḥah → An-Nās",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                                        )
-                                        Spacer(Modifier.height(2.dp))
-                                        Text(
-                                            text = "Start from the beginning and work toward the end.",
-                                            fontSize = 11.sp,
-                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
-                                            lineHeight = 15.sp,
-                                        )
-                                    }
                                 }
-                            }
 
-                            Text(
-                                text = "You can change this later.",
-                                fontSize = 11.sp,
-                                fontStyle = FontStyle.Italic,
-                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
-                            )
+                                Text(
+                                    text = "You can change this order anytime.",
+                                    fontSize = 11.sp,
+                                    fontStyle = FontStyle.Italic,
+                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                )
+                            }
                         }
                     }
 
@@ -1350,11 +1446,7 @@ fun EditTrackDialog(
                                 )
                                 .clickable(enabled = isNameValid) {
                                     if (isNameValid) {
-                                        val finalIntention = if (intention == "Other") {
-                                            customIntentionText.trim().ifEmpty { "Other" }
-                                        } else {
-                                            intention
-                                        }
+                                        val finalIntention = intention.trim().ifEmpty { "Build a daily Qur'an habit" }
                                         val customVerses = if (isCustomTarget) customVersesText.toIntOrNull() ?: 10 else null
                                         val updated = track.copy(
                                             name = trimmedName,
@@ -2169,7 +2261,7 @@ fun TrackPositionPickerDialog(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    text = "USE THIS POSITION",
+                                    text = "CONFIRM STARTING POINT",
                                     color = Color.White,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,

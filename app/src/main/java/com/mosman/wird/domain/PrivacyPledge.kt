@@ -33,7 +33,7 @@ object PrivacyPledge {
         ),
         PledgeItem(
             title = "No accounts or remote database",
-            description = "No email address, password, or sign-in is ever required. Your reading position, daily streaks, and bookmarks live only in this phone's private storage.",
+            description = "No email address, password, or sign-in is ever required. Your starting point, daily streaks, and bookmarks live only in this phone's private storage.",
         ),
         PledgeItem(
             title = "Full data sovereignty",
