@@ -31,7 +31,7 @@ import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.assignPortion
 import com.mosman.wird.domain.surahs
-import com.mosman.wird.domain.todaysAssignment
+import com.mosman.wird.domain.assignmentOn
 import com.mosman.wird.ui.theme.Q
 import java.time.LocalDate
 
@@ -67,17 +67,20 @@ class WirdWidget : GlanceAppWidget() {
         } else {
             // Same rule the app follows: a finished day shows what it covered, not what the
             // position now says. Otherwise marking a day rewrites what today *was*.
-            val covered = days.coveredOn(today)
+            // The active track, worked out exactly as Home does. The widget used to read the
+            // old global position and plan, so it could show a different portion from Home.
+            val track = store.activeTrack(today)
+            val covered = days.coveredOn(today, track.id)
             val assignment = if (covered != null) {
-                assignPortion(startUnit = covered.first, units = covered.second)
+                assignPortion(startUnit = covered.first, units = covered.second, direction = track.direction)
             } else {
-                todaysAssignment(startUnit = store.positionUnit, plan = store.plan, date = today)
+                track.assignmentOn(today)
             }
             val surah = assignment.surahs.firstOrNull()
             WidgetState.Portion(
                 title = surah?.name ?: "Page ${assignment.startPage}",
                 detail = detailOf(assignment.units, assignment.startPage),
-                method = days.methodFor(today),
+                method = days.methodFor(today, track.id),
             )
         }
 

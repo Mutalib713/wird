@@ -8,9 +8,8 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.mosman.wird.MainActivity
-import com.mosman.wird.data.DayLogStore
 import com.mosman.wird.data.WirdStore
-import com.mosman.wird.domain.todaysAssignment
+import com.mosman.wird.domain.assignmentOn
 import com.mosman.wird.domain.pages
 import java.time.LocalDate
 
@@ -21,7 +20,6 @@ class NudgeReceiver : BroadcastReceiver() {
         Log.i(TAG, "nudge fired at ${System.currentTimeMillis()}")
 
         val today = LocalDate.now()
-        val days = DayLogStore(context)
         val store = WirdStore(context)
 
         // **Tomorrow's reminder is set before anything else can go wrong.** An alarm
@@ -58,7 +56,7 @@ class NudgeReceiver : BroadcastReceiver() {
         val activeTrack = targetTrack ?: store.activeTrack(today)
 
         // Sacred Rule 3. If this track is already completed today, stay quiet.
-        if (activeTrack.isCompletedToday(today) || (trackId == null && days.isDone(today))) {
+        if (activeTrack.isCompletedToday(today)) {
             Log.i(TAG, "track '${activeTrack.name}' already read today, staying quiet")
             return
         }
@@ -70,11 +68,10 @@ class NudgeReceiver : BroadcastReceiver() {
             return
         }
 
-        val assignment = todaysAssignment(
-            startUnit = activeTrack.positionUnit,
-            plan = com.mosman.wird.domain.ReadingPlan(defaultUnits = activeTrack.dailyUnits),
-            date = today,
-        )
+        // The same portion Home shows: this track's position, its weekday plan and its
+        // direction. It used to ignore the direction, so a back-to-front track was told the
+        // wrong page.
+        val assignment = activeTrack.assignmentOn(today)
         val surahs = com.mosman.wird.domain.SurahIndex.across(assignment.pages)
         val primarySurah = surahs.firstOrNull() ?: com.mosman.wird.domain.SurahIndex.on(assignment.startPage).firstOrNull()
         val ayahRange = if (primarySurah != null) {
@@ -122,7 +119,8 @@ class NudgeReceiver : BroadcastReceiver() {
                 // one before it and all three would send the same phrase.
                 100 + i,
                 Intent(context, CommitReceiver::class.java)
-                    .putExtra(CommitReceiver.EXTRA_SAID, phrase),
+                    .putExtra(CommitReceiver.EXTRA_SAID, phrase)
+                    .putExtra(Nudge.EXTRA_TRACK_ID, activeTrack.id),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             builder.addAction(0, phrase, reply)

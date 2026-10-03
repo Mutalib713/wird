@@ -14,6 +14,9 @@ import com.mosman.wird.domain.LifeSpace
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.TrackType
 import com.mosman.wird.domain.TrackScheduleMode
+import com.mosman.wird.domain.effectiveSchedule
+import com.mosman.wird.domain.plan
+import com.mosman.wird.domain.withProgress
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -52,18 +55,40 @@ class WirdStore(context: Context) {
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    /** False on a brand-new install, which is what sends the app to setup. */
-    val isSetUp: Boolean get() = prefs.contains(KEY_UNIT)
+    /** The record of finished days. Each track's streak and total are worked out from it. */
+    private val days = DayLogStore(context)
+
+    init {
+        migrateRecordsOnce()
+    }
 
     /**
-     * The half-page unit you are due to start on.
+     * False on a brand-new install, which is what sends the app to setup.
+     *
+     * An install from before 2026-10-03 is set up if it ever saved a position; from then on
+     * finishing setup sets its own flag, because the position now lives on the track.
+     */
+    val isSetUp: Boolean get() = prefs.getBoolean(KEY_SET_UP, false) || prefs.contains(KEY_UNIT)
+
+    fun markSetUp() = prefs.edit { putBoolean(KEY_SET_UP, true) }
+
+    // ---- the active track's own settings ---------------------------------------------
+    //
+    // **One copy, on the track.** Until 2026-10-03 the position, plan, direction and start
+    // verse each existed twice: once here, from before tracks, and once on every track. Some
+    // screens read one and some the other, so the companion's "half on Fridays" and Settings'
+    // daily target both saved to a plan the portion never read, and the widget showed a
+    // different portion from Home. These are now windows onto the active track, nothing more.
+
+    /**
+     * The half-page unit the active track is due to start on.
      *
      * This moves only when a day is marked done (task 6), never on app launch — opening
      * the app twice in a day must show the same portion twice.
      */
     var positionUnit: Int
-        get() = prefs.getInt(KEY_UNIT, 0)
-        set(value) = prefs.edit { putInt(KEY_UNIT, Math.floorMod(value, Mushaf.TOTAL_UNITS)) }
+        get() = activeTrack().positionUnit
+        set(value) = updateActive { it.copy(positionUnit = Math.floorMod(value, Mushaf.TOTAL_UNITS)) }
 
     /** 1-based page you are due to start on. Setter keeps the half-page you were on. */
     var positionPage: Int
@@ -82,18 +107,12 @@ class WirdStore(context: Context) {
      * actually is. Cleared once the position moves past it.
      */
     var startVerse: Pair<Int, Int>?
-        get() {
-            val s = prefs.getInt(KEY_START_SURAH, 0)
-            val a = prefs.getInt(KEY_START_AYAH, 0)
-            return if (s > 0 && a > 0) s to a else null
+        get() = activeTrack().let { t ->
+            val s = t.startVerseSurah
+            val a = t.startVerseAyah
+            if (s != null && a != null && s > 0 && a > 0) s to a else null
         }
-        set(value) = prefs.edit {
-            if (value == null) {
-                remove(KEY_START_SURAH); remove(KEY_START_AYAH)
-            } else {
-                putInt(KEY_START_SURAH, value.first); putInt(KEY_START_AYAH, value.second)
-            }
-        }
+        set(value) = updateActive { it.copy(startVerseSurah = value?.first, startVerseAyah = value?.second) }
 
     /**
      * Light, dark, or whatever the phone is set to.
@@ -228,10 +247,8 @@ class WirdStore(context: Context) {
      * would be the worst possible way to introduce this.
      */
     var readingDirection: ReadingDirection
-        get() = runCatching {
-            ReadingDirection.valueOf(prefs.getString(KEY_DIRECTION, ReadingDirection.TOWARDS_NAS.name)!!)
-        }.getOrDefault(ReadingDirection.TOWARDS_NAS)
-        set(value) = prefs.edit { putString(KEY_DIRECTION, value.name) }
+        get() = activeTrack().direction
+        set(value) = updateActive { it.copy(direction = value) }
 
     /**
      * Whether the **mushaf page** paints dark, kept apart from the app's theme.
@@ -278,8 +295,8 @@ class WirdStore(context: Context) {
      * what makes *"in an hour"* a promise about tonight instead of a permanent move of the
      * reminder, which is what it used to be. See [Commitment.schedule].
      */
-    fun scheduleFor(today: LocalDate): NudgeSchedule =
-        commitment?.takeIf { it.appliesOn(today) }?.schedule ?: nudgeSchedule
+    fun scheduleFor(track: ReadingTrack, today: LocalDate): NudgeSchedule =
+        effectiveSchedule(track, commitment, nudgeSchedule, today)
 
     /**
      * When the nudge last actually fired, and what it was last armed for.
@@ -358,9 +375,23 @@ class WirdStore(context: Context) {
         }.getOrDefault(AudioQuality.LIGHT)
         set(value) = prefs.edit { putString(KEY_AUDIO, value.name) }
 
+    /** The active track's daily amount and weekday exceptions. */
     var plan: ReadingPlan
+        get() = activeTrack().plan()
+        set(value) = updateActive { it.copy(dailyUnits = value.defaultUnits, weekdayUnits = value.weekdayUnits) }
+
+    // ---- what installs from before tracks saved, read only to build the first track ----
+
+    private val legacyPositionUnit: Int get() = prefs.getInt(KEY_UNIT, 0)
+
+    private val legacyDirection: ReadingDirection
+        get() = runCatching {
+            ReadingDirection.valueOf(prefs.getString(KEY_DIRECTION, ReadingDirection.TOWARDS_NAS.name)!!)
+        }.getOrDefault(ReadingDirection.TOWARDS_NAS)
+
+    private val legacyPlan: ReadingPlan
         get() = ReadingPlan(
-            defaultUnits = prefs.getInt(KEY_DEFAULT_UNITS, Mushaf.UNITS_PER_PAGE),
+            defaultUnits = prefs.getInt(KEY_DEFAULT_UNITS, Mushaf.UNITS_PER_PAGE).coerceAtLeast(1),
             weekdayUnits = DayOfWeek.entries
                 .mapNotNull { day ->
                     val v = prefs.getInt(weekdayKey(day), 0)
@@ -368,13 +399,12 @@ class WirdStore(context: Context) {
                 }
                 .toMap(),
         )
-        set(value) = prefs.edit {
-            putInt(KEY_DEFAULT_UNITS, value.defaultUnits)
-            // Rewrite every day, so removing an override actually removes it.
-            DayOfWeek.entries.forEach { day ->
-                val v = value.weekdayUnits[day]
-                if (v == null) remove(weekdayKey(day)) else putInt(weekdayKey(day), v)
-            }
+
+    private val legacyStartVerse: Pair<Int, Int>?
+        get() {
+            val s = prefs.getInt(KEY_START_SURAH, 0)
+            val a = prefs.getInt(KEY_START_AYAH, 0)
+            return if (s > 0 && a > 0) s to a else null
         }
 
     var lockOrientation: Boolean
@@ -471,7 +501,17 @@ class WirdStore(context: Context) {
         get() = prefs.getString(KEY_ACTIVE_TRACK_ID, null)
         set(value) = prefs.edit { putString(KEY_ACTIVE_TRACK_ID, value) }
 
-    fun getReadingTracks(): List<ReadingTrack> {
+    /**
+     * Every track, with its streak, total and last day filled in **from the day log**.
+     * Nothing about progress is stored on the track itself. See TrackRecord.kt.
+     */
+    fun getReadingTracks(today: LocalDate = LocalDate.now()): List<ReadingTrack> {
+        val logs = days.all()
+        return readTracks().map { it.withProgress(logs, today) }
+    }
+
+    /** The tracks as saved: settings only, no progress. */
+    private fun readTracks(): List<ReadingTrack> {
         val raw = prefs.getString(KEY_READING_TRACKS, null)
         if (!raw.isNullOrBlank()) {
             return runCatching {
@@ -520,7 +560,7 @@ class WirdStore(context: Context) {
     }
 
     fun generateUniqueTrackName(baseName: String = "Reading Track"): String {
-        val tracks = getReadingTracks()
+        val tracks = readTracks()
         val existingNames = tracks.map { it.name.trim().lowercase() }.toSet()
         val cleanBase = baseName.trim().ifEmpty { "Reading Track" }
         if (cleanBase.lowercase() !in existingNames) {
@@ -563,10 +603,11 @@ class WirdStore(context: Context) {
     }
 
     private fun createDefaultReadingTracks(): List<ReadingTrack> {
-        val currentPos = positionUnit
-        val currentDir = readingDirection
-        val currentUnits = plan.defaultUnits
-        val sVerse = startVerse
+        // The legacy values, read directly: the public ones now read *from* the track.
+        val currentPos = legacyPositionUnit
+        val currentDir = legacyDirection
+        val currentUnits = legacyPlan.defaultUnits
+        val sVerse = legacyStartVerse
 
         val mainTrack = ReadingTrack(
             id = "track_main",
@@ -576,6 +617,7 @@ class WirdStore(context: Context) {
             positionUnit = currentPos,
             direction = currentDir,
             dailyUnits = currentUnits,
+            weekdayUnits = legacyPlan.weekdayUnits,
             startVerseSurah = sVerse?.first,
             startVerseAyah = sVerse?.second,
         )
@@ -583,16 +625,16 @@ class WirdStore(context: Context) {
     }
 
     fun activeTrack(date: LocalDate = LocalDate.now()): ReadingTrack {
-        val tracks = getReadingTracks()
+        val tracks = getReadingTracks(date)
         if (tracks.isEmpty()) {
             return ReadingTrack(
                 id = "track_default",
                 name = "Daily Quran",
                 type = TrackType.TILAWAH,
                 activeDays = DayOfWeek.entries.toSet(),
-                positionUnit = positionUnit,
-                direction = readingDirection,
-                dailyUnits = plan.defaultUnits,
+                positionUnit = legacyPositionUnit,
+                direction = legacyDirection,
+                dailyUnits = legacyPlan.defaultUnits,
             )
         }
 
@@ -619,19 +661,20 @@ class WirdStore(context: Context) {
         return tracks.first()
     }
 
+    /**
+     * Make [trackId] the active track, by hand.
+     *
+     * ⚠ This used to copy the track's position and direction over the global ones and write the
+     * track's reminder over the **default** reminder, so tapping a track silently changed the
+     * reminder for every other track. A track's settings now stay on the track.
+     */
     fun setActiveTrack(trackId: String) {
         manualActiveTrackId = trackId
         trackScheduleMode = TrackScheduleMode.MANUAL
-        val track = getReadingTracks().firstOrNull { it.id == trackId } ?: activeTrack()
-        positionUnit = track.positionUnit
-        readingDirection = track.direction
-        track.reminderScheduleRaw?.let { raw ->
-            prefs.edit { putString(KEY_NUDGE, raw) }
-        }
     }
 
     fun addTrack(track: ReadingTrack) {
-        val current = getReadingTracks()
+        val current = readTracks()
         val existingNames = current.map { it.name.trim().lowercase() }.toSet()
         val cleanName = track.name.trim().ifEmpty { "Reading Track" }
         var uniqueName = cleanName
@@ -644,18 +687,24 @@ class WirdStore(context: Context) {
     }
 
     fun updateTrack(updated: ReadingTrack) {
-        val tracks = getReadingTracks().map { if (it.id == updated.id) updated else it }
-        val deduplicated = deduplicateTrackNames(tracks)
-        saveReadingTracks(deduplicated)
-        if (manualActiveTrackId == updated.id) {
-            val savedTrack = deduplicated.firstOrNull { it.id == updated.id } ?: updated
-            positionUnit = savedTrack.positionUnit
-            readingDirection = savedTrack.direction
+        val tracks = readTracks().map { if (it.id == updated.id) updated else it }
+        saveReadingTracks(deduplicateTrackNames(tracks))
+    }
+
+    /** Change the active track's own settings. */
+    private fun updateActive(change: (ReadingTrack) -> ReadingTrack) {
+        val active = activeTrack()
+        val saved = readTracks().firstOrNull { it.id == active.id }
+        if (saved == null) {
+            // Only reachable with no tracks at all: save one rather than lose the change.
+            saveReadingTracks(listOf(change(active)))
+        } else {
+            updateTrack(change(saved))
         }
     }
 
     fun deleteTrack(trackId: String): Boolean {
-        val current = getReadingTracks()
+        val current = readTracks()
         val filtered = current.filter { it.id != trackId }
         saveReadingTracks(filtered)
         if (manualActiveTrackId == trackId) {
@@ -665,50 +714,62 @@ class WirdStore(context: Context) {
     }
 
     fun setTrackFrozen(trackId: String, frozen: Boolean) {
-        val tracks = getReadingTracks().map {
+        val tracks = readTracks().map {
             if (it.id == trackId) it.copy(isFrozen = frozen) else it
         }
         saveReadingTracks(tracks)
     }
 
-    fun recordTrackDone(trackId: String, nextStartUnit: Int, today: LocalDate = LocalDate.now()) {
-        val tracks = getReadingTracks()
-        val track = tracks.firstOrNull { it.id == trackId } ?: return
+    /**
+     * Move [trackId] on to [nextStartUnit] after its day was marked done.
+     *
+     * **Only the position moves here.** The streak and total are not counted up by hand any
+     * more: they are read from the day log every time (TrackRecord.kt), so marking, undoing
+     * and re-marking a day can never leave them wrong. The start ayah is cleared because it
+     * only ever applied to the first page — and on *this* track, not whichever is active now.
+     */
+    fun advanceTrack(trackId: String, nextStartUnit: Int) {
+        val track = readTracks().firstOrNull { it.id == trackId } ?: return
+        updateTrack(track.copy(positionUnit = nextStartUnit, startVerseSurah = null, startVerseAyah = null))
+    }
 
-        val isAlreadyCompletedToday = track.lastCompletedDate == today.toString()
-        if (isAlreadyCompletedToday) {
-            val updated = track.copy(positionUnit = nextStartUnit)
-            updateTrack(updated)
-            positionUnit = nextStartUnit
-            return
+    /** Put [trackId] back to [startUnit] after its day was undone. The log row is removed separately. */
+    fun rewindTrack(trackId: String, startUnit: Int) {
+        val track = readTracks().firstOrNull { it.id == trackId } ?: return
+        updateTrack(track.copy(positionUnit = startUnit))
+    }
+
+    /**
+     * Once per install, 2026-10-03: bring old records into the one-copy shape.
+     *
+     * 1. Day rows written before tracks existed have no track id. They belong to the track the
+     *    app built from that old single plan (`track_main`), so they are handed to it, once,
+     *    instead of every track matching them forever.
+     * 2. **Freeze is retired.** Its only switch lived in the Life Spaces manager, which nothing
+     *    opens since 2026-10-01, so a frozen track could never be unfrozen: no reminders, never
+     *    chosen automatically. Every track is unfrozen.
+     * 3. Weekday exceptions ("half on Fridays") that the companion saved to the old global plan
+     *    move onto that same track. They were accepted and then never applied; now they are.
+     */
+    private fun migrateRecordsOnce() {
+        if (prefs.getBoolean(KEY_RECORDS_V3, false)) return
+        val tracks = readTracks()
+        val owner = tracks.firstOrNull { it.id == "track_main" } ?: tracks.firstOrNull()
+        if (owner != null) {
+            days.adoptUnownedRows(owner.id)
+            val legacyWeekdays = legacyPlan.weekdayUnits
+            saveReadingTracks(
+                tracks.map { t ->
+                    val withDays = if (t.id == owner.id && t.weekdayUnits.isEmpty() && legacyWeekdays.isNotEmpty()) {
+                        t.copy(weekdayUnits = legacyWeekdays)
+                    } else {
+                        t
+                    }
+                    withDays.copy(isFrozen = false)
+                }
+            )
         }
-
-        // Streak progression respecting active days and freeze state
-        val isConsecutive = if (track.lastCompletedDate == null) {
-            false
-        } else if (track.isFrozen) {
-            true
-        } else if (track.activeDays.isNotEmpty()) {
-            var checkDate = today.minusDays(1)
-            var lookbackLimit = 0
-            while (checkDate.dayOfWeek !in track.activeDays && lookbackLimit < 7) {
-                checkDate = checkDate.minusDays(1)
-                lookbackLimit++
-            }
-            track.lastCompletedDate == checkDate.toString()
-        } else {
-            track.lastCompletedDate == today.minusDays(1).toString()
-        }
-
-        val newStreak = if (isConsecutive) track.currentStreak + 1 else 1
-        val updated = track.copy(
-            positionUnit = nextStartUnit,
-            currentStreak = newStreak,
-            totalDaysRead = track.totalDaysRead + 1,
-            lastCompletedDate = today.toString(),
-        )
-        updateTrack(updated)
-        positionUnit = nextStartUnit
+        prefs.edit { putBoolean(KEY_RECORDS_V3, true) }
     }
 
     // Backwards-compatible stubs for LifeSpace
@@ -770,6 +831,8 @@ class WirdStore(context: Context) {
         const val KEY_ACTIVE_TRACK_ID = "active_track_id"
         const val KEY_TRACK_SCHEDULE_MODE = "track_schedule_mode"
         const val KEY_SEEN_TOOLKIT_TOUR = "seen_toolkit_tour"
+        const val KEY_SET_UP = "set_up"
+        const val KEY_RECORDS_V3 = "records_one_copy_v3"
         const val FIELD = " | "
         const val AWAY_SEP = ".."
         fun weekdayKey(day: DayOfWeek) = "units_${day.name}"

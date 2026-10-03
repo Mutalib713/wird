@@ -41,9 +41,11 @@ class LifeSpaceTest {
         assertEquals(original.positionUnit, restored.positionUnit)
         assertEquals(original.direction, restored.direction)
         assertEquals(original.dailyUnits, restored.dailyUnits)
-        assertEquals(original.currentStreak, restored.currentStreak)
-        assertEquals(original.totalDaysRead, restored.totalDaysRead)
-        assertEquals(original.lastCompletedDate, restored.lastCompletedDate)
+        // Progress is derived from the day log, never saved on the track (2026-10-03), so a
+        // round trip must drop it rather than carry a stale copy back in.
+        assertEquals(0, restored.currentStreak)
+        assertEquals(0, restored.totalDaysRead)
+        assertEquals(null, restored.lastCompletedDate)
         assertEquals(original.startVerseSurah, restored.startVerseSurah)
         assertEquals(original.startVerseAyah, restored.startVerseAyah)
     }

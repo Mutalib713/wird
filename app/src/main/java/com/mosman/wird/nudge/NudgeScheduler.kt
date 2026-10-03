@@ -5,7 +5,6 @@ import android.util.Log
 import com.mosman.wird.data.PlaceSource
 import com.mosman.wird.data.Where
 import com.mosman.wird.data.WirdStore
-import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.nextAwake
 import java.time.LocalTime
@@ -82,7 +81,7 @@ object NudgeScheduler {
         val candidates = mutableListOf<ScheduledCandidate>()
 
         if (tracks.isEmpty()) {
-            val schedule = store.scheduleFor(today)
+            val schedule = store.commitment?.takeIf { it.appliesOn(today) }?.schedule ?: store.nudgeSchedule
             if (schedule !is NudgeSchedule.Off) {
                 val wanted = schedule.nextAwake(now, place?.coordinates, away)
                 if (wanted != null && place != null) {
@@ -96,7 +95,8 @@ object NudgeScheduler {
         }
 
         for (track in tracks) {
-            val schedule = track.reminderScheduleRaw?.let(::decodeSchedule) ?: store.scheduleFor(today)
+            // A promise made today beats the track's own reminder too. PLAN task 21.
+            val schedule = store.scheduleFor(track, today)
             if (schedule is NudgeSchedule.Off) continue
 
             // If already completed today, look ahead starting tomorrow morning

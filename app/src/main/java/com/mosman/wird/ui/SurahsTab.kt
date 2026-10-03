@@ -112,8 +112,10 @@ fun SurahsTab(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Dotless ı on purpose: the logo's dot is the green one drawn after
+                            // the word, matching the header's leaf. Not a typo (checked 2026-10-03).
                             Text(
-                                text = "Wird",
+                                text = "Wırd",
                                 color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,

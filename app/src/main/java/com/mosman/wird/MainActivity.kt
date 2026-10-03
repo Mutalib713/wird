@@ -37,12 +37,14 @@ import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.assignPortion
 import com.mosman.wird.domain.checkRecitation
 import com.mosman.wird.domain.pages
-import com.mosman.wird.domain.progressOf
+import com.mosman.wird.domain.trackProgress
+import com.mosman.wird.domain.assignmentOn
+import com.mosman.wird.domain.plan
+import com.mosman.wird.data.encodeSchedule
 import com.mosman.wird.domain.LifeSpace
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.TrackType
 import com.mosman.wird.domain.TrackScheduleMode
-import com.mosman.wird.domain.todaysAssignment
 import com.mosman.wird.nudge.Armed
 import com.mosman.wird.nudge.Nudge
 import com.mosman.wird.nudge.NudgeScheduler
@@ -139,9 +141,6 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(if (store.isSetUp) Screen.TODAY else Screen.SETUP)
             }
             var theme by remember { mutableStateOf(store.themeMode) }
-            var plan by remember { mutableStateOf(store.plan) }
-            var position by remember { mutableIntStateOf(store.positionUnit) }
-            var startVerse by remember { mutableStateOf(store.startVerse) }
             var seenChrome by remember { mutableStateOf(store.hasSeenChrome) }
             var showToolkitTour by remember { mutableStateOf(!store.hasSeenToolkitTour && store.isSetUp) }
             var tourStep by remember { mutableIntStateOf(0) }
@@ -160,13 +159,42 @@ class MainActivity : ComponentActivity() {
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var readerName by remember { mutableStateOf(store.readerName) }
             var readingMode by remember { mutableStateOf(store.readingMode) }
-            var direction by remember { mutableStateOf(store.readingDirection) }
             val today = LocalDate.now()
             var allTracks by remember { mutableStateOf(store.getReadingTracks()) }
             var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
             var activeSpace by remember { mutableStateOf(store.activeSpace()) }
             var activeTrack by remember { mutableStateOf(store.activeTrack(today)) }
             var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
+
+            // ---- one copy of everything, on the active track (2026-10-03) ----------------
+            //
+            // These used to be separate states, loaded once from a global copy and then
+            // patched by hand after each change, so they drifted from the track. Now they are
+            // read off the track every time the screen draws.
+            val plan = activeTrack.plan()
+            val position = activeTrack.positionUnit
+            val direction = activeTrack.direction
+            val startVerse: Pair<Int, Int>? = activeTrack.startVerseSurah?.let { s ->
+                activeTrack.startVerseAyah?.let { a -> s to a }
+            }
+
+            /**
+             * Bumped after every write to the day log. Anything read from the log is keyed on
+             * it, so a change shows everywhere at once instead of wherever someone remembered
+             * to refresh it — the "recent days" list on Home never refreshed at all.
+             */
+            var logVersion by remember { mutableIntStateOf(0) }
+            val logs = remember(logVersion) { days.all() }
+
+            /** Re-read the tracks and the log after anything changed either. */
+            fun refresh() {
+                allTracks = store.getReadingTracks(today)
+                lifeSpaces = store.getLifeSpaces()
+                activeSpace = store.activeSpace()
+                activeTrack = store.activeTrack(today)
+                trackScheduleMode = store.trackScheduleMode
+                logVersion++
+            }
             var settingsInitialDialog by remember { mutableStateOf<SettingsDialog?>(null) }
             var settingsInitialSubScreen by remember { mutableStateOf(SettingsSubScreen.MAIN) }
             val chat = remember(activeTrack.id) { ConversationStore(filesDir, activeTrack.id) }
@@ -182,12 +210,7 @@ class MainActivity : ComponentActivity() {
             }
 
             androidx.compose.runtime.DisposableEffect(Unit) {
-                onNewTrackSelected = { newTrackId ->
-                    activeTrack = store.activeTrack(today)
-                    allTracks = store.getReadingTracks()
-                    position = activeTrack.positionUnit
-                    direction = activeTrack.direction
-                }
+                onNewTrackSelected = { _ -> refresh() }
                 onDispose {
                     onNewTrackSelected = null
                 }
@@ -386,31 +409,40 @@ class MainActivity : ComponentActivity() {
                 tab = WirdTab.HOME
             }
 
-            var doneMethod by remember(activeTrack.id) { mutableStateOf(days.methodFor(today, activeTrack.id)) }
-            var hasRecording by remember(activeTrack.id) { mutableStateOf(days.audioFor(today, activeTrack.id) != null) }
-            val currentTrackLogs = remember(activeTrack.id, days) {
-                val filtered = days.all().filter { it.trackId == activeTrack.id }
-                if (filtered.isNotEmpty()) filtered
-                else if (days.all().all { it.trackId == null }) days.all()
-                else emptyList()
+            // ---- today, for the active track only, straight from the log ---------------
+            //
+            // Every one of these is this track's own row and nothing else. They used to fall
+            // back to any track's row, so a track you had not read could show as done.
+            val currentTrackLogs = logs.filter { it.trackId == activeTrack.id }
+            val doneMethod: Method? = currentTrackLogs.firstOrNull { it.date == today }?.method
+            val hasRecording = remember(logVersion, activeTrack.id) {
+                days.audioFor(today, activeTrack.id) != null
             }
-            var progress by remember(activeTrack.id) { mutableStateOf(progressOf(if (currentTrackLogs.isNotEmpty()) currentTrackLogs else days.all(), today)) }
+            val progress = trackProgress(logs, activeTrack, today)
 
-            val isTrackDoneToday = activeTrack.lastCompletedDate == today.toString()
-            val trackDoneMethod = if (isTrackDoneToday) doneMethod ?: Method.TAPPED else null
-            val doneCover = days.coveredOn(today)
+            val isTrackDoneToday = doneMethod != null
+            val trackDoneMethod = doneMethod
+            val doneCover = remember(logVersion, activeTrack.id) { days.coveredOn(today, activeTrack.id) }
+            // A finished day shows what it covered, not what the position now says.
             val assignment = if (doneCover != null && isTrackDoneToday) {
                 assignPortion(doneCover.first, doneCover.second, activeTrack.direction)
             } else {
-                todaysAssignment(
-                    startUnit = activeTrack.positionUnit,
-                    plan = ReadingPlan(defaultUnits = activeTrack.dailyUnits),
-                    date = today,
-                    direction = activeTrack.direction,
-                )
+                activeTrack.assignmentOn(today)
             }
 
-            fun runRecitationCheck(file: java.io.File) {
+            /**
+             * Listen back to [file] for [trackId], checking it against [pages].
+             *
+             * Both are passed in, not read when the answer arrives: the check takes seconds,
+             * and in automatic mode finishing a track can switch Home to the next one before
+             * it is done. It used to save the transcription to whichever track was active by
+             * then, checked against that track's portion.
+             */
+            fun runRecitationCheck(
+                file: java.io.File,
+                trackId: String = activeTrack.id,
+                pages: List<Int> = assignment.pages,
+            ) {
                 if (!recogniser.ready() || !file.exists()) return
                 widgetScope.launch {
                     val started = System.currentTimeMillis()
@@ -445,9 +477,10 @@ class MainActivity : ComponentActivity() {
                                 "be good enough."
                         )
                     } else {
-                        days.saveTranscription(today, heard)
+                        days.saveTranscription(today, heard, trackId)
+                        logVersion++
                         val expected = withContext(Dispatchers.IO) {
-                            arabic.wordsAcross(assignment.pages)
+                            arabic.wordsAcross(pages)
                         }
                         val verdict = checkRecitation(expected, heard)
                         reviewVerses = verdict.versesToReview
@@ -478,8 +511,8 @@ class MainActivity : ComponentActivity() {
                         model = recogniser.installed()
                     }
                     if (checkState is CheckState.DownloadingModel) {
-                        val audioFile = days.audioFileFor(today)
-                        if (recogniser.ready() && audioFile.exists() && days.audioFor(today) != null) {
+                        val audioFile = days.audioFileFor(today, activeTrack.id)
+                        if (recogniser.ready() && audioFile.exists() && days.audioFor(today, activeTrack.id) != null) {
                             runRecitationCheck(audioFile)
                         } else {
                             checkState = CheckState.Idle
@@ -581,20 +614,23 @@ class MainActivity : ComponentActivity() {
                         // The plan changes take effect today, not tomorrow. Today's portion
                         // is computed from the plan every time it is drawn, so the widget
                         // has to be told or it keeps showing yesterday's arithmetic.
+                        //
+                        // ⚠ Both went to a global plan until 2026-10-03, which the portion never
+                        // read: the companion said yes and nothing changed. They go to the track.
                         is CompanionAction.ChangePlan -> {
-                            plan = plan.copy(defaultUnits = action.units)
-                            store.plan = plan
+                            store.updateTrack(activeTrack.copy(dailyUnits = action.units))
+                            refresh()
                             nudgeWidget()
                         }
                         is CompanionAction.ChangeDayPlan -> {
-                            val byDay = plan.weekdayUnits.toMutableMap()
+                            val byDay = activeTrack.weekdayUnits.toMutableMap()
                             if (action.units == null) {
                                 byDay.remove(action.day)
                             } else {
                                 byDay[action.day] = action.units
                             }
-                            plan = plan.copy(weekdayUnits = byDay)
-                            store.plan = plan
+                            store.updateTrack(activeTrack.copy(weekdayUnits = byDay))
+                            refresh()
                             nudgeWidget()
                         }
 
@@ -603,8 +639,17 @@ class MainActivity : ComponentActivity() {
                         // following whatever was promised an hour earlier, and the change
                         // would look broken on the one evening it was asked for.
                         is CompanionAction.MoveReminder -> {
-                            store.nudgeSchedule = action.schedule
-                            schedule = action.schedule
+                            // A track with its own reminder changes that one; otherwise the
+                            // default, which every track without its own follows.
+                            if (activeTrack.reminderScheduleRaw != null) {
+                                store.updateTrack(
+                                    activeTrack.copy(reminderScheduleRaw = encodeSchedule(action.schedule))
+                                )
+                                refresh()
+                            } else {
+                                store.nudgeSchedule = action.schedule
+                                schedule = action.schedule
+                            }
                             commitment = null
                             store.commitment = null
                             reArm()
@@ -691,32 +736,24 @@ class MainActivity : ComponentActivity() {
                 } else if (screen == Screen.SETUP) {
                     SetupScreen(
                         onDone = { page, unitsPerDay, verse, name, mode, way, trackType, intention ->
-                            store.positionPage = page
-                            store.plan = ReadingPlan(defaultUnits = unitsPerDay)
-                            store.startVerse = verse
-                            store.readerName = name
-                            readerName = store.readerName
-                            store.readingMode = mode
-                            readingMode = mode
-                            store.readingDirection = way
-                            direction = way
-                            plan = store.plan
-                            position = store.positionUnit
-                            startVerse = verse
+                            // Everything setup asked goes onto the track, in one write.
                             val currentTrack = store.activeTrack()
                             store.updateTrack(currentTrack.copy(
-                                positionUnit = store.positionUnit,
+                                positionUnit = (page.coerceIn(1, Mushaf.PAGES) - 1) * Mushaf.UNITS_PER_PAGE,
                                 direction = way,
                                 dailyUnits = unitsPerDay,
+                                weekdayUnits = emptyMap(),
                                 startVerseSurah = verse?.first,
                                 startVerseAyah = verse?.second,
                                 type = trackType,
                                 intention = intention,
                             ))
-                            allTracks = store.getReadingTracks()
-                            lifeSpaces = store.getLifeSpaces()
-                            activeSpace = store.activeSpace()
-                            activeTrack = store.activeTrack(today)
+                            store.readerName = name
+                            readerName = store.readerName
+                            store.readingMode = mode
+                            readingMode = mode
+                            store.markSetUp()
+                            refresh()
                             store.hasSeenToolkitTour = false
                             showToolkitTour = true
                             screen = Screen.TODAY
@@ -749,7 +786,7 @@ class MainActivity : ComponentActivity() {
                             // Null when the phone cannot do it, so no button appears rather than
                             // one that quietly does nothing.
                             onCheckRecitation = if (recogniser.ready()) ({
-                                runRecitationCheck(days.audioFileFor(today))
+                                runRecitationCheck(days.audioFileFor(today, activeTrack.id))
                             }) else null,
                             onDownloadModel = if (WhisperNative.available) ({ targetModel ->
                                 MushafDownloadService.startModel(this@MainActivity, targetModel)
@@ -760,7 +797,9 @@ class MainActivity : ComponentActivity() {
                                 settingsInitialDialog = dialog
                                 screen = Screen.SETTINGS
                             },
-                            audioFile = { days.audioFileFor(today) },
+                            // One file per day and track: two tracks recited on one day used to
+                            // share a file, and the second overwrote the first.
+                            audioFile = { days.audioFileFor(today, activeTrack.id) },
                             audioQuality = audioQuality,
                             readingMode = readingMode,
                             dark = pageDark,
@@ -785,19 +824,19 @@ class MainActivity : ComponentActivity() {
                                 store.pageNight = pageNight
                             },
                             onDone = { method, file ->
+                                // Pinned now: finishing may make another track the active one.
+                                val doneTrack = activeTrack
+                                val doneAssignment = assignment
                                 days.markDone(
                                     date = today,
                                     method = method,
                                     audio = file,
-                                    startUnit = assignment.startUnit,
-                                    units = assignment.units,
-                                    trackId = activeTrack.id,
-                                    trackName = activeTrack.name,
+                                    startUnit = doneAssignment.startUnit,
+                                    units = doneAssignment.units,
+                                    trackId = doneTrack.id,
+                                    trackName = doneTrack.name,
                                 )
-                                doneMethod = days.methodFor(today)
                                 nudgeWidget()
-                                hasRecording = days.audioFor(today) != null
-                                progress = progressOf(days.all(), today)
 
                                 // ---- listen back, if this phone can. PLAN task 14 ----
                                 //
@@ -812,7 +851,7 @@ class MainActivity : ComponentActivity() {
                                 // finished reciting — they should not be watching a spinner.
                                 if (method == Method.RECITED && file != null) {
                                     if (recogniser.ready()) {
-                                        runRecitationCheck(file)
+                                        runRecitationCheck(file, doneTrack.id, doneAssignment.pages)
                                     } else {
                                         checkState = CheckState.NeedsModel
                                     }
@@ -822,36 +861,20 @@ class MainActivity : ComponentActivity() {
                                 // app, swiping, or browsing must never advance it — only
                                 // finishing does. That is the whole reason the portion is
                                 // stable within a day.
-                                store.recordTrackDone(activeTrack.id, assignment.nextStartUnit, today)
-                                allTracks = store.getReadingTracks()
-                                lifeSpaces = store.getLifeSpaces()
-                                activeSpace = store.activeSpace()
-                                activeTrack = store.activeTrack(today)
-                                position = activeTrack.positionUnit
-                                // The start ayah only ever applied to the first page.
-                                store.startVerse = null
-                                startVerse = null
+                                // The streak and total are not counted here: they are read from
+                                // the log, which now has today's row. See TrackRecord.kt.
+                                store.advanceTrack(doneTrack.id, doneAssignment.nextStartUnit)
+                                refresh()
                             },
                             onUndo = {
-                                days.clear(today)
-                                doneMethod = null
-                                // Undo sets doneMethod directly rather than re-reading it, so it
-                                // misses the refresh the other three paths get. Left alone, the
-                                // widget would go on saying a day was done after you undid it.
+                                // **Only this track's day.** This used to clear every track's row
+                                // for today, then wind this track's streak back by hand and leave
+                                // its total one too high. Now: remove the row, put the position
+                                // back, and the streak and total follow from the log.
+                                days.clear(today, activeTrack.id)
+                                store.rewindTrack(activeTrack.id, assignment.startUnit)
+                                refresh()
                                 nudgeWidget()
-                                hasRecording = false
-                                progress = progressOf(days.all(), today)
-                                val revertedTrack = activeTrack.copy(
-                                    positionUnit = assignment.startUnit,
-                                    lastCompletedDate = null,
-                                    currentStreak = (activeTrack.currentStreak - 1).coerceAtLeast(0),
-                                )
-                                store.updateTrack(revertedTrack)
-                                allTracks = store.getReadingTracks()
-                                lifeSpaces = store.getLifeSpaces()
-                                activeSpace = store.activeSpace()
-                                activeTrack = store.activeTrack(today)
-                                position = activeTrack.positionUnit
                             },
                             isWirdSession = isWirdSession,
                             onBrowseSurahs = if (isWirdSession) ({
@@ -865,7 +888,7 @@ class MainActivity : ComponentActivity() {
                                 assignment = assignment,
                                 progress = progress,
                                 doneMethod = trackDoneMethod,
-                                recent = currentTrackLogs.ifEmpty { days.all() }.sortedByDescending { it.date },
+                                recent = currentTrackLogs.sortedByDescending { it.date },
                                 onOpenPage = {
                                     onPage = true
                                     isWirdSession = true
@@ -910,28 +933,22 @@ class MainActivity : ComponentActivity() {
                                     }
                                     intent?.let { { startActivity(it) } }
                                 },
-                                pageFor = { date -> days.coveredOn(date)?.first?.let(Mushaf::pageOf) },
+                                pageFor = { date -> days.coveredOn(date, activeTrack.id)?.first?.let(Mushaf::pageOf) },
                                 onMarkRead = {
+                                    val doneTrack = activeTrack
+                                    val doneAssignment = assignment
                                     days.markDone(
                                         date = today,
                                         method = Method.TAPPED,
                                         audio = null,
-                                        startUnit = assignment.startUnit,
-                                        units = assignment.units,
-                                        trackId = activeTrack.id,
-                                        trackName = activeTrack.name,
+                                        startUnit = doneAssignment.startUnit,
+                                        units = doneAssignment.units,
+                                        trackId = doneTrack.id,
+                                        trackName = doneTrack.name,
                                     )
-                                    doneMethod = days.methodFor(today)
+                                    store.advanceTrack(doneTrack.id, doneAssignment.nextStartUnit)
+                                    refresh()
                                     nudgeWidget()
-                                    progress = progressOf(days.all(), today)
-                                    store.recordTrackDone(activeTrack.id, assignment.nextStartUnit, today)
-                                    allTracks = store.getReadingTracks()
-                                    lifeSpaces = store.getLifeSpaces()
-                                    activeSpace = store.activeSpace()
-                                    activeTrack = store.activeTrack(today)
-                                    position = activeTrack.positionUnit
-                                    store.startVerse = null
-                                    startVerse = null
                                 },
                                 turns = turns,
                                 onSaid = { said(it) },
@@ -943,25 +960,11 @@ class MainActivity : ComponentActivity() {
                                 scheduleMode = trackScheduleMode,
                                 onSelectTrack = { track ->
                                     store.setActiveTrack(track.id)
-                                    trackScheduleMode = store.trackScheduleMode
-                                    activeTrack = store.activeTrack(today)
-                                    position = activeTrack.positionUnit
-                                    direction = activeTrack.direction
-                                    doneMethod = days.methodFor(today, activeTrack.id)
-                                    hasRecording = days.audioFor(today, activeTrack.id) != null
-                                    val tLogs = days.all().filter { it.trackId == activeTrack.id }
-                                    progress = progressOf(if (tLogs.isNotEmpty()) tLogs else days.all(), today)
+                                    refresh()
                                 },
                                 onSelectSpace = { space ->
                                     store.setActiveSpace(space.id)
-                                    activeSpace = store.activeSpace()
-                                    activeTrack = store.activeTrack(today)
-                                    position = activeTrack.positionUnit
-                                    direction = activeTrack.direction
-                                    doneMethod = days.methodFor(today, activeTrack.id)
-                                    hasRecording = days.audioFor(today, activeTrack.id) != null
-                                    val tLogs = days.all().filter { it.trackId == activeTrack.id }
-                                    progress = progressOf(if (tLogs.isNotEmpty()) tLogs else days.all(), today)
+                                    refresh()
                                 },
                                 onToggleScheduleMode = {
                                     val newMode = if (trackScheduleMode == TrackScheduleMode.AUTOMATIC) {
@@ -970,14 +973,7 @@ class MainActivity : ComponentActivity() {
                                         TrackScheduleMode.AUTOMATIC
                                     }
                                     store.trackScheduleMode = newMode
-                                    trackScheduleMode = newMode
-                                    activeTrack = store.activeTrack(today)
-                                    position = activeTrack.positionUnit
-                                    direction = activeTrack.direction
-                                    doneMethod = days.methodFor(today, activeTrack.id)
-                                    hasRecording = days.audioFor(today, activeTrack.id) != null
-                                    val tLogs = days.all().filter { it.trackId == activeTrack.id }
-                                    progress = progressOf(if (tLogs.isNotEmpty()) tLogs else days.all(), today)
+                                    refresh()
                                 },
                                 onOpenSettings = { dialog ->
                                     settingsInitialDialog = dialog
@@ -1018,11 +1014,11 @@ class MainActivity : ComponentActivity() {
                             )
 
                             WirdTab.HISTORY -> RecitationsScreen(
-                                logs = days.all(),
+                                logs = logs,
                                 allTracks = allTracks,
-                                audioFor = { d, tid -> days.audioFor(d, tid) },
-                                coveredFor = { d, tid -> days.coveredOn(d, tid) },
-                                transcriptionFor = { d, tid -> days.transcriptionFor(d, tid) },
+                                audioFor = { d, tid -> tid?.let { days.audioFor(d, it) } },
+                                coveredFor = { d, tid -> tid?.let { days.coveredOn(d, it) } },
+                                transcriptionFor = { d, tid -> tid?.let { days.transcriptionFor(d, it) } },
                                 onPlay = { f -> playback.play(f) },
                                 onStop = { playback.stopPlaying() },
                                 onBack = { tab = WirdTab.HOME },
@@ -1105,8 +1101,8 @@ class MainActivity : ComponentActivity() {
                         readingMode = readingMode,
                         direction = direction,
                         onDirection = {
-                            store.readingDirection = it
-                            direction = it
+                            store.updateTrack(activeTrack.copy(direction = it))
+                            refresh()
                         },
                         onDevice = onDevice,
                         exportNote = exportNote,
@@ -1142,7 +1138,7 @@ class MainActivity : ComponentActivity() {
                             widgetScope.launch {
                                 val n = Export.deleteRecordings(this@MainActivity)
                                 onDevice = Export.whatIsHere(this@MainActivity)
-                                hasRecording = days.audioFor(today) != null
+                                logVersion++
                                 exportNote = if (n == 1) {
                                     "1 recording deleted. Your record of reciting is untouched."
                                 } else {
@@ -1152,7 +1148,13 @@ class MainActivity : ComponentActivity() {
                         },
                         onTheme = { store.themeMode = it; theme = it },
                         onReadingMode = { store.readingMode = it; readingMode = it },
-                        onPlan = { store.plan = it; plan = it },
+                        onPlan = {
+                            // Settings' daily target. It used to save to the global plan too.
+                            store.updateTrack(
+                                activeTrack.copy(dailyUnits = it.defaultUnits, weekdayUnits = it.weekdayUnits)
+                            )
+                            refresh()
+                        },
                         onSchedule = {
                             store.nudgeSchedule = it
                             schedule = it
@@ -1163,31 +1165,16 @@ class MainActivity : ComponentActivity() {
                         onAudioQuality = { store.audioQuality = it; audioQuality = it },
                         onUseLocation = { askLocation.launch(Where.PERMISSION) },
                         onPositionChanged = { newVerse, newPage ->
-                            store.positionPage = newPage
-                            store.startVerse = newVerse
-                            position = store.positionUnit
-                            startVerse = newVerse
-                            val currentTrack = store.activeTrack()
                             store.updateTrack(
-                                currentTrack.copy(
-                                    positionUnit = store.positionUnit,
+                                activeTrack.copy(
+                                    positionUnit = (newPage.coerceIn(1, Mushaf.PAGES) - 1) * Mushaf.UNITS_PER_PAGE,
                                     startVerseSurah = newVerse?.first,
                                     startVerseAyah = newVerse?.second,
                                 )
                             )
-                            lifeSpaces = store.getLifeSpaces()
-                            activeSpace = store.activeSpace()
-                            activeTrack = store.activeTrack(today)
+                            refresh()
                         },
-                        onLifeSpacesChanged = {
-                            allTracks = store.getReadingTracks()
-                            lifeSpaces = store.getLifeSpaces()
-                            activeSpace = store.activeSpace()
-                            activeTrack = store.activeTrack(today)
-                            trackScheduleMode = store.trackScheduleMode
-                            position = activeTrack.positionUnit
-                            direction = activeTrack.direction
-                        },
+                        onLifeSpacesChanged = { refresh() },
                         onToolkitTour = {
                             store.hasSeenToolkitTour = false
                             showToolkitTour = true

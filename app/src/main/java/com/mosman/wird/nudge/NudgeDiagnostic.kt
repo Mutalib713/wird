@@ -216,7 +216,10 @@ object NudgeDiagnostic {
         val powerManager = context.getSystemService(PowerManager::class.java)
         val isIgnoringBattery = powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: false
         val isBatteryOptimized = !isIgnoringBattery
-        val isScheduleOff = store.scheduleFor(now.toLocalDate()) is NudgeSchedule.Off
+        // Off only when every track is off: one track with a reminder is a reminder.
+        val isScheduleOff = store.getReadingTracks().filter { !it.isFrozen }.all {
+            store.scheduleFor(it, now.toLocalDate()) is NudgeSchedule.Off
+        }
 
         return evaluate(
             notificationsEnabled = notificationsEnabled,

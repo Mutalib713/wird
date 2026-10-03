@@ -47,7 +47,10 @@ class CommitReceiver : BroadcastReceiver() {
             ?.cancel(Nudge.NOTIFICATION_ID)
 
         val store = WirdStore(context)
-        val chat = ConversationStore(context.filesDir)
+        // The track this notification was about. Each track has its own chat, and replies used
+        // to go to the old shared chat.json, which no screen shows any more.
+        val trackId = intent.getStringExtra(Nudge.EXTRA_TRACK_ID) ?: store.activeTrack().id
+        val chat = ConversationStore(context.filesDir, trackId)
         chat.say(Speaker.YOU, said)
 
         val action = CompanionBrain.understand(said)

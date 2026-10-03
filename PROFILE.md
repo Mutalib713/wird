@@ -2811,7 +2811,36 @@ reconstructed on 2026-10-03 from the code and the commit log, so treat it as a s
 - **The repo became public.** Personal details in this file and the code are now readable by
   anyone; see the 2026-10-03 audit.
 
-⚠ **Known defects found 2026-10-03, not yet fixed:** see the audit. The headline ones are that
-undo wipes every track's day and leaves the track's total too high, that Home's streak never
-drops after a missed day, and that the companion's plan changes ("half on Fridays") no longer
-reach the portion.
+## 5bd. One copy of everything, on the track — 2026-10-03
+
+**The root cause of eleven bugs, fixed once.** Each track kept its own streak, total and last
+day beside the day log, and the app kept a pre-tracks "global" position, plan, direction, start
+verse and reminder beside each track's own. Screens read different copies and the copies
+drifted. Mutalib chose the root-cause fix over patching each symptom.
+
+- **The day log is the only record.** A track's streak, total and recited count are worked out
+  from it every time (`domain/TrackRecord.kt`, `trackProgress`). Days a track isn't scheduled
+  for never break its streak; today unfinished never does either. The track no longer saves
+  those numbers at all.
+- **Day-log lookups are strict per track.** They used to fall back to *any* track's row for
+  the date. Rows from before tracks existed are handed once to `track_main` on upgrade.
+- **The track owns its settings.** `WirdStore.positionUnit / plan / readingDirection /
+  startVerse` are now windows onto the active track. The weekday exceptions moved onto the track
+  (`weekdayUnits`); old global ones are carried over on upgrade.
+- **One portion function** (`ReadingTrack.assignmentOn`) used by Home, the page, the widget
+  and the notification.
+- **Reminders:** a promise made today beats the track's own reminder (`effectiveSchedule`);
+  tapping a track no longer overwrites the default reminder.
+- **Freeze retired:** its only switch was unreachable after 2026-10-01, so frozen tracks could
+  never come back. The upgrade unfreezes them.
+
+Fixed by this: undo clearing every track; undo leaving the total high and restarting the streak;
+Home's streak never dropping; two tracks' recordings sharing one file; one track seeing another's
+day; companion and Settings plan changes doing nothing; the widget's different portion; "In an
+hour" ignored on tracks with their own reminder; notification replies saved to an unseen chat;
+the notification ignoring direction; switching tracks overwriting the default reminder.
+
+**Evidence:** 18 new tests in `TrackRecordTest`; putting the old any-track fallback back made
+three of them fail with the exact symptoms. On the emulator, an install with old-format records
+was upgraded in place: pre-track rows were adopted, "half on Fridays" moved to the track, Home
+showed 3 everywhere, and mark → undo → mark went 3 → 4 → 3 → 4 (the old code gave 1).

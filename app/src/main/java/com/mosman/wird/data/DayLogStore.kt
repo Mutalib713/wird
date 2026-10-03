@@ -18,89 +18,64 @@ import java.time.LocalDate
  *
  * Missed days are simply absent. There is no row saying you failed.
  */
-class DayLogStore(context: Context) {
+class DayLogStore(filesDir: File) {
 
-    private val file = File(context.filesDir, "days.json")
-    private val audioDir = File(context.filesDir, "recitations").apply { mkdirs() }
+    /** The app's own constructor. The [File] one exists so the tests can use a temp folder. */
+    constructor(context: Context) : this(context.filesDir)
+
+    private val file = File(filesDir, "days.json")
+    private val audioDir = File(filesDir, "recitations").apply { mkdirs() }
 
     /** One entry per day session, newest last. */
     fun all(): List<DayLog> = read().map { it.log }
 
+    // **Every lookup below is per track, and strict.** Until 2026-10-03 each one fell back to
+    // "any row for that date" when the track had none, so a track you had not read showed
+    // another track's day as done, its portion, and its recording. A track's day is the row
+    // with that track's id, and nothing else. Rows from before tracks existed are handed to
+    // a track once, by [adoptUnownedRows], instead of being matched by every track forever.
+
+    private fun rowFor(rows: List<Row>, date: LocalDate, trackId: String): Row? =
+        rows.firstOrNull { it.log.date == date && it.log.trackId == trackId }
+
     /** The recording for a day and track, if that day was recited and the file is still there. */
-    fun audioFor(date: LocalDate, trackId: String? = null): File? {
-        val rows = read()
-        val matchingRow = if (trackId != null) {
-            rows.firstOrNull { it.log.date == date && it.log.trackId == trackId }
-                ?: rows.firstOrNull { it.log.date == date }
-        } else {
-            rows.firstOrNull { it.log.date == date }
-        }
-        return matchingRow?.audio
+    fun audioFor(date: LocalDate, trackId: String): File? =
+        rowFor(read(), date, trackId)?.audio
             ?.let { File(audioDir, it) }
             ?.takeIf { it.exists() && it.length() > 0 }
-    }
 
-    fun isDone(date: LocalDate): Boolean = read().any { it.log.date == date }
+    fun isDone(date: LocalDate, trackId: String): Boolean = rowFor(read(), date, trackId) != null
 
-    fun isDone(date: LocalDate, trackId: String?): Boolean =
-        if (trackId == null) isDone(date) else read().any { it.log.date == date && it.log.trackId == trackId }
+    fun methodFor(date: LocalDate, trackId: String): Method? = rowFor(read(), date, trackId)?.log?.method
 
-    fun methodFor(date: LocalDate, trackId: String? = null): Method? {
-        val rows = read()
-        return if (trackId != null) {
-            rows.firstOrNull { it.log.date == date && it.log.trackId == trackId }?.log?.method
-                ?: rows.firstOrNull { it.log.date == date }?.log?.method
-        } else {
-            rows.firstOrNull { it.log.date == date }?.log?.method
-        }
-    }
+    /** What a finished day actually covered, as (start unit, units). */
+    fun coveredOn(date: LocalDate, trackId: String): Pair<Int, Int>? =
+        rowFor(read(), date, trackId)?.let { r -> r.startUnit?.let { s -> r.units?.let { u -> s to u } } }
 
     /**
-     * What a finished day actually covered.
+     * Where a new recording should be written: one file per day **and track**. Two tracks
+     * recited on the same day used to share one file, so the second overwrote the first.
      */
-    fun coveredOn(date: LocalDate, trackId: String? = null): Pair<Int, Int>? {
-        val rows = read()
-        val row = if (trackId != null) {
-            rows.firstOrNull { it.log.date == date && it.log.trackId == trackId }
-                ?: rows.firstOrNull { it.log.date == date }
-        } else {
-            rows.firstOrNull { it.log.date == date }
-        }
-        return row?.let { r -> r.startUnit?.let { s -> r.units?.let { u -> s to u } } }
-    }
+    fun audioFileFor(date: LocalDate, trackId: String): File =
+        File(audioDir, "recitation-$date-$trackId.m4a")
 
-    /** Where a new recording should be written. Named by date and track so each track has its own. */
-    fun audioFileFor(date: LocalDate, trackId: String? = null): File =
-        if (trackId != null) File(audioDir, "recitation-$date-$trackId.m4a") else File(audioDir, "recitation-$date.m4a")
+    fun transcriptionFor(date: LocalDate, trackId: String): String? =
+        rowFor(read(), date, trackId)?.transcription
 
-    fun transcriptionFor(date: LocalDate, trackId: String? = null): String? {
-        val rows = read()
-        return if (trackId != null) {
-            rows.firstOrNull { it.log.date == date && it.log.trackId == trackId }?.transcription
-                ?: rows.firstOrNull { it.log.date == date }?.transcription
-        } else {
-            rows.firstOrNull { it.log.date == date }?.transcription
-        }
-    }
-
-    fun saveTranscription(date: LocalDate, text: String, trackId: String? = null) {
+    fun saveTranscription(date: LocalDate, text: String, trackId: String) {
         val rows = read().toMutableList()
-        val existing = if (trackId != null) {
-            val idx = rows.indexOfFirst { it.log.date == date && it.log.trackId == trackId }
-            if (idx >= 0) idx else rows.indexOfFirst { it.log.date == date }
-        } else {
-            rows.indexOfFirst { it.log.date == date }
-        }
-        if (existing >= 0) {
-            rows[existing] = rows[existing].copy(transcription = text)
+        val i = rows.indexOfFirst { it.log.date == date && it.log.trackId == trackId }
+        if (i >= 0) {
+            rows[i] = rows[i].copy(transcription = text)
             write(rows)
         }
     }
 
     /**
-     * Mark a day done.
+     * Mark a day done for one track.
      *
-     * Reciting wins over tapping, and marking a day twice for the same track does not create a second row.
+     * Reciting wins over tapping, and marking a day twice for the same track does not create a
+     * second row.
      */
     fun markDone(
         date: LocalDate,
@@ -108,15 +83,11 @@ class DayLogStore(context: Context) {
         audio: File? = null,
         startUnit: Int? = null,
         units: Int? = null,
-        trackId: String? = null,
+        trackId: String,
         trackName: String? = null,
     ) {
         val rows = read().toMutableList()
-        val existing = if (trackId != null) {
-            rows.indexOfFirst { it.log.date == date && (it.log.trackId == trackId || it.log.trackId == null) }
-        } else {
-            rows.indexOfFirst { it.log.date == date }
-        }
+        val existing = rows.indexOfFirst { it.log.date == date && it.log.trackId == trackId }
         val row = Row(
             log = DayLog(date, method, trackId, trackName),
             audio = audio?.name,
@@ -139,13 +110,32 @@ class DayLogStore(context: Context) {
         write(rows)
     }
 
-    /** Undo today. For the moment someone taps by accident. */
-    fun clear(date: LocalDate, trackId: String? = null) {
-        val rows = read().filterNot {
-            it.log.date == date && (trackId == null || it.log.trackId == null || it.log.trackId == trackId)
-        }
-        audioFileFor(date, trackId).delete()
-        write(rows)
+    /**
+     * Undo one track's day. For the moment someone taps by accident.
+     *
+     * Only that track's row goes, and only its own recording. This used to be called without a
+     * track and removed **every** track's row for the day.
+     */
+    fun clear(date: LocalDate, trackId: String) {
+        val rows = read()
+        val gone = rowFor(rows, date, trackId) ?: return
+        gone.audio?.let { File(audioDir, it).delete() }
+        write(rows.filterNot { it === gone })
+    }
+
+    /**
+     * Give every row with no track to [ownerId]. Returns how many it moved.
+     *
+     * Rows written before reading tracks existed (before 2026-09-23) have no track id. They
+     * were all the one reading plan there was, which is the track the app made from it.
+     * Run once; after that every row has an owner and lookups can be strict.
+     */
+    fun adoptUnownedRows(ownerId: String): Int {
+        val rows = read()
+        val unowned = rows.count { it.log.trackId == null }
+        if (unowned == 0) return 0
+        write(rows.map { r -> if (r.log.trackId == null) r.copy(log = r.log.copy(trackId = ownerId)) else r })
+        return unowned
     }
 
     // ---- persistence -------------------------------------------------------

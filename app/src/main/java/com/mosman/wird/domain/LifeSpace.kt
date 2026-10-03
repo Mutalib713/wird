@@ -51,11 +51,20 @@ data class ReadingTrack(
     val direction: ReadingDirection = ReadingDirection.TOWARDS_NAS,
     /** Daily target in half-page units (2 = 1 page) */
     val dailyUnits: Int = 2,
-    /** Current consecutive days streak for this track */
+    /**
+     * Weekday exceptions to [dailyUnits], in half-page units: "half on Fridays" is
+     * `FRIDAY to 1`. Added 2026-10-03; before that they lived in a global plan the portion
+     * never read, so the companion said yes and nothing changed.
+     */
+    val weekdayUnits: Map<DayOfWeek, Int> = emptyMap(),
+    /**
+     * **Derived, never saved.** Filled from the day log by [withProgress]. See TrackRecord.kt
+     * for why: a stored copy of these drifted from the log and showed the wrong streak.
+     */
     val currentStreak: Int = 0,
-    /** Total completed reading sessions for this track */
+    /** Derived, never saved. See [currentStreak]. */
     val totalDaysRead: Int = 0,
-    /** ISO-8601 date string (e.g. 2026-09-23) of last completion */
+    /** Derived, never saved: the last date this track has a row in the day log. */
     val lastCompletedDate: String? = null,
     /** Optional starting Surah number */
     val startVerseSurah: Int? = null,
@@ -76,9 +85,11 @@ data class ReadingTrack(
         put("positionUnit", positionUnit)
         put("direction", direction.name)
         put("dailyUnits", dailyUnits)
-        put("currentStreak", currentStreak)
-        put("totalDaysRead", totalDaysRead)
-        put("lastCompletedDate", lastCompletedDate ?: "")
+        if (weekdayUnits.isNotEmpty()) {
+            put("weekdayUnits", JSONObject().apply { weekdayUnits.forEach { (d, u) -> put(d.name, u) } })
+        }
+        // currentStreak, totalDaysRead and lastCompletedDate are deliberately not written:
+        // the day log is the record, and a second copy is what drifted.
         if (startVerseSurah != null) put("startVerseSurah", startVerseSurah)
         if (startVerseAyah != null) put("startVerseAyah", startVerseAyah)
         if (reminderScheduleRaw != null) put("reminderScheduleRaw", reminderScheduleRaw)
@@ -137,9 +148,13 @@ data class ReadingTrack(
                 positionUnit = json.optInt("positionUnit", 0),
                 direction = runCatching { ReadingDirection.valueOf(json.optString("direction", ReadingDirection.TOWARDS_NAS.name)) }.getOrDefault(ReadingDirection.TOWARDS_NAS),
                 dailyUnits = json.optInt("dailyUnits", 2),
-                currentStreak = json.optInt("currentStreak", 0),
-                totalDaysRead = json.optInt("totalDaysRead", 0),
-                lastCompletedDate = json.optString("lastCompletedDate").takeIf { it.isNotEmpty() },
+                weekdayUnits = json.optJSONObject("weekdayUnits")?.let { o ->
+                    o.keys().asSequence().mapNotNull { k ->
+                        val day = runCatching { DayOfWeek.valueOf(k) }.getOrNull()
+                        val units = o.optInt(k, 0)
+                        if (day != null && units > 0) day to units else null
+                    }.toMap()
+                } ?: emptyMap(),
                 startVerseSurah = sSurah,
                 startVerseAyah = sAyah,
                 reminderScheduleRaw = json.optString("reminderScheduleRaw").takeIf { it.isNotEmpty() },
