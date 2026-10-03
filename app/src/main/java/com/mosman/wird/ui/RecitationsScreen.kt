@@ -162,7 +162,7 @@ fun RecitationsScreen(
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = "What you recited & recorded",
-                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                     )
@@ -206,7 +206,7 @@ fun RecitationsScreen(
                         text = "Day Streak",
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium,
-                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                     )
                 }
 
@@ -235,7 +235,7 @@ fun RecitationsScreen(
                         text = "Total Days",
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium,
-                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                     )
                 }
 
@@ -265,7 +265,7 @@ fun RecitationsScreen(
                         text = "Aloud Ratio",
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium,
-                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                     )
                 }
             }
@@ -322,7 +322,7 @@ fun RecitationsScreen(
                             color = if (isSelected) {
                                 if (isDark) Color(0xFF92E2B6) else Color(0xFF1E3F32)
                             } else {
-                                if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551)
                             },
                         )
                     }
@@ -347,7 +347,7 @@ fun RecitationsScreen(
             ) {
                 Text(
                     text = "Nothing here yet. Once you finish a day it will be listed, and anything you recited you can hear back.",
-                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                     fontSize = 14.sp,
                     lineHeight = 20.sp,
                 )
@@ -364,7 +364,7 @@ fun RecitationsScreen(
         ) {
             Text(
                 text = "COMPLETED DAYS",
-                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
@@ -422,7 +422,7 @@ fun RecitationsScreen(
                                     Spacer(Modifier.height(2.dp))
                                     Text(
                                         text = coverage,
-                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                         fontSize = 12.sp,
                                     )
                                 }
@@ -467,7 +467,7 @@ fun RecitationsScreen(
                                     color = if (isRecited) {
                                         if (isDark) Color(0xFF93DB7A) else Color(0xFF245847)
                                     } else {
-                                        if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                        if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551)
                                     },
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.SemiBold,

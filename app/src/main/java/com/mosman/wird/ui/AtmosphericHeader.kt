@@ -57,7 +57,8 @@ import com.mosman.wird.ui.theme.clayPill
  */
 @Composable
 fun AtmosphericHeader(
-    readerName: String,
+    /** Null when the reader skipped the name: the greeting is then just the hour. */
+    readerName: String?,
     onOpenPosition: () -> Unit,
     onOpenBookmarks: () -> Unit,
     modifier: Modifier = Modifier,
@@ -430,7 +431,7 @@ fun AtmosphericHeader(
                     Spacer(Modifier.height(4.dp))
                     // Greeting comes SECOND
                     Text(
-                        text = "$greeting, $readerName",
+                        text = if (readerName.isNullOrBlank()) greeting else "$greeting, $readerName",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFFFFFFF),

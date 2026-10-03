@@ -956,7 +956,7 @@ fun SettingsScreen(
                                         Spacer(Modifier.height(2.dp))
                                         Text(
                                             text = "Select any Sūrah to pick starting page & ayah",
-                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Medium,
                                         )
@@ -1076,7 +1076,7 @@ fun SettingsScreen(
                                     Icon(
                                         imageVector = Icons.Filled.Close,
                                         contentDescription = "Close search",
-                                        tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                        tint = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                         modifier = Modifier.size(18.dp),
                                     )
                                 }
@@ -1158,7 +1158,7 @@ fun SettingsScreen(
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 text = "Reciter voices & offline audio",
-                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                             )
@@ -1902,7 +1902,7 @@ fun SettingsScreen(
                                                 )
                                                 Text(
                                                     text = item.detail,
-                                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                                     fontSize = 11.5.sp,
                                                 )
                                             }
@@ -2846,7 +2846,7 @@ private fun DailyTargetDialog(
                                                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
                                                 ),
                                                 textStyle = TextStyle(
-                                                    color = gold,
+                                                    color = if (isDark) gold else Color(0xFF8E6900),
                                                     fontSize = 15.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     textAlign = TextAlign.Center,
@@ -3013,7 +3013,7 @@ private fun DailyTargetDialog(
                                         text = amountLabel(pendingUnits),
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = gold,
+                                        color = if (isDark) gold else Color(0xFF8E6900),
                                     )
                                 }
                             }
@@ -3329,7 +3329,7 @@ private fun WeeklyScheduleDialog(
                     ) {
                         Text(
                             text = "CANCEL",
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier

@@ -131,7 +131,7 @@ fun BookmarksScreen(
                     )
                     Text(
                         text = if (selectedTab == 0) "${recentPages.size} recent pages" else "${bookmarks.size} saved ayahs",
-                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                     )
@@ -335,7 +335,7 @@ private fun RecentPageCard(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "$page",
-                        color = gold,
+                        color = if (isDark) gold else Color(0xFF8E6900),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.ExtraBold,
                     )
@@ -429,7 +429,7 @@ private fun AyahBookmarkCard(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     text = "${surah?.name ?: "Surah $surahNum"} · ${bookmark.verseKey}",
-                    color = gold,
+                    color = if (isDark) gold else Color(0xFF8E6900),
                     fontSize = 14.5.sp,
                     fontWeight = FontWeight.Bold,
                 )

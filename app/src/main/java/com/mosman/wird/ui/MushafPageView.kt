@@ -831,7 +831,7 @@ fun SurahBannerClay(
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.1.sp,
-                        color = gold,
+                        color = if (isDark) gold else Color(0xFF8E6900),
                     ),
                 )
                 Spacer(Modifier.height(2.dp))
@@ -876,7 +876,7 @@ fun SurahBannerClay(
                         style = TextStyle(
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = gold,
+                            color = if (isDark) gold else Color(0xFF8E6900),
                         ),
                     )
                 }

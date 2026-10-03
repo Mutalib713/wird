@@ -211,7 +211,7 @@ fun SetupScreen(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 0.8.sp,
-                        color = Color(0xFFC9A24B),
+                        color = if (isDark) Color(0xFFC9A24B) else Color(0xFF8E6900),
                     )
                 }
 
@@ -536,7 +536,7 @@ private fun Step0AnimatedSplash(
                 fontSize = 13.5.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.2.sp,
-                color = gold,
+                color = if (isDark) gold else Color(0xFF8E6900),
             )
 
             Spacer(Modifier.height(20.dp))
@@ -608,7 +608,7 @@ private fun Step1WhyWird(
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 0.8.sp,
-                    color = gold,
+                    color = if (isDark) gold else Color(0xFF8E6900),
                 )
             }
 
@@ -773,7 +773,7 @@ private fun Step2LearningStyle(
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 0.8.sp,
-                    color = gold,
+                    color = if (isDark) gold else Color(0xFF8E6900),
                 )
             }
 
@@ -832,7 +832,7 @@ private fun Step2LearningStyle(
                             text = "Direction: Reverse or Forward",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = gold,
+                            color = if (isDark) gold else Color(0xFF8E6900),
                         )
                     }
                     Box(
@@ -847,7 +847,7 @@ private fun Step2LearningStyle(
                             text = "Switch Anytime",
                             fontSize = 9.5.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = gold,
+                            color = if (isDark) gold else Color(0xFF8E6900),
                         )
                     }
                 }
@@ -982,7 +982,7 @@ private fun Step3CoreFeatures(
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 0.8.sp,
-                    color = gold,
+                    color = if (isDark) gold else Color(0xFF8E6900),
                 )
             }
 
@@ -1333,7 +1333,7 @@ private fun Step6ReadingGoalAndOrder(
                 text = "1. READING GOAL",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = gold,
+                color = if (isDark) gold else Color(0xFF8E6900),
                 letterSpacing = 0.8.sp,
             )
             Spacer(Modifier.height(8.dp))
@@ -1373,7 +1373,7 @@ private fun Step6ReadingGoalAndOrder(
                 text = "2. YOUR INTENTION",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = gold,
+                color = if (isDark) gold else Color(0xFF8E6900),
                 letterSpacing = 0.8.sp,
             )
             Spacer(Modifier.height(4.dp))
@@ -1447,7 +1447,7 @@ private fun Step6ReadingGoalAndOrder(
                             color = if (isSelected) {
                                 if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
                             } else {
-                                if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551)
                             },
                         )
                     }
@@ -1461,7 +1461,7 @@ private fun Step6ReadingGoalAndOrder(
                 text = "3. READING ORDER",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = gold,
+                color = if (isDark) gold else Color(0xFF8E6900),
                 letterSpacing = 0.8.sp,
             )
             Spacer(Modifier.height(4.dp))
@@ -1506,7 +1506,7 @@ private fun Step6ReadingGoalAndOrder(
                                 "Start from the beginning and work toward the end."
                             },
                             fontSize = 11.sp,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         )
                     }
                     Spacer(Modifier.width(8.dp))
@@ -1556,7 +1556,7 @@ private fun Step6ReadingGoalAndOrder(
                         text = "You can change this later in settings.",
                         fontSize = 11.sp,
                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                     )
                 }
             }
@@ -1859,7 +1859,7 @@ private fun Step8AyahAndTarget(
                     )
                     Text(
                         text = "Verse $startAyah of ${surah.verses}",
-                        color = gold,
+                        color = if (isDark) gold else Color(0xFF8E6900),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                     )
@@ -1898,7 +1898,7 @@ private fun Step8AyahAndTarget(
                 text = "DAILY READING TARGET",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = gold,
+                color = if (isDark) gold else Color(0xFF8E6900),
                 letterSpacing = 0.8.sp,
             )
 
@@ -1973,7 +1973,7 @@ private fun Step8AyahAndTarget(
                                 onValueChange = onCustomVersesChange,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 textStyle = TextStyle(
-                                    color = gold,
+                                    color = if (isDark) gold else Color(0xFF8E6900),
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -2081,7 +2081,7 @@ private fun Step9Blessing(
                 text = "اللَّهُمَّ اجْعَلِ القُرْآنَ رَبِيعَ قُلُوبِنَا",
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
-                color = gold,
+                color = if (isDark) gold else Color(0xFF8E6900),
                 letterSpacing = 0.5.sp,
             )
 
@@ -2340,7 +2340,7 @@ private fun SelectionCard(
                     text = tag,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = if (selected) gold else colors.textSecondary,
+                    color = if (selected) (if (isDark) gold else Color(0xFF8E6900)) else colors.textSecondary,
                     letterSpacing = 0.6.sp,
                 )
             }
@@ -2647,7 +2647,7 @@ private fun PresetPositionCard(
                         text = tag,
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = if (selected) gold else colors.textSecondary,
+                        color = if (selected) (if (isDark) gold else Color(0xFF8E6900)) else colors.textSecondary,
                     )
                 }
             }

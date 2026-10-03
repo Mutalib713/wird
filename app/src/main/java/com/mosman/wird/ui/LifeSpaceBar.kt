@@ -143,7 +143,7 @@ fun LifeSpaceBar(
                         tint = if (scheduleMode == TrackScheduleMode.AUTOMATIC) {
                             if (isDark) Color(0xFFF9C86A) else Color(0xFF8F6300)
                         } else {
-                            if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                            if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551)
                         },
                         modifier = Modifier.size(13.dp),
                     )
@@ -154,7 +154,7 @@ fun LifeSpaceBar(
                         color = if (scheduleMode == TrackScheduleMode.AUTOMATIC) {
                             if (isDark) Color(0xFFF9C86A) else Color(0xFF8F6300)
                         } else {
-                            if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                            if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551)
                         },
                     )
                 }
@@ -337,7 +337,7 @@ fun TrackPickerDialog(
                         Text(
                             text = "Switch active track or create new",
                             fontSize = 11.sp,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         )
                     }
                 }
@@ -351,7 +351,7 @@ fun TrackPickerDialog(
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Close",
-                        tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        tint = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -373,7 +373,7 @@ fun TrackPickerDialog(
                     Text(
                         text = "No reading tracks yet. Add your first track below.",
                         fontSize = 12.sp,
-                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                     )
                 }
             } else {
@@ -453,7 +453,7 @@ fun TrackPickerDialog(
                                     Text(
                                         text = "${track.type.englishLabel} (${track.type.arabicLabel}) · ${track.surahName()} · $targetDesc$intentionDesc",
                                         fontSize = 10.5.sp,
-                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                     )
                                 }
                             }

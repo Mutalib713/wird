@@ -113,7 +113,7 @@ fun SurahsTab(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "Wırd",
+                                text = "Wird",
                                 color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
@@ -130,7 +130,7 @@ fun SurahsTab(
                         Spacer(Modifier.height(2.dp))
                         Text(
                             text = "The 114 Sūrahs",
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                         )
@@ -278,7 +278,7 @@ fun SurahsTab(
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Close search",
-                        tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        tint = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         modifier = Modifier.size(18.dp),
                     )
                 }

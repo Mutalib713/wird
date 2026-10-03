@@ -2770,8 +2770,13 @@ What is painted, read from the code on 2026-10-03 (counts are uses across `ui/`)
 - ⚠ **gold `#C9A24B` on cream: 2.20:1.** Fine as an ornament; not readable as text. Same
   failure as the August gold (2.06:1, § 6d).
 
-Fixing those two means darkening them, which is a colour change. **Colour is his call** (the
-global rule), so they are recorded here, not silently fixed.
+**✅ Both fixed 2026-10-03, his picks from a side-by-side of six options:**
+- secondary text, light mode: `#6F8378` → **`#4B5551`** (7.08:1), option C, grown from the
+  green seed by `palette.py`. Dark mode keeps `#8FA597` (6.62:1 on `#191A1E`).
+- gold used as **text**, light mode: → **`#8E6900`** (4.61:1), option E, the same hue with
+  only the lightness lowered. Dark mode keeps `#C9A24B` (7.25:1). **Gold icons, progress
+  segments and decorations stay `#C9A24B`.** The older light-mode gold `#9E782F` (3.71:1, also
+  failing) was replaced by `#8E6900` too.
 
 ### ⚠ The palette lives in the screens, not in the theme
 

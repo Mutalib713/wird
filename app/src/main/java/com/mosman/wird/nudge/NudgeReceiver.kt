@@ -105,7 +105,7 @@ class NudgeReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notificationTitle = "Your Daily Wırd · ${activeTrack.name}"
+        val notificationTitle = "Your Daily Wird · ${activeTrack.name}"
 
         val builder = NotificationCompat.Builder(context, Nudge.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_agenda)

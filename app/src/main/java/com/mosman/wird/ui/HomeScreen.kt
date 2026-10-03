@@ -186,7 +186,7 @@ fun HomeScreen(
         ) {
             // Atmospheric Dawn Mosque Header
             AtmosphericHeader(
-                readerName = readerName ?: "Mutalib",
+                readerName = readerName,
                 positionText = if (positionLabel.isNotEmpty()) positionLabel else "Al-Fātihah 1, page 1",
                 onOpenPosition = onOpenPage,
                 onOpenBookmarks = onOpenBookmarks,
@@ -1088,7 +1088,7 @@ private fun NumbersCard(p: Progress, activeTrack: ReadingTrack? = null) {
                     text = "Day Streak",
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                 )
             }
 
@@ -1117,7 +1117,7 @@ private fun NumbersCard(p: Progress, activeTrack: ReadingTrack? = null) {
                     text = "Total Days",
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                 )
             }
 
@@ -1146,7 +1146,7 @@ private fun NumbersCard(p: Progress, activeTrack: ReadingTrack? = null) {
                     text = "Recited aloud",
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                 )
             }
         }
@@ -1438,7 +1438,7 @@ private fun NextDueTrackBanner(
                     Text(
                         text = "${nextTrack.surahName()} · ${nextTrack.scheduleLabel()}",
                         fontSize = 11.sp,
-                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                     )
                 }
             }
@@ -1515,7 +1515,7 @@ private fun EmptyTracksGuideCard(
             Text(
                 text = "Wird adapts to your real life. Add parallel reading tracks (like Daily Tilāwah, Weekend Ḥifẓ, or Ramadan Khatmah) with independent schedules and daily targets.",
                 fontSize = 12.5.sp,
-                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                 textAlign = TextAlign.Center,
                 lineHeight = 17.sp,
             )

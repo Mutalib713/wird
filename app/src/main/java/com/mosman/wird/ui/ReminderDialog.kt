@@ -995,7 +995,7 @@ fun AdvancedReminderDialog(
                                     }
                                     Spacer(Modifier.width(6.dp))
                                     Text(
-                                        text = "Your Daily Wırd · ${currentTrack.name}",
+                                        text = "Your Daily Wird · ${currentTrack.name}",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = colors.textPrimary,

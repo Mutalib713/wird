@@ -146,7 +146,7 @@ fun LifeSpaceManagerDialog(
                             Icon(
                                 imageVector = Icons.Filled.Close,
                                 contentDescription = "Close",
-                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -283,7 +283,7 @@ fun LifeSpaceManagerDialog(
                                     text = "Goal: ${space.goal}",
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Medium,
-                                    color = if (isDark) Color(0xFFC9A24B) else Color(0xFF9E782F),
+                                    color = if (isDark) Color(0xFFC9A24B) else Color(0xFF8E6900),
                                 )
                             }
 
@@ -296,7 +296,7 @@ fun LifeSpaceManagerDialog(
                                         space.tracks.joinToString(", ") { it.name }
                                 },
                                 fontSize = 11.5.sp,
-                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                             )
 
                             Spacer(Modifier.height(10.dp))
@@ -549,7 +549,7 @@ fun EditTrackDialog(
                             Icon(
                                 imageVector = Icons.Filled.Close,
                                 contentDescription = "Close",
-                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -618,7 +618,7 @@ fun EditTrackDialog(
                         Text(
                             text = "What is the purpose of this track?",
                             fontSize = 11.5.sp,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         )
                         Spacer(Modifier.height(6.dp))
                         Row(
@@ -686,7 +686,7 @@ fun EditTrackDialog(
                                             fontSize = 9.5.sp,
                                             lineHeight = 12.sp,
                                             textAlign = TextAlign.Center,
-                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                         )
                                     }
                                 }
@@ -706,7 +706,7 @@ fun EditTrackDialog(
                         Text(
                             text = "What are you hoping to achieve with this track?",
                             fontSize = 11.5.sp,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         )
                         Spacer(Modifier.height(8.dp))
 
@@ -753,7 +753,7 @@ fun EditTrackDialog(
                             text = "Tap to select or fill:",
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         )
                         Spacer(Modifier.height(4.dp))
 
@@ -815,7 +815,7 @@ fun EditTrackDialog(
                         Text(
                             text = "Which days do you want to read?",
                             fontSize = 11.5.sp,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         )
                         Spacer(Modifier.height(8.dp))
 
@@ -883,7 +883,7 @@ fun EditTrackDialog(
                             text = daysOffNote,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         )
                     }
 
@@ -1024,7 +1024,7 @@ fun EditTrackDialog(
                         Text(
                             text = "How much do you want to read each day?",
                             fontSize = 11.5.sp,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         )
                         Spacer(Modifier.height(6.dp))
                         Row(
@@ -1062,7 +1062,7 @@ fun EditTrackDialog(
                                         color = if (isSelected) {
                                             if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
                                         } else {
-                                            if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                            if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551)
                                         },
                                     )
                                 }
@@ -1091,7 +1091,7 @@ fun EditTrackDialog(
                                     color = if (isCustomTarget) {
                                         if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
                                     } else {
-                                        if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                        if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551)
                                     },
                                 )
                             }
@@ -1122,7 +1122,7 @@ fun EditTrackDialog(
                                     Text(
                                         text = "Number of verses:",
                                         fontSize = 11.sp,
-                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                     )
                                 }
                                 Box(
@@ -1174,7 +1174,7 @@ fun EditTrackDialog(
                         Text(
                             text = "Where do you want to start?",
                             fontSize = 11.5.sp,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                         )
                         Spacer(Modifier.height(6.dp))
 
@@ -1212,7 +1212,7 @@ fun EditTrackDialog(
                                             "Start from the beginning and work toward the end."
                                         },
                                         fontSize = 11.sp,
-                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                     )
                                 }
                                 Spacer(Modifier.width(8.dp))
@@ -1307,7 +1307,7 @@ fun EditTrackDialog(
                                             Text(
                                                 text = "Start from the end of the Qur'an and work toward the beginning. Common for memorization in West Africa.",
                                                 fontSize = 11.sp,
-                                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                                 lineHeight = 15.sp,
                                             )
                                         }
@@ -1388,7 +1388,7 @@ fun EditTrackDialog(
                                             Text(
                                                 text = "Start from the beginning and work toward the end. Standard recitation sequence.",
                                                 fontSize = 11.sp,
-                                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                                 lineHeight = 15.sp,
                                             )
                                         }
@@ -1399,7 +1399,7 @@ fun EditTrackDialog(
                                     text = "You can change this order anytime.",
                                     fontSize = 11.sp,
                                     fontStyle = FontStyle.Italic,
-                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                 )
                             }
                         }
@@ -1612,7 +1612,7 @@ fun CreateModeDialog(
                             text = "GOAL (OPTIONAL)",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (isDark) Color(0xFFC9A24B) else Color(0xFF9E782F),
+                            color = if (isDark) Color(0xFFC9A24B) else Color(0xFF8E6900),
                         )
                         Spacer(Modifier.height(5.dp))
                         Box(
@@ -2018,7 +2018,7 @@ fun TrackPositionPickerDialog(
                             Icon(
                                 imageVector = Icons.Filled.Close,
                                 contentDescription = "Close",
-                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -2042,7 +2042,7 @@ fun TrackPositionPickerDialog(
                             Icon(
                                 imageVector = Icons.Filled.Search,
                                 contentDescription = null,
-                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(8.dp))
@@ -2071,7 +2071,7 @@ fun TrackPositionPickerDialog(
                                 Icon(
                                     imageVector = Icons.Filled.Close,
                                     contentDescription = "Clear",
-                                    tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                    tint = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                     modifier = Modifier
                                         .size(16.dp)
                                         .clickable { searchQuery = "" },
@@ -2238,7 +2238,7 @@ fun TrackPositionPickerDialog(
                                 Text(
                                     text = "Verse $selectedAyah of ${selectedSurah.verses} · Calculated Mushaf Page $targetPage",
                                     fontSize = 11.5.sp,
-                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                     textAlign = TextAlign.Center,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
@@ -2354,7 +2354,7 @@ fun ManageTracksDialog(
                             Icon(
                                 imageVector = Icons.Filled.Close,
                                 contentDescription = "Close",
-                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                tint = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -2382,7 +2382,7 @@ fun ManageTracksDialog(
                         ) {
                             Text(
                                 text = "No tracks configured yet. Add your first track below.",
-                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                 fontSize = 12.5.sp,
                                 textAlign = TextAlign.Center,
                             )
@@ -2459,7 +2459,7 @@ fun ManageTracksDialog(
                                 Text(
                                     text = "${track.type.englishLabel} (${track.type.arabicLabel}) · ${track.scheduleLabel()} · $posDesc$intentionPart",
                                     fontSize = 11.5.sp,
-                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                 )
 
                                 Spacer(Modifier.height(10.dp))

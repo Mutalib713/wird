@@ -898,7 +898,7 @@ private fun AlreadyDone(
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
                                             letterSpacing = 1.sp,
-                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                                         ),
                                     )
                                     Text(
