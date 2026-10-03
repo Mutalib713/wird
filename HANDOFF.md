@@ -123,10 +123,10 @@ app/src/main/java/com/mosman/wird/
 - Wireless connection drops constantly. Every command batch must start with:
   ```powershell
   $adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
-  & $adb connect 10.0.0.114:44053
-  & $adb -s 10.0.0.114:44053 shell <command>
+  & $adb connect <phone-ip>:<port>
+  & $adb -s <phone-ip>:<port> shell <command>
   ```
-- Use `-s 10.0.0.114:44053` flag always (avoids "more than one device" errors from stale entries).
+- Use `-s <phone-ip>:<port>` flag always (avoids "more than one device" errors from stale entries).
 - **Check foreground first** before any tap: `dumpsys activity activities | grep topResumedActivity`
 - **This is Mutalib's daily phone.** Never send blind taps. Never change system settings.
   Screenshot → confirm what's under the coordinate → then tap.

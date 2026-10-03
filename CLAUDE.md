@@ -117,10 +117,10 @@ adb devices                      # confirm the phone is attached first
   underneath you (it did once during task 3, for reasons we never established).
 - **The Pixel is Mutalib's daily phone, not a test rig.** Two intrusions on 2026-08-14/15,
   both avoidable:
-  1. A blind `adb shell input tap` landed on a WhatsApp call banner that appeared in the
+  1. A blind `adb shell input tap` landed on an incoming-call banner that appeared in the
      same instant as our notification, opening the incoming-call screen. It did not
      answer it, but it could have.
-  2. `cmd uimode night no` was sent to check light mode while he was mid-Snapchat, and
+  2. `cmd uimode night no` was sent to check light mode while he was using another app, and
      flipped his phone to light in the middle of what he was doing.
 
   Rules, in order: **check the foreground first**

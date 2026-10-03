@@ -30,8 +30,8 @@ data class Place(val coordinates: Coordinates, val source: PlaceSource)
  * Where the phone is, for the one purpose of timing the nudge.
  *
  * **Mutalib chose coarse location on 2026-08-16**, over deriving it from the timezone,
- * because he moves between Pig Farm in Accra and KNUST in Kumasi and those are seven
- * minutes apart at Maghrib.
+ * because he moves between Accra and Kumasi, and those are seven minutes apart at
+ * Maghrib.
  *
  * Three things this deliberately does *not* do, all of them Sacred Rule 1:
  * the coordinates never leave the phone; they are stored rounded to two decimals, which

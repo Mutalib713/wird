@@ -17,7 +17,7 @@ import java.time.LocalDateTime
 /**
  * Answering the nudge without opening the app. **PLAN task 21.**
  *
- * **This is the experiment, not a convenience.** § 2 found ~8 of 14 missed days went to
+ * **This is the experiment, not a convenience.** § 2 found most missed days went to
  * procrastination rather than forgetting, and every other feature addresses the smaller half.
  * The thesis here is that *naming a time to something that checks back* changes behaviour. If
  * it does not, § 5b says the companion is theatre and gets cut — so the point of this build is

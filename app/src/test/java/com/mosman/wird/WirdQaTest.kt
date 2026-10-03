@@ -444,7 +444,7 @@ class WirdQaTest {
      *
      * Every expected value below came from the Aladhan API (Muslim World League) on
      * 2026-08-16 — an independent implementation, not this one. Two cities because
-     * Mutalib moves between Pig Farm in Accra and KNUST in Kumasi, and both solstices
+     * Mutalib moves between Accra and Kumasi, and both solstices
      * because a bug in the declination term would hide completely at an equinox.
      *
      * Exact equality, not a tolerance. A minute of slack here would hide a systematic

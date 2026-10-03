@@ -693,7 +693,7 @@ version tests the assumption first, and nothing expensive gets built until it ho
 
 - [ ] **24. Does it actually work?**
   Thirty days against PROFILE.md § 5b: **did the procrastination half move?** Baseline is
-  ~8 of 14 missed days to procrastination. Commitments made vs kept, and missed days with
+  PROFILE.md § 2: most missed days went to procrastination. Commitments made vs kept, and missed days with
   and without a commitment.
   *Done when:* real numbers exist and there is an honest verdict. **"It was theatre, cut it"
   is a legitimate outcome** and the feature gets removed rather than kept because it was

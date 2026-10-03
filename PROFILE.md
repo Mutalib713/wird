@@ -28,20 +28,23 @@ Infinix and itel phones.
 **What he does today instead:** Quran for Android on the phone, a physical mushaf in
 class, and his position held in his head. Nothing reminds him. Nothing checks on him.
 
-**The finding Phase 0 turned on.** Over two weeks he missed roughly 14 days: about 6 to
-forgetting, about 8 to procrastination or being carried away. So *forgetting is the
-smaller half of the problem* and a reminder alone fixes at best 6 of 14.
+**The finding Phase 0 turned on.** Over two weeks of tracking, most days were missed,
+and more of them to procrastination than to forgetting. So *forgetting is the smaller half
+of the problem*, and a reminder alone fixes at best that smaller half.
 
-The one thing that historically worked: **he used to go and recite to a teacher.** School
-stopped that, and the habit went with it. Reciting aloud to someone who expects you is
-the mechanic this app is a stand-in for. Everything he named as working — right after a
-prayer, a streak, seeing a friend recite — is the same family: pressure from outside his
-own willpower.
+What historically works is **reciting aloud to someone who expects you**, the way a
+student recites to a teacher. Reciting aloud to someone who expects you is the mechanic
+this app is a stand-in for. The other things that help (reading right after a prayer, a
+streak, seeing a friend recite) are the same family: pressure from outside your own
+willpower.
+
+*Made general on 2026-10-03 at Mutalib's request, because the repo is public. The exact
+numbers were in the original Phase 0 notes.*
 
 ## 3. SUCCESS METRIC
 
 **Personal:** read on **20 of the next 30 days, at least 10 of them recited aloud**
-rather than tapped. Baseline is roughly zero of the last 14.
+rather than tapped. Baseline: almost none of the previous two weeks.
 
 **Testers:** of the testers who install, **how many are still marking days at day 14.**
 
@@ -204,12 +207,11 @@ cut if it does not earn its place, and § 5b's own success test below is how tha
 
 ### Why it exists
 
-§ 2 records the finding this rests on: over two weeks he missed ~14 days, **~6 to
-forgetting and ~8 to procrastination**. Every feature built so far — the nudge, the widget,
-the streak — addresses forgetting, which is *the smaller half*. Nothing in the app yet
-speaks to the 8.
+§ 2 records the finding this rests on: **more missed days went to procrastination than
+to forgetting**. Every feature built so far — the nudge, the widget, the streak — addresses
+forgetting, which is *the smaller half*. Nothing in the app yet speaks to the larger one.
 
-What historically worked was reciting to a teacher: a person who expected him. This is an
+What historically works is reciting to someone who expects you, like a teacher. This is an
 attempt at that, and it is the first feature aimed squarely at the larger half of the
 problem.
 
@@ -282,7 +284,7 @@ Decisions no future session may reopen without Mutalib's explicit approval.
    and a home screen; we settled on the smaller version and he chose it knowingly:
 
    - **Today's portion is the front door.** The app opens on it. There is no home screen
-     and no menu in between — his own Phase 0 numbers say the decision is the problem, so
+     and no menu in between — the Phase 0 finding says the decision is the problem, so
      every screen added before the reading is a place to bounce off.
    - **Allowed:** swiping to the pages either side of today's, and a "go to surah"
      control that reuses the setup picker. That covers reciting something other than
@@ -299,7 +301,7 @@ Decisions no future session may reopen without Mutalib's explicit approval.
 
    The argument he accepted, and the one against, both recorded so this is not re-litigated
    from scratch later:
-   - **Against:** his own Phase 0 numbers say the *decision* is the problem — 8 of 14 missed
+   - **Against:** the Phase 0 finding says the *decision* is the problem — most missed
      days were procrastination, not forgetting — and a five-tab bar adds decisions in front
      of the reading. That is why the rule existed.
    - **For:** the app has grown since 2026-08-15. There are now genuinely five places to be,
@@ -678,7 +680,7 @@ Home is a dashboard — greeting, portion card, stats — with the page behind a
 **Why it matters, and why it was worth asking rather than assuming:** this is the one thing
 that survived every other reversal today. Sacred Rule 5 lost "no menu in between" to the tab
 bar and "not a Qur'an reader" to the full-reader decision, and what stayed both times was
-*the app opens on today's portion*. § 2's number is the reason — **8 of 14 missed days were
+*the app opens on today's portion*. § 2's finding is the reason — **most missed days were
 procrastination**, so every screen between him and the page is one more place to stop.
 
 **What still gets built, and where it goes:** the greeting, the two numbers and the
@@ -719,7 +721,7 @@ parked above the Qur'an. Half-measures between "page first" and "dashboard" land
 6. `MARKING IT DONE` — the three controls
 7. `YOUR WIRD` — the last few days, which the History tab already renders
 
-**What survives from § 5f and must not be lost:** § 2's finding still stands — 8 of 14 missed
+**What survives from § 5f and must not be lost:** § 2's finding still stands — most missed
 days were procrastination, so every extra step before reading costs something. The dashboard
 earns its place only if `OPEN THE PAGE →` is unmissable and one tap. **Watch this at the
 30-day measurement:** if days start being missed after the dashboard lands, this is the first

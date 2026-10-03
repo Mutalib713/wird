@@ -20,14 +20,13 @@ and treats **"done" as something you say out loud rather than something you tick
 
 ## The finding everything rests on
 
-I tracked myself for two weeks and missed about 14 days: **roughly 6 to forgetting, and
-about 8 to procrastination.**
+Two weeks of tracking: most days missed, and **more of them to procrastination than to
+forgetting.**
 
-That split is the single most important fact about this app. A reminder alone fixes at best
-6 of 14 — so a notification-plus-checkbox app solves less than half my real problem.
+That split is the single most important fact about this app. A reminder alone fixes only
+the smaller half, so a notification-plus-checkbox app solves less than half the real problem.
 
-The one thing that historically worked: **I used to go and recite to a teacher.** School
-stopped that and the habit went with it. Reciting aloud to someone who expects you is the
+What historically works is **reciting aloud to someone who expects you**, like a teacher. Reciting aloud to someone who expects you is the
 mechanic this app is a stand-in for.
 
 ## Who uses it
@@ -210,9 +209,9 @@ where to follow.
 
 **Status: being scoped now. Nothing built. Treat as open.**
 
-The feature the research actually points at. My missed days split **6 forgetting / 8
-procrastination**, and a reminder only addresses the first number. What worked was reciting
-to a teacher — a person who expected me.
+The feature the research actually points at. Missed days split **more to procrastination
+than to forgetting**, and a reminder only addresses forgetting. What works is reciting
+to someone who expects you, like a teacher.
 
 **The loop:**
 1. It asks whether today's wird is done
