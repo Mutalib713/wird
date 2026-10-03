@@ -518,7 +518,7 @@ fun SettingsScreen(
                         // 3. Reading Preferences
                         ClaySection(title = "Reading Preferences") {
                             ClaySettingRow(
-                                title = "Reading position",
+                                title = "Starting point",
                                 subtitle = currentPositionLabel,
                                 onClick = { subScreen = SettingsSubScreen.POSITION_PICKER },
                             )
@@ -530,13 +530,13 @@ fun SettingsScreen(
                             )
 
                             ClaySettingRow(
-                                title = "Reading method",
+                                title = "Reading goal",
                                 subtitle = modeLabel(readingMode),
                                 onClick = { activeDialog = SettingsDialog.READING_METHOD },
                             )
 
                             ClaySettingRow(
-                                title = "Reading direction",
+                                title = "Reading order",
                                 subtitle = directionLabel(direction),
                                 onClick = { activeDialog = SettingsDialog.READING_DIRECTION },
                             )
@@ -1462,10 +1462,10 @@ fun SettingsScreen(
 
             SettingsDialog.READING_METHOD -> {
                 ClayOptionDialog(
-                    title = "Reading method",
+                    title = "Reading goal",
                     options = listOf(
-                        DialogOption(ReadingMode.READING, "From the mushaf", "Reading with printed text open"),
-                        DialogOption(ReadingMode.MEMORISING, "From memory", "Reciting from memory (Hifdh revision)"),
+                        DialogOption(ReadingMode.READING, "Read (Tilāwah)", "For regularly reading Qur'an with text open"),
+                        DialogOption(ReadingMode.MEMORISING, "Memorize (Ḥifẓ)", "For learning new verses and reciting from memory"),
                     ),
                     selected = readingMode,
                     onSelect = onReadingMode,
@@ -1475,17 +1475,17 @@ fun SettingsScreen(
 
             SettingsDialog.READING_DIRECTION -> {
                 ClayOptionDialog(
-                    title = "Reading direction",
+                    title = "Reading order",
                     options = listOf(
                         DialogOption(
-                            ReadingDirection.TOWARDS_NAS,
-                            "Towards An-Nas (Downwards)",
-                            "Front to back. When finished Sūrah 112 (Al-Ikhlas), tomorrow moves down to 113 (Al-Falaq).",
+                            ReadingDirection.TOWARDS_FATIHAH,
+                            "From An-Nās → Al-Fātiḥah",
+                            "Start from the end of the Qur'an and work toward the beginning.",
                         ),
                         DialogOption(
-                            ReadingDirection.TOWARDS_FATIHAH,
-                            "Towards Al-Fatihah (Upwards)",
-                            "Back to front. When finished Sūrah 112 (Al-Ikhlas), tomorrow moves up to 111 (Al-Masadd).",
+                            ReadingDirection.TOWARDS_NAS,
+                            "From Al-Fātiḥah → An-Nās",
+                            "Start from the beginning and work toward the end.",
                         ),
                     ),
                     selected = direction,
@@ -2139,43 +2139,7 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsDialog.LIFE_SPACE_MANAGER -> {
-                LifeSpaceManagerDialog(
-                    spaces = lifeSpaces,
-                    activeSpaceId = activeSpace.id,
-                    onSetActiveSpace = { spaceId ->
-                        store.setActiveSpace(spaceId)
-                        lifeSpaces = store.getLifeSpaces()
-                        activeSpace = store.activeSpace()
-                        onLifeSpacesChanged()
-                    },
-                    onToggleFreezeSpace = { spaceId, freeze ->
-                        store.setSpaceFrozen(spaceId, freeze)
-                        lifeSpaces = store.getLifeSpaces()
-                        activeSpace = store.activeSpace()
-                        onLifeSpacesChanged()
-                    },
-                    onAddSpace = { name, goal ->
-                        store.addLifeSpace(name, goal)
-                        lifeSpaces = store.getLifeSpaces()
-                        activeSpace = store.activeSpace()
-                        onLifeSpacesChanged()
-                    },
-                    onDeleteSpace = { spaceId ->
-                        store.deleteLifeSpace(spaceId)
-                        lifeSpaces = store.getLifeSpaces()
-                        activeSpace = store.activeSpace()
-                        onLifeSpacesChanged()
-                    },
-                    onRenameSpace = { spaceId, newName ->
-                        store.renameSpace(spaceId, newName)
-                        lifeSpaces = store.getLifeSpaces()
-                        activeSpace = store.activeSpace()
-                        onLifeSpacesChanged()
-                    },
-                    onDismiss = { activeDialog = null },
-                )
-            }
+            SettingsDialog.LIFE_SPACE_MANAGER,
 
             SettingsDialog.MANAGE_TRACKS -> {
                 ManageTracksDialog(
@@ -3636,13 +3600,13 @@ private fun themeLabel(theme: ThemeMode): String = when (theme) {
 }
 
 private fun modeLabel(mode: ReadingMode): String = when (mode) {
-    ReadingMode.READING -> "From the mushaf"
-    ReadingMode.MEMORISING -> "From memory"
+    ReadingMode.READING -> "Read (Tilāwah)"
+    ReadingMode.MEMORISING -> "Memorize (Ḥifẓ)"
 }
 
 private fun directionLabel(direction: ReadingDirection): String = when (direction) {
-    ReadingDirection.TOWARDS_FATIHAH -> "Towards Al-Fatihah (Upwards)"
-    ReadingDirection.TOWARDS_NAS -> "Towards An-Nas (Downwards)"
+    ReadingDirection.TOWARDS_FATIHAH -> "From An-Nās → Al-Fātiḥah"
+    ReadingDirection.TOWARDS_NAS -> "From Al-Fātiḥah → An-Nās"
 }
 
 private fun megabytes(bytes: Long): String =

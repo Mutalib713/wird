@@ -386,9 +386,15 @@ class MainActivity : ComponentActivity() {
                 tab = WirdTab.HOME
             }
 
-            var doneMethod by remember { mutableStateOf(days.methodFor(today)) }
-            var hasRecording by remember { mutableStateOf(days.audioFor(today) != null) }
-            var progress by remember { mutableStateOf(progressOf(days.all(), today)) }
+            var doneMethod by remember(activeTrack.id) { mutableStateOf(days.methodFor(today, activeTrack.id)) }
+            var hasRecording by remember(activeTrack.id) { mutableStateOf(days.audioFor(today, activeTrack.id) != null) }
+            val currentTrackLogs = remember(activeTrack.id, days) {
+                val filtered = days.all().filter { it.trackId == activeTrack.id }
+                if (filtered.isNotEmpty()) filtered
+                else if (days.all().all { it.trackId == null }) days.all()
+                else emptyList()
+            }
+            var progress by remember(activeTrack.id) { mutableStateOf(progressOf(if (currentTrackLogs.isNotEmpty()) currentTrackLogs else days.all(), today)) }
 
             val isTrackDoneToday = activeTrack.lastCompletedDate == today.toString()
             val trackDoneMethod = if (isTrackDoneToday) doneMethod ?: Method.TAPPED else null
@@ -684,7 +690,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else if (screen == Screen.SETUP) {
                     SetupScreen(
-                        onDone = { page, unitsPerDay, verse, name, mode, way ->
+                        onDone = { page, unitsPerDay, verse, name, mode, way, trackType, intention ->
                             store.positionPage = page
                             store.plan = ReadingPlan(defaultUnits = unitsPerDay)
                             store.startVerse = verse
@@ -704,6 +710,8 @@ class MainActivity : ComponentActivity() {
                                 dailyUnits = unitsPerDay,
                                 startVerseSurah = verse?.first,
                                 startVerseAyah = verse?.second,
+                                type = trackType,
+                                intention = intention,
                             ))
                             allTracks = store.getReadingTracks()
                             lifeSpaces = store.getLifeSpaces()
@@ -857,7 +865,7 @@ class MainActivity : ComponentActivity() {
                                 assignment = assignment,
                                 progress = progress,
                                 doneMethod = trackDoneMethod,
-                                recent = days.all().sortedByDescending { it.date },
+                                recent = currentTrackLogs.ifEmpty { days.all() }.sortedByDescending { it.date },
                                 onOpenPage = {
                                     onPage = true
                                     isWirdSession = true
@@ -939,6 +947,10 @@ class MainActivity : ComponentActivity() {
                                     activeTrack = store.activeTrack(today)
                                     position = activeTrack.positionUnit
                                     direction = activeTrack.direction
+                                    doneMethod = days.methodFor(today, activeTrack.id)
+                                    hasRecording = days.audioFor(today, activeTrack.id) != null
+                                    val tLogs = days.all().filter { it.trackId == activeTrack.id }
+                                    progress = progressOf(if (tLogs.isNotEmpty()) tLogs else days.all(), today)
                                 },
                                 onSelectSpace = { space ->
                                     store.setActiveSpace(space.id)
@@ -946,6 +958,10 @@ class MainActivity : ComponentActivity() {
                                     activeTrack = store.activeTrack(today)
                                     position = activeTrack.positionUnit
                                     direction = activeTrack.direction
+                                    doneMethod = days.methodFor(today, activeTrack.id)
+                                    hasRecording = days.audioFor(today, activeTrack.id) != null
+                                    val tLogs = days.all().filter { it.trackId == activeTrack.id }
+                                    progress = progressOf(if (tLogs.isNotEmpty()) tLogs else days.all(), today)
                                 },
                                 onToggleScheduleMode = {
                                     val newMode = if (trackScheduleMode == TrackScheduleMode.AUTOMATIC) {
@@ -958,6 +974,10 @@ class MainActivity : ComponentActivity() {
                                     activeTrack = store.activeTrack(today)
                                     position = activeTrack.positionUnit
                                     direction = activeTrack.direction
+                                    doneMethod = days.methodFor(today, activeTrack.id)
+                                    hasRecording = days.audioFor(today, activeTrack.id) != null
+                                    val tLogs = days.all().filter { it.trackId == activeTrack.id }
+                                    progress = progressOf(if (tLogs.isNotEmpty()) tLogs else days.all(), today)
                                 },
                                 onOpenSettings = { dialog ->
                                     settingsInitialDialog = dialog

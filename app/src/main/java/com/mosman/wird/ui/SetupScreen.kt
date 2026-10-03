@@ -86,6 +86,9 @@ import com.mosman.wird.mushaf.MushafDownloadService
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.graphics.SolidColor
+import com.mosman.wird.domain.TrackType
 import com.mosman.wird.ui.theme.clayCard
 import com.mosman.wird.ui.theme.clayPill
 
@@ -113,6 +116,8 @@ fun SetupScreen(
         name: String?,
         mode: ReadingMode,
         direction: ReadingDirection,
+        trackType: TrackType,
+        intention: String?,
     ) -> Unit,
 ) {
     val colors = LocalWirdColors.current
@@ -124,6 +129,8 @@ fun SetupScreen(
 
     // State collected across steps
     var readerName by remember { mutableStateOf<String?>(null) }
+    var trackType by remember { mutableStateOf(TrackType.TILAWAH) }
+    var intentionText by remember { mutableStateOf("Build a daily Qur'an habit") }
     var readingMode by remember { mutableStateOf(ReadingMode.READING) }
     var readingDirection by remember { mutableStateOf(ReadingDirection.TOWARDS_FATIHAH) }
     var chosenSurah by remember { mutableStateOf<Surah?>(SurahIndex.byNumber(78)) } // Default Juz 'Amma
@@ -302,9 +309,14 @@ fun SetupScreen(
                             currentStep = 6
                         },
                     )
-                    6 -> Step6MethodAndDirection(
-                        selectedMode = readingMode,
-                        onSelectMode = { readingMode = it },
+                    6 -> Step6ReadingGoalAndOrder(
+                        selectedType = trackType,
+                        onSelectType = {
+                            trackType = it
+                            readingMode = if (it == TrackType.HIFZ) ReadingMode.MEMORISING else ReadingMode.READING
+                        },
+                        intention = intentionText,
+                        onIntentionChange = { intentionText = it },
                         selectedDirection = readingDirection,
                         onSelectDirection = { readingDirection = it },
                         onNext = { currentStep = 7 },
@@ -367,11 +379,13 @@ fun SetupScreen(
                         chosenSurah = chosenSurah,
                         startAyah = startAyah,
                         dailyUnits = dailyUnits,
+                        trackType = trackType,
+                        intention = intentionText,
                         readingMode = readingMode,
                         readingDirection = readingDirection,
                         onLaunch = {
                             val versePair = chosenSurah?.number?.let { s -> s to startAyah }
-                            onDone(startPage, dailyUnits, versePair, readerName, readingMode, readingDirection)
+                            onDone(startPage, dailyUnits, versePair, readerName, readingMode, readingDirection, trackType, intentionText)
                         },
                     )
                 }
@@ -1270,12 +1284,14 @@ private fun Step5Name(
 }
 
 // ============================================================================
-// STEP 6: READING METHOD & DIRECTION (With Switch Anytime Notes)
+// STEP 6: READING GOAL, INTENTION & ORDER
 // ============================================================================
 @Composable
-private fun Step6MethodAndDirection(
-    selectedMode: ReadingMode,
-    onSelectMode: (ReadingMode) -> Unit,
+private fun Step6ReadingGoalAndOrder(
+    selectedType: TrackType,
+    onSelectType: (TrackType) -> Unit,
+    intention: String,
+    onIntentionChange: (String) -> Unit,
     selectedDirection: ReadingDirection,
     onSelectDirection: (ReadingDirection) -> Unit,
     onNext: () -> Unit,
@@ -1283,6 +1299,19 @@ private fun Step6MethodAndDirection(
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val gold = Color(0xFFC9A24B)
+    var isChangingOrder by remember { mutableStateOf(false) }
+
+    val intentionSuggestions = remember {
+        listOf(
+            "Build a daily Qur'an habit",
+            "Read consistently",
+            "Memorize new verses",
+            "Review what I've memorized",
+            "Complete more Qur'an",
+            "Stay connected to the Qur'an",
+            "Personal Khatmah",
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -1293,15 +1322,15 @@ private fun Step6MethodAndDirection(
         Column {
             HeroHeader(
                 icon = { CompassVectorIcon(tint = gold) },
-                title = "How do you recite?",
-                subtitle = "Choose your starting preferences (you can switch anytime with one tap):",
+                title = "Set Up Your Reading Track",
+                subtitle = "Choose your reading goal, intention, and starting order (customizable anytime):",
             )
 
             Spacer(Modifier.height(18.dp))
 
-            // Section 1: Reading Method
+            // Section 1: Reading Goal
             Text(
-                text = "1. READING METHOD",
+                text = "1. READING GOAL",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = gold,
@@ -1310,52 +1339,227 @@ private fun Step6MethodAndDirection(
             Spacer(Modifier.height(8.dp))
 
             SelectionCard(
-                title = "From the mushaf",
-                description = "Reading with printed text open in front of you (Madani 15-line script).",
+                title = "Read (Tilāwah)",
+                description = "For regularly reading Qur'an with printed text open in front of you.",
                 tag = "TILĀWAH · SWITCH ANYTIME",
-                selected = selectedMode == ReadingMode.READING,
-                onClick = { onSelectMode(ReadingMode.READING) },
+                selected = selectedType == TrackType.TILAWAH,
+                onClick = { onSelectType(TrackType.TILAWAH) },
             )
 
             Spacer(Modifier.height(10.dp))
 
             SelectionCard(
-                title = "From memory (Ḥifẓ)",
-                description = "Reciting by heart without holding a book; pages for self-check & Murāja'ah.",
-                tag = "HIFDH · SWITCH ANYTIME",
-                selected = selectedMode == ReadingMode.MEMORISING,
-                onClick = { onSelectMode(ReadingMode.MEMORISING) },
+                title = "Memorize (Ḥifẓ)",
+                description = "For learning new verses by heart; pages for self-check and recitation verification.",
+                tag = "ḤIFẒ · SWITCH ANYTIME",
+                selected = selectedType == TrackType.HIFZ,
+                onClick = { onSelectType(TrackType.HIFZ) },
             )
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(10.dp))
 
-            // Section 2: Reading Direction
+            SelectionCard(
+                title = "Review (Murāja'ah)",
+                description = "For revising what you've already memorized to maintain fluency.",
+                tag = "MURĀJA'AH · SWITCH ANYTIME",
+                selected = selectedType == TrackType.REVISION,
+                onClick = { onSelectType(TrackType.REVISION) },
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            // Section 2: Your Intention
             Text(
-                text = "2. READING DIRECTION",
+                text = "2. YOUR INTENTION",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = gold,
                 letterSpacing = 0.8.sp,
             )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "What are you hoping to achieve with this track?",
+                fontSize = 12.sp,
+                color = colors.textSecondary,
+            )
             Spacer(Modifier.height(8.dp))
 
-            SelectionCard(
-                title = "Towards Al-Fatihah (Reverse · Madrasa)",
-                description = "An-Nas ➔ Al-Fatihah. The standard West African & Ghanaian madrasa progression.",
-                tag = "MADRASA · SWITCH ANYTIME",
-                selected = selectedDirection == ReadingDirection.TOWARDS_FATIHAH,
-                onClick = { onSelectDirection(ReadingDirection.TOWARDS_FATIHAH) },
-            )
+            // Editable text box
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(12.dp),
+                        backgroundColor = if (isDark) Color(0xFF132019) else Color(0xFFFAF7EE),
+                        elevation = 1.dp,
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+            ) {
+                if (intention.isEmpty()) {
+                    Text(
+                        text = "Type your intention or tap a suggestion below...",
+                        fontSize = 13.5.sp,
+                        color = if (isDark) Color(0xFF6B8075) else Color(0xFF8C7D6B),
+                    )
+                }
+                androidx.compose.foundation.text.BasicTextField(
+                    value = intention,
+                    onValueChange = onIntentionChange,
+                    textStyle = TextStyle(
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    cursorBrush = SolidColor(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
+                )
+            }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
 
-            SelectionCard(
-                title = "Towards An-Nas (Forward)",
-                description = "Al-Fatihah ➔ An-Nas. Standard front-to-back recitation towards full Khatmah.",
-                tag = "STANDARD · SWITCH ANYTIME",
-                selected = selectedDirection == ReadingDirection.TOWARDS_NAS,
-                onClick = { onSelectDirection(ReadingDirection.TOWARDS_NAS) },
+            // Suggestion chips
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                intentionSuggestions.forEach { suggestion ->
+                    val isSelected = intention == suggestion
+                    Box(
+                        modifier = Modifier
+                            .clayPill(
+                                shape = RoundedCornerShape(999.dp),
+                                backgroundColor = if (isSelected) {
+                                    if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
+                                } else {
+                                    if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
+                                },
+                                elevation = 1.dp,
+                            )
+                            .clickable { onIntentionChange(suggestion) }
+                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                    ) {
+                        Text(
+                            text = if (isSelected) "✓ $suggestion" else suggestion,
+                            fontSize = 11.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) {
+                                if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                            } else {
+                                if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                            },
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+
+            // Section 3: Reading Order (Default with Expandable Change)
+            Text(
+                text = "3. READING ORDER",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = gold,
+                letterSpacing = 0.8.sp,
             )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Where do you want to start reading?",
+                fontSize = 12.sp,
+                color = colors.textSecondary,
+            )
+            Spacer(Modifier.height(8.dp))
+
+            if (!isChangingOrder) {
+                // Collapsed default card
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clayCard(
+                            shape = RoundedCornerShape(14.dp),
+                            backgroundColor = if (isDark) Color(0xFF14241B) else Color(0xFFFAF7EE),
+                            elevation = 1.dp,
+                        )
+                        .clickable { isChangingOrder = true }
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (selectedDirection == ReadingDirection.TOWARDS_FATIHAH) {
+                                "From An-Nās → Al-Fātiḥah (Default)"
+                            } else {
+                                "From Al-Fātiḥah → An-Nās"
+                            },
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = if (selectedDirection == ReadingDirection.TOWARDS_FATIHAH) {
+                                "Start from the end of the Qur'an and work toward the beginning."
+                            } else {
+                                "Start from the beginning and work toward the end."
+                            },
+                            fontSize = 11.sp,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isDark) Color(0xFF1E382B) else Color(0xFFE4EDE7))
+                            .padding(horizontal = 9.dp, vertical = 5.dp),
+                    ) {
+                        Text(
+                            text = "Change ▾",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                        )
+                    }
+                }
+            } else {
+                // Expanded options
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    SelectionCard(
+                        title = "Towards Al-Fatihah (Reverse · Madrasa)",
+                        description = "An-Nas ➔ Al-Fatihah. The standard West African & Ghanaian madrasa progression.",
+                        tag = "RECOMMENDED · DEFAULT",
+                        selected = selectedDirection == ReadingDirection.TOWARDS_FATIHAH,
+                        onClick = {
+                            onSelectDirection(ReadingDirection.TOWARDS_FATIHAH)
+                            isChangingOrder = false
+                        },
+                    )
+
+                    SelectionCard(
+                        title = "Towards An-Nas (Forward)",
+                        description = "Al-Fatihah ➔ An-Nas. Standard front-to-back recitation towards full Khatmah.",
+                        tag = "STANDARD",
+                        selected = selectedDirection == ReadingDirection.TOWARDS_NAS,
+                        onClick = {
+                            onSelectDirection(ReadingDirection.TOWARDS_NAS)
+                            isChangingOrder = false
+                        },
+                    )
+
+                    Text(
+                        text = "You can change this later in settings.",
+                        fontSize = 11.sp,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                    )
+                }
+            }
         }
 
         Column(modifier = Modifier.padding(bottom = 16.dp, top = 20.dp)) {
@@ -1823,6 +2027,8 @@ private fun Step9Blessing(
     chosenSurah: Surah?,
     startAyah: Int,
     dailyUnits: Int,
+    trackType: TrackType = TrackType.TILAWAH,
+    intention: String? = null,
     readingMode: ReadingMode,
     readingDirection: ReadingDirection,
     onLaunch: () -> Unit,
@@ -1915,17 +2121,17 @@ private fun Step9Blessing(
                 Spacer(Modifier.height(12.dp))
 
                 ProfileSummaryRow(
-                    label = "Starting Position",
+                    label = "Starting Point",
                     value = if (startPage == 582) "Juz 'Amma (Page 582)" else "${chosenSurah?.name ?: "Al-Fatihah"} (Page $startPage, Ayah $startAyah)",
                 )
                 Spacer(Modifier.height(8.dp))
                 ProfileSummaryRow(
-                    label = "Reading Direction",
-                    value = if (readingDirection == ReadingDirection.TOWARDS_FATIHAH) "Towards Al-Fatihah (Madrasa)" else "Towards An-Nas (Forward)",
+                    label = "Reading Order",
+                    value = if (readingDirection == ReadingDirection.TOWARDS_FATIHAH) "From An-Nās → Al-Fātiḥah (Madrasa)" else "From Al-Fātiḥah → An-Nās (Forward)",
                 )
                 Spacer(Modifier.height(8.dp))
                 ProfileSummaryRow(
-                    label = "Daily Reading Goal",
+                    label = "Daily Target",
                     value = when (dailyUnits) {
                         1 -> "Half a Page Daily (~2 mins)"
                         2 -> "1 Page Daily (~3 to 4 mins)"
@@ -1935,9 +2141,16 @@ private fun Step9Blessing(
                 )
                 Spacer(Modifier.height(8.dp))
                 ProfileSummaryRow(
-                    label = "Reading Method",
-                    value = if (readingMode == ReadingMode.READING) "From the Mushaf" else "From Memory (Ḥifẓ)",
+                    label = "Reading Goal",
+                    value = "${trackType.englishLabel} (${trackType.arabicLabel})",
                 )
+                if (!intention.isNullOrBlank()) {
+                    Spacer(Modifier.height(8.dp))
+                    ProfileSummaryRow(
+                        label = "Your Intention",
+                        value = intention,
+                    )
+                }
 
                 Spacer(Modifier.height(14.dp))
 

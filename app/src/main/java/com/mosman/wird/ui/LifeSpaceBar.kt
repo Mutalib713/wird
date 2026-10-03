@@ -442,8 +442,16 @@ fun TrackPickerDialog(
                                             )
                                         }
                                     }
+                                    val targetDesc = if (track.customTargetVerses != null) {
+                                        "${track.customTargetVerses} v/day"
+                                    } else if (track.dailyUnits == 1) {
+                                        "½ p/day"
+                                    } else {
+                                        "${track.dailyUnits / 2} p/day"
+                                    }
+                                    val intentionDesc = if (!track.intention.isNullOrBlank()) " · ${track.intention}" else ""
                                     Text(
-                                        text = "${track.surahName()} · ${track.scheduleLabel()} · ${track.dailyUnits / 2} p/day",
+                                        text = "${track.type.englishLabel} (${track.type.arabicLabel}) · ${track.surahName()} · $targetDesc$intentionDesc",
                                         fontSize = 10.5.sp,
                                         color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                                     )

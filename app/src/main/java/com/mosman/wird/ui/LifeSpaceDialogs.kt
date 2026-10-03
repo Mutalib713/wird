@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -462,24 +463,38 @@ fun EditTrackDialog(
     val isNameValid = !isNameBlank && !isNameDuplicate
 
     var type by remember { mutableStateOf(track.type) }
-    var activeDays by remember { mutableStateOf(track.activeDays) }
+    val predefinedIntentions = listOf(
+        "Build a daily Qur'an habit",
+        "Read the Qur'an consistently",
+        "Memorize new verses",
+        "Review what I've memorized",
+        "Complete more of the Qur'an",
+        "Stay connected to the Qur'an",
+        "Other",
+    )
+    var intention by remember {
+        mutableStateOf(track.intention ?: "Build a daily Qur'an habit")
+    }
+    var customIntentionText by remember {
+        mutableStateOf(if (track.intention != null && track.intention !in predefinedIntentions) track.intention ?: "" else "")
+    }
+
+    var activeDays by remember { mutableStateOf(track.activeDays.ifEmpty { DayOfWeek.entries.toSet() }) }
     var startPage by remember { mutableIntStateOf(track.pageNumber) }
     var startSurahNumber by remember {
         mutableStateOf(track.startVerseSurah ?: SurahIndex.on(track.pageNumber).firstOrNull()?.number ?: 1)
     }
     var startAyahNumber by remember { mutableIntStateOf(track.startVerseAyah ?: 1) }
     var dailyUnits by remember { mutableIntStateOf(track.dailyUnits) }
-    var isCustomTarget by remember { mutableStateOf(track.dailyUnits !in listOf(1, 2, 4)) }
+    var isCustomTarget by remember { mutableStateOf(track.customTargetVerses != null || track.dailyUnits !in listOf(1, 2, 4)) }
     var customVersesText by remember {
-        mutableStateOf(if (isCustomTarget) "${((track.dailyUnits / 2) * 10).coerceAtLeast(5)}" else "10")
+        mutableStateOf("${track.customTargetVerses ?: if (isCustomTarget) ((track.dailyUnits / 2) * 10).coerceAtLeast(5) else 10}")
     }
     var direction by remember { mutableStateOf(track.direction) }
 
     var showPositionPicker by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    val monThu = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY)
-    val satSun = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
     val daily = DayOfWeek.entries.toSet()
 
     Dialog(
@@ -510,7 +525,7 @@ fun EditTrackDialog(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 580.dp)
+                        .heightIn(max = 620.dp)
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
@@ -593,13 +608,19 @@ fun EditTrackDialog(
                         }
                     }
 
-                    // Field 2: Discipline (Ḥifẓ, Tilāwah, Murāja'ah)
+                    // Field 2: READING GOAL (Renamed from DISCIPLINE, bilingual, duplicate removed)
                     Column {
                         Text(
-                            text = "DISCIPLINE",
+                            text = "READING GOAL",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isDark) Color(0xFF8FA597) else Color(0xFF245847),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "What is the purpose of this track?",
+                            fontSize = 11.5.sp,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                         )
                         Spacer(Modifier.height(6.dp))
                         Row(
@@ -620,121 +641,246 @@ fun EditTrackDialog(
                                             elevation = if (isSelected) 3.dp else 1.dp,
                                         )
                                         .clickable { type = t }
-                                        .padding(vertical = 9.dp),
+                                        .padding(horizontal = 4.dp, vertical = 9.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    Text(
-                                        text = t.label,
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) {
-                                            if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
-                                        } else {
-                                            if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
-                                        },
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = t.englishLabel,
+                                            fontSize = 13.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                            color = if (isSelected) {
+                                                if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                                            } else {
+                                                if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D)
+                                            },
+                                        )
+                                        Text(
+                                            text = t.arabicLabel,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            text = t.description,
+                                            fontSize = 9.5.sp,
+                                            lineHeight = 12.sp,
+                                            textAlign = TextAlign.Center,
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Field 3: YOUR INTENTION (Meaningful habit anchors replacing generic motivation)
+                    Column {
+                        Text(
+                            text = "YOUR INTENTION",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF245847),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "What are you hoping to achieve with this track?",
+                            fontSize = 11.5.sp,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        )
+                        Spacer(Modifier.height(6.dp))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            predefinedIntentions.chunked(2).forEach { pair ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    pair.forEach { item ->
+                                        val isSelected = (item != "Other" && intention == item) ||
+                                            (item == "Other" && (intention == "Other" || intention !in predefinedIntentions))
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clayPill(
+                                                    backgroundColor = if (isSelected) {
+                                                        if (isDark) Color(0xFF1E3A2E) else Color(0xFF245847)
+                                                    } else {
+                                                        if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
+                                                    },
+                                                    elevation = if (isSelected) 2.dp else 1.dp,
+                                                )
+                                                .clickable {
+                                                    intention = item
+                                                }
+                                                .padding(horizontal = 6.dp, vertical = 7.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Text(
+                                                text = item,
+                                                fontSize = 11.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                textAlign = TextAlign.Center,
+                                                color = if (isSelected) {
+                                                    Color.White
+                                                } else {
+                                                    if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                                },
+                                            )
+                                        }
+                                    }
+                                    if (pair.size == 1) {
+                                        Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                            }
+
+                            if (intention == "Other" || intention !in predefinedIntentions) {
+                                Spacer(Modifier.height(2.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clayCard(
+                                            shape = RoundedCornerShape(12.dp),
+                                            backgroundColor = if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6),
+                                            elevation = 1.dp,
+                                        )
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                ) {
+                                    if (customIntentionText.isEmpty()) {
+                                        Text(
+                                            text = "e.g. Preparing for Ramadan, family khatmah",
+                                            color = if (isDark) Color(0xFF5D7569) else Color(0xFFA0B0A6),
+                                            fontSize = 12.sp,
+                                        )
+                                    }
+                                    BasicTextField(
+                                        value = customIntentionText,
+                                        onValueChange = { customIntentionText = it },
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                        ),
+                                        cursorBrush = SolidColor(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
+                                        modifier = Modifier.fillMaxWidth(),
                                     )
                                 }
                             }
                         }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = type.meaning,
-                            fontSize = 11.5.sp,
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
-                        )
                     }
 
-                    // Field 3: Active Days
+                    // Field 4: RECITATION DAYS (Renamed from Active Days, with Days Off helper)
                     Column {
                         Text(
-                            text = "ACTIVE DAYS",
+                            text = "RECITATION DAYS",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isDark) Color(0xFF8FA597) else Color(0xFF245847),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "Which days do you want to read?",
+                            fontSize = 11.5.sp,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                         )
                         Spacer(Modifier.height(6.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            listOf("Mon–Thu" to monThu, "Sat–Sun" to satSun, "Daily" to daily).forEach { (label, days) ->
-                                val isSelected = activeDays == days
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clayPill(
-                                            backgroundColor = if (isSelected) {
-                                                if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
-                                            } else {
-                                                if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
-                                            },
-                                            elevation = if (isSelected) 2.dp else 1.dp,
-                                        )
-                                        .clickable { activeDays = days }
-                                        .padding(vertical = 6.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = label,
-                                        fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) {
-                                            if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                            val isAllDays = activeDays.size == 7
+                            Box(
+                                modifier = Modifier
+                                    .clayPill(
+                                        backgroundColor = if (isAllDays) {
+                                            if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
                                         } else {
-                                            if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                            if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
                                         },
+                                        elevation = if (isAllDays) 2.dp else 1.dp,
                                     )
+                                    .clickable { activeDays = daily }
+                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "Every day",
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isAllDays) FontWeight.Bold else FontWeight.SemiBold,
+                                    color = if (isAllDays) {
+                                        if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                                    } else {
+                                        if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                    },
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            ) {
+                                listOf(
+                                    "M" to DayOfWeek.MONDAY,
+                                    "T" to DayOfWeek.TUESDAY,
+                                    "W" to DayOfWeek.WEDNESDAY,
+                                    "T" to DayOfWeek.THURSDAY,
+                                    "F" to DayOfWeek.FRIDAY,
+                                    "S" to DayOfWeek.SATURDAY,
+                                    "S" to DayOfWeek.SUNDAY,
+                                ).forEach { (char, dow) ->
+                                    val isSelected = dow in activeDays
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clayPill(
+                                                backgroundColor = if (isSelected) {
+                                                    if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                                                } else {
+                                                    if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
+                                                },
+                                                elevation = if (isSelected) 2.dp else 1.dp,
+                                            )
+                                            .clickable {
+                                                activeDays = if (isSelected) {
+                                                    if (activeDays.size > 1) activeDays - dow else activeDays
+                                                } else activeDays + dow
+                                            }
+                                            .padding(vertical = 7.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            text = char,
+                                            fontSize = 11.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) {
+                                                if (isDark) Color(0xFF0D2720) else Color.White
+                                            } else {
+                                                if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
-                        Spacer(Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            listOf(
-                                "M" to DayOfWeek.MONDAY,
-                                "T" to DayOfWeek.TUESDAY,
-                                "W" to DayOfWeek.WEDNESDAY,
-                                "T" to DayOfWeek.THURSDAY,
-                                "F" to DayOfWeek.FRIDAY,
-                                "S" to DayOfWeek.SATURDAY,
-                                "S" to DayOfWeek.SUNDAY,
-                            ).forEach { (char, dow) ->
-                                val isSelected = dow in activeDays
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clayPill(
-                                            backgroundColor = if (isSelected) {
-                                                if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
-                                            } else {
-                                                if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
-                                            },
-                                            elevation = if (isSelected) 2.dp else 1.dp,
-                                        )
-                                        .clickable {
-                                            activeDays = if (isSelected) activeDays - dow else activeDays + dow
-                                        }
-                                        .padding(vertical = 8.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        text = char,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) {
-                                            if (isDark) Color(0xFF0D2720) else Color.White
-                                        } else {
-                                            if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378)
-                                        },
-                                    )
-                                }
-                            }
+                        Spacer(Modifier.height(4.dp))
+                        val excludedDays = DayOfWeek.entries.filter { it !in activeDays }
+                        val daysOffNote = if (excludedDays.isEmpty()) {
+                            "Reminders active every day"
+                        } else {
+                            "Days off: Don't remind me on days I'm unavailable (${excludedDays.joinToString { it.name.take(3).lowercase().replaceFirstChar(Char::uppercase) }})"
                         }
+                        Text(
+                            text = daysOffNote,
+                            fontSize = 11.sp,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        )
                     }
 
-                    // Field 4: Reading Position (Sūrah, Ayah, Page)
+                    // Field 5: STARTING POINT (Renamed from READING POSITION)
                     val surahObj = SurahIndex.byNumber(startSurahNumber)
                     val surahDisplay = surahObj?.name ?: (SurahIndex.on(startPage).firstOrNull()?.name ?: "Unknown")
                     Column {
@@ -744,7 +890,7 @@ fun EditTrackDialog(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "READING POSITION",
+                                text = "STARTING POINT",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isDark) Color(0xFF8FA597) else Color(0xFF245847),
@@ -787,7 +933,7 @@ fun EditTrackDialog(
                                 )
                             }
                             Text(
-                                text = "Choose ›",
+                                text = "Change ›",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
@@ -859,7 +1005,7 @@ fun EditTrackDialog(
                         }
                     }
 
-                    // Field 5: Daily Target with Presets and Custom Verses
+                    // Field 6: DAILY TARGET (Supports Custom Verses)
                     Column {
                         Text(
                             text = "DAILY TARGET",
@@ -867,13 +1013,19 @@ fun EditTrackDialog(
                             fontWeight = FontWeight.Bold,
                             color = if (isDark) Color(0xFF8FA597) else Color(0xFF245847),
                         )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "How much do you want to read each day?",
+                            fontSize = 11.5.sp,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        )
                         Spacer(Modifier.height(6.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             listOf(
-                                "Half page" to 1,
+                                "½ page" to 1,
                                 "1 page" to 2,
                                 "2 pages" to 4,
                             ).forEach { (label, units) ->
@@ -953,21 +1105,28 @@ fun EditTrackDialog(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                Text(
-                                    text = "Verses per day:",
-                                    fontSize = 12.5.sp,
-                                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                                    fontWeight = FontWeight.Medium,
-                                )
+                                Column {
+                                    Text(
+                                        text = "Custom target",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                    )
+                                    Text(
+                                        text = "Number of verses:",
+                                        fontSize = 11.sp,
+                                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                    )
+                                }
                                 Box(
                                     modifier = Modifier
-                                        .width(64.dp)
+                                        .width(72.dp)
                                         .clayCard(
                                             shape = RoundedCornerShape(8.dp),
                                             backgroundColor = if (isDark) Color(0xFF0F1A14) else Color.White,
                                             elevation = 1.dp,
                                         )
-                                        .padding(horizontal = 6.dp, vertical = 5.dp),
+                                        .padding(horizontal = 8.dp, vertical = 6.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     BasicTextField(
@@ -996,7 +1155,161 @@ fun EditTrackDialog(
                         }
                     }
 
-                    Spacer(Modifier.height(8.dp))
+                    // Field 7: READING ORDER (Renamed from Reading Direction, with plain explanations)
+                    Column {
+                        Text(
+                            text = "READING ORDER",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF245847),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "Where do you want to start?",
+                            fontSize = 11.5.sp,
+                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                        )
+                        Spacer(Modifier.height(6.dp))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // Option A: An-Nās → Al-Fātiḥah
+                            val isTowardsFatihah = direction == ReadingDirection.TOWARDS_FATIHAH
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clayCard(
+                                        shape = RoundedCornerShape(14.dp),
+                                        backgroundColor = if (isTowardsFatihah) {
+                                            if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
+                                        } else {
+                                            if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
+                                        },
+                                        elevation = if (isTowardsFatihah) 2.dp else 1.dp,
+                                    )
+                                    .clickable { direction = ReadingDirection.TOWARDS_FATIHAH }
+                                    .padding(12.dp),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isTowardsFatihah) {
+                                                    if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                                                } else Color.Transparent
+                                            )
+                                            .then(
+                                                if (!isTowardsFatihah) {
+                                                    Modifier.background(if (isDark) Color.White.copy(alpha = 0.2f) else Color(0xFF8C7D6B).copy(alpha = 0.3f))
+                                                } else Modifier
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        if (isTowardsFatihah) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color.White)
+                                            )
+                                        }
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "From An-Nās → Al-Fātiḥah",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            text = "Start from the end of the Qur'an and work toward the beginning.",
+                                            fontSize = 11.sp,
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                            lineHeight = 15.sp,
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Option B: Al-Fātiḥah → An-Nās
+                            val isTowardsNas = direction == ReadingDirection.TOWARDS_NAS
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clayCard(
+                                        shape = RoundedCornerShape(14.dp),
+                                        backgroundColor = if (isTowardsNas) {
+                                            if (isDark) Color(0xFF1E3A2E) else Color(0xFFDCEDE3)
+                                        } else {
+                                            if (isDark) Color(0xFF13201A) else Color(0xFFF3EFE6)
+                                        },
+                                        elevation = if (isTowardsNas) 2.dp else 1.dp,
+                                    )
+                                    .clickable { direction = ReadingDirection.TOWARDS_NAS }
+                                    .padding(12.dp),
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isTowardsNas) {
+                                                    if (isDark) Color(0xFF8ED676) else Color(0xFF245847)
+                                                } else Color.Transparent
+                                            )
+                                            .then(
+                                                if (!isTowardsNas) {
+                                                    Modifier.background(if (isDark) Color.White.copy(alpha = 0.2f) else Color(0xFF8C7D6B).copy(alpha = 0.3f))
+                                                } else Modifier
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        if (isTowardsNas) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color.White)
+                                            )
+                                        }
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "From Al-Fātiḥah → An-Nās",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                                        )
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            text = "Start from the beginning and work toward the end.",
+                                            fontSize = 11.sp,
+                                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                                            lineHeight = 15.sp,
+                                        )
+                                    }
+                                }
+                            }
+
+                            Text(
+                                text = "You can change this later.",
+                                fontSize = 11.sp,
+                                fontStyle = FontStyle.Italic,
+                                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(4.dp))
 
                     // Save and Delete Buttons
                     Row(
@@ -1037,9 +1350,17 @@ fun EditTrackDialog(
                                 )
                                 .clickable(enabled = isNameValid) {
                                     if (isNameValid) {
+                                        val finalIntention = if (intention == "Other") {
+                                            customIntentionText.trim().ifEmpty { "Other" }
+                                        } else {
+                                            intention
+                                        }
+                                        val customVerses = if (isCustomTarget) customVersesText.toIntOrNull() ?: 10 else null
                                         val updated = track.copy(
                                             name = trimmedName,
                                             type = type,
+                                            intention = finalIntention,
+                                            customTargetVerses = customVerses,
                                             activeDays = activeDays,
                                             positionUnit = (startPage - 1) * Mushaf.UNITS_PER_PAGE,
                                             dailyUnits = dailyUnits,
@@ -1985,6 +2306,7 @@ fun ManageTracksDialog(
                                         backgroundColor = trackBg,
                                         elevation = 2.dp,
                                     )
+                                    .clickable { onEditTrack(track) }
                                     .padding(14.dp),
                             ) {
                                 Row(
@@ -2011,8 +2333,7 @@ fun ManageTracksDialog(
                                             modifier = Modifier
                                                 .size(20.dp)
                                                 .clip(CircleShape)
-                                                .background(if (isDark) Color(0xFF1E3A2E) else Color(0xFFE3EDE6))
-                                                .clickable { onEditTrack(track) },
+                                                .background(if (isDark) Color(0xFF1E3A2E) else Color(0xFFE3EDE6)),
                                             contentAlignment = Alignment.Center,
                                         ) {
                                             EditPencilGlyph(
@@ -2042,8 +2363,9 @@ fun ManageTracksDialog(
                                 Spacer(Modifier.height(4.dp))
                                 val surah = track.surahName()
                                 val posDesc = if (surah.isNotEmpty()) "$surah · Page ${track.pageNumber}" else "Page ${track.pageNumber}"
+                                val intentionPart = if (!track.intention.isNullOrBlank()) " · ${track.intention}" else ""
                                 Text(
-                                    text = "${track.type.label} · ${track.scheduleLabel()} · $posDesc",
+                                    text = "${track.type.englishLabel} (${track.type.arabicLabel}) · ${track.scheduleLabel()} · $posDesc$intentionPart",
                                     fontSize = 11.5.sp,
                                     color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),
                                 )

@@ -269,13 +269,22 @@ fun HomeScreen(
             progress?.let { p ->
                 Spacer(Modifier.height(Scale.space4))
                 StaggeredEnter(index = cardIndex++) {
-                    NumbersCard(p)
+                    NumbersCard(p = p, activeTrack = activeTrack)
                 }
             }
 
             Spacer(Modifier.height(Scale.space4))
+            val trackRecent = remember(recent, activeTrack) {
+                if (activeTrack == null) recent
+                else {
+                    val filtered = recent.filter { it.trackId == activeTrack.id }
+                    if (filtered.isNotEmpty()) filtered
+                    else if (recent.all { it.trackId == null }) recent
+                    else emptyList()
+                }
+            }
             StaggeredEnter(index = cardIndex++) {
-                ThisWeekCard(recent, pageFor)
+                ThisWeekCard(trackRecent, pageFor)
             }
 
             // Bottom clearance for floating island dock
@@ -486,14 +495,23 @@ private fun PortionCard(
 
         Spacer(Modifier.height(14.dp))
 
-        // 3 Clay stat boxes (1 page, start page, % through mushaf or track streak)
+        // 3 Clay stat boxes (Daily target, start page, track streak)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            val targetLabel = if (activeTrack?.customTargetVerses != null) {
+                "${activeTrack.customTargetVerses} verses"
+            } else if (assignment.units <= 1) {
+                "½ page"
+            } else if (assignment.units <= 2) {
+                "1 page"
+            } else {
+                "${assignment.units / 2} pages"
+            }
             ClayStatPill(
-                value = if (assignment.units <= 2) "1 page" else "${assignment.units / 2} pages",
-                label = "Daily amount",
+                value = targetLabel,
+                label = "Daily target",
                 modifier = Modifier.weight(1f),
             )
             ClayStatPill(
@@ -502,8 +520,8 @@ private fun PortionCard(
                 modifier = Modifier.weight(1f),
             )
             ClayStatPill(
-                value = if (activeTrack != null && activeTrack.currentStreak > 0) "${activeTrack.currentStreak}d" else "$percent%",
-                label = if (activeTrack != null && activeTrack.currentStreak > 0) "Track streak" else "Of mushaf",
+                value = "${activeTrack?.currentStreak ?: 0}d",
+                label = "Track streak",
                 valueColor = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
                 modifier = Modifier.weight(1f),
             )
@@ -511,21 +529,27 @@ private fun PortionCard(
 
         Spacer(Modifier.height(12.dp))
 
-        // Progress bar with dual page markers
+        // Sūrah completion progress loader (measures progress through this sūrah rather than the whole mushaf)
+        val surahSpan = surah?.let { (it.lastPage - it.firstPage + 1).coerceAtLeast(1) } ?: 1
+        val surahInto = surah?.let { (assignment.startPage - it.firstPage).coerceAtLeast(0) } ?: 0
+        val surahFraction = (surahInto.toFloat() / surahSpan).coerceIn(0f, 1f)
+        val surahPercentLeft = ((1f - surahFraction) * 100).toInt()
+        val surahPagesLeft = surah?.let { (it.lastPage - assignment.startPage).coerceAtLeast(0) } ?: 0
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Page ${assignment.startPage} of 604",
-                fontSize = 10.5.sp,
-                fontWeight = FontWeight.Medium,
-                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                text = "📖 Sūrah ${surah?.name ?: "Completion"}",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
             )
             Text(
-                text = "${(604 - assignment.startPage).coerceAtLeast(0)} pages left",
-                fontSize = 10.5.sp,
+                text = "$surahPercentLeft% left",
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
             )
@@ -540,23 +564,40 @@ private fun PortionCard(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(fraction.coerceAtLeast(0.04f))
+                    .fillMaxWidth(surahFraction.coerceAtLeast(0.04f))
                     .height(7.dp)
                     .clip(RoundedCornerShape(999.dp))
                     .background(if (isDark) Color(0xFF68BD5B) else Color(0xFF245847)),
             )
         }
+        Spacer(Modifier.height(4.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = if (surah != null) "Page ${assignment.startPage} of ${surah.lastPage} in this sūrah" else "Page ${assignment.startPage}",
+                fontSize = 10.5.sp,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+            )
+            Text(
+                text = if (surahPagesLeft == 0) "Last page of sūrah" else "$surahPagesLeft pages left",
+                fontSize = 10.5.sp,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+            )
+        }
 
         Spacer(Modifier.height(16.dp))
 
-        // ---- the four tactile action tiles ----
+        // ---- the three tactile action tiles on the exact same row (Candidate 1) ----
         val done = doneMethod != null
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ActionTile(
-                label = reciteLabel(mode),
+                label = "Recite & Verify",
                 glyph = { MicGlyph(it) },
                 isPrimary = true,
                 modifier = Modifier.weight(1f),
@@ -573,20 +614,42 @@ private fun PortionCard(
                 onClick = onMarkRead,
             )
             ActionTile(
-                label = "Listen",
-                glyph = { tint ->
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
-                },
-                isPrimary = false,
-                modifier = Modifier.weight(1f),
-                onClick = onOpenPage,
-            )
-            ActionTile(
-                label = "Mushaf",
+                label = "Open Page",
                 glyph = { BookGlyph(it) },
                 isPrimary = false,
                 modifier = Modifier.weight(1f),
                 onClick = onOpenPage,
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Recite today's portion and we'll check your recitation.",
+                fontSize = 9.5.sp,
+                lineHeight = 12.5.sp,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = if (!done) "Already recited it? Mark today complete." else "Portion completed for today.",
+                fontSize = 9.5.sp,
+                lineHeight = 12.5.sp,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                text = "Read the mushaf page directly.",
+                fontSize = 9.5.sp,
+                lineHeight = 12.5.sp,
+                color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Center,
             )
         }
 
@@ -953,10 +1016,15 @@ private fun ThroughTheMushaf(assignment: Assignment) {
  * The two numbers, plus the split, in the approved clay layout.
  */
 @Composable
-private fun NumbersCard(p: Progress) {
+private fun NumbersCard(p: Progress, activeTrack: ReadingTrack? = null) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
-    val aloudRatio = if (p.totalDaysRead > 0) (p.recitedDays * 100) / p.totalDaysRead else 0
+    val streakVal = activeTrack?.currentStreak ?: p.currentStreak
+    val totalDaysVal = if (activeTrack != null && activeTrack.totalDaysRead > 0) activeTrack.totalDaysRead else p.totalDaysRead
+    val aloudRatio = if (totalDaysVal > 0) {
+        val recited = p.recitedDays
+        (recited * 100) / totalDaysVal
+    } else 0
 
     Plate {
         Row(
@@ -970,7 +1038,7 @@ private fun NumbersCard(p: Progress) {
                 style = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp),
             )
             Text(
-                text = "Overall progress",
+                text = activeTrack?.name ?: "Overall progress",
                 color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
                 style = TextStyle(fontSize = 11.sp),
             )
@@ -988,12 +1056,21 @@ private fun NumbersCard(p: Progress) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "🔥 ${p.currentStreak}",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = streakColor,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_flame),
+                        contentDescription = null,
+                        tint = streakColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "$streakVal",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = streakColor,
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Day Streak",
@@ -1017,12 +1094,21 @@ private fun NumbersCard(p: Progress) {
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "📖 ${p.totalDaysRead}",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = daysColor,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_book_quran),
+                        contentDescription = null,
+                        tint = daysColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "$totalDaysVal",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = daysColor,
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = "Total Days",
@@ -1040,21 +1126,30 @@ private fun NumbersCard(p: Progress) {
                     .background(if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFF8C7D6B).copy(alpha = 0.2f))
             )
 
-            // Col 3: Aloud Ratio
+            // Col 3: Recited aloud
             val aloudColor = if (isDark) Color(0xFF50A773) else Color(0xFF245847)
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "🎙️ $aloudRatio%",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = aloudColor,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_mic),
+                        contentDescription = null,
+                        tint = aloudColor,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        text = "$aloudRatio%",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = aloudColor,
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Aloud Ratio",
+                    text = "Recited aloud",
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Medium,
                     color = if (isDark) Color(0xFF8FA597) else Color(0xFF6F8378),

@@ -7,11 +7,19 @@ import java.time.LocalDate
 
 /**
  * The category of recitation discipline for a reading track.
+ * Bilingual: English primary, Arabic terminology secondary underneath.
  */
-enum class TrackType(val label: String, val meaning: String) {
-    HIFZ("Ḥifẓ", "Memorization"),
-    TILAWAH("Tilāwah", "Reading"),
-    REVISION("Murāja'ah", "Revision & Review"),
+enum class TrackType(
+    val englishLabel: String,
+    val arabicLabel: String,
+    val description: String,
+) {
+    TILAWAH("Read", "Tilāwah", "For regularly reading Qur'an"),
+    HIFZ("Memorize", "Ḥifẓ", "For learning new verses by heart"),
+    REVISION("Review", "Murāja'ah", "For revising what you've already memorized");
+
+    val label: String get() = englishLabel
+    val meaning: String get() = description
 }
 
 /**
@@ -31,6 +39,10 @@ data class ReadingTrack(
     val id: String,
     val name: String,
     val type: TrackType = TrackType.HIFZ,
+    /** Meaningful intention/purpose anchor (e.g. "Build a daily habit", "Memorize new verses") */
+    val intention: String? = null,
+    /** Custom target verse count when custom verses target is configured */
+    val customTargetVerses: Int? = null,
     /** Which days of the week this track activates when in AUTOMATIC mode. */
     val activeDays: Set<DayOfWeek> = emptySet(),
     /** Position in half-page units for this specific track */
@@ -58,6 +70,8 @@ data class ReadingTrack(
         put("id", id)
         put("name", name)
         put("type", type.name)
+        if (intention != null) put("intention", intention)
+        if (customTargetVerses != null) put("customTargetVerses", customTargetVerses)
         put("activeDays", JSONArray(activeDays.map { it.name }))
         put("positionUnit", positionUnit)
         put("direction", direction.name)
@@ -110,11 +124,15 @@ data class ReadingTrack(
 
             val sSurah = if (json.has("startVerseSurah")) json.getInt("startVerseSurah") else null
             val sAyah = if (json.has("startVerseAyah")) json.getInt("startVerseAyah") else null
+            val intention = json.optString("intention").takeIf { it.isNotEmpty() }
+            val customTargetVerses = if (json.has("customTargetVerses")) json.getInt("customTargetVerses") else null
 
             return ReadingTrack(
                 id = json.getString("id"),
                 name = json.getString("name"),
                 type = runCatching { TrackType.valueOf(json.getString("type")) }.getOrDefault(TrackType.HIFZ),
+                intention = intention,
+                customTargetVerses = customTargetVerses,
                 activeDays = days,
                 positionUnit = json.optInt("positionUnit", 0),
                 direction = runCatching { ReadingDirection.valueOf(json.optString("direction", ReadingDirection.TOWARDS_NAS.name)) }.getOrDefault(ReadingDirection.TOWARDS_NAS),
