@@ -37,12 +37,10 @@ Wird supports multiple parallel reading tracks:
 Instead of merely checking off a reading, tap **Recite** to recite aloud.
 
 * **100% on-device speech recognition:** Powered by a customized Whisper speech model (`tarteel-ai/whisper-base-ar-quran`), running locally via on-device machine learning inference. No audio recordings or transcripts are ever uploaded to any server.
-* **Selectable AI models:** Choose between **Whisper Accurate** (higher precision Arabic phoneme recognition, recommended) and **Whisper Compact** (faster, lightweight model for older phones).
+* **Two model sizes, downloaded once:** **More accurate** (78 MB) or **Smaller** (42 MB, faster on older phones). Both are ggml conversions of Tarteel's model.
 * **Real-time audio level meter:** Visual feedback shows your microphone input while reciting.
-* **Word-by-word diffing:** After you finish reciting, your words are compared directly against the Uthmani text of the assigned portion:
-  * Accurately recited words are displayed in dark, crisp text.
-  * Missed, substituted, or skipped words are clearly highlighted in soft coral.
-  * A clear word accuracy percentage score is calculated.
+* **Verse-level review marks:** After you finish reciting, what Whisper heard is lined up against the bundled Arabic text of the portion (Quran.com's imlaei script) with a longest-common-subsequence comparison. Verses where words seem to be missing are tinted amber on the mushaf page. If too little of the portion was heard (under 70% coverage), it marks nothing and says so instead of guessing.
+* **Not yet measured:** the checker has been run on short clips and on unit tests, never on a full page recited in a real room. Treat its marks as a hint, not a verdict, until that test is done (PLAN task 14).
 * **Clean history storage:** Recitation audio and transcripts are stored locally. In your Wird history, recordings are neatly tucked behind an expandable "See recitation" toggle so your daily review stays clean.
 
 ### 3. The authentic Madani mushaf page
@@ -88,7 +86,7 @@ The companion is an interactive guide designed to help you maintain your habit:
   * *"I am travelling until Sunday"* (pauses reminders until you return without breaking your total days read)
   * *"Move my reminder to 9:00 PM from now on"*
 * **Quick reply chips:** Quick-response buttons let you report status in one tap: *"Already recited today"*, *"Remind in 1 hour"*, or *"Not today"*.
-* **Tafsir reflection cards:** Expandable classical reflection cards provide contextual commentary and historical background on the sūrahs and ayahs in your current portion.
+* **Tafsir cards:** Tafsir Ibn Kathir (abridged, Dar-us-Salam) for an ayah in your portion, fetched from the Quran.com API and shown as expandable sections. It needs internet the first time, is cached after that, and is shortened to the first few sections, with the source named on the card.
 * **Sacred Rule 3:** The companion never expresses frustration, guilt, or judgment when you miss a day. A missed day is acknowledged calmly, and tomorrow remains a clean start.
 
 ### 7. Tactile claymorphism interface
