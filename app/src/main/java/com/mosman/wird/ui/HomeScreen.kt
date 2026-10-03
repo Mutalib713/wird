@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.mosman.wird.R
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Assignment
+import com.mosman.wird.domain.ayahRangeIn
 import com.mosman.wird.domain.DayLog
 import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
@@ -385,8 +386,11 @@ private fun PortionCard(
     val surahs = remember(assignment) { assignment.surahs }
     val surah = surahs.firstOrNull() ?: com.mosman.wird.domain.SurahIndex.on(assignment.startPage).firstOrNull()
     val name = surah?.name ?: "Page ${assignment.startPage}"
-    val ayahRange = remember(assignment, surah) {
-        if (surah != null) com.mosman.wird.domain.PageVerses.ayahRange(context, assignment.pages, surah.number) else null
+    // Today's verses only (com.mosman.wird.domain.portionKeys): this used to count every ayah on
+    // the portion's pages, so "10 verses" from Al-Baqarah 1 read as "Ayahs 1–16".
+    val ayahRange = remember(assignment, surah, activeTrack) {
+        val start = activeTrack?.startVerseSurah?.let { s -> activeTrack.startVerseAyah?.let { a -> s to a } }
+        if (surah != null) assignment.ayahRangeIn(surah.number, start) else null
     }
     val page = Mushaf.pageOf(assignment.startUnit)
     val span = surah?.let { (it.lastPage - it.firstPage + 1).coerceAtLeast(1) } ?: 1

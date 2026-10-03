@@ -728,9 +728,29 @@ class WirdStore(context: Context) {
      * and re-marking a day can never leave them wrong. The start ayah is cleared because it
      * only ever applied to the first page — and on *this* track, not whichever is active now.
      */
-    fun advanceTrack(trackId: String, nextStartUnit: Int) {
+    fun advanceTrack(trackId: String, nextStartUnit: Int, nextVerse: Pair<Int, Int>? = null) {
         val track = readTracks().firstOrNull { it.id == trackId } ?: return
-        updateTrack(track.copy(positionUnit = nextStartUnit, startVerseSurah = null, startVerseAyah = null))
+        // A verse portion knows exactly which verse is next, so it keeps it; a page portion
+        // starts tomorrow at the top of its half-page.
+        updateTrack(
+            track.copy(
+                positionUnit = nextStartUnit,
+                startVerseSurah = nextVerse?.first,
+                startVerseAyah = nextVerse?.second,
+            )
+        )
+    }
+
+    /** Put a verse track back to [verse] after its day was undone. */
+    fun rewindTrackToVerse(trackId: String, verse: Pair<Int, Int>) {
+        val track = readTracks().firstOrNull { it.id == trackId } ?: return
+        updateTrack(
+            track.copy(
+                positionUnit = com.mosman.wird.domain.VerseIndex.unitOf(verse),
+                startVerseSurah = verse.first,
+                startVerseAyah = verse.second,
+            )
+        )
     }
 
     /** Put [trackId] back to [startUnit] after its day was undone. The log row is removed separately. */

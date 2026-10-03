@@ -118,6 +118,8 @@ fun SetupScreen(
         direction: ReadingDirection,
         trackType: TrackType,
         intention: String?,
+        /** A custom "N verses a day" target, or null for a page target. */
+        customVerses: Int?,
     ) -> Unit,
 ) {
     val colors = LocalWirdColors.current
@@ -385,7 +387,9 @@ fun SetupScreen(
                         readingDirection = readingDirection,
                         onLaunch = {
                             val versePair = chosenSurah?.number?.let { s -> s to startAyah }
-                            onDone(startPage, dailyUnits, versePair, readerName, readingMode, readingDirection, trackType, intentionText)
+                            // The custom verse count used to be typed here and then dropped.
+                            val verses = if (isCustomTarget) customVersesText.toIntOrNull()?.takeIf { it > 0 } else null
+                            onDone(startPage, dailyUnits, versePair, readerName, readingMode, readingDirection, trackType, intentionText, verses)
                         },
                     )
                 }

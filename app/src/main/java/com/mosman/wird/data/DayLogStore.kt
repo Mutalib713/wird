@@ -48,6 +48,17 @@ class DayLogStore(filesDir: File) {
 
     fun methodFor(date: LocalDate, trackId: String): Method? = rowFor(read(), date, trackId)?.log?.method
 
+    /**
+     * For a day whose portion was a number of verses: the first verse and how many. Null for a
+     * page portion. Kept so a finished verse portion still shows exactly what was read.
+     */
+    fun coveredVerses(date: LocalDate, trackId: String): Pair<Pair<Int, Int>, Int>? =
+        rowFor(read(), date, trackId)?.let { r ->
+            val first = r.firstVerse?.split(':')?.mapNotNull { it.toIntOrNull() }
+            val count = r.verseCount
+            if (first != null && first.size == 2 && count != null && count > 0) (first[0] to first[1]) to count else null
+        }
+
     /** What a finished day actually covered, as (start unit, units). */
     fun coveredOn(date: LocalDate, trackId: String): Pair<Int, Int>? =
         rowFor(read(), date, trackId)?.let { r -> r.startUnit?.let { s -> r.units?.let { u -> s to u } } }
@@ -84,6 +95,8 @@ class DayLogStore(filesDir: File) {
         startUnit: Int? = null,
         units: Int? = null,
         trackId: String,
+        firstVerse: Pair<Int, Int>? = null,
+        verseCount: Int? = null,
         trackName: String? = null,
     ) {
         val rows = read().toMutableList()
@@ -93,6 +106,8 @@ class DayLogStore(filesDir: File) {
             audio = audio?.name,
             startUnit = startUnit,
             units = units,
+            firstVerse = firstVerse?.let { "${it.first}:${it.second}" },
+            verseCount = verseCount,
         )
         if (existing >= 0) {
             val was = rows[existing]
@@ -102,6 +117,8 @@ class DayLogStore(filesDir: File) {
                 audio = row.audio ?: was.audio,
                 startUnit = row.startUnit ?: was.startUnit,
                 units = row.units ?: was.units,
+                firstVerse = row.firstVerse ?: was.firstVerse,
+                verseCount = row.verseCount ?: was.verseCount,
                 transcription = was.transcription,
             )
         } else {
@@ -145,6 +162,9 @@ class DayLogStore(filesDir: File) {
         val audio: String?,
         val startUnit: Int? = null,
         val units: Int? = null,
+        /** "sūrah:ayah" of a verse portion's first verse. Null for a page portion. */
+        val firstVerse: String? = null,
+        val verseCount: Int? = null,
         val transcription: String? = null,
     )
 
@@ -166,6 +186,8 @@ class DayLogStore(filesDir: File) {
                             audio = o.optString("audio").ifEmpty { null },
                             startUnit = if (o.has("startUnit")) o.getInt("startUnit") else null,
                             units = if (o.has("units")) o.getInt("units") else null,
+                            firstVerse = o.optString("firstVerse").ifEmpty { null },
+                            verseCount = if (o.has("verseCount")) o.getInt("verseCount") else null,
                             transcription = o.optString("transcription").ifEmpty { null },
                         )
                     )
@@ -193,6 +215,8 @@ class DayLogStore(filesDir: File) {
                         r.audio?.let { put("audio", it) }
                         r.startUnit?.let { put("startUnit", it) }
                         r.units?.let { put("units", it) }
+                        r.firstVerse?.let { put("firstVerse", it) }
+                        r.verseCount?.let { put("verseCount", it) }
                         r.transcription?.let { put("transcription", it) }
                     }
             )

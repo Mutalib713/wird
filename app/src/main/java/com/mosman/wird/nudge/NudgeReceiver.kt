@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import com.mosman.wird.MainActivity
 import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.assignmentOn
+import com.mosman.wird.domain.ayahRangeIn
 import com.mosman.wird.domain.pages
 import java.time.LocalDate
 
@@ -75,7 +76,11 @@ class NudgeReceiver : BroadcastReceiver() {
         val surahs = com.mosman.wird.domain.SurahIndex.across(assignment.pages)
         val primarySurah = surahs.firstOrNull() ?: com.mosman.wird.domain.SurahIndex.on(assignment.startPage).firstOrNull()
         val ayahRange = if (primarySurah != null) {
-            com.mosman.wird.domain.PageVerses.ayahRange(context, assignment.pages, primarySurah.number)
+            // Today's verses only: a half-page portion used to be announced as the whole page.
+            assignment.ayahRangeIn(
+                primarySurah.number,
+                activeTrack.startVerseSurah?.let { s -> activeTrack.startVerseAyah?.let { a -> s to a } },
+            )
         } else null
 
         val pageSpan = if (assignment.startPage == assignment.endPage) {

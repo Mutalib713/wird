@@ -79,7 +79,8 @@ class WirdWidget : GlanceAppWidget() {
             val surah = assignment.surahs.firstOrNull()
             WidgetState.Portion(
                 title = surah?.name ?: "Page ${assignment.startPage}",
-                detail = detailOf(assignment.units, assignment.startPage),
+                detail = assignment.verses?.let { "${it.size} verses · page ${assignment.startPage}" }
+                    ?: detailOf(assignment.units, assignment.startPage),
                 method = days.methodFor(today, track.id),
             )
         }

@@ -74,8 +74,25 @@ fun ReadingTrack.plan(): ReadingPlan = ReadingPlan(
  * notification all call this, so they cannot disagree about what today's portion is — which
  * they did, three ways, before 2026-10-03.
  */
-fun ReadingTrack.assignmentOn(date: LocalDate): Assignment =
-    todaysAssignment(startUnit = positionUnit, plan = plan(), date = date, direction = direction)
+fun ReadingTrack.assignmentOn(date: LocalDate): Assignment {
+    val verseTarget = customTargetVerses?.takeIf { it > 0 }
+        ?: return todaysAssignment(startUnit = positionUnit, plan = plan(), date = date, direction = direction)
+    return verseAssignment(start = startVerseOrPosition(), count = verseTarget, direction = direction)
+}
+
+/**
+ * Where a verse portion starts: the track's exact verse if it has one, otherwise the first
+ * verse of the half-page its position points at.
+ */
+fun ReadingTrack.startVerseOrPosition(): Pair<Int, Int> {
+    val s = startVerseSurah
+    val a = startVerseAyah
+    if (s != null && a != null && s in 1..114 && a >= 1 && a <= VerseIndex.versesIn(s)) return s to a
+    val page = Mushaf.pageOf(positionUnit)
+    val onPage = VerseIndex.versesOn(page)
+    val secondHalf = Math.floorMod(positionUnit, Mushaf.UNITS_PER_PAGE) == 1
+    return if (secondHalf && onPage.size > 1) onPage[(onPage.size + 1) / 2] else onPage.first()
+}
 
 /**
  * Which reminder this track follows on [today].

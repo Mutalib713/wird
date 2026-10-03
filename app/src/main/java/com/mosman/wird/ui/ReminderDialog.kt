@@ -44,8 +44,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.domain.Mushaf
+import com.mosman.wird.domain.assignmentOn
+import com.mosman.wird.domain.ayahRangeIn
 import com.mosman.wird.domain.NudgeSchedule
-import com.mosman.wird.domain.PageVerses
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.SurahIndex
@@ -961,8 +962,10 @@ fun AdvancedReminderDialog(
                         val trackPage = currentTrack.pageNumber
                         val surahs = remember(trackPage) { SurahIndex.on(trackPage) }
                         val primarySurah = surahs.firstOrNull() ?: SurahIndex.on(1).first()
-                        val ayahRange = remember(trackPage, primarySurah) {
-                            PageVerses.ayahRange(context, listOf(trackPage), primarySurah.number)
+                        // The same text the real notification will show: today's verses only.
+                        val ayahRange = remember(currentTrack, primarySurah) {
+                            val start = currentTrack.startVerseSurah?.let { s -> currentTrack.startVerseAyah?.let { a -> s to a } }
+                            currentTrack.assignmentOn(java.time.LocalDate.now()).ayahRangeIn(primarySurah.number, start)
                         }
                         val recitationPortionText = if (ayahRange != null) {
                             "Time to recite ${primarySurah.name} ($ayahRange) · Page $trackPage"

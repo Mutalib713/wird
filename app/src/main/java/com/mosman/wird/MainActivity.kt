@@ -40,6 +40,8 @@ import com.mosman.wird.domain.pages
 import com.mosman.wird.domain.trackProgress
 import com.mosman.wird.domain.assignmentOn
 import com.mosman.wird.domain.plan
+import com.mosman.wird.domain.portionKeys
+import com.mosman.wird.domain.verseAssignment
 import com.mosman.wird.data.encodeSchedule
 import com.mosman.wird.domain.LifeSpace
 import com.mosman.wird.domain.ReadingTrack
@@ -425,15 +427,23 @@ class MainActivity : ComponentActivity() {
             val isTrackDoneToday = doneMethod != null
             val trackDoneMethod = doneMethod
             val doneCover = remember(logVersion, activeTrack.id) { days.coveredOn(today, activeTrack.id) }
-            // A finished day shows what it covered, not what the position now says.
-            val assignment = if (doneCover != null && isTrackDoneToday) {
-                assignPortion(doneCover.first, doneCover.second, activeTrack.direction)
-            } else {
-                activeTrack.assignmentOn(today)
+            val doneVerses = remember(logVersion, activeTrack.id) { days.coveredVerses(today, activeTrack.id) }
+            // A finished day shows what it covered, not what the position now says. A verse
+            // portion is rebuilt from its saved verses, so it shows exactly what was read.
+            val assignment = when {
+                isTrackDoneToday && doneVerses != null ->
+                    verseAssignment(doneVerses.first, doneVerses.second, activeTrack.direction)
+                isTrackDoneToday && doneCover != null ->
+                    assignPortion(doneCover.first, doneCover.second, activeTrack.direction)
+                else -> activeTrack.assignmentOn(today)
             }
 
             /**
-             * Listen back to [file] for [trackId], checking it against [pages].
+             * Listen back to [file] for [trackId], checking it against the verses in [keys].
+             *
+             * ⚠ **Only today's verses, not the whole page.** It used to compare against every word
+             * on the portion's pages, so a correct half-page recitation covered about half of
+             * them, fell under the 70% floor, and the check marked nothing. Fixed 2026-10-03.
              *
              * Both are passed in, not read when the answer arrives: the check takes seconds,
              * and in automatic mode finishing a track can switch Home to the next one before
@@ -444,6 +454,7 @@ class MainActivity : ComponentActivity() {
                 file: java.io.File,
                 trackId: String = activeTrack.id,
                 pages: List<Int> = assignment.pages,
+                keys: Set<String> = assignment.portionKeys(startVerse).toSet(),
             ) {
                 if (!recogniser.ready() || !file.exists()) return
                 widgetScope.launch {
@@ -482,7 +493,7 @@ class MainActivity : ComponentActivity() {
                         days.saveTranscription(today, heard, trackId)
                         logVersion++
                         val expected = withContext(Dispatchers.IO) {
-                            arabic.wordsAcross(pages)
+                            arabic.wordsAcross(pages).filter { it.first in keys }
                         }
                         val verdict = checkRecitation(expected, heard)
                         reviewVerses = verdict.versesToReview
@@ -737,7 +748,7 @@ class MainActivity : ComponentActivity() {
                     )
                 } else if (screen == Screen.SETUP) {
                     SetupScreen(
-                        onDone = { page, unitsPerDay, verse, name, mode, way, trackType, intention ->
+                        onDone = { page, unitsPerDay, verse, name, mode, way, trackType, intention, customVerses ->
                             // Everything setup asked goes onto the track, in one write.
                             val currentTrack = store.activeTrack()
                             store.updateTrack(currentTrack.copy(
@@ -749,6 +760,7 @@ class MainActivity : ComponentActivity() {
                                 startVerseAyah = verse?.second,
                                 type = trackType,
                                 intention = intention,
+                                customTargetVerses = customVerses,
                             ))
                             store.readerName = name
                             readerName = store.readerName
@@ -836,6 +848,8 @@ class MainActivity : ComponentActivity() {
                                     units = doneAssignment.units,
                                     trackId = doneTrack.id,
                                     trackName = doneTrack.name,
+                                    firstVerse = doneAssignment.verses?.first(),
+                                    verseCount = doneAssignment.verses?.size,
                                 )
                                 nudgeWidget()
 
@@ -852,7 +866,12 @@ class MainActivity : ComponentActivity() {
                                 // finished reciting — they should not be watching a spinner.
                                 if (method == Method.RECITED && file != null) {
                                     if (recogniser.ready()) {
-                                        runRecitationCheck(file, doneTrack.id, doneAssignment.pages)
+                                        runRecitationCheck(
+                                            file,
+                                            doneTrack.id,
+                                            doneAssignment.pages,
+                                            doneAssignment.portionKeys(startVerse).toSet(),
+                                        )
                                     } else {
                                         checkState = CheckState.NeedsModel
                                     }
@@ -864,7 +883,7 @@ class MainActivity : ComponentActivity() {
                                 // stable within a day.
                                 // The streak and total are not counted here: they are read from
                                 // the log, which now has today's row. See TrackRecord.kt.
-                                store.advanceTrack(doneTrack.id, doneAssignment.nextStartUnit)
+                                store.advanceTrack(doneTrack.id, doneAssignment.nextStartUnit, doneAssignment.nextVerse)
                                 refresh()
                             },
                             onUndo = {
@@ -873,7 +892,12 @@ class MainActivity : ComponentActivity() {
                                 // its total one too high. Now: remove the row, put the position
                                 // back, and the streak and total follow from the log.
                                 days.clear(today, activeTrack.id)
-                                store.rewindTrack(activeTrack.id, assignment.startUnit)
+                                val firstVerse = assignment.verses?.first()
+                                if (firstVerse != null) {
+                                    store.rewindTrackToVerse(activeTrack.id, firstVerse)
+                                } else {
+                                    store.rewindTrack(activeTrack.id, assignment.startUnit)
+                                }
                                 refresh()
                                 nudgeWidget()
                             },
@@ -946,8 +970,10 @@ class MainActivity : ComponentActivity() {
                                         units = doneAssignment.units,
                                         trackId = doneTrack.id,
                                         trackName = doneTrack.name,
+                                        firstVerse = doneAssignment.verses?.first(),
+                                        verseCount = doneAssignment.verses?.size,
                                     )
-                                    store.advanceTrack(doneTrack.id, doneAssignment.nextStartUnit)
+                                    store.advanceTrack(doneTrack.id, doneAssignment.nextStartUnit, doneAssignment.nextVerse)
                                     refresh()
                                     nudgeWidget()
                                 },

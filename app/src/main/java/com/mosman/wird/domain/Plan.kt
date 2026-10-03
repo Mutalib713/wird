@@ -55,7 +55,28 @@ fun todaysAssignment(
 
 /** Pages this portion touches, in reading order, wrap included. */
 val Assignment.pages: List<Int>
-    get() = (startUnit until startUnit + units).map { Mushaf.pageOf(it) }.distinct()
+    get() = verses?.map { VerseIndex.pageOf(it) }?.distinct()
+        ?: (startUnit until startUnit + units).map { Mushaf.pageOf(it) }.distinct()
+
+/**
+ * A portion of exactly [count] verses from [start]. Used when a track's daily target is a
+ * number of verses ("10 verses a day") rather than pages.
+ */
+fun verseAssignment(start: Pair<Int, Int>, count: Int, direction: ReadingDirection): Assignment {
+    val verses = VerseIndex.walk(start, count, direction)
+    val pages = verses.map { VerseIndex.pageOf(it) }.distinct()
+    val startUnit = VerseIndex.unitOf(verses.first())
+    return Assignment(
+        startUnit = startUnit,
+        units = pages.size * Mushaf.UNITS_PER_PAGE,
+        startPage = pages.first(),
+        endPage = pages.last(),
+        wrapsPastEnd = false,
+        direction = direction,
+        verses = verses,
+        nextVerse = VerseIndex.next(verses.last(), direction),
+    )
+}
 
 /** Surahs this portion touches. More than one when it crosses a boundary. */
 val Assignment.surahs: List<Surah>
@@ -102,16 +123,55 @@ fun Assignment.linesOn(page: Int, linesOnPage: List<Int>): Set<Int> {
  * Splitting by verse rather than by line ensures that verses starting or ending mid-line
  * are not cut in half or dimmed prematurely.
  */
-fun Assignment.versesOn(page: MushafPage, startVerse: Pair<Int, Int>? = null): Set<String> {
-    if (page.page !in pages) return emptySet()
+fun Assignment.versesOn(page: MushafPage, startVerse: Pair<Int, Int>? = null): Set<String> =
+    keysOn(
+        page = page.page,
+        pageVerses = page.glyphs.filter { !it.isEndMarker }.map { it.verseKey }.distinct(),
+        startVerse = startVerse,
+    )
 
-    val pageVerses = page.glyphs
-        .filter { !it.isEndMarker }
-        .map { it.verseKey }
-        .distinct()
+/**
+ * Every verse in this portion, in reading order, as "sūrah:ayah" keys.
+ *
+ * **The one rule for "which verses are today's".** The page highlight, the recitation check
+ * and the notification text all use it. Before 2026-10-03 the check compared what you recited
+ * with *every* word on the page, so a correct half-page recitation covered about half and the
+ * check called itself unreliable every time.
+ */
+fun Assignment.portionKeys(startVerse: Pair<Int, Int>? = null): List<String> =
+    verses?.map { "${it.first}:${it.second}" }
+        ?: pages.flatMap { p ->
+            val onPage = VerseIndex.versesOn(p).map { "${it.first}:${it.second}" }
+            val mine = keysOn(p, onPage, startVerse)
+            onPage.filter { it in mine }
+        }
+
+/** "Ayahs 1–20" for [surah] within this portion, or null if the portion doesn't touch it. */
+fun Assignment.ayahRangeIn(surah: Int, startVerse: Pair<Int, Int>? = null): String? {
+    val ayahs = portionKeys(startVerse)
+        .filter { it.substringBefore(':').toIntOrNull() == surah }
+        .mapNotNull { it.substringAfter(':').toIntOrNull() }
+    if (ayahs.isEmpty()) return null
+    val lo = ayahs.min()
+    val hi = ayahs.max()
+    return if (lo == hi) "Ayah $lo" else "Ayahs $lo–$hi"
+}
+
+private fun Assignment.keysOn(
+    page: Int,
+    pageVerses: List<String>,
+    startVerse: Pair<Int, Int>?,
+): Set<String> {
+    if (page !in pages) return emptySet()
     if (pageVerses.isEmpty()) return emptySet()
 
-    val firstHalf = (page.page - 1) * Mushaf.UNITS_PER_PAGE
+    // A verse portion is exactly its verses, whatever half of the page they are in.
+    verses?.let { mine ->
+        val keys = mine.map { "${it.first}:${it.second}" }.toSet()
+        return pageVerses.filter { it in keys }.toSet()
+    }
+
+    val firstHalf = (page - 1) * Mushaf.UNITS_PER_PAGE
     val secondHalf = firstHalf + 1
     val covered = (startUnit until startUnit + units)
         .map { Math.floorMod(it, Mushaf.TOTAL_UNITS) }
@@ -132,13 +192,13 @@ fun Assignment.versesOn(page: MushafPage, startVerse: Pair<Int, Int>? = null): S
         else -> emptyList()
     }
 
-    if (startVerse == null || page.page != pages.first()) {
+    if (startVerse == null || page != pages.first()) {
         return assigned.toSet()
     }
 
     val (startSurah, startAyah) = startVerse
     val targetKey = "$startSurah:$startAyah"
-    if (page.glyphs.any { it.verseKey == targetKey }) {
+    if (targetKey in pageVerses) {
         val filtered = assigned.filter { vk ->
             val s = vk.substringBefore(':').toIntOrNull() ?: 0
             val a = vk.substringAfter(':').toIntOrNull() ?: 0

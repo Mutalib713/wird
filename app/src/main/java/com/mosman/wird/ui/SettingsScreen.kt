@@ -525,7 +525,7 @@ fun SettingsScreen(
 
                             ClaySettingRow(
                                 title = "Daily reading target",
-                                subtitle = amountLabel(plan.defaultUnits),
+                                subtitle = activeTrack.customTargetVerses?.let { "$it verses a day" } ?: amountLabel(plan.defaultUnits),
                                 onClick = { activeDialog = SettingsDialog.DAILY_TARGET },
                             )
 
@@ -1453,8 +1453,13 @@ fun SettingsScreen(
             SettingsDialog.DAILY_TARGET -> {
                 DailyTargetDialog(
                     currentUnits = plan.defaultUnits,
-                    onSelect = { units ->
-                        onPlan(plan.copy(defaultUnits = units))
+                    onSelect = { units, verses ->
+                        // A verse target is saved as verses on the track. It used to be rounded
+                        // to pages here ("15 verses" became 2 pages) and the number was lost.
+                        val updated = activeTrack.copy(dailyUnits = units, customTargetVerses = verses)
+                        store.updateTrack(updated)
+                        activeTrack = updated
+                        onLifeSpacesChanged()
                     },
                     onDismiss = { activeDialog = null },
                 )
@@ -2609,7 +2614,7 @@ private enum class DailyTargetStage {
 @Composable
 private fun DailyTargetDialog(
     currentUnits: Int,
-    onSelect: (Int) -> Unit,
+    onSelect: (units: Int, verses: Int?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
@@ -2621,6 +2626,7 @@ private fun DailyTargetDialog(
     var isCustom by remember { mutableStateOf(!isStandardPreset) }
     var selectedUnits by remember { mutableIntStateOf(currentUnits) }
     var pendingUnits by remember { mutableIntStateOf(currentUnits) }
+    var pendingVerses by remember { mutableStateOf<Int?>(null) }
     var customMode by remember { mutableStateOf("pages") } // "pages" or "verses"
     var customInputText by remember {
         mutableStateOf(
@@ -2915,6 +2921,11 @@ private fun DailyTargetDialog(
                                                 }
                                             }
                                             pendingUnits = calculatedUnits
+                                            pendingVerses = if (isCustom && customMode == "verses") {
+                                                (customInputText.toIntOrNull() ?: 10).coerceAtLeast(1)
+                                            } else {
+                                                null
+                                            }
                                             stage = DailyTargetStage.CONFIRMATION
                                         }
                                         .padding(vertical = 12.dp),
@@ -3012,7 +3023,7 @@ private fun DailyTargetDialog(
                                     )
                                     Spacer(Modifier.height(3.dp))
                                     Text(
-                                        text = amountLabel(pendingUnits),
+                                        text = pendingVerses?.let { if (it == 1) "1 verse" else "$it verses" } ?: amountLabel(pendingUnits),
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (isDark) gold else Color(0xFF8E6900),
@@ -3024,7 +3035,7 @@ private fun DailyTargetDialog(
 
                             // Pace & Habit Projection Card
                             val pagesPerDay = pendingUnits / 2.0
-                            val estDays = kotlin.math.max(1, (Mushaf.PAGES / pagesPerDay).toInt())
+                            val estDays = pendingVerses?.let { v -> kotlin.math.max(1, (6236 + v - 1) / v) } ?: kotlin.math.max(1, (Mushaf.PAGES / pagesPerDay).toInt())
                             val estMonths = kotlin.math.max(1, kotlin.math.round(estDays / 30.4).toInt())
 
                             Column(
@@ -3046,7 +3057,7 @@ private fun DailyTargetDialog(
                                 )
                                 Spacer(Modifier.height(6.dp))
                                 Text(
-                                    text = if (pendingUnits == currentUnits) {
+                                    text = if (pendingUnits == currentUnits && pendingVerses == null) {
                                         "You selected your active daily portion. Your recitation schedule and pace will continue without changes."
                                     } else if (estDays <= 365) {
                                         "At this pace, completing one full Khatmah (all 604 pages) takes approximately $estDays days (~$estMonths months)."
@@ -3122,7 +3133,7 @@ private fun DailyTargetDialog(
                                             elevation = 3.dp,
                                         )
                                         .clickable {
-                                            onSelect(pendingUnits)
+                                            onSelect(pendingUnits, pendingVerses)
                                             onDismiss()
                                         }
                                         .padding(vertical = 12.dp),

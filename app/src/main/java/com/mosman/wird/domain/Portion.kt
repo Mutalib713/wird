@@ -26,6 +26,13 @@ data class Assignment(
     val wrapsPastEnd: Boolean,
     /** Which way tomorrow's portion lies. See [ReadingDirection]. */
     val direction: ReadingDirection = ReadingDirection.TOWARDS_NAS,
+    /**
+     * Set when the portion is a **number of verses** rather than half-pages: exactly these,
+     * in reading order. Null for an ordinary page portion. See [verseAssignment].
+     */
+    val verses: List<Pair<Int, Int>>? = null,
+    /** For a verse portion, where tomorrow starts. */
+    val nextVerse: Pair<Int, Int>? = null,
 ) {
     /** Where tomorrow starts. */
     /**
@@ -43,7 +50,7 @@ data class Assignment(
      * at a time actually wants.
      */
     val nextStartUnit: Int
-        get() = when (direction) {
+        get() = if (nextVerse != null) VerseIndex.unitOf(nextVerse) else when (direction) {
             ReadingDirection.TOWARDS_NAS ->
                 Math.floorMod(startUnit + units, Mushaf.TOTAL_UNITS)
             ReadingDirection.TOWARDS_FATIHAH -> {
