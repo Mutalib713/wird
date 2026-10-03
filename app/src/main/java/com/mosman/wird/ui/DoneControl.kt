@@ -457,7 +457,7 @@ private fun NotYet(
                     ) {
                         MicVectorIcon(tint = colors.accent, modifier = Modifier.size(13.dp))
                         Text(
-                            text = "$aloudRatio% Aloud",
+                            text = "$aloudRatio% recited aloud",
                             style = TextStyle(
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
@@ -751,7 +751,7 @@ private fun AlreadyDone(
                                 )
                                 Spacer(Modifier.height(2.dp))
                                 Text(
-                                    text = "Download on-device Whisper AI (42 MB) to verify today's recording. Zero data used.",
+                                    text = "Download the recitation model once (42 MB) to review today's recording. After that it works offline.",
                                     color = emeraldText.copy(alpha = 0.85f),
                                     style = TextStyle(fontSize = 11.5.sp),
                                 )
@@ -932,7 +932,7 @@ private fun AlreadyDone(
                             }
 
                             Text(
-                                text = "${checkState.seconds}s audio · verified in ${checkState.took}s with offline Whisper AI.",
+                                text = "${checkState.seconds}s audio · checked in ${checkState.took}s on your phone.",
                                 color = emeraldText.copy(alpha = 0.75f),
                                 style = TextStyle(fontSize = 10.5.sp),
                             )

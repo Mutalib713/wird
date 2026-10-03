@@ -3505,7 +3505,7 @@ private fun AboutWirdDialog(
                         "Madinah 15-line Mushaf with authentic QCF typography",
                         "Custom daily targets and flexible weekly schedules",
                         "Offline audio recitation with multiple renowned reciters",
-                        "On-device Whisper AI speech verification",
+                        "On-device recitation review",
                         "Zero telemetry, zero ads, zero accounts",
                     ).forEach { feat ->
                         Row(

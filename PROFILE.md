@@ -2844,3 +2844,22 @@ the notification ignoring direction; switching tracks overwriting the default re
 three of them fail with the exact symptoms. On the emulator, an install with old-format records
 was upgraded in place: pre-track rows were adopted, "half on Fridays" moved to the track, Home
 showed 3 everywhere, and mark → undo → mark went 3 → 4 → 3 → 4 (the old code gave 1).
+
+## 5be. Names, targets and reminders — his decisions, 2026-10-03
+
+Made after reviewing two ChatGPT conversations about onboarding (links in the 2026-10-03 session).
+
+- **"Recite & Review"** is the name of the recite action (was "Recite & Verify"). The app records
+  the recitation and shows verses worth another look; it never gives a verdict, so "verify" promised
+  something it does not do. Don't rename it back to Verify.
+- **"Recited aloud"** replaces "Aloud ratio": the share of finished days recited out loud.
+- **Daily targets can be a number of verses**, and that number is now the real portion
+  (`VerseIndex`, `verseAssignment`). Weekday exceptions apply to page targets only.
+- **Custom repeat reminders are typed in minutes** (5–720), not chosen in hours.
+- **Each track gets its own notification**, and every track due in the same minute is notified.
+- **Word search across the Qur'an: wanted.** Not built yet; plan it before building (data source,
+  Arabic and English, offline size).
+- **The Companion's future is a Gemini research assistant** that answers with Qur'an verses, hadith
+  and links so the reader can check the answer themselves. Not built. Until it is, onboarding and the
+  README describe only what the Companion does today. When it ships, the Privacy Pledge wording must
+  change, because questions will go to Google's servers.

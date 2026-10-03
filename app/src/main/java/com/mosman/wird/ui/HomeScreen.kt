@@ -622,7 +622,7 @@ private fun PortionCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ActionTile(
-                label = "Recite & Verify",
+                label = "Recite & Review",
                 glyph = { MicGlyph(it) },
                 isPrimary = true,
                 modifier = Modifier.weight(1f),

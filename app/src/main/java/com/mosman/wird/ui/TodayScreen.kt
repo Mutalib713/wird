@@ -1835,7 +1835,7 @@ private fun streakLine(p: com.mosman.wird.domain.Progress): String {
     val streak = if (p.currentStreak == 1) "1-day streak" else "${p.currentStreak} in a row"
     val total = if (p.totalDaysRead == 1) "1 day read" else "${p.totalDaysRead} days read"
     val aloudRatio = if (p.totalDaysRead > 0) (p.recitedDays * 100) / p.totalDaysRead else 0
-    return "$streak · $total · $aloudRatio% aloud"
+    return "$streak · $total · $aloudRatio% recited aloud"
 }
 
 /**

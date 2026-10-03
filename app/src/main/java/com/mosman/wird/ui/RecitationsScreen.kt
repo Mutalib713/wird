@@ -262,7 +262,7 @@ fun RecitationsScreen(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "Aloud Ratio",
+                        text = "Recited aloud",
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium,
                         color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),

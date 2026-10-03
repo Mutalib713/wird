@@ -1354,7 +1354,7 @@ private fun Step6ReadingGoalAndOrder(
 
             SelectionCard(
                 title = "Memorize (Ḥifẓ)",
-                description = "For learning new verses by heart; pages for self-check and recitation verification.",
+                description = "For learning new verses by heart; pages for self-check and recitation review.",
                 tag = "ḤIFẒ · SWITCH ANYTIME",
                 selected = selectedType == TrackType.HIFZ,
                 onClick = { onSelectType(TrackType.HIFZ) },
