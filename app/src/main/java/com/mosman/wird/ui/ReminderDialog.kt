@@ -46,6 +46,7 @@ import com.mosman.wird.data.decodeSchedule
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.assignmentOn
 import com.mosman.wird.domain.ayahRangeIn
+import com.mosman.wird.domain.repeatLabel
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.Prayer
 import com.mosman.wird.domain.ReadingTrack
@@ -262,13 +263,17 @@ fun AdvancedReminderDialog(
     var repeatInterval by remember(trackSchedule) {
         mutableIntStateOf(
             when (val s = trackSchedule) {
-                is NudgeSchedule.AtClockTime -> s.repeatIntervalHours
+                is NudgeSchedule.AtClockTime -> s.repeatIntervalMinutes
                 else -> 0
             }
         )
     }
     var isCustomRepeat by remember(trackSchedule) {
-        mutableStateOf(repeatInterval !in listOf(0, 1, 2, 3))
+        mutableStateOf(repeatInterval !in listOf(0, 60, 120, 180))
+    }
+    // What the reader types for a custom repeat, in minutes.
+    var customRepeatText by remember(trackSchedule) {
+        mutableStateOf(if (repeatInterval > 0) repeatInterval.toString() else "45")
     }
 
     Dialog(
@@ -804,9 +809,9 @@ fun AdvancedReminderDialog(
                             ) {
                                 listOf(
                                     0 to "Once",
-                                    1 to "1 hr",
-                                    2 to "2 hrs",
-                                    3 to "3 hrs",
+                                    60 to "1 hr",
+                                    120 to "2 hrs",
+                                    180 to "3 hrs",
                                 ).forEach { (rep, label) ->
                                     val isSelected = !isCustomRepeat && repeatInterval == rep
                                     Box(
@@ -854,7 +859,7 @@ fun AdvancedReminderDialog(
                                         )
                                         .clickable {
                                             isCustomRepeat = true
-                                            if (repeatInterval < 1) repeatInterval = 2
+                                            repeatInterval = (customRepeatText.toIntOrNull() ?: 45).coerceIn(5, 720)
                                         }
                                         .padding(vertical = 7.dp),
                                     contentAlignment = Alignment.Center,
@@ -885,44 +890,44 @@ fun AdvancedReminderDialog(
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     Text(
-                                        text = "Repeat interval:",
+                                        text = "Repeat every",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = colors.textPrimary,
                                     )
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
+                                        // A typed number of minutes, 5 to 720 (12 hours).
+                                        androidx.compose.foundation.text.BasicTextField(
+                                            value = customRepeatText,
+                                            onValueChange = { text ->
+                                                val digits = text.filter { it.isDigit() }.take(3)
+                                                customRepeatText = digits
+                                                digits.toIntOrNull()?.let { repeatInterval = it.coerceIn(5, 720) }
+                                            },
+                                            singleLine = true,
+                                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number,
+                                            ),
+                                            textStyle = androidx.compose.ui.text.TextStyle(
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.textPrimary,
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                            ),
+                                            cursorBrush = androidx.compose.ui.graphics.SolidColor(colors.textPrimary),
                                             modifier = Modifier
-                                                .size(28.dp)
-                                                .clip(CircleShape)
+                                                .width(64.dp)
+                                                .clip(RoundedCornerShape(8.dp))
                                                 .background(if (isDark) Color(0xFF1D3B2B) else Color(0xFFD3E4D7))
-                                                .clickable {
-                                                    repeatInterval = (repeatInterval - 1).coerceAtLeast(1)
-                                                },
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text("-", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                                        }
-                                        Spacer(Modifier.width(10.dp))
+                                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                        )
+                                        Spacer(Modifier.width(8.dp))
                                         Text(
-                                            text = if (repeatInterval == 1) "Every 1 hr" else "Every $repeatInterval hrs",
-                                            fontSize = 13.5.sp,
-                                            fontWeight = FontWeight.Bold,
+                                            text = "minutes",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Medium,
                                             color = colors.textPrimary,
                                         )
-                                        Spacer(Modifier.width(10.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .size(28.dp)
-                                                .clip(CircleShape)
-                                                .background(if (isDark) Color(0xFF1D3B2B) else Color(0xFFD3E4D7))
-                                                .clickable {
-                                                    repeatInterval = (repeatInterval + 1).coerceAtMost(12)
-                                                },
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            Text("+", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                                        }
                                     }
                                 }
                             }
@@ -1018,7 +1023,7 @@ fun AdvancedReminderDialog(
                                         "Scheduled $offsetMinutes min after $pList"
                                     }
                                     ReminderMode.CLOCK_TIME -> {
-                                        val repLabel = if (repeatInterval > 0) " · Repeats every ${repeatInterval}h if unread" else ""
+                                        val repLabel = if (repeatInterval > 0) " · Repeats every ${repeatLabel(repeatInterval)} if unread" else ""
                                         "Scheduled for %02d:%02d%s".format(
                                             clockHour,
                                             clockMinute,

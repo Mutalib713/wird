@@ -1,6 +1,12 @@
 package com.mosman.wird
 
 import com.mosman.wird.data.DayLogStore
+import com.mosman.wird.data.decodeSchedule
+import com.mosman.wird.data.encodeSchedule
+import com.mosman.wird.domain.nextAfter
+import com.mosman.wird.domain.repeatLabel
+import com.mosman.wird.nudge.Nudge
+import java.time.ZoneId
 import com.mosman.wird.domain.Commitment
 import com.mosman.wird.domain.DayLog
 import com.mosman.wird.domain.Method
@@ -172,6 +178,49 @@ class TrackRecordTest {
     fun a_tracks_own_reminder_beats_the_default() {
         val track = daily.copy(reminderScheduleRaw = "CLOCK 21:00 0")
         assertEquals(ownClock, effectiveSchedule(track, null, fallback, mon))
+    }
+
+    // ---- repeat reminders are typed in minutes (2026-10-03) ------------------------------
+
+    @Test
+    fun a_custom_repeat_in_minutes_survives_a_save_and_load() {
+        val every45 = NudgeSchedule.AtClockTime(LocalTime.of(20, 0), repeatIntervalMinutes = 45)
+        assertEquals("CLOCK 20:00 45m", encodeSchedule(every45))
+        assertEquals(every45, decodeSchedule(encodeSchedule(every45)))
+    }
+
+    @Test
+    fun reminders_saved_before_minutes_still_mean_hours() {
+        // The old form wrote whole hours with no unit: "2" was every two hours.
+        assertEquals(NudgeSchedule.AtClockTime(LocalTime.of(20, 0), 120), decodeSchedule("CLOCK 20:00 2"))
+        assertEquals(NudgeSchedule.AtClockTime(LocalTime.of(21, 0), 0), decodeSchedule("CLOCK 21:00 0"))
+    }
+
+    @Test
+    fun a_45_minute_repeat_fires_every_45_minutes_after_the_first() {
+        val zone = ZoneId.of("Africa/Accra")
+        val s = NudgeSchedule.AtClockTime(LocalTime.of(20, 0), repeatIntervalMinutes = 45)
+        // At 20:50 the 20:00 and 20:45 reminders have passed; the next is 21:30.
+        val next = s.nextAfter(mon.atTime(20, 50).atZone(zone), null)
+        assertEquals(mon.atTime(21, 30).atZone(zone), next)
+    }
+
+    @Test
+    fun each_track_has_its_own_notification_number() {
+        // They all shared number 1, so a second track's reminder replaced the first.
+        val a = Nudge.notificationIdFor("track_main")
+        val b = Nudge.notificationIdFor("track_1790996370406")
+        assertFalse(a == b)
+        assertEquals(a, Nudge.notificationIdFor("track_main"))
+        assertTrue(a >= 10_000 && b >= 10_000)
+    }
+
+    @Test
+    fun repeat_labels_read_naturally() {
+        assertEquals("45 min", repeatLabel(45))
+        assertEquals("1 hr", repeatLabel(60))
+        assertEquals("1 hr 30 min", repeatLabel(90))
+        assertEquals("2 hrs", repeatLabel(120))
     }
 
     // ---- the day log answers per track, never with another track's row -------------------

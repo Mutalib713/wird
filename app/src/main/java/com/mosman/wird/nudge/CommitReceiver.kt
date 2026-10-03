@@ -43,13 +43,16 @@ class CommitReceiver : BroadcastReceiver() {
 
         // The notification has done its job the moment it is answered. Leaving it up would
         // make the reply look like it had not registered.
-        context.getSystemService(NotificationManager::class.java)
-            ?.cancel(Nudge.NOTIFICATION_ID)
-
         val store = WirdStore(context)
         // The track this notification was about. Each track has its own chat, and replies used
         // to go to the old shared chat.json, which no screen shows any more.
         val trackId = intent.getStringExtra(Nudge.EXTRA_TRACK_ID) ?: store.activeTrack().id
+
+        // Close this track's notification, and the old shared one in case it is still showing.
+        context.getSystemService(NotificationManager::class.java)?.apply {
+            cancel(Nudge.notificationIdFor(trackId))
+            cancel(Nudge.NOTIFICATION_ID)
+        }
         val chat = ConversationStore(context.filesDir, trackId)
         chat.say(Speaker.YOU, said)
 

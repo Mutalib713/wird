@@ -862,7 +862,8 @@ class WirdStore(context: Context) {
 /** "PRAYER MAGHRIB 30", "PRAYERS FAJR,ASR,ISHA 15", "CLOCK 20:00 2", or "OFF". Readable on purpose — see DayLogStore. */
 internal fun encodeSchedule(schedule: NudgeSchedule): String = when (schedule) {
     is NudgeSchedule.Off -> "OFF"
-    is NudgeSchedule.AtClockTime -> "CLOCK ${schedule.time} ${schedule.repeatIntervalHours}"
+    // Minutes carry an "m" so they can never be mistaken for the hours written before 2026-10-03.
+    is NudgeSchedule.AtClockTime -> "CLOCK ${schedule.time} ${schedule.repeatIntervalMinutes}m"
     is NudgeSchedule.AfterPrayer -> "PRAYER ${schedule.prayer.name} ${schedule.offsetMinutes}"
     is NudgeSchedule.AfterPrayers -> "PRAYERS ${schedule.prayers.joinToString(",") { it.name }} ${schedule.offsetMinutes}"
 }
@@ -875,7 +876,10 @@ internal fun decodeSchedule(raw: String?): NudgeSchedule {
             "OFF" -> NudgeSchedule.Off
             "CLOCK" -> {
                 val time = LocalTime.parse(parts[1])
-                val repeat = parts.getOrNull(2)?.toIntOrNull() ?: 0
+                // "45m" is minutes. A bare number is the old whole-hours form: "2" is 120 minutes.
+                val raw = parts.getOrNull(2).orEmpty()
+                val repeat = if (raw.endsWith("m")) raw.dropLast(1).toIntOrNull() ?: 0
+                else (raw.toIntOrNull() ?: 0) * 60
                 NudgeSchedule.AtClockTime(time, repeat)
             }
             "PRAYER" -> NudgeSchedule.AfterPrayer(

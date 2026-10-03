@@ -27,6 +27,16 @@ object Nudge {
     const val EXTRA_TRACK_ID = "com.mosman.wird.TRACK_ID"
     const val EXTRA_TRACK_NAME = "com.mosman.wird.TRACK_NAME"
 
+    /** Every track due at this alarm's minute, comma-separated. See [schedule]. */
+    const val EXTRA_TRACK_IDS = "com.mosman.wird.TRACK_IDS"
+
+    /**
+     * Each track's own notification number, so two tracks' reminders sit side by side instead
+     * of the second replacing the first (they all used [NOTIFICATION_ID] until 2026-10-03).
+     * Stable for a track because it comes from the track's id.
+     */
+    fun notificationIdFor(trackId: String): Int = 10_000 + (trackId.hashCode() and 0xFFFF)
+
     private const val PREFS = "wird_nudge"
     private const val KEY_NEXT_AT = "next_at"
 
@@ -70,11 +80,13 @@ object Nudge {
         triggerAtMillis: Long,
         trackId: String? = null,
         trackName: String? = null,
+        trackIds: List<String> = listOfNotNull(trackId),
     ): Boolean {
         val am = context.getSystemService(AlarmManager::class.java)
         val intent = Intent(context, NudgeReceiver::class.java).apply {
             if (trackId != null) putExtra(EXTRA_TRACK_ID, trackId)
             if (trackName != null) putExtra(EXTRA_TRACK_NAME, trackName)
+            if (trackIds.isNotEmpty()) putExtra(EXTRA_TRACK_IDS, trackIds.joinToString(","))
         }
         val pending = PendingIntent.getBroadcast(
             context,

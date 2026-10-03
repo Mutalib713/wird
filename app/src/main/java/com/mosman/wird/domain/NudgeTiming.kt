@@ -33,12 +33,13 @@ sealed interface NudgeSchedule {
     ) : NudgeSchedule
 
     /**
-     * A fixed hour on the clock, with optional repeating reminders if not yet read today.
-     * [repeatIntervalHours]: 0 for once (no repeat), 1 for every 1 hr, 2 for every 2 hrs, 3 for every 3 hrs.
+     * A fixed time on the clock, repeating every [repeatIntervalMinutes] until the day is read.
+     * 0 means once. **Minutes since 2026-10-03**, at Mutalib's word: the custom repeat is a
+     * number the reader types ("every 45 minutes"), not a choice of whole hours.
      */
     data class AtClockTime(
         val time: LocalTime,
-        val repeatIntervalHours: Int = 0,
+        val repeatIntervalMinutes: Int = 0,
     ) : NudgeSchedule
 
     /**
@@ -85,10 +86,10 @@ fun NudgeSchedule.nextAfter(
         val todayAt = now.toLocalDate().atTime(time).atZone(now.zone)
         if (todayAt.isAfter(now)) {
             todayAt
-        } else if (repeatIntervalHours > 0) {
+        } else if (repeatIntervalMinutes > 0) {
             var candidate = todayAt
             while (!candidate.isAfter(now) && candidate.toLocalDate() == now.toLocalDate()) {
-                candidate = candidate.plusHours(repeatIntervalHours.toLong())
+                candidate = candidate.plusMinutes(repeatIntervalMinutes.toLong())
             }
             if (candidate.isAfter(now) && candidate.toLocalDate() == now.toLocalDate()) {
                 candidate
@@ -154,10 +155,22 @@ fun NudgeSchedule.nextAwake(
 /**
  * The schedule in words, for the settings screen.
  */
+/** "45 min", "1 hr", "1 hr 30 min", "2 hrs". */
+fun repeatLabel(minutes: Int): String {
+    val h = minutes / 60
+    val m = minutes % 60
+    val hours = when (h) { 0 -> ""; 1 -> "1 hr"; else -> "$h hrs" }
+    return when {
+        h == 0 -> "$m min"
+        m == 0 -> hours
+        else -> "$hours $m min"
+    }
+}
+
 fun NudgeSchedule.label(): String = when (this) {
     is NudgeSchedule.Off -> "No reminder"
     is NudgeSchedule.AtClockTime -> {
-        val rep = if (repeatIntervalHours > 0) " (repeats every ${repeatIntervalHours}h)" else ""
+        val rep = if (repeatIntervalMinutes > 0) " (repeats every ${repeatLabel(repeatIntervalMinutes)})" else ""
         "At ${clockLabel(time)}$rep"
     }
     is NudgeSchedule.AfterPrayer -> when {

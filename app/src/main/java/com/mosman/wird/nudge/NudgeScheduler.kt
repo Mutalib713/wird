@@ -129,11 +129,19 @@ object NudgeScheduler {
             return Armed.OffByChoice
         }
 
+        // **Every track due in that same minute rides on this one alarm.** Only one alarm is
+        // ever armed, so two tracks reminding at, say, 8 pm used to give one notification: by
+        // the time it re-armed, the other's 8 pm was in the past and moved to tomorrow.
+        val sameMinute = candidates
+            .filter { java.time.Duration.between(earliest.time, it.time).abs().toMinutes() < 1 }
+            .map { it.track.id }
+            .distinct()
         val exact = Nudge.schedule(
             context = context,
             triggerAtMillis = earliest.time.toInstant().toEpochMilli(),
             trackId = earliest.track.id,
             trackName = earliest.track.name,
+            trackIds = sameMinute,
         )
         store.lastArmedFor = earliest.time.toLocalDateTime()
 

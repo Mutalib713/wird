@@ -49,19 +49,6 @@ class NudgeReceiver : BroadcastReceiver() {
             return
         }
 
-        val trackId = intent.getStringExtra(Nudge.EXTRA_TRACK_ID)
-        val trackName = intent.getStringExtra(Nudge.EXTRA_TRACK_NAME)
-
-        val allTracks = store.getReadingTracks()
-        val targetTrack = if (trackId != null) allTracks.firstOrNull { it.id == trackId } else null
-        val activeTrack = targetTrack ?: store.activeTrack(today)
-
-        // Sacred Rule 3. If this track is already completed today, stay quiet.
-        if (activeTrack.isCompletedToday(today)) {
-            Log.i(TAG, "track '${activeTrack.name}' already read today, staying quiet")
-            return
-        }
-
         Nudge.createChannel(context)
 
         if (!store.isSetUp) {
@@ -69,17 +56,36 @@ class NudgeReceiver : BroadcastReceiver() {
             return
         }
 
+        // Every track this alarm was for. Older alarms carry one id; very old ones none.
+        val allTracks = store.getReadingTracks()
+        val wanted = intent.getStringExtra(Nudge.EXTRA_TRACK_IDS)?.split(',')?.filter { it.isNotBlank() }
+            ?: listOfNotNull(intent.getStringExtra(Nudge.EXTRA_TRACK_ID))
+        val tracks = wanted.mapNotNull { id -> allTracks.firstOrNull { it.id == id } }
+            .ifEmpty { listOf(store.activeTrack(today)) }
+
+        for (track in tracks) {
+            // Sacred Rule 3. A track already read today stays quiet.
+            if (track.isCompletedToday(today)) {
+                Log.i(TAG, "track '${track.name}' already read today, staying quiet")
+                continue
+            }
+            post(context, track, today)
+        }
+    }
+
+    /** One track's notification, under that track's own number. */
+    private fun post(context: Context, track: com.mosman.wird.domain.ReadingTrack, today: LocalDate) {
         // The same portion Home shows: this track's position, its weekday plan and its
         // direction. It used to ignore the direction, so a back-to-front track was told the
         // wrong page.
-        val assignment = activeTrack.assignmentOn(today)
+        val assignment = track.assignmentOn(today)
         val surahs = com.mosman.wird.domain.SurahIndex.across(assignment.pages)
         val primarySurah = surahs.firstOrNull() ?: com.mosman.wird.domain.SurahIndex.on(assignment.startPage).firstOrNull()
         val ayahRange = if (primarySurah != null) {
             // Today's verses only: a half-page portion used to be announced as the whole page.
             assignment.ayahRangeIn(
                 primarySurah.number,
-                activeTrack.startVerseSurah?.let { s -> activeTrack.startVerseAyah?.let { a -> s to a } },
+                track.startVerseSurah?.let { s -> track.startVerseAyah?.let { a -> s to a } },
             )
         } else null
 
@@ -97,21 +103,23 @@ class NudgeReceiver : BroadcastReceiver() {
             "Time to recite $pageSpan"
         }
 
+        // Each track's own number, and request codes built from it: with shared codes, a second
+        // track's notification rewrote the first one's tap and reply buttons to its own track.
+        val id = Nudge.notificationIdFor(track.id)
+
         val open = PendingIntent.getActivity(
             context,
-            0,
+            id,
             Intent(context, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 .putExtra(Nudge.EXTRA_FROM_NUDGE, true)
-                .putExtra(Nudge.EXTRA_TRACK_ID, activeTrack.id),
+                .putExtra(Nudge.EXTRA_TRACK_ID, track.id),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        val notificationTitle = "Your Daily Wird · ${activeTrack.name}"
-
         val builder = NotificationCompat.Builder(context, Nudge.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_agenda)
-            .setContentTitle(notificationTitle)
+            .setContentTitle("Your Daily Wird · ${track.name}")
             .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
@@ -120,23 +128,18 @@ class NudgeReceiver : BroadcastReceiver() {
         CommitReceiver.REPLIES.forEachIndexed { i, phrase ->
             val reply = PendingIntent.getBroadcast(
                 context,
-                // A distinct request code per action, or every button would overwrite the
-                // one before it and all three would send the same phrase.
-                100 + i,
+                // Distinct per button and per track, or they overwrite each other.
+                id * 4 + i,
                 Intent(context, CommitReceiver::class.java)
                     .putExtra(CommitReceiver.EXTRA_SAID, phrase)
-                    .putExtra(Nudge.EXTRA_TRACK_ID, activeTrack.id),
+                    .putExtra(Nudge.EXTRA_TRACK_ID, track.id),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             builder.addAction(0, phrase, reply)
         }
 
-        val notification = builder.build()
-
-        context.getSystemService(NotificationManager::class.java)
-            .notify(Nudge.NOTIFICATION_ID, notification)
-
-        Log.i(TAG, "notification posted: $contentText")
+        context.getSystemService(NotificationManager::class.java).notify(id, builder.build())
+        Log.i(TAG, "notification posted for '${track.name}': $contentText")
     }
 
     companion object {
