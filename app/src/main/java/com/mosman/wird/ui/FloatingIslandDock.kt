@@ -28,6 +28,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -107,6 +112,13 @@ fun FloatingIslandDock(
                             indication = null,
                             onClick = { onPick(tab) },
                         )
+                        // An inactive tab shows only its icon, so TalkBack had nothing to read:
+                        // Sūrahs and History were announced as unnamed buttons. Measured 2026-10-04.
+                        .semantics {
+                            contentDescription = tab.label
+                            role = Role.Tab
+                            selected = active
+                        }
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {

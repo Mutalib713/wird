@@ -702,6 +702,42 @@ version tests the assumption first, and nothing expensive gets built until it ho
 **✅ ANSWERED 2026-08-18: rules now, Gemini later.** See task 22 above. The remaining open
 question is not *which engine* but *whether the companion earns one at all* — task 24.
 
+## Milestone 4c — Finding a verse
+
+- [ ] **26. Word search across the Qur'an** — planned 2026-10-04, **waiting on two decisions**
+  Type a word in Arabic (with or without vowel marks), English, Hausa or transliteration and get
+  every verse that holds it, the match highlighted; tap one to open its page. All four texts are
+  already in the app, so it needs no download and works offline.
+  *What real users ran into elsewhere* (Quran for Android's own issues, 2014–2019; Stack Overflow,
+  2011–2023):
+  - Attached letters. "قمر" found 0 verses, "القمر" 5 and "والقمر" 20, with no overlap
+    ([#427](https://github.com/quran/quran_android/issues/427)); "قبور" found nothing
+    ([#960](https://github.com/quran/quran_android/issues/960)). Match inside words, not whole words.
+  - Alif and hamza spellings must match each other; their 2019 rewrite did it offline
+    ([#1164](https://github.com/quran/quran_android/pull/1164)).
+  - Exact matches first: "غلا" listed "غلام" before "غِلًّا"
+    ([#453](https://github.com/quran/quran_android/issues/453)).
+  - Keep Qur'an and tafsir results apart (#960); let sūrah names be found too
+    ([#2864](https://github.com/quran/quran_android/issues/2864), 2024).
+  - Matching without vowel marks is the standard answer, but the highlight needs a map back to
+    the original letters or it lands in the wrong place (Stack Overflow 20757780, 42327643).
+  - People also search by sound in Latin letters ("qul huwallahu ahad"); Lafzi, an Indonesian
+    project, matches loose spellings.
+  - Reddit wasn't read this time: the Chrome extension was disconnected and DuckDuckGo showed a
+    bot check.
+  *How:* fold query and text with `foldArabic` plus the hamza seats (ؤ to و, ئ to ي), match inside
+  words, rank whole word, then word start, then inside a word. The bundled Arabic is the modern
+  spelling with vowel marks (الصَّلَاةَ, not the Uthmani الصلوٰة), so phone typing matches it once
+  folded. Build the index in memory on first use and measure the time on a low-end phone.
+  *Not in this task:* whole word families from one root (كتب, كاتب, مكتوب). That needs
+  morphology data; the Quranic Arabic Corpus has it under the GNU GPL with its own conditions
+  (credit and a link, no changes to the file), so it needs a licence check first. Also not:
+  searching tafsir, fixing badly misspelled words.
+  *Decisions:* where it lives (one search box on the Sūrahs tab for names and words, or its own
+  screen); which languages go in first.
+  *Done when:* "قمر", "والقمر" and "القمر" all find the same verses, "mercy" finds the English
+  matches, results open the right ayah, and the first search takes under a second on the emulator.
+
 ## Milestone 5 — The verdict
 
 - [ ] **20. Thirty-day measurement**

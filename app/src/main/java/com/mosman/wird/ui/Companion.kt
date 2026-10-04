@@ -333,7 +333,7 @@ fun HomeHabitClarityCard(
                 Spacer(Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Wird AI Companion",
+                        text = "Wird Companion",
                         color = colors.textPrimary,
                         style = TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.Bold),
                     )

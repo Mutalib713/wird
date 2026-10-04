@@ -213,12 +213,13 @@ fun TodayScreen(
      * translation mode should not open there tomorrow.
      */
     var translationMode by remember { mutableStateOf(false) }
-    /** Which translation sources to display. Defaults to all bundled translations. */
-    var selectedTranslationSources by remember {
-        mutableStateOf(com.mosman.wird.data.TranslationSource.entries.toList())
-    }
     val context0 = LocalContext.current
     val store = remember(context0) { com.mosman.wird.data.WirdStore(context0) }
+    /**
+     * Which translation sources to display: the reader's choice in Settings, all of the bundled
+     * ones unless they picked one. Changing it here lasts for this visit only.
+     */
+    var selectedTranslationSources by remember { mutableStateOf(store.defaultTranslationSources) }
     var showAyahBeforeTranslation by remember { mutableStateOf(store.ayahBeforeTranslation) }
     var showTranslationDialog by remember { mutableStateOf(false) }
 

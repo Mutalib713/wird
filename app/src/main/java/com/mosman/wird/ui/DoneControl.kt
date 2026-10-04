@@ -291,7 +291,7 @@ private fun NotYet(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "100% offline Whisper AI voice check ready",
+                        text = "Recite & Review works offline on this phone",
                         color = colors.textSecondary,
                         style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Medium),
                     )

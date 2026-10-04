@@ -448,8 +448,23 @@ class WirdStore(context: Context) {
         set(value) = prefs.edit { putString(KEY_DOWNLOAD_AMOUNT, value) }
 
     var selectedTranslation: String
-        get() = prefs.getString(KEY_SELECTED_TRANS, "Saheeh International") ?: "Saheeh International"
+        get() = prefs.getString(KEY_SELECTED_TRANS, "all") ?: "all"
         set(value) = prefs.edit { putString(KEY_SELECTED_TRANS, value) }
+
+    /**
+     * The Settings choice as a key: "all", or one [TranslationSource] name.
+     *
+     * Anything else was saved by the old Settings dialog ("Saheeh International", "The Clear
+     * Quran", "Yusuf Ali"). Nothing read it and two of those were never in the app, so it means
+     * what the reader actually saw: all of the bundled translations.
+     */
+    val translationChoice: String
+        get() = selectedTranslation.takeIf { v -> TranslationSource.entries.any { it.name == v } } ?: "all"
+
+    /** The translations the reading page opens with. */
+    val defaultTranslationSources: List<TranslationSource>
+        get() = TranslationSource.entries.firstOrNull { it.name == translationChoice }?.let { listOf(it) }
+            ?: TranslationSource.entries.toList()
 
     var selectedReciter: String
         get() = prefs.getString(KEY_SELECTED_RECITER, "Abu Bakr al-Shatri") ?: "Abu Bakr al-Shatri"

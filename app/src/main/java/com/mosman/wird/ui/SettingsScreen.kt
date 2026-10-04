@@ -227,7 +227,7 @@ fun SettingsScreen(
     var ayahTextSize by remember { mutableIntStateOf(store.ayahTextSize) }
     var streamingAudio by remember { mutableStateOf(store.streamingAudio) }
     var downloadAmount by remember { mutableStateOf(store.downloadAmount) }
-    var selectedTrans by remember { mutableStateOf(store.selectedTranslation) }
+    var selectedTrans by remember { mutableStateOf(store.translationChoice) }
     var selectedReciter by remember { mutableStateOf(store.selectedReciter) }
     var nightTextBrightness by remember { mutableIntStateOf(store.nightTextBrightness) }
     var nightBgBrightness by remember { mutableIntStateOf(store.nightBgBrightness) }
@@ -678,7 +678,8 @@ fun SettingsScreen(
                         ClaySection(title = "Translation Preferences") {
                             ClaySettingRow(
                                 title = "Translations",
-                                subtitle = "$selectedTrans · Download & manage",
+                                subtitle = "Shows: " + (com.mosman.wird.data.TranslationSource.entries.firstOrNull { it.name == selectedTrans }?.label
+                                    ?: "English, Hausa and transliteration"),
                                 onClick = { activeDialog = SettingsDialog.TRANSLATIONS },
                             )
 
@@ -760,7 +761,7 @@ fun SettingsScreen(
                                 val mbTotal = String.format(java.util.Locale.US, "%.1f", (live?.totalBytes ?: com.mosman.wird.mushaf.MushafDownloadService.ESTIMATED_TOTAL_BYTES).toFloat() / (1024 * 1024))
                                 "Downloading $done of $total pages · $mbDone / $mbTotal MB"
                             } else if (pages >= whole) {
-                                "All 604 pages ready · 100% offline (${megabytes(bytes)})"
+                                "All 604 pages saved · they open without data (${megabytes(bytes)})"
                             } else {
                                 "$pages of $whole pages · ${megabytes(bytes)}"
                             }
@@ -878,7 +879,7 @@ fun SettingsScreen(
 
                             ClaySettingRow(
                                 title = "About Wird",
-                                subtitle = "v1.0 · 100% offline & private · Zero guilt",
+                                subtitle = "v1.0 · Private, no account · No guilt",
                                 onClick = { activeDialog = SettingsDialog.ABOUT_WIRD },
                                 showDivider = false,
                             )
@@ -1524,10 +1525,13 @@ fun SettingsScreen(
             SettingsDialog.TRANSLATIONS -> {
                 ClayOptionDialog(
                     title = "Translations",
+                    // Only what ships in the app. This used to offer "The Clear Quran" and "Yusuf
+                    // Ali", which were never in it, and saved a choice nothing read.
                     options = listOf(
-                        DialogOption("Saheeh International", "Saheeh International", "Standard contemporary English"),
-                        DialogOption("The Clear Quran", "The Clear Quran", "Dr. Mustafa Khattab · Fluent thematic modern English"),
-                        DialogOption("Yusuf Ali", "Yusuf Ali", "Classic English translation"),
+                        DialogOption("all", "English, Hausa and transliteration", "All three, as the reading page shows them"),
+                        DialogOption(com.mosman.wird.data.TranslationSource.SAHEEH.name, "English", "Saheeh International"),
+                        DialogOption(com.mosman.wird.data.TranslationSource.HAUSA.name, "Hausa", "Abubakar Mahmud Gumi"),
+                        DialogOption(com.mosman.wird.data.TranslationSource.TRANSLITERATION.name, "Transliteration", "The Arabic sounds in Latin letters"),
                     ),
                     selected = selectedTrans,
                     onSelect = {

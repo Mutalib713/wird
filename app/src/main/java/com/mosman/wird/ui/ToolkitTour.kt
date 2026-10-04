@@ -106,7 +106,7 @@ fun ToolkitSpotlightOverlay(
             // 1. Daily Portion Card (Full Section)
             SpotlightStep(
                 title = "Your Daily Portion",
-                description = "Committed recitation with streak protection. Follow your assigned pages, mark done, or recite out loud.",
+                description = "Today's verses from your track. Read them, then tap Mark Done, or recite them out loud.",
                 accentColor = coral,
                 cutoutLeft = 16.dp,
                 cutoutTop = 254.dp,
@@ -122,8 +122,8 @@ fun ToolkitSpotlightOverlay(
             ),
             // 2. Offline Voice Auditor (Recite Button)
             SpotlightStep(
-                title = "Recite Out Loud",
-                description = "Tap 'Recite' to recite by heart. Built-in Whisper AI checks your words 100% offline with zero data.",
+                title = "Recite & Review",
+                description = "Read aloud from the page or from memory. Wird listens on your phone and marks any verse that may need another look. It works offline after a one-time download.",
                 accentColor = coral,
                 cutoutLeft = 28.dp,
                 cutoutTop = 472.dp,
@@ -139,8 +139,8 @@ fun ToolkitSpotlightOverlay(
             ),
             // 3. Reading Tracks & Schedules (Track Pill in header)
             SpotlightStep(
-                title = "Reading Tracks & Schedules",
-                description = "Maintain parallel tracks for Tilāwah, Ḥifẓ, or Ramadan Khatmah with independent schedules. Tap anytime to switch tracks.",
+                title = "Reading Tracks",
+                description = "Keep more than one goal, each with its own days, amount and reminder. Tap here to switch tracks.",
                 accentColor = coral,
                 cutoutLeft = 180.dp,
                 cutoutTop = 46.dp,
@@ -154,10 +154,10 @@ fun ToolkitSpotlightOverlay(
                 pointingUp = true,
                 textTop = 155.dp,
             ),
-            // 4. Wird AI Companion & Tafsir (Today's Check-in Card - auto-scrolled into view)
+            // 4. The Companion (Today's Check-in Card - auto-scrolled into view)
             SpotlightStep(
-                title = "Wird AI Companion & Tafsir",
-                description = "Daily check-in and reflection. Tap 'Open Chat' to explore numbered Tafsir Ibn Kathir, translations, or pause without streak guilt.",
+                title = "The Companion",
+                description = "Ask what an ayah means, change your plan in plain words, or pause while you travel. Tafsir needs internet.",
                 accentColor = coral,
                 cutoutLeft = 16.dp,
                 cutoutTop = 140.dp,
@@ -173,8 +173,8 @@ fun ToolkitSpotlightOverlay(
             ),
             // 6. Floating Navigation Dock (Bottom Capsule)
             SpotlightStep(
-                title = "Floating Navigation Dock",
-                description = "Jump effortlessly between Today's Portion, Free Surah reading, and your recitations in Your Wird.",
+                title = "Home, Sūrahs and History",
+                description = "Home has today's portion. Sūrahs opens the whole Qur'an to read freely. History shows your past days and recordings.",
                 accentColor = coral,
                 cutoutLeft = 24.dp,
                 cutoutTop = 778.dp,
