@@ -2873,3 +2873,31 @@ Made after reviewing two ChatGPT conversations about onboarding (links in the 20
 - **The splash hadith is quoted word for word**: "The most beloved deed to Allah is the most
   regular and constant even if it were little." (Sahih al-Bukhari 6464). Never paraphrase a hadith
   inside quotation marks.
+
+## 5bf. Madrasa order is measured in verses — 2026-10-04
+
+**The bug.** A page target in madrasa order (An-Nās back towards Al-Fātiḥah) walked the mushaf page
+by page and guessed which sūrah the reader was in from the sūrahs printed on the page. On 41 pages one
+sūrah ends where the next begins, and there the guess walked back into the sūrah already read.
+Replayed over the whole mushaf: from An-Nās at a page a day it looped between pages 599 and 600 from
+day 7; the quick start (An-Naba', a page a day) looped over pages 582–584 from day 4; Yā-Sīn and
+Fāṭir looped into each other. Starting at An-Nās also lit only An-Nās on page 604 and then moved on,
+so Al-Falaq and Al-Ikhlāṣ were never read, checked or put in a reminder.
+
+**The rule now** (`domain/MadrasaOrder.kt`). A madrasa day is a run of verses in madrasa order, so it
+travels as an ordinary verse portion (highlight, recitation check, reminder, day log, undo):
+
+1. Inside the sūrah being read, a day covers the same half-pages a page target always has.
+2. A sūrah that runs on stops there, unless its tail weighs under half a day; then it is finished
+   today, so no day is a stray verse or two.
+3. A finished sūrah is followed by the sūrahs before it, taken whole while each still fits in what is
+   left of the day. The first that doesn't fit starts tomorrow.
+
+What that gives in Juz' ʿAmma: **half a page a day is one short sūrah a day** (An-Nās, Al-Falaq,
+Al-Ikhlāṣ, Al-Masad, …), the way a madrasa lesson goes; **a page a day is page 604, then 603, then
+602**. `MadrasaOrderTest` replays the whole mushaf at half a page, one page and two pages from An-Nās,
+An-Naba', Yā-Sīn, Al-Baqarah 255 and Al-Fātiḥah: every verse comes up exactly once before the cycle
+starts again. His worked example still holds: at Yā-Sīn, going up you reach Fāṭir.
+
+Forwards (towards An-Nās) is unchanged: page portions, as before. A madrasa track saved before this
+change with no start verse resumes from the first verse of its stored half-page.

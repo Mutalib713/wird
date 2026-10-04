@@ -34,52 +34,20 @@ data class Assignment(
     /** For a verse portion, where tomorrow starts. */
     val nextVerse: Pair<Int, Int>? = null,
 ) {
-    /** Where tomorrow starts. */
     /**
      * Where tomorrow starts.
      *
-     * **The one line the whole direction feature turns on.** Forwards adds a portion, backwards
-     * subtracts one, and `floorMod` wraps at whichever end you reach — 604 to 1 going one way,
-     * 1 to 604 going the other.
+     * A verse portion knows its next verse. A page portion starts tomorrow at the next half-page.
      *
-     * ⚠ **A portion is still read in its own natural order**, left page before right, whichever
-     * way the reader is travelling. Only the *step between days* reverses. Going backwards two
-     * pages a day therefore reads 440-441, then 438-439: each day in order, no page skipped and
-     * none repeated, but the days themselves walk backwards. That is the honest consequence of
-     * keeping [startUnit] the start rather than the end, and it is what someone reciting a page
-     * at a time actually wants.
+     * ⚠ **Only towards An-Nās.** Madrasa order (towards Al-Fātiḥah) is never a page portion any
+     * more: [ReadingTrack.assignmentOn] measures it out in verses with [MadrasaOrder], which sets
+     * [nextVerse]. The page walk that used to live here guessed the sūrah from the page and looped
+     * on the 41 pages two sūrahs share. A madrasa page portion can still be rebuilt for display
+     * from a day logged before 2026-10-04, but nothing advances from one.
      */
     val nextStartUnit: Int
-        get() = if (nextVerse != null) VerseIndex.unitOf(nextVerse) else when (direction) {
-            ReadingDirection.TOWARDS_NAS ->
-                Math.floorMod(startUnit + units, Mushaf.TOTAL_UNITS)
-            ReadingDirection.TOWARDS_FATIHAH -> {
-                // In recitation, verses and pages within a surah always advance forwards (1 -> end).
-                // TOWARDS_FATIHAH decides which surah comes next AFTER the current surah is finished:
-                // it transitions to the preceding surah (e.g. from Ya-Sin 36 -> Fatir 35).
-                val surahsOnPage = SurahIndex.on(startPage)
-                val continuingSurah = surahsOnPage.firstOrNull { it.lastPage > endPage }
-                if (continuingSurah != null) {
-                    // Still advancing within the current surah
-                    Math.floorMod(startUnit + units, Mushaf.TOTAL_UNITS)
-                } else {
-                    // Current surah(s) completed on this page: jump to the preceding surah
-                    val earliestSurah = surahsOnPage.minByOrNull { it.number }
-                    val prevSurahNum = if (earliestSurah != null && earliestSurah.number > 1) {
-                        earliestSurah.number - 1
-                    } else if (earliestSurah != null && earliestSurah.number == 1) {
-                        114
-                    } else null
-
-                    if (prevSurahNum != null) {
-                        val prevSurah = SurahIndex.byNumber(prevSurahNum)!!
-                        (prevSurah.firstPage - 1) * Mushaf.UNITS_PER_PAGE
-                    } else {
-                        Math.floorMod(startUnit - units, Mushaf.TOTAL_UNITS)
-                    }
-                }
-            }
-        }
+        get() = if (nextVerse != null) VerseIndex.unitOf(nextVerse)
+        else Math.floorMod(startUnit + units, Mushaf.TOTAL_UNITS)
 }
 
 /**

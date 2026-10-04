@@ -32,6 +32,7 @@ import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.assignPortion
 import com.mosman.wird.domain.surahs
 import com.mosman.wird.domain.assignmentOn
+import com.mosman.wird.domain.verseAssignment
 import com.mosman.wird.ui.theme.Q
 import java.time.LocalDate
 
@@ -71,10 +72,15 @@ class WirdWidget : GlanceAppWidget() {
             // old global position and plan, so it could show a different portion from Home.
             val track = store.activeTrack(today)
             val covered = days.coveredOn(today, track.id)
-            val assignment = if (covered != null) {
-                assignPortion(startUnit = covered.first, units = covered.second, direction = track.direction)
-            } else {
-                track.assignmentOn(today)
+            // A finished verse portion is rebuilt from its saved verses, as Home does. Rebuilding
+            // it from pages named whatever sūrah sat first on the page instead.
+            val coveredVerses = days.coveredVerses(today, track.id)
+            val assignment = when {
+                coveredVerses != null ->
+                    verseAssignment(coveredVerses.first, coveredVerses.second, track.direction)
+                covered != null ->
+                    assignPortion(startUnit = covered.first, units = covered.second, direction = track.direction)
+                else -> track.assignmentOn(today)
             }
             val surah = assignment.surahs.firstOrNull()
             WidgetState.Portion(

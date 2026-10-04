@@ -73,11 +73,21 @@ fun ReadingTrack.plan(): ReadingPlan = ReadingPlan(
  * The one place a portion is worked out. Home, the reading page, the widget and the
  * notification all call this, so they cannot disagree about what today's portion is — which
  * they did, three ways, before 2026-10-03.
+ *
+ * A page target in madrasa order is measured out in verses (see [MadrasaOrder]): walking whole
+ * pages backwards looped on the pages two sūrahs share, so it is never done that way any more.
  */
 fun ReadingTrack.assignmentOn(date: LocalDate): Assignment {
     val verseTarget = customTargetVerses?.takeIf { it > 0 }
-        ?: return todaysAssignment(startUnit = positionUnit, plan = plan(), date = date, direction = direction)
-    return verseAssignment(start = startVerseOrPosition(), count = verseTarget, direction = direction)
+    if (verseTarget != null) {
+        return verseAssignment(start = startVerseOrPosition(), count = verseTarget, direction = direction)
+    }
+    if (direction == ReadingDirection.TOWARDS_FATIHAH) {
+        val start = startVerseOrPosition()
+        val units = plan().unitsOn(date.dayOfWeek)
+        return verseAssignment(start = start, count = MadrasaOrder.versesFor(start, units), direction = direction)
+    }
+    return todaysAssignment(startUnit = positionUnit, plan = plan(), date = date, direction = direction)
 }
 
 /**

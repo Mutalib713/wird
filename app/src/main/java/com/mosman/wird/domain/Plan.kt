@@ -78,9 +78,15 @@ fun verseAssignment(start: Pair<Int, Int>, count: Int, direction: ReadingDirecti
     )
 }
 
-/** Surahs this portion touches. More than one when it crosses a boundary. */
+/**
+ * Surahs this portion touches, in reading order. More than one when it crosses a boundary.
+ *
+ * A verse portion names only the sūrahs it reads, in the order it reads them: a madrasa day on
+ * page 604 is An-Nās, Al-Falaq, Al-Ikhlāṣ. A page portion names every sūrah on its pages.
+ */
 val Assignment.surahs: List<Surah>
-    get() = SurahIndex.across(pages)
+    get() = verses?.map { it.first }?.distinct()?.mapNotNull { SurahIndex.byNumber(it) }
+        ?: SurahIndex.across(pages)
 
 /**
  * Which lines of [page] belong to this portion.

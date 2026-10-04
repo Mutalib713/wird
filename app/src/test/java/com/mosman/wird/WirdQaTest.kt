@@ -33,6 +33,9 @@ import com.mosman.wird.domain.ReadingPlan
 import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.assignPortion
+import com.mosman.wird.domain.MadrasaOrder
+import com.mosman.wird.domain.VerseIndex
+import com.mosman.wird.domain.verseAssignment
 import com.mosman.wird.domain.label
 import com.mosman.wird.domain.linesOn
 import com.mosman.wird.domain.versesOn
@@ -1672,10 +1675,18 @@ class ReadingDirectionTest {
     /** Ya-Sin begins on page 440, so its first half-page unit is (440-1) * 2. */
     private val yaSin = (440 - 1) * Mushaf.UNITS_PER_PAGE
 
+    /**
+     * A day going up (towards Al-Fatihah) from [start], a page a day, worked out the way a track
+     * does it. Since 2026-10-04 that is a run of verses from [MadrasaOrder], never a page walk:
+     * the page walk looped on pages two surahs share.
+     */
+    private fun upFrom(start: Pair<Int, Int>) =
+        verseAssignment(start, MadrasaOrder.versesFor(start, Mushaf.UNITS_PER_PAGE), ReadingDirection.TOWARDS_FATIHAH)
+
     /** Check 53 — within a surah both go forwards; upon completion up reaches Fatir and down reaches As-Saffat. */
     @Test
     fun `at Ya-Sin, within surah advances forwards, finishing reaches Fatir or As-Saffat`() {
-        val up = assignPortion(yaSin, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_FATIHAH)
+        val up = upFrom(36 to 1)
         val down = assignPortion(yaSin, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_NAS)
 
         assertEquals("both read the same page today", up.startPage, down.startPage)
@@ -1687,8 +1698,7 @@ class ReadingDirectionTest {
         assertEquals("still Ya-Sin", "Ya-Sin", SurahIndex.across(listOf(upNext)).first().name)
 
         // Mid-surah check: from page 443, up advances to 444 (never backwards to 442)
-        val midUnit = (443 - 1) * Mushaf.UNITS_PER_PAGE
-        val midPortion = assignPortion(midUnit, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_FATIHAH)
+        val midPortion = upFrom(VerseIndex.versesOn(443).first())
         assertEquals("from page 443 upwards advances to 444", 444, Mushaf.pageOf(midPortion.nextStartUnit))
 
         // From Ya-Sin's LAST page (445), down reaches As-Saffat and up reaches Fatir
@@ -1698,11 +1708,8 @@ class ReadingDirectionTest {
             Mushaf.UNITS_PER_PAGE,
             ReadingDirection.TOWARDS_NAS,
         )
-        val leavingUp = assignPortion(
-            (yaSinEnd - 1) * Mushaf.UNITS_PER_PAGE,
-            Mushaf.UNITS_PER_PAGE,
-            ReadingDirection.TOWARDS_FATIHAH,
-        )
+        val leavingUp = upFrom(VerseIndex.versesOn(yaSinEnd).first { it.first == 36 })
+        assertEquals("finishing Ya-Sin upwards starts Fatir at its first ayah", 35 to 1, leavingUp.nextVerse)
         assertEquals(
             "finishing Ya-Sin downwards reaches As-Saffat",
             "As-Saffat",
@@ -1730,7 +1737,7 @@ class ReadingDirectionTest {
      */
     @Test
     fun `it wraps at both ends and defaults to the way it always went`() {
-        val firstPage = assignPortion(0, Mushaf.UNITS_PER_PAGE, ReadingDirection.TOWARDS_FATIHAH)
+        val firstPage = upFrom(1 to 1)
         assertEquals(
             "going up from page 1 wraps to the end",
             Mushaf.PAGES,
@@ -2137,7 +2144,8 @@ class ArabicAssetTest {
         // Reading direction: from Al-Ikhlas (page 604)
         val p604Unit = (604 - 1) * Mushaf.UNITS_PER_PAGE
         val assignDown = assignPortion(p604Unit, 2, ReadingDirection.TOWARDS_NAS)
-        val assignUp = assignPortion(p604Unit, 2, ReadingDirection.TOWARDS_FATIHAH)
+        // Going up is a madrasa-order run of verses since 2026-10-04, not a page walk.
+        val assignUp = verseAssignment(112 to 1, MadrasaOrder.versesFor(112 to 1, 2), ReadingDirection.TOWARDS_FATIHAH)
 
         // Downwards wraps from 604 to 1
         assertEquals(1, Mushaf.pageOf(assignDown.nextStartUnit))
