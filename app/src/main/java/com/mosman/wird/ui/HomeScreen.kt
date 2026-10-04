@@ -392,6 +392,14 @@ private fun PortionCard(
         val start = activeTrack?.startVerseSurah?.let { s -> activeTrack.startVerseAyah?.let { a -> s to a } }
         if (surah != null) assignment.ayahRangeIn(surah.number, start) else null
     }
+    // Every sūrah the portion reads, each with its ayahs: a madrasa day on page 604 is "An-Nas 1–6,
+    // Al-Falaq 1–5, Al-Ikhlas 1–4". Naming only the first sūrah hid the other two.
+    val readsLabel = remember(assignment, surahs, activeTrack) {
+        val start = activeTrack?.startVerseSurah?.let { s -> activeTrack.startVerseAyah?.let { a -> s to a } }
+        surahs.mapNotNull { s -> assignment.ayahRangeIn(s.number, start)?.let { "${s.name} ${it.substringAfter(' ')}" } }
+            .takeIf { it.size > 1 }
+            ?.joinToString(", ")
+    }
     val page = Mushaf.pageOf(assignment.startUnit)
     val span = surah?.let { (it.lastPage - it.firstPage + 1).coerceAtLeast(1) } ?: 1
     val into = surah?.let { (page - it.firstPage).coerceAtLeast(0) } ?: 0
@@ -485,7 +493,9 @@ private fun PortionCard(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    text = if (surah != null && ayahRange != null) {
+                    text = if (readsLabel != null) {
+                        "$readsLabel · Page ${assignment.startPage}"
+                    } else if (surah != null && ayahRange != null) {
                         "${surah.name} · $ayahRange · Page ${assignment.startPage}"
                     } else if (surah != null) {
                         "${surah.name} · Page ${assignment.startPage}"

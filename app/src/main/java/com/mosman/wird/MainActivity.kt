@@ -204,10 +204,13 @@ class MainActivity : ComponentActivity() {
             val chat = remember(activeTrack.id) { ConversationStore(filesDir, activeTrack.id) }
             var turns by remember(activeTrack.id) { mutableStateOf(chat.all()) }
 
-            LaunchedEffect(activeTrack.id) {
-                if (chat.all().isEmpty()) {
-                    val page = Mushaf.pageOf(activeTrack.positionUnit)
-                    val surah = SurahIndex.on(page).firstOrNull()?.name ?: "Page $page"
+            // Not while setup is still open: the track sits at its default position then, so the
+            // greeting used to be written for page 1, Al-Fatihah, and kept after setup moved it.
+            LaunchedEffect(activeTrack.id, screen) {
+                if (screen != Screen.SETUP && chat.all().isEmpty()) {
+                    val portion = activeTrack.assignmentOn(today)
+                    val page = portion.startPage
+                    val surah = portion.surahs.firstOrNull()?.name ?: "Page $page"
                     val greeting = "Assalamu Alaikum! Reflection space for '${activeTrack.name}' ready (Page $page, $surah). How did your recitation go today, and what would you like to reflect on?"
                     turns = chat.say(Speaker.WIRD, greeting)
                 }
