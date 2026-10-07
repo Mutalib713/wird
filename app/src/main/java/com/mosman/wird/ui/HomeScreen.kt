@@ -253,9 +253,7 @@ fun HomeScreen(
                     doneMethod = doneMethod,
                     progress = progress,
                     turns = turns,
-                    onYesRecited = {
-                        onSaid("Already did it")
-                    },
+                    onMarkRead = onMarkRead,
                     onRemindInHour = {
                         onSaid("In an hour")
                     },

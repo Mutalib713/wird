@@ -79,7 +79,7 @@ fun HomeHabitClarityCard(
     doneMethod: Method?,
     progress: Progress?,
     turns: List<Turn>,
-    onYesRecited: () -> Unit,
+    onMarkRead: () -> Unit,
     onRemindInHour: () -> Unit,
     onNotToday: () -> Unit,
     onOpenChat: () -> Unit,
@@ -153,7 +153,7 @@ fun HomeHabitClarityCard(
 
             Spacer(Modifier.height(14.dp))
 
-            // Primary Action Button: "Yes, I recited it"
+            // Primary Action Button: "I've read it"
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -164,10 +164,10 @@ fun HomeHabitClarityCard(
                         shadowColor = Color.Black.copy(alpha = 0.4f),
                         elevation = 4.dp,
                     )
-                    .clickable(onClick = onYesRecited)
+                    .clickable(onClick = onMarkRead)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.Center,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
@@ -186,16 +186,11 @@ fun HomeHabitClarityCard(
                     }
                     Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "Yes, I recited it",
+                        text = "I've read it",
                         color = Color.White,
                         style = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold),
                     )
                 }
-                Text(
-                    text = "Streak +1",
-                    color = Color(0xFFF3D993),
-                    style = TextStyle(fontSize = 11.5.sp, fontWeight = FontWeight.Bold),
-                )
             }
 
             Spacer(Modifier.height(8.dp))
