@@ -23,22 +23,40 @@ enum class RecitationModel(
     val fileName: String,
     val megabytes: Int,
     val url: String,
+    /** The exact size of the right file, in bytes. */
+    val bytes: Long,
+    /** The right file's SHA-256, as Hugging Face publishes it for this exact version. */
+    val sha256: String,
 ) {
     TINY(
         label = "Smaller",
         fileName = "tarteel-tiny-q8_0.bin",
         megabytes = 42,
-        url = "https://huggingface.co/ram-a-dhan/tarteel-whisper-quran-ggml/resolve/main/" +
-            "tarteel-ai-whisper-tiny-ar-quran-ggml-q8_0.bin",
+        url = MODEL_REPO + "tarteel-ai-whisper-tiny-ar-quran-ggml-q8_0.bin",
+        bytes = 43_537_433L,
+        sha256 = "ef01ab441b004f9e6f1ea98d397b43452b3a45efab7c3928ab37af655dde8b52",
     ),
     BASE(
         label = "More accurate",
         fileName = "tarteel-base-q8_0.bin",
         megabytes = 78,
-        url = "https://huggingface.co/ram-a-dhan/tarteel-whisper-quran-ggml/resolve/main/" +
-            "tarteel-ai-whisper-base-ar-quran-ggml-q8_0.bin",
+        url = MODEL_REPO + "tarteel-ai-whisper-base-ar-quran-ggml-q8_0.bin",
+        bytes = 81_768_585L,
+        sha256 = "7b22bd61ef18112fe92cb2518f37ef4896b85be90a371d4dd43e74749768730f",
     ),
 }
+
+/**
+ * The model files, pinned to one version of the repository rather than "main".
+ *
+ * ⚠ **Before 2026-10-04 the app downloaded whatever "main" held that day and trusted it if it was
+ * over 10 MB.** Anyone able to change that repository could have changed what runs inside the app.
+ * Now the address names one commit, and [ModelDownload] refuses a file whose size or SHA-256 differs
+ * from what Hugging Face published for it. Both values were read from the Hugging Face API for this
+ * commit (last changed 2026-05-06, licence Apache-2.0). Updating the model means updating all three.
+ */
+private const val MODEL_REPO =
+    "https://huggingface.co/ram-a-dhan/tarteel-whisper-quran-ggml/resolve/4a96d8bb5535a4b6e6f6abd5655b8711a95ae538/"
 
 /**
  * Listening to a recitation, on the phone, with no network. **PLAN task 14's expensive half.**
@@ -73,7 +91,7 @@ class Recogniser(private val context: Context) {
 
     /** Every model actually sitting on this phone. */
     fun downloaded(): List<RecitationModel> =
-        RecitationModel.entries.filter { plausible(fileFor(it)) }
+        RecitationModel.entries.filter { plausible(it) }
 
     /**
      * The model this phone will actually use, or null.
@@ -106,8 +124,11 @@ class Recogniser(private val context: Context) {
      * whisper.cpp handed a truncated file does not politely refuse — it can crash the process in
      * native code, where there is no Kotlin exception to catch. The same trap the fonts and the
      * recitation audio both hit: a CDN error page arrives with a 200 and a plausible name.
+     *
+     * The size must be exactly the right file's. Its SHA-256 is checked once, when it downloads;
+     * reading 80 MB again on every launch would cost seconds on a Tecno.
      */
-    private fun plausible(file: File) = file.exists() && file.length() > MIN_PLAUSIBLE_BYTES
+    private fun plausible(model: RecitationModel) = fileFor(model).let { it.exists() && it.length() == model.bytes }
 
     /** Whether a recitation could be checked right now, without downloading anything. */
     fun ready(): Boolean = WhisperNative.available && installed() != null
@@ -175,8 +196,5 @@ class Recogniser(private val context: Context) {
 
     private companion object {
         const val TAG = "WirdWhisper"
-
-        /** Even the smallest model is 42 MB; anything under 10 is an error page or a stub. */
-        const val MIN_PLAUSIBLE_BYTES = 10L * 1024 * 1024
     }
 }

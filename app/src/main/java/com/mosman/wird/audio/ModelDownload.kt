@@ -8,6 +8,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 
 /**
  * Fetching a recitation model. **PLAN task 14, on the terms he set.**
@@ -23,8 +24,9 @@ import java.net.URL
  * **A partial file must never be able to wear the finished file's name.**
  *
  * The same trap the fonts and the recitation audio both hit earlier in this project: a CDN error
- * page arrives with a 200 and a believable filename. Here the guard is the byte count, checked
- * against what the server said it would send.
+ * page arrives with a 200 and a believable filename. Here the guards are the exact byte count and,
+ * since 2026-10-04, the SHA-256 published for the pinned version (see [RecitationModel]). A file
+ * that fails either is deleted, never renamed into place.
  */
 object ModelDownload {
 
@@ -39,7 +41,7 @@ object ModelDownload {
         onProgress: (done: Long, total: Long) -> Unit = { _, _ -> },
     ): Boolean = withContext(Dispatchers.IO) {
         val target = File(into, model.fileName)
-        if (target.exists() && target.length() > MIN_PLAUSIBLE) {
+        if (target.exists() && target.length() == model.bytes) {
             Log.i(TAG, "${model.name} already here")
             return@withContext true
         }
@@ -63,6 +65,7 @@ object ModelDownload {
 
             val expected = connection.contentLengthLong
             var written = 0L
+            val digest = MessageDigest.getInstance("SHA-256")
 
             connection.inputStream.use { source ->
                 partial.outputStream().use { sink ->
@@ -77,6 +80,7 @@ object ModelDownload {
                         val read = source.read(buffer)
                         if (read < 0) break
                         sink.write(buffer, 0, read)
+                        digest.update(buffer, 0, read)
                         written += read
                         onProgress(written, expected)
                     }
@@ -90,8 +94,15 @@ object ModelDownload {
                 partial.delete()
                 return@withContext false
             }
-            if (written < MIN_PLAUSIBLE) {
-                Log.w(TAG, "${model.name} was only $written bytes - not a model")
+            if (written != model.bytes) {
+                Log.w(TAG, "${model.name} was $written bytes, not ${model.bytes} - not the right file")
+                partial.delete()
+                return@withContext false
+            }
+            // The right size is not enough: it must be the very file Hugging Face published.
+            val sha = digest.digest().joinToString("") { "%02x".format(it) }
+            if (sha != model.sha256) {
+                Log.w(TAG, "${model.name} SHA-256 $sha does not match ${model.sha256}")
                 partial.delete()
                 return@withContext false
             }
@@ -111,7 +122,4 @@ object ModelDownload {
     }
 
     private const val TAG = "WirdModel"
-
-    /** Even the smaller model is 42 MB. Anything under 10 is an error page. */
-    private const val MIN_PLAUSIBLE = 10L * 1024 * 1024
 }
