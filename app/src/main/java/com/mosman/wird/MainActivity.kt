@@ -56,6 +56,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import com.mosman.wird.data.ThemeMode
 import com.mosman.wird.data.ArabicText
@@ -113,6 +114,7 @@ private enum class Screen { SETUP, TODAY, SETTINGS, BOOKMARKS }
 private enum class PageSource { HOME, SURAHS, BOOKMARKS }
 
 class MainActivity : ComponentActivity() {
+    private var overrideTrackId: String? = null
     private var onNewTrackSelected: ((String) -> Unit)? = null
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -120,8 +122,7 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         val nudgeTrackId = intent.getStringExtra(com.mosman.wird.nudge.Nudge.EXTRA_TRACK_ID)
         if (nudgeTrackId != null) {
-            val store = WirdStore(this)
-            store.setActiveTrack(nudgeTrackId)
+            overrideTrackId = nudgeTrackId
             onNewTrackSelected?.invoke(nudgeTrackId)
         }
     }
@@ -135,7 +136,7 @@ class MainActivity : ComponentActivity() {
 
         val initialNudgeTrackId = intent?.getStringExtra(com.mosman.wird.nudge.Nudge.EXTRA_TRACK_ID)
         if (initialNudgeTrackId != null) {
-            store.setActiveTrack(initialNudgeTrackId)
+            overrideTrackId = initialNudgeTrackId
         }
 
         setContent {
@@ -157,6 +158,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+            var overrideActiveTrackId by remember { mutableStateOf(overrideTrackId) }
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var readerName by remember { mutableStateOf(store.readerName) }
@@ -164,8 +166,22 @@ class MainActivity : ComponentActivity() {
             var allTracks by remember { mutableStateOf(store.getReadingTracks(today)) }
             var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
             var activeSpace by remember { mutableStateOf(store.activeSpace()) }
-            var activeTrack by remember { mutableStateOf(store.activeTrack(today)) }
+            var activeTrack by remember {
+                mutableStateOf(overrideTrackId?.let { id -> store.getReadingTracks(today).firstOrNull { it.id == id } } ?: store.activeTrack(today))
+            }
             var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
+
+            DisposableEffect(Unit) {
+                onNewTrackSelected = { id ->
+                    overrideActiveTrackId = id
+                    val currentTracks = store.getReadingTracks(today)
+                    allTracks = currentTracks
+                    activeTrack = currentTracks.firstOrNull { it.id == id } ?: store.activeTrack(today)
+                }
+                onDispose {
+                    onNewTrackSelected = null
+                }
+            }
 
             val widgetScope = rememberCoroutineScope()
             fun nudgeWidget() {
@@ -188,10 +204,10 @@ class MainActivity : ComponentActivity() {
             val readingMode = if (activeTrack.type == TrackType.TILAWAH) ReadingMode.READING else ReadingMode.MEMORISING
 
             /**
-             * Bumped after every write to the day log. Anything read from the log is keyed on
-             * it, so a change shows everywhere at once instead of wherever someone remembered
-             * to refresh it — the "recent days" list on Home never refreshed at all.
-             */
+              * Bumped after every write to the day log. Anything read from the log is keyed on
+              * it, so a change shows everywhere at once instead of wherever someone remembered
+              * to refresh it — the "recent days" list on Home never refreshed at all.
+              */
             var logVersion by remember { mutableIntStateOf(0) }
             val logs = remember(logVersion) { days.all() }
 
@@ -200,7 +216,7 @@ class MainActivity : ComponentActivity() {
                 allTracks = store.getReadingTracks(today)
                 lifeSpaces = store.getLifeSpaces()
                 activeSpace = store.activeSpace()
-                activeTrack = store.activeTrack(today)
+                activeTrack = overrideActiveTrackId?.let { id -> allTracks.firstOrNull { it.id == id } } ?: store.activeTrack(today)
                 trackScheduleMode = store.trackScheduleMode
                 logVersion++
             }
@@ -238,6 +254,8 @@ class MainActivity : ComponentActivity() {
 
             // B1: When today changes, refresh tracks and nudge widget
             LaunchedEffect(today) {
+                overrideActiveTrackId = null
+                overrideTrackId = null
                 refresh()
                 nudgeWidget()
             }
@@ -1028,6 +1046,8 @@ class MainActivity : ComponentActivity() {
                                 allTracks = allTracks,
                                 scheduleMode = trackScheduleMode,
                                 onSelectTrack = { track ->
+                                    overrideActiveTrackId = null
+                                    overrideTrackId = null
                                     store.setActiveTrack(track.id)
                                     refresh()
                                 },
@@ -1041,6 +1061,8 @@ class MainActivity : ComponentActivity() {
                                     } else {
                                         TrackScheduleMode.AUTOMATIC
                                     }
+                                    overrideActiveTrackId = null
+                                    overrideTrackId = null
                                     store.trackScheduleMode = newMode
                                     refresh()
                                 },
