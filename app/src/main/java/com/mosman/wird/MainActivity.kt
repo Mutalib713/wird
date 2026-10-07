@@ -165,8 +165,6 @@ class MainActivity : ComponentActivity() {
             var readerName by remember { mutableStateOf(store.readerName) }
             var today by remember { mutableStateOf(LocalDate.now()) }
             var allTracks by remember { mutableStateOf(store.getReadingTracks(today)) }
-            var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
-            var activeSpace by remember { mutableStateOf(store.activeSpace()) }
             var activeTrack by remember {
                 mutableStateOf(overrideTrackId?.let { id -> store.getReadingTracks(today).firstOrNull { it.id == id } } ?: store.activeTrack(today))
             }
@@ -219,8 +217,6 @@ class MainActivity : ComponentActivity() {
             /** Re-read the tracks and the log after anything changed either. */
             fun refresh() {
                 allTracks = store.getReadingTracks(today)
-                lifeSpaces = store.getLifeSpaces()
-                activeSpace = store.activeSpace()
                 activeTrack = overrideActiveTrackId?.let { id -> allTracks.firstOrNull { it.id == id } } ?: store.activeTrack(today)
                 trackScheduleMode = store.trackScheduleMode
                 commitment = store.commitmentFor(activeTrack.id)
@@ -1047,19 +1043,13 @@ class MainActivity : ComponentActivity() {
                                 turns = turns,
                                 onSaid = { said(it) },
                                 onOpenChat = { onChat = true },
-                                activeSpace = activeSpace,
                                 activeTrack = activeTrack,
-                                allSpaces = lifeSpaces,
                                 allTracks = allTracks,
                                 scheduleMode = trackScheduleMode,
                                 onSelectTrack = { track ->
                                     overrideActiveTrackId = null
                                     overrideTrackId = null
                                     store.setActiveTrack(track.id)
-                                    refresh()
-                                },
-                                onSelectSpace = { space ->
-                                    store.setActiveSpace(space.id)
                                     refresh()
                                 },
                                 onToggleScheduleMode = {

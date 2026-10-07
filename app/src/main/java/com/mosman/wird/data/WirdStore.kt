@@ -539,9 +539,6 @@ class WirdStore(
             }
         }
 
-    var activeSpaceId: String
-        get() = prefs.getString(KEY_ACTIVE_SPACE_ID, "home") ?: "home"
-        set(value) = prefs.edit { putString(KEY_ACTIVE_SPACE_ID, value) }
 
     var manualActiveTrackId: String?
         get() = prefs.getString(KEY_ACTIVE_TRACK_ID, null)
@@ -770,9 +767,6 @@ class WirdStore(
         return true
     }
 
-    fun setTrackFrozen(trackId: String, frozen: Boolean) {
-        editTrack(trackId) { it.copy(isFrozen = frozen) }
-    }
 
     /**
      * Move [trackId] on to [nextStartUnit] after its day was marked done.
@@ -847,25 +841,6 @@ class WirdStore(
         prefs.edit { putBoolean(KEY_RECORDS_V3, true) }
     }
 
-    // Backwards-compatible stubs for LifeSpace
-    fun getLifeSpaces(): List<LifeSpace> {
-        val tracks = getReadingTracks()
-        return listOf(LifeSpace(id = "default", name = "Reading Tracks", isFrozen = false, tracks = tracks))
-    }
-    fun activeSpace(): LifeSpace = getLifeSpaces().first()
-    fun saveLifeSpaces(spaces: List<LifeSpace>) {
-        val allTracks = spaces.flatMap { it.tracks }
-        saveReadingTracks(allTracks)
-    }
-    fun addTrackToSpace(spaceId: String, track: ReadingTrack) = addTrack(track)
-    fun deleteTrackFromSpace(spaceId: String, trackId: String) = deleteTrack(trackId)
-    fun addLifeSpace(name: String, goal: String? = null): LifeSpace = activeSpace()
-    fun deleteLifeSpace(spaceId: String): Boolean = true
-    fun renameSpace(spaceId: String, newName: String) {}
-    fun setSpaceFrozen(spaceId: String, frozen: Boolean) {}
-    fun setActiveSpace(spaceId: String) {}
-    fun updateActiveSpaceReminder(schedule: NudgeSchedule) {}
-
     private companion object {
         const val PREFS = "wird_position"
         const val KEY_UNIT = "position_unit"
@@ -903,7 +878,6 @@ class WirdStore(
         const val KEY_RECENT_PAGES = "recent_pages"
         const val KEY_READING_TRACKS = "reading_tracks_v2"
         const val KEY_LIFE_SPACES = "life_spaces_json"
-        const val KEY_ACTIVE_SPACE_ID = "active_space_id"
         const val KEY_ACTIVE_TRACK_ID = "active_track_id"
         const val KEY_TRACK_SCHEDULE_MODE = "track_schedule_mode"
         const val KEY_SEEN_TOOLKIT_TOUR = "seen_toolkit_tour"

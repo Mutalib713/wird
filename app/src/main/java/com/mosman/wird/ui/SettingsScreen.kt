@@ -217,11 +217,8 @@ fun SettingsScreen(
     // Reading Tracks & Schedules state
     var readingTracks by remember { mutableStateOf(store.getReadingTracks()) }
     var activeTrack by remember { mutableStateOf(store.activeTrack()) }
-    var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
-    var activeSpace by remember { mutableStateOf(store.activeSpace()) }
     var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
     var editingTrack by remember { mutableStateOf<ReadingTrack?>(null) }
-    var editingSpaceId by remember { mutableStateOf<String?>(null) }
     var trackPendingReminderPrompt by remember { mutableStateOf<ReadingTrack?>(null) }
 
     // Store-backed state
@@ -2160,7 +2157,6 @@ fun SettingsScreen(
                     onSelect = { mode ->
                         trackScheduleMode = mode
                         store.trackScheduleMode = mode
-                        activeSpace = store.activeSpace()
                         onLifeSpacesChanged()
                     },
                     onDismiss = { activeDialog = null },
@@ -2192,8 +2188,6 @@ fun SettingsScreen(
                         store.deleteTrack(trackId)
                         readingTracks = store.getReadingTracks()
                         activeTrack = store.activeTrack()
-                        lifeSpaces = store.getLifeSpaces()
-                        activeSpace = store.activeSpace()
                         onLifeSpacesChanged()
                     },
                     onDismiss = { activeDialog = null },
@@ -2239,26 +2233,19 @@ fun SettingsScreen(
                         }
                         readingTracks = store.getReadingTracks()
                         activeTrack = store.activeTrack()
-                        lifeSpaces = store.getLifeSpaces()
-                        activeSpace = store.activeSpace()
                         onLifeSpacesChanged()
                         editingTrack = null
-                        editingSpaceId = null
                     },
                     onDeleteTrack = {
                         store.deleteTrack(trackToEdit.id)
                         readingTracks = store.getReadingTracks()
                         activeTrack = store.activeTrack()
-                        lifeSpaces = store.getLifeSpaces()
-                        activeSpace = store.activeSpace()
                         onLifeSpacesChanged()
                         editingTrack = null
-                        editingSpaceId = null
                         activeDialog = null
                     },
                     onDismiss = {
                         editingTrack = null
-                        editingSpaceId = null
                         activeDialog = null
                     },
                 )

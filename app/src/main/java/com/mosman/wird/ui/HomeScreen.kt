@@ -130,13 +130,10 @@ fun HomeScreen(
     onOpenBookmarks: () -> Unit = {},
     onMenu: (() -> Unit)? = null,
     menu: @Composable () -> Unit = {},
-    activeSpace: LifeSpace? = null,
     activeTrack: ReadingTrack? = null,
-    allSpaces: List<LifeSpace> = emptyList(),
     allTracks: List<ReadingTrack> = emptyList(),
     scheduleMode: TrackScheduleMode = TrackScheduleMode.AUTOMATIC,
     onSelectTrack: (ReadingTrack) -> Unit = {},
-    onSelectSpace: (LifeSpace) -> Unit = {},
     onToggleScheduleMode: () -> Unit = {},
     onOpenSettings: (SettingsDialog?) -> Unit = {},
     showToolkitTour: Boolean = false,
@@ -152,9 +149,7 @@ fun HomeScreen(
 
     var showTrackDialog by remember { mutableStateOf(false) }
 
-    val effectiveTracks = remember(allTracks, allSpaces) {
-        if (allTracks.isNotEmpty()) allTracks else allSpaces.flatMap { it.tracks }
-    }
+    val effectiveTracks = allTracks
 
     if (showTrackDialog) {
         TrackPickerDialog(
