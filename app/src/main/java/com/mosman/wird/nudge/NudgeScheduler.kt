@@ -7,6 +7,7 @@ import com.mosman.wird.data.Where
 import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.NudgeSchedule
 import com.mosman.wird.domain.nextAwake
+import com.mosman.wird.domain.nextReminderOnDueDay
 import java.time.LocalTime
 import java.time.ZonedDateTime
 
@@ -106,16 +107,16 @@ object NudgeScheduler {
                 now
             }
 
-            val wanted = schedule.nextAwake(checkFrom, place?.coordinates, away)
+            val wanted = nextReminderOnDueDay(track, schedule, checkFrom, place?.coordinates, away)
             if (wanted != null && place != null) {
                 candidates.add(ScheduledCandidate(track, wanted, isFallback = false))
             } else if (schedule is NudgeSchedule.AtClockTime) {
-                val clockTime = schedule.nextAwake(checkFrom, null, away)
+                val clockTime = nextReminderOnDueDay(track, schedule, checkFrom, null, away)
                 if (clockTime != null) {
                     candidates.add(ScheduledCandidate(track, clockTime, isFallback = true))
                 }
             } else {
-                val fallbackAt = NudgeSchedule.AtClockTime(FALLBACK_TIME).nextAwake(checkFrom, null, away)
+                val fallbackAt = nextReminderOnDueDay(track, NudgeSchedule.AtClockTime(FALLBACK_TIME), checkFrom, null, away)
                 if (fallbackAt != null) {
                     candidates.add(ScheduledCandidate(track, fallbackAt, isFallback = true))
                 }

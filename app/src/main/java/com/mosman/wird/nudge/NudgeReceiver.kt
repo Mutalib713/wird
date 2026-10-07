@@ -69,6 +69,10 @@ class NudgeReceiver : BroadcastReceiver() {
                 Log.i(TAG, "track '${track.name}' already read today, staying quiet")
                 continue
             }
+            if (!track.isDueToday(today)) {
+                Log.i(TAG, "track '${track.name}' not due today, staying quiet")
+                continue
+            }
             post(context, track, today)
         }
     }

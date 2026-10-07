@@ -153,6 +153,28 @@ fun NudgeSchedule.nextAwake(
 }
 
 /**
+ * The next reminder for [track] on one of its active days, or null if none within 8 days (B6).
+ */
+fun nextReminderOnDueDay(
+    track: ReadingTrack,
+    schedule: NudgeSchedule,
+    from: ZonedDateTime,
+    coordinates: Coordinates?,
+    away: AwayPeriod?,
+    method: PrayerMethod = PrayerMethod.MUSLIM_WORLD_LEAGUE,
+): ZonedDateTime? {
+    var checkFrom = from
+    for (attempt in 0 until 8) {
+        val next = schedule.nextAwake(checkFrom, coordinates, away, method) ?: return null
+        if (track.isDueToday(next.toLocalDate())) {
+            return next
+        }
+        checkFrom = next.toLocalDate().plusDays(1).atStartOfDay(from.zone)
+    }
+    return null
+}
+
+/**
  * The schedule in words, for the settings screen.
  */
 /** "45 min", "1 hr", "1 hr 30 min", "2 hrs". */
