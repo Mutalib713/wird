@@ -265,4 +265,33 @@ class TrackRecordTest {
         assertEquals(Method.RECITED, days.methodFor(mon.minusDays(1), "daily"))
         assertEquals(0, days.adoptUnownedRows("daily"))
     }
+
+    @Test
+    fun effective_schedule_with_two_tracks_and_one_commitment_only_moves_committed_track() {
+        // B8: With two tracks, tapping "In an hour" on Track A moves only Track A's reminder
+        val trackA = ReadingTrack(
+            id = "track-a",
+            name = "Track A",
+            reminderScheduleRaw = encodeSchedule(NudgeSchedule.AtClockTime(LocalTime.of(18, 0))),
+        )
+        val trackB = ReadingTrack(
+            id = "track-b",
+            name = "Track B",
+            reminderScheduleRaw = encodeSchedule(NudgeSchedule.AtClockTime(LocalTime.of(20, 0))),
+        )
+        val fallback = NudgeSchedule.Default
+
+        val commitmentA = Commitment(
+            spoken = "in an hour",
+            madeAt = mon.atTime(18, 30),
+            schedule = NudgeSchedule.AtClockTime(LocalTime.of(19, 30)),
+        )
+
+        // Track A has a commitment today, Track B does not
+        val scheduleA = effectiveSchedule(trackA, commitmentA, fallback, mon)
+        val scheduleB = effectiveSchedule(trackB, null, fallback, mon)
+
+        assertEquals(NudgeSchedule.AtClockTime(LocalTime.of(19, 30)), scheduleA)
+        assertEquals(NudgeSchedule.AtClockTime(LocalTime.of(20, 0)), scheduleB)
+    }
 }

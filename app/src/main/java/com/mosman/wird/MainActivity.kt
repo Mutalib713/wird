@@ -170,6 +170,7 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(overrideTrackId?.let { id -> store.getReadingTracks(today).firstOrNull { it.id == id } } ?: store.activeTrack(today))
             }
             var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
+            var commitment by remember(activeTrack.id) { mutableStateOf(store.commitmentFor(activeTrack.id)) }
 
             DisposableEffect(Unit) {
                 onNewTrackSelected = { id ->
@@ -218,6 +219,7 @@ class MainActivity : ComponentActivity() {
                 activeSpace = store.activeSpace()
                 activeTrack = overrideActiveTrackId?.let { id -> allTracks.firstOrNull { it.id == id } } ?: store.activeTrack(today)
                 trackScheduleMode = store.trackScheduleMode
+                commitment = store.commitmentFor(activeTrack.id)
                 logVersion++
             }
 
@@ -286,7 +288,6 @@ class MainActivity : ComponentActivity() {
             /** What is on the phone, for the "Your data" row. Refreshed after either action. */
             var onDevice by remember { mutableStateOf<DataOnDevice?>(null) }
             var exportNote by remember { mutableStateOf<String?>(null) }
-            var commitment by remember { mutableStateOf(store.commitment) }
             var away by remember { mutableStateOf(store.away) }
             var pageNight by remember { mutableStateOf(store.pageNight) }
             val translations = remember { Translations(this@MainActivity) }
@@ -649,12 +650,13 @@ class MainActivity : ComponentActivity() {
                         // the daily reminder, so it expires with the day. PLAN task 22.
                         is CompanionAction.CommitTo -> {
                             if (!isPortionDone) {
-                                commitment = Commitment(
+                                val newCommitment = Commitment(
                                     spoken = action.spoken,
                                     madeAt = LocalDateTime.now(),
                                     schedule = action.schedule,
                                 )
-                                store.commitment = commitment
+                                commitment = newCommitment
+                                store.setCommitmentFor(activeTrack.id, newCommitment)
                                 reArm()
                             }
                         }
@@ -721,14 +723,14 @@ class MainActivity : ComponentActivity() {
                                 schedule = action.schedule
                             }
                             commitment = null
-                            store.commitment = null
+                            store.setCommitmentFor(activeTrack.id, null)
                             reArm()
                         }
                         is CompanionAction.PauseUntil -> {
                             away = action.away
                             store.away = action.away
                             commitment = null
-                            store.commitment = null
+                            store.setCommitmentFor(activeTrack.id, null)
                             reArm()
                         }
                         is CompanionAction.Resume -> {

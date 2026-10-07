@@ -186,43 +186,72 @@ class WirdStore(
      * unparseable reads as no commitment rather than throwing — a corrupt preference must
      * not stop the app opening.
      */
-    var commitment: Commitment?
-        get() {
-            val raw = prefs.getString(KEY_COMMITMENT, null) ?: return null
-            return runCatching {
-                // The older two-field form had no schedule. Read it rather than drop it:
-                // losing a promise on upgrade would lose a day of PLAN task 21's evidence.
-                if (!raw.contains(FIELD)) {
-                    val spoken = raw.substringAfter(' ')
-                    if (spoken.isBlank()) return@runCatching null
-                    return@runCatching Commitment(spoken, LocalDateTime.parse(raw.substringBefore(' ')))
-                }
-                val parts = raw.split(FIELD)
-                val spoken = parts[2]
-                if (spoken.isBlank()) null
-                else Commitment(
-                    spoken = spoken,
-                    madeAt = LocalDateTime.parse(parts[0]),
-                    schedule = parts[1].takeIf { it.isNotBlank() }?.let(::decodeSchedule),
-                )
-            }.getOrNull()
-        }
-        set(value) = prefs.edit {
-            if (value == null) {
-                remove(KEY_COMMITMENT)
-            } else {
-                // Spoken text goes last because it is the only field that can contain
-                // anything; a separator that cannot appear in the middle of a date or a
-                // schedule cannot be spoofed by what someone types.
-                putString(
-                    KEY_COMMITMENT,
-                    listOf(
-                        value.madeAt.toString(),
-                        value.schedule?.let(::encodeSchedule).orEmpty(),
-                        value.spoken,
-                    ).joinToString(FIELD),
-                )
+    private fun parseCommitment(raw: String?): Commitment? {
+        if (raw == null) return null
+        return runCatching {
+            if (!raw.contains(FIELD)) {
+                val spoken = raw.substringAfter(' ')
+                if (spoken.isBlank()) return@runCatching null
+                return@runCatching Commitment(spoken, LocalDateTime.parse(raw.substringBefore(' ')))
             }
+            val parts = raw.split(FIELD, limit = 3)
+            val spoken = parts.getOrNull(2).orEmpty()
+            if (spoken.isBlank()) null
+            else Commitment(
+                spoken = spoken,
+                madeAt = LocalDateTime.parse(parts[0]),
+                schedule = parts[1].takeIf { it.isNotBlank() }?.let(::decodeSchedule),
+            )
+        }.getOrNull()
+    }
+
+    private fun serializeCommitment(value: Commitment): String =
+        listOf(
+            value.madeAt.toString(),
+            value.schedule?.let(::encodeSchedule).orEmpty(),
+            value.spoken,
+        ).joinToString(FIELD)
+
+    private fun migrateLegacyCommitmentIfNeeded() {
+        if (prefs.contains(KEY_COMMITMENT)) {
+            val legacy = parseCommitment(prefs.getString(KEY_COMMITMENT, null))
+            val targetTrackId = runCatching { activeTrack().id }.getOrNull()
+            prefs.edit {
+                remove(KEY_COMMITMENT)
+                if (legacy != null && targetTrackId != null) {
+                    putString(commitmentKey(targetTrackId), serializeCommitment(legacy))
+                }
+            }
+        }
+    }
+
+    /**
+     * The promise currently held for [trackId], if any. B8: per-track commitments.
+     */
+    fun commitmentFor(trackId: String): Commitment? {
+        migrateLegacyCommitmentIfNeeded()
+        val raw = prefs.getString(commitmentKey(trackId), null)
+        return parseCommitment(raw)
+    }
+
+    fun setCommitmentFor(trackId: String, value: Commitment?) {
+        migrateLegacyCommitmentIfNeeded()
+        prefs.edit {
+            if (value == null) {
+                remove(commitmentKey(trackId))
+            } else {
+                putString(commitmentKey(trackId), serializeCommitment(value))
+            }
+        }
+    }
+
+    /**
+     * Active track's commitment for backwards compatibility.
+     */
+    var commitment: Commitment?
+        get() = runCatching { activeTrack().id }.getOrNull()?.let { commitmentFor(it) }
+        set(value) {
+            runCatching { activeTrack().id }.getOrNull()?.let { setCommitmentFor(it, value) }
         }
 
     /**
@@ -298,7 +327,7 @@ class WirdStore(
      * reminder, which is what it used to be. See [Commitment.schedule].
      */
     fun scheduleFor(track: ReadingTrack, today: LocalDate): NudgeSchedule =
-        effectiveSchedule(track, commitment, nudgeSchedule, today)
+        effectiveSchedule(track, commitmentFor(track.id), nudgeSchedule, today)
 
     /**
      * When the nudge last actually fired, and what it was last armed for.
@@ -847,6 +876,7 @@ class WirdStore(
         const val KEY_SEEN_CHROME = "seen_chrome"
         const val KEY_NAME = "reader_name"
         const val KEY_COMMITMENT = "commitment"
+        fun commitmentKey(trackId: String): String = "commitment_$trackId"
         const val KEY_MODE = "reading_mode"
         const val KEY_FIRED = "nudge_fired_at"
         const val KEY_ARMED_FOR = "nudge_armed_for"

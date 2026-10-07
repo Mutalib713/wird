@@ -65,9 +65,9 @@ class CommitReceiver : BroadcastReceiver() {
                 // ⚠ The schedule rides along inside the commitment rather than being written
                 // into the daily reminder. PLAN task 22: tapping "In an hour" at three in the
                 // afternoon used to make four o'clock the reminder time for good.
-                store.commitment = Commitment(action.spoken, LocalDateTime.now(), action.schedule)
+                store.setCommitmentFor(trackId, Commitment(action.spoken, LocalDateTime.now(), action.schedule))
                 NudgeScheduler.arm(context)
-                Log.i(TAG, "committed to ${action.spoken} for today, re-armed")
+                Log.i(TAG, "committed to ${action.spoken} for track $trackId today, re-armed")
             }
 
             // Sacred Rule 3, and the hardest place to hold it. "Not today" changes nothing:
@@ -75,7 +75,7 @@ class CommitReceiver : BroadcastReceiver() {
             // and the app gets out of the way, because the day someone is told off is the day
             // they delete a habit app.
             is CompanionAction.NotToday -> {
-                store.commitment = null
+                store.setCommitmentFor(trackId, null)
                 Log.i(TAG, "not today, nothing rescheduled")
             }
 
