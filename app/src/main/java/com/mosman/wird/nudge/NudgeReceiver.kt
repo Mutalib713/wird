@@ -8,6 +8,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.mosman.wird.MainActivity
+import com.mosman.wird.R
 import com.mosman.wird.data.WirdStore
 import com.mosman.wird.domain.assignmentOn
 import com.mosman.wird.domain.ayahRangeIn
@@ -122,7 +123,7 @@ class NudgeReceiver : BroadcastReceiver() {
         )
 
         val builder = NotificationCompat.Builder(context, Nudge.CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_agenda)
+            .setSmallIcon(R.drawable.ic_launcher_monochrome)
             .setContentTitle("Your Daily Wird · ${track.name}")
             .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
