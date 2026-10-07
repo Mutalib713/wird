@@ -101,12 +101,15 @@
             android:name=".nudge.NudgeReceiver"
             android:exported="false" />
 
-        <!-- Exported because the boot broadcast comes from the system. -->
+        <!-- Exported because system broadcasts come from the system. -->
         <receiver
             android:name=".nudge.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
 
