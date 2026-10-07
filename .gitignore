@@ -43,3 +43,5 @@ __pycache__/
 .claude/
 .cursor/
 scratch/
+.kotlin/
+*.zip

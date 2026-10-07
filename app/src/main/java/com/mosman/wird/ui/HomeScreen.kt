@@ -52,8 +52,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import com.mosman.wird.R
 import com.mosman.wird.data.ReadingMode
 import com.mosman.wird.domain.Assignment
@@ -125,6 +134,9 @@ fun HomeScreen(
     readerName: String? = null,
     pageFor: (LocalDate) -> Int? = { null },
     onMarkRead: () -> Unit = {},
+    onUndoMarkRead: (() -> Unit)? = null,
+    onNavigateTab: (WirdTab) -> Unit = {},
+    onOpenSurahs: () -> Unit = {},
     mode: ReadingMode = ReadingMode.READING,
     onOpenInQuran: (() -> Unit)? = null,
     onOpenBookmarks: () -> Unit = {},
@@ -145,159 +157,769 @@ fun HomeScreen(
     today: LocalDate = LocalDate.now(),
 ) {
     val colors = LocalWirdColors.current
-    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
-    val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
+    val isDark = colors.isDark
+    val currentHour = remember { LocalTime.now().hour }
+    val photoRes = if (isDark || currentHour >= 18 || currentHour < 5) {
+        R.drawable.header_sunset
+    } else {
+        R.drawable.header_day
+    }
 
     SetStatusBarAppearance(isLightBackground = false)
 
-    var showTrackDialog by remember { mutableStateOf(false) }
+    var showSwitchTrackSheet by remember { mutableStateOf(false) }
 
     val effectiveTracks = remember(allTracks, allSpaces) {
         if (allTracks.isNotEmpty()) allTracks else allSpaces.flatMap { it.tracks }
     }
 
-    if (showTrackDialog) {
-        TrackPickerDialog(
-            currentTrack = activeTrack,
+    if (showSwitchTrackSheet) {
+        SwitchTrackSheet(
+            activeTrack = activeTrack,
             allTracks = effectiveTracks,
+            scheduleMode = scheduleMode,
             onSelectTrack = {
                 onSelectTrack(it)
-                showTrackDialog = false
+                showSwitchTrackSheet = false
             },
-            onAddNewTrack = {
-                showTrackDialog = false
+            onToggleScheduleMode = onToggleScheduleMode,
+            onCreateTrack = {
+                showSwitchTrackSheet = false
                 onOpenSettings(SettingsDialog.EDIT_TRACK)
             },
-            onManageTracks = {
-                showTrackDialog = false
-                onOpenSettings(SettingsDialog.MANAGE_TRACKS)
-            },
-            onDismiss = { showTrackDialog = false },
+            onDismiss = { showSwitchTrackSheet = false },
         )
     }
 
     val dueTracks = remember(effectiveTracks) { effectiveTracks.filter { it.isDueToday() } }
-    val dueIndex = remember(dueTracks, activeTrack) {
-        if (activeTrack != null) dueTracks.indexOfFirst { it.id == activeTrack.id } else -1
+    val completedDueTracks = remember(effectiveTracks) {
+        effectiveTracks.filter { it.isDueToday() && it.isCompletedToday() }
+    }
+    val doneTracksCount = completedDueTracks.size
+    val totalDueTracksCount = dueTracks.size.coerceAtLeast(1)
+    val donePct = ((doneTracksCount.toFloat() / totalDueTracksCount) * 100).toInt().coerceIn(0, 100)
+
+    val hijriText = remember(today) {
+        try {
+            val hijri = HijrahDate.from(today)
+            val dayName = today.dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())
+            val day = hijri.get(ChronoField.DAY_OF_MONTH)
+            val monthName = when (hijri.get(ChronoField.MONTH_OF_YEAR)) {
+                1 -> "Muḥarram"
+                2 -> "Ṣafar"
+                3 -> "Rabīʿ al-Awwal"
+                4 -> "Rabīʿ al-Thānī"
+                5 -> "Jumādā al-Ūlā"
+                6 -> "Jumādā al-Ākhirah"
+                7 -> "Rajab"
+                8 -> "Shaʿbān"
+                9 -> "Ramaḍān"
+                10 -> "Shawwāl"
+                11 -> "Dhū al-Qaʿdah"
+                12 -> "Dhū al-Ḥijjah"
+                else -> "Hijri"
+            }
+            val year = hijri.get(ChronoField.YEAR)
+            "$dayName · $day $monthName $year"
+        } catch (_: Exception) {
+            val formatter = DateTimeFormatter.ofPattern("EEEE · d MMMM yyyy")
+            today.format(formatter)
+        }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    val isDone = doneMethod != null || activeTrack?.isCompletedToday() == true
+
+    Box(modifier = modifier.fillMaxSize().background(colors.field)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(groundColor)
                 .verticalScroll(scrollState),
         ) {
-            // Atmospheric Dawn Mosque Header
-            AtmosphericHeader(
-                readerName = readerName,
-                positionText = if (positionLabel.isNotEmpty()) positionLabel else "Al-Fātihah 1, page 1",
-                onOpenPosition = onOpenPage,
-                onOpenBookmarks = onOpenBookmarks,
-                onMenu = onMenu,
-                menu = menu,
-                activeTrack = activeTrack,
-                totalDueTracksCount = dueTracks.size,
-                activeTrackDueIndex = dueIndex,
-                onOpenTrackPicker = { showTrackDialog = true },
-            )
+            // Photographic Mosque Header (Ghana National Mosque)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(256.dp),
+            ) {
+                Image(
+                    painter = painterResource(id = photoRes),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
 
-            // Cards body with soft rounded overlap
+                // Veil gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                0.0f to Color(0xDD182724),
+                                0.55f to Color(0x8A182724),
+                                0.85f to Color(0x18182724),
+                                1.0f to Color.Transparent,
+                            )
+                        ),
+                )
+
+                // Fade to bottom field ground
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(72.dp)
+                        .align(Alignment.BottomCenter)
+                        .background(
+                            Brush.verticalGradient(
+                                0.0f to Color.Transparent,
+                                1.0f to colors.field,
+                            )
+                        ),
+                )
+
+                // Greeting content
+                Column(
+                    modifier = Modifier
+                        .statusBarsPadding()
+                        .padding(start = 20.dp, top = 16.dp, end = 68.dp),
+                ) {
+                    Text(
+                        text = "Assalamu Alaikum,",
+                        fontSize = 15.sp,
+                        color = colors.ink2,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = readerName?.takeIf { it.isNotBlank() } ?: "Reader",
+                            style = TextStyle(
+                                fontFamily = FontFamily.Serif,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.ink,
+                            ),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Icon(
+                            imageVector = WirdIcons.Leaf,
+                            contentDescription = null,
+                            tint = colors.action,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = hijriText,
+                        fontSize = 13.sp,
+                        color = colors.ink2,
+                    )
+                }
+
+                // Settings gear button at top right
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .statusBarsPadding()
+                        .padding(top = 12.dp, end = 16.dp)
+                        .size(46.dp)
+                        .clip(CircleShape)
+                        .background(colors.card.copy(alpha = 0.85f))
+                        .clickable { onOpenSettings(null) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = WirdIcons.Gear,
+                        contentDescription = "Settings",
+                        tint = colors.ink,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+
+                // Track chip button at bottom left
+                Card(
+                    onClick = { showSwitchTrackSheet = true },
+                    shape = RoundedCornerShape(23.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.card),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 16.dp, bottom = 10.dp)
+                        .height(46.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(colors.chip, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = WirdIcons.Quran,
+                                contentDescription = null,
+                                tint = colors.action,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = activeTrack?.name ?: "Daily Reading",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = colors.ink,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            imageVector = WirdIcons.ChevronDown,
+                            contentDescription = "Switch Track",
+                            tint = colors.ink2,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            }
+
+            // Cards stack
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-14).dp)
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                    .background(groundColor)
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                var cardIndex = 0
+                // TODAY'S WIRD CARD
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.card),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        // Top row: Title + streak/days pill
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Today's Wird",
+                                style = TextStyle(
+                                    fontFamily = FontFamily.Serif,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.ink,
+                                ),
+                            )
+                            val streak = progress?.currentStreak ?: 0
+                            val pillText = if (streak > 0) "🔥 $streak day streak" else "📖 ${progress?.totalDaysRead ?: 0} days read"
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(colors.tile)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                            ) {
+                                Text(
+                                    text = pillText,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.goldText,
+                                )
+                            }
+                        }
 
-                if (effectiveTracks.isEmpty()) {
-                    StaggeredEnter(index = cardIndex++) {
-                        EmptyTracksGuideCard(
-                            onAddTrack = { onOpenSettings(SettingsDialog.EDIT_TRACK) },
+                        Spacer(Modifier.height(10.dp))
+
+                        // Portion text
+                        val surahName = assignment.surahs.firstOrNull()?.name ?: "Al-Fātiḥah"
+                        val portionText = if (assignment.verses != null && assignment.verses.isNotEmpty()) {
+                            val firstAyah = assignment.verses.first().second
+                            val lastAyah = assignment.verses.last().second
+                            if (firstAyah == lastAyah) "$surahName $firstAyah" else "$surahName $firstAyah–$lastAyah"
+                        } else {
+                            surahName
+                        }
+                        Text(
+                            text = portionText,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.ink,
                         )
-                    }
-                } else {
-                    StaggeredEnter(index = cardIndex++) {
-                        PortionCard(
-                            assignment = assignment,
-                            doneMethod = doneMethod,
-                            onOpenPage = onOpenPage,
-                            onMarkRead = onMarkRead,
-                            mode = mode,
-                            onOpenInQuran = onOpenInQuran,
-                            activeTrack = activeTrack,
-                            onOpenTrackPicker = { showTrackDialog = true },
-                            today = today,
+
+                        Spacer(Modifier.height(2.dp))
+
+                        // Page text
+                        val pStart = assignment.startPage
+                        val pEnd = assignment.endPage
+                        val pageLine = if (pStart == pEnd) "Page $pStart" else "Page $pStart → Page $pEnd"
+                        Text(
+                            text = pageLine,
+                            fontSize = 13.sp,
+                            color = colors.ink2,
                         )
+
+                        Spacer(Modifier.height(10.dp))
+
+                        // Chips row
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(colors.field)
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = WirdIcons.Sheet,
+                                        contentDescription = null,
+                                        tint = colors.ink2,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Spacer(Modifier.width(5.dp))
+                                    Text(
+                                        text = unitsLabel(activeTrack?.dailyUnits ?: 2),
+                                        fontSize = 13.sp,
+                                        color = colors.ink,
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(colors.field)
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                            ) {
+                                Text(
+                                    text = "Read · Every day",
+                                    fontSize = 13.sp,
+                                    color = colors.ink,
+                                )
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // Progress bar row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "$doneTracksCount of $totalDueTracksCount track done today",
+                                fontSize = 12.sp,
+                                color = colors.ink2,
+                            )
+                            Text(
+                                text = "$donePct%",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.ink2,
+                            )
+                        }
+
+                        Spacer(Modifier.height(6.dp))
+
+                        // Progress track
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(colors.field),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(if (totalDueTracksCount > 0) (doneTracksCount.toFloat() / totalDueTracksCount).coerceIn(0f, 1f) else 0f)
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(colors.action),
+                            )
+                        }
+
+                        // Done line with Undo if completed
+                        if (isDone) {
+                            Spacer(Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .background(colors.action, CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = WirdIcons.Check,
+                                        contentDescription = null,
+                                        tint = colors.onAction,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = if (doneMethod == Method.RECITED) "Recited today" else "Marked as read",
+                                    fontSize = 15.sp,
+                                    color = colors.ink,
+                                )
+                                Spacer(Modifier.weight(1f))
+                                onUndoMarkRead?.let { undo ->
+                                    TextButton(
+                                        onClick = undo,
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    ) {
+                                        Text(
+                                            text = "Undo",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.action,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        // Actions row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            // Primary: Recite & Review
+                            Box(
+                                modifier = Modifier
+                                    .weight(1.3f)
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(colors.action)
+                                    .clickable { onOpenPage() },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = WirdIcons.Mic,
+                                        contentDescription = null,
+                                        tint = colors.onAction,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        text = "Recite & Review",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.onAction,
+                                    )
+                                }
+                            }
+
+                            // Quiet: Mark Done (shown if not done)
+                            if (!isDone) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp)
+                                        .clip(RoundedCornerShape(24.dp))
+                                        .background(colors.chip)
+                                        .clickable { onMarkRead() },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = WirdIcons.Check,
+                                            contentDescription = null,
+                                            tint = colors.ink,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            text = "Mark Done",
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.ink,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // YOUR JOURNEY CARD
+                val totalDaysRead = progress?.totalDaysRead ?: 0
+                val recitedDays = recent.count { it.method == Method.RECITED }
+                val reciteRate = if (totalDaysRead > 0) ((recitedDays.toFloat() / totalDaysRead) * 100).toInt().coerceIn(0, 100) else 0
+
+                Card(
+                    onClick = { onNavigateTab(WirdTab.WIRD) },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.card),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Your Journey",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.ink,
+                            )
+                            Icon(
+                                imageVector = WirdIcons.ChevronRight,
+                                contentDescription = null,
+                                tint = colors.ink2,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+
+                        Spacer(Modifier.height(14.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "$totalDaysRead",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.ink,
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Days read",
+                                    fontSize = 12.sp,
+                                    color = colors.ink2,
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(36.dp)
+                                    .background(colors.rule),
+                            )
+
+                            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                                Text(
+                                    text = "$recitedDays",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.ink,
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Recited aloud",
+                                    fontSize = 12.sp,
+                                    color = colors.ink2,
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(36.dp)
+                                    .background(colors.rule),
+                            )
+
+                            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                                Text(
+                                    text = "$reciteRate%",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.ink,
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "Recite rate",
+                                    fontSize = 12.sp,
+                                    color = colors.ink2,
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // QUICK ACCESS
+                Text(
+                    text = "Quick access",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = colors.ink,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    // Qur'an
+                    Card(
+                        onClick = { onNavigateTab(WirdTab.QURAN) },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = colors.card),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
+                        modifier = Modifier.weight(1f).height(84.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(colors.disc, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = WirdIcons.Quran,
+                                    contentDescription = null,
+                                    tint = colors.action,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = "Qur'an",
+                                fontSize = 12.sp,
+                                color = colors.ink2,
+                            )
+                        }
                     }
 
-                    // If active track is completed today and another track is due today, show sequential banner
-                    val nextDueTrack = if (activeTrack?.isCompletedToday() == true || doneMethod != null) {
-                        effectiveTracks.firstOrNull { it.id != activeTrack?.id && it.isDueToday() && !it.isCompletedToday() }
-                    } else null
+                    // Sūrahs
+                    Card(
+                        onClick = onOpenSurahs,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = colors.card),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
+                        modifier = Modifier.weight(1f).height(84.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(colors.disc, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = WirdIcons.List,
+                                    contentDescription = null,
+                                    tint = colors.action,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = "Sūrahs",
+                                fontSize = 12.sp,
+                                color = colors.ink2,
+                            )
+                        }
+                    }
 
-                    if (nextDueTrack != null) {
-                        Spacer(Modifier.height(Scale.space3))
-                        StaggeredEnter(index = cardIndex++) {
-                            NextDueTrackBanner(
-                                nextTrack = nextDueTrack,
-                                onContinueTrack = { onSelectTrack(nextDueTrack) },
+                    // Bookmarks
+                    Card(
+                        onClick = onOpenBookmarks,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = colors.card),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
+                        modifier = Modifier.weight(1f).height(84.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(colors.disc, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = WirdIcons.Bookmark,
+                                    contentDescription = null,
+                                    tint = colors.action,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = "Bookmarks",
+                                fontSize = 12.sp,
+                                color = colors.ink2,
+                            )
+                        }
+                    }
+
+                    // History
+                    Card(
+                        onClick = { onNavigateTab(WirdTab.WIRD) },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = colors.card),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
+                        modifier = Modifier.weight(1f).height(84.dp),
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(colors.disc, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = WirdIcons.History,
+                                    contentDescription = null,
+                                    tint = colors.action,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                            }
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = "History",
+                                fontSize = 12.sp,
+                                color = colors.ink2,
                             )
                         }
                     }
                 }
 
-            // Today's Habit Clarity Card + Reflection Capsule (Option A)
-            Spacer(Modifier.height(Scale.space4))
-            StaggeredEnter(index = cardIndex++) {
-                HomeHabitClarityCard(
-                    assignment = assignment,
-                    doneMethod = doneMethod,
-                    progress = progress,
-                    turns = turns,
-                    onYesRecited = {
-                        onSaid("Already did it")
-                    },
-                    onRemindInHour = {
-                        onSaid("In an hour")
-                    },
-                    onNotToday = {
-                        onSaid("Not today")
-                    },
-                    onOpenChat = onOpenChat,
-                    onOpenPortion = onOpenPage,
-                )
+                // Bottom spacer for navigation bar clearance
+                Spacer(Modifier.height(88.dp))
             }
-
-            progress?.let { p ->
-                Spacer(Modifier.height(Scale.space4))
-                StaggeredEnter(index = cardIndex++) {
-                    NumbersCard(p = p, activeTrack = activeTrack)
-                }
-            }
-
-            Spacer(Modifier.height(Scale.space4))
-            val trackRecent = remember(recent, activeTrack) {
-                if (activeTrack == null) recent
-                else {
-                    val filtered = recent.filter { it.trackId == activeTrack.id }
-                    if (filtered.isNotEmpty()) filtered
-                    else if (recent.all { it.trackId == null }) recent
-                    else emptyList()
-                }
-            }
-            StaggeredEnter(index = cardIndex++) {
-                ThisWeekCard(trackRecent, pageFor)
-            }
-
-            // Bottom clearance for floating island dock
-            Spacer(Modifier.height(84.dp))
         }
     }
-}
 }
 
 /**

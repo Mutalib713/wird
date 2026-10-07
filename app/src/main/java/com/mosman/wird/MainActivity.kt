@@ -95,7 +95,10 @@ import com.mosman.wird.ui.SettingsDialog
 import com.mosman.wird.ui.SettingsSubScreen
 import com.mosman.wird.ui.SurahsTab
 import com.mosman.wird.ui.WirdTab
-import com.mosman.wird.ui.FloatingIslandDock
+import com.mosman.wird.ui.WirdBottomBar
+import com.mosman.wird.ui.QuranTab
+import com.mosman.wird.ui.CompanionTab
+import com.mosman.wird.ui.YourWirdTab
 import com.mosman.wird.ui.ToolkitSpotlightOverlay
 import com.mosman.wird.ui.SetupScreen
 import com.mosman.wird.ui.TodayScreen
@@ -461,7 +464,7 @@ class MainActivity : ComponentActivity() {
             BackHandler(enabled = !onChat && screen == Screen.TODAY && onPage) {
                 onPage = false
                 when (pageSource) {
-                    PageSource.SURAHS -> tab = WirdTab.SURAHS
+                    PageSource.SURAHS -> tab = WirdTab.QURAN
                     PageSource.BOOKMARKS -> screen = Screen.BOOKMARKS
                     PageSource.HOME -> { /* stay on HOME tab, which is the default */ }
                 }
@@ -882,7 +885,7 @@ class MainActivity : ComponentActivity() {
                             onBack = {
                                 onPage = false
                                 when (pageSource) {
-                                    PageSource.SURAHS -> tab = WirdTab.SURAHS
+                                    PageSource.SURAHS -> tab = WirdTab.QURAN
                                     PageSource.BOOKMARKS -> screen = Screen.BOOKMARKS
                                     PageSource.HOME -> { /* stay on HOME tab */ }
                                 }
@@ -967,7 +970,7 @@ class MainActivity : ComponentActivity() {
                             isWirdSession = isWirdSession,
                             onBrowseSurahs = if (isWirdSession) ({
                                 onPage = false
-                                tab = WirdTab.SURAHS
+                                tab = WirdTab.QURAN
                             }) else null,
                         )
                     } else {
@@ -1041,6 +1044,20 @@ class MainActivity : ComponentActivity() {
                                     refresh()
                                     nudgeWidget()
                                 },
+                                onUndoMarkRead = {
+                                    val savedFirstVerse = days.firstVerseFor(today, activeTrack.id)
+                                    days.clear(today, activeTrack.id)
+                                    val restoreVerse = assignment.verses?.first() ?: savedFirstVerse
+                                    if (assignment.verses != null && restoreVerse != null) {
+                                        store.rewindTrackToVerse(activeTrack.id, restoreVerse)
+                                    } else {
+                                        store.rewindTrack(activeTrack.id, assignment.startUnit, restoreVerse)
+                                    }
+                                    refresh()
+                                    nudgeWidget()
+                                },
+                                onNavigateTab = { t -> tab = t },
+                                onOpenSurahs = { tab = WirdTab.QURAN },
                                 turns = turns,
                                 onSaid = { said(it) },
                                 onOpenChat = { onChat = true },
@@ -1083,48 +1100,83 @@ class MainActivity : ComponentActivity() {
                                 today = today,
                             )
 
-                            WirdTab.SURAHS -> SurahsTab(
-                                bookmarks = saved,
-                                onOpenBookmarks = { screen = Screen.BOOKMARKS },
+                            WirdTab.QURAN -> QuranTab(
+                                lastReadPage = store.recentPages.firstOrNull() ?: assignment.startPage,
                                 onOpenPage = { p ->
                                     openPage = p
                                     onPage = true
                                     isWirdSession = false
-                                    pageSource = PageSource.SURAHS
+                                    pageSource = PageSource.HOME
                                 },
-                                onOpenBookmark = { b ->
-                                    val parts = b.verseKey.split(':').mapNotNull { it.toIntOrNull() }
-                                    openPage = if (parts.size == 2) VerseIndex.pageOf(parts[0] to parts[1]) else 1
-                                    onPage = true
-                                    isWirdSession = false
-                                    pageSource = PageSource.SURAHS
+                                onOpenBookmarks = { screen = Screen.BOOKMARKS },
+                                onOpenDownloads = {
+                                    settingsInitialSubScreen = SettingsSubScreen.MAIN
+                                    settingsInitialDialog = SettingsDialog.DOWNLOAD_AMOUNT
+                                    screen = Screen.SETTINGS
                                 },
-                                onPick = { surah ->
-                                    openPage = surah.firstPage
-                                    onPage = true
-                                    isWirdSession = false
-                                    pageSource = PageSource.SURAHS
+                                onOpenSearch = {
+                                    // Search handled in Quran tab
                                 },
-                                onBack = { tab = WirdTab.HOME },
                             )
 
-                            WirdTab.HISTORY -> RecitationsScreen(
-                                logs = logs,
-                                allTracks = allTracks,
-                                activeTrack = activeTrack,
-                                today = today,
-                                audioFor = { d, tid -> tid?.let { days.audioFor(d, it) } },
-                                coveredFor = { d, tid -> tid?.let { days.coveredOn(d, it) } },
-                                transcriptionFor = { d, tid -> tid?.let { days.transcriptionFor(d, it) } },
-                                hasCorruptLogs = remember(logVersion) { days.hasCorruptFiles() },
-                                onPlay = { f -> playback.play(f) },
-                                onStop = { playback.stopPlaying() },
-                                onBack = { tab = WirdTab.HOME },
+                            WirdTab.COMPANION -> CompanionTab(
+                                turns = turns,
+                                commitment = commitment,
+                                checkingBackAt = commitment?.spoken,
+                                trackName = activeTrack.name,
+                                surahName = assignment.surahs.firstOrNull()?.name,
+                                pageNumber = assignment.startPage,
+                                doneMethod = trackDoneMethod,
+                                streak = progress?.currentStreak ?: 0,
+                                onSend = { said(it) },
+                                onOpenPortion = {
+                                    onPage = true
+                                    isWirdSession = true
+                                    pageSource = PageSource.HOME
+                                },
                             )
+
+                            WirdTab.WIRD -> {
+                                var showRecordings by remember { mutableStateOf(false) }
+                                if (showRecordings) {
+                                    RecitationsScreen(
+                                        logs = logs,
+                                        allTracks = allTracks,
+                                        activeTrack = activeTrack,
+                                        today = today,
+                                        audioFor = { d, tid -> tid?.let { days.audioFor(d, it) } },
+                                        coveredFor = { d, tid -> tid?.let { days.coveredOn(d, it) } },
+                                        transcriptionFor = { d, tid -> tid?.let { days.transcriptionFor(d, it) } },
+                                        hasCorruptLogs = remember(logVersion) { days.hasCorruptFiles() },
+                                        onPlay = { f -> playback.play(f) },
+                                        onStop = { playback.stopPlaying() },
+                                        onBack = { showRecordings = false },
+                                    )
+                                } else {
+                                    YourWirdTab(
+                                        activeTrack = activeTrack,
+                                        allTracks = allTracks,
+                                        progress = progress,
+                                        logs = logs,
+                                        onSelectTrack = { track ->
+                                            overrideActiveTrackId = null
+                                            overrideTrackId = null
+                                            store.setActiveTrack(track.id)
+                                            refresh()
+                                        },
+                                        onCreateTrack = {
+                                            settingsInitialDialog = SettingsDialog.EDIT_TRACK
+                                            screen = Screen.SETTINGS
+                                        },
+                                        onOpenRecordings = { showRecordings = true },
+                                        today = today,
+                                    )
+                                }
+                            }
                         }
 
-                        // Option C Floating Island Capsule Dock at bottom
-                        FloatingIslandDock(
+                        // New Look bottom navigation bar
+                        WirdBottomBar(
                             current = tab,
                             onPick = { tab = it },
                             modifier = Modifier.align(Alignment.BottomCenter),

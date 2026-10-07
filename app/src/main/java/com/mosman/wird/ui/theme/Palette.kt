@@ -203,6 +203,34 @@ data class WirdColors(
 
     /** The ayah to look at again after a recitation check. **§ 6e, PLAN task 14.** */
     val highlightReview: Color,
+
+    /** Whether this is the dark theme. */
+    val isDark: Boolean = false,
+
+    /** Screen ground in the new look. Light #E8EAE1, dark #182724. */
+    val field: Color = if (isDark) Color(0xFF182724) else Color(0xFFE8EAE1),
+    /** Card surface. Pinned cream #F7F5ED in light, deep green #17382D in dark. */
+    val card: Color = if (isDark) Color(0xFF17382D) else Color(0xFFF7F5ED),
+    /** Pill chip background. */
+    val chip: Color = if (isDark) Color(0xFF1E483A) else Color(0xFFDEE2D9),
+    /** Icon circle disc background. */
+    val disc: Color = if (isDark) Color(0xFF1E483A) else Color(0xFFD3DBD2),
+    /** Hairline divider. */
+    val rule: Color = if (isDark) Color(0xFF25453A) else Color(0xFFE2E2DA),
+    /** Gold-tinted card tile. */
+    val tile: Color = if (isDark) Color(0xFF25402F) else Color(0xFFF5F1E5),
+    /** Primary ink / text. Deep green #17382D in light, #E4E9E5 in dark. */
+    val ink: Color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
+    /** Secondary text. Grey #4B5551 in light, #8FA597 in dark. */
+    val ink2: Color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
+    /** Action button background. Action green #245847 in light, #397150 in dark. */
+    val action: Color = if (isDark) Color(0xFF397150) else Color(0xFF245847),
+    /** Text on action button. */
+    val onAction: Color = if (isDark) Color(0xFFE4E9E5) else Color(0xFFF7F5ED),
+    /** Gold ornament. */
+    val gold: Color = Color(0xFFC9A24B),
+    /** Gold text meeting WCAG contrast. #8E6900 in light, #C9A24B in dark. */
+    val goldText: Color = if (isDark) Color(0xFFC9A24B) else Color(0xFF8E6900),
 ) {
     /** Alias for cardEdge used across UI components for subtle borders and dividers. */
     val hairline: Color get() = cardEdge
@@ -267,6 +295,7 @@ val DarkColors = WirdColors(
     highlightReciting = Q.reciting,
     highlightSelected = Q.selected,
     highlightReview = Q.review,
+    isDark = true,
 )
 
 val LocalWirdColors = staticCompositionLocalOf { LightColors }

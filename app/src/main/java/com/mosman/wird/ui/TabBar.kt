@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -29,23 +30,84 @@ import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.Scale
 
 /**
- * The three places the app has.
- *
- * **Reduced from four and moved to the top on 2026-08-18**, at Mutalib's word: *"the tab, I
- * think it should come top rather… but in time it will be home, surahs and history. For the
- * home there will be that three vertical dot menu with the settings and other things there."*
- *
- * **More stopped being a place and became a menu.** That is the honest shape: Settings was
- * never a destination you visit alongside your wird, it was a drawer you open, do one thing
- * in, and leave. A quarter of the navigation bar was spent on it.
- *
- * The order is his and matches what the app is for: where you are today, the whole Qur'an,
- * what you have already done.
+ * The four tabs in the new look (PROFILE § 5bj, PLAN task 28).
+ * Four tabs: Home · Qur'an · Companion · Wird.
+ * Settings opens from the gear on Home.
  */
 enum class WirdTab(val label: String) {
     HOME("Home"),
-    SURAHS("Sūrahs"),
-    HISTORY("History"),
+    QURAN("Qur'an"),
+    COMPANION("Companion"),
+    WIRD("Wird"),
+}
+
+/**
+ * The bottom navigation bar for Wird's new look.
+ * Fixed 4 tabs with pill-shaped active indicator, vector icons, and label.
+ */
+@Composable
+fun WirdBottomBar(
+    current: WirdTab,
+    onPick: (WirdTab) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    androidx.compose.material3.Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = colors.card,
+        shadowElevation = 8.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WirdTab.entries.forEach { tab ->
+                val selected = tab == current
+                val icon = when (tab) {
+                    WirdTab.HOME -> WirdIcons.Home
+                    WirdTab.QURAN -> WirdIcons.Quran
+                    WirdTab.COMPANION -> WirdIcons.Chat
+                    WirdTab.WIRD -> WirdIcons.Leaf
+                }
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                        .clickable { onPick(tab) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 56.dp, height = 30.dp)
+                            .background(
+                                color = if (selected) colors.chip else Color.Transparent,
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp),
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = tab.label,
+                            tint = if (selected) colors.action else colors.ink2,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = tab.label,
+                        color = if (selected) colors.ink else colors.ink2,
+                        fontSize = 11.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                    )
+                }
+            }
+        }
+    }
 }
 
 /**

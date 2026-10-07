@@ -126,17 +126,35 @@ fun FloatingIslandDock(
                         when (tab) {
                             WirdTab.HOME -> {
                                 Icon(
-                                    imageVector = Icons.Default.Home,
+                                    imageVector = WirdIcons.Home,
                                     contentDescription = null,
                                     tint = contentColor,
                                     modifier = Modifier.size(18.dp),
                                 )
                             }
-                            WirdTab.SURAHS -> {
-                                DockBookIcon(tint = contentColor)
+                            WirdTab.QURAN -> {
+                                Icon(
+                                    imageVector = WirdIcons.Quran,
+                                    contentDescription = null,
+                                    tint = contentColor,
+                                    modifier = Modifier.size(18.dp),
+                                )
                             }
-                            WirdTab.HISTORY -> {
-                                DockClockIcon(tint = contentColor)
+                            WirdTab.COMPANION -> {
+                                Icon(
+                                    imageVector = WirdIcons.Chat,
+                                    contentDescription = null,
+                                    tint = contentColor,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                            WirdTab.WIRD -> {
+                                Icon(
+                                    imageVector = WirdIcons.Leaf,
+                                    contentDescription = null,
+                                    tint = contentColor,
+                                    modifier = Modifier.size(18.dp),
+                                )
                             }
                         }
 

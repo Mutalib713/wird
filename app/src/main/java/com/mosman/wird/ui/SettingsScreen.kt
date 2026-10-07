@@ -3562,6 +3562,22 @@ private fun AboutWirdDialog(
                         }
                     }
 
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        text = "Header photos:",
+                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "The Ghana National Mosque, Accra.\nDay: Amuzujoe. Sunset: Warmglow. Both under CC BY-SA 4.0, cropped and resized for the app.",
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF556C60),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                    )
+
                     Spacer(Modifier.height(18.dp))
 
                     Row(
