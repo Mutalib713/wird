@@ -203,9 +203,37 @@ data class WirdColors(
 
     /** The ayah to look at again after a recitation check. **§ 6e, PLAN task 14.** */
     val highlightReview: Color,
+    /** Whether dark mode is active. */
+    val isDark: Boolean = false,
 ) {
     /** Alias for cardEdge used across UI components for subtle borders and dividers. */
     val hairline: Color get() = cardEdge
+}
+
+/**
+ * Mutalib's pinned palette tokens. **R1.**
+ * Named once here instead of typed as raw hex values across composables.
+ */
+object PaletteTokens {
+    // Light mode pinned tokens
+    val cream = Color(0xFFF7F5ED)
+    val creamGround = Color(0xFFF7F4EB)
+    val green = Color(0xFF245847)
+    val deep = Color(0xFF17382D)
+    val greyText = Color(0xFF4B5551)
+    val gold = Color(0xFFC9A24B)
+    val goldText = Color(0xFF8E6900)
+    val goldTextDark = Color(0xFF8A6418)
+
+    // Dark mode greens and grounds
+    val nightGround = Color(0xFF08100D)
+    val nightCardBg = Color(0xFF111E18)
+    val nightSurface = Color(0xFF16251E)
+    val nightEmerald = Color(0xFF1E382B)
+    val nightForest = Color(0xFF172A21)
+    val nightPaleGreen = Color(0xFF8ED676)
+    val nightMutedGreen = Color(0xFF8FA597)
+    val nightGoldText = Color(0xFFF0D590)
 }
 
 /**
@@ -237,6 +265,7 @@ val LightColors = WirdColors(
     highlightReciting = Q.reciting,
     highlightSelected = Q.selected,
     highlightReview = Q.review,
+    isDark = false,
 )
 
 /**
@@ -267,6 +296,7 @@ val DarkColors = WirdColors(
     highlightReciting = Q.reciting,
     highlightSelected = Q.selected,
     highlightReview = Q.review,
+    isDark = true,
 )
 
 val LocalWirdColors = staticCompositionLocalOf { LightColors }
