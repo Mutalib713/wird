@@ -37,6 +37,8 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -61,6 +63,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -210,7 +213,7 @@ fun SettingsScreen(
     val store = remember(context) { WirdStore(context) }
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
-    val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
+    val groundColor = colors.field
     val liveMushafProgress by com.mosman.wird.mushaf.MushafDownloadService.mushafProgress.collectAsState()
     val liveModelProgress by com.mosman.wird.mushaf.MushafDownloadService.modelProgress.collectAsState()
 
@@ -2337,30 +2340,23 @@ fun ClaySection(
     content: @Composable () -> Unit,
 ) {
     val colors = LocalWirdColors.current
-    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = title.uppercase(),
-            color = if (isDark) Color(0xFF8FA597) else Color(0xFF245847),
+            color = colors.action,
             fontSize = 11.5.sp,
             fontWeight = FontWeight.ExtraBold,
             letterSpacing = 1.2.sp,
             modifier = Modifier.padding(start = 6.dp, bottom = 8.dp),
         )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clayCard(
-                    shape = RoundedCornerShape(24.dp),
-                    backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
-                    highlightColor = Color.White.copy(alpha = if (isDark) 0.08f else 0.95f),
-                    shadowColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0xFF8C7D6B).copy(alpha = 0.18f),
-                    elevation = 4.dp,
-                )
-                .padding(horizontal = 16.dp, vertical = 6.dp),
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = colors.card),
+            border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Column {
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
                 content()
             }
         }
@@ -2377,7 +2373,6 @@ fun ClaySettingRow(
     enabled: Boolean = true,
 ) {
     val colors = LocalWirdColors.current
-    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
 
     Column(
         modifier = Modifier
@@ -2398,14 +2393,14 @@ fun ClaySettingRow(
             ) {
                 Text(
                     text = title,
-                    color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                    color = colors.ink,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Spacer(Modifier.height(2.5.dp))
                 Text(
                     text = subtitle,
-                    color = if (isDark) Color(0xFF9CAFA4) else Color(0xFF6A7C73),
+                    color = colors.ink2,
                     fontSize = 12.sp,
                     lineHeight = 16.sp,
                 )
@@ -2416,7 +2411,7 @@ fun ClaySettingRow(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = if (isDark) Color(0xFF557766) else Color(0xFF9CAFA4),
+                    tint = colors.ink2,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -2427,7 +2422,7 @@ fun ClaySettingRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(if (isDark) Color(0xFF1B2E24) else Color(0xFFF1ECE1)),
+                .background(colors.rule),
         )
     }
 }
@@ -2439,16 +2434,17 @@ fun ClaySwitch(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val colors = LocalWirdColors.current
     val thumbOffset by animateDpAsState(
         targetValue = if (checked) 20.dp else 2.dp,
         label = "switchThumb",
     )
     val trackBg = if (!enabled) {
-        Color(0xFF8C7D6B).copy(alpha = 0.3f)
+        colors.chip.copy(alpha = 0.5f)
     } else if (checked) {
-        Color(0xFF2D6B52)
+        colors.action
     } else {
-        Color(0xFFD8D2C4)
+        colors.chip
     }
 
     Box(
@@ -2463,14 +2459,8 @@ fun ClaySwitch(
             modifier = Modifier
                 .offset { IntOffset(x = thumbOffset.roundToPx(), y = 0) }
                 .size(22.dp)
-                .clayCard(
-                    shape = CircleShape,
-                    backgroundColor = Color.White,
-                    highlightColor = Color.White.copy(alpha = 0.95f),
-                    shadowColor = Color.Black.copy(alpha = 0.35f),
-                    elevation = 2.dp,
-                    strokeWidth = 0.5.dp,
-                ),
+                .clip(CircleShape)
+                .background(Color.White),
         )
     }
 }
@@ -3741,43 +3731,40 @@ fun clampPage(page: Int): Int = page.coerceIn(1, Mushaf.PAGES)
 private fun SettingsSubTopBar(
     title: String,
     onBack: () -> Unit,
-    isDark: Boolean,
+    isDark: Boolean = false,
 ) {
+    val colors = LocalWirdColors.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(42.dp)
-                .clayCard(
-                    shape = CircleShape,
-                    backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
-                    highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
-                    shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
-                    elevation = 3.dp,
-                )
+                .size(40.dp)
+                .clip(CircleShape)
                 .clickable(onClick = onBack),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = WirdIcons.Back,
                 contentDescription = "Back",
-                tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
-                modifier = Modifier.size(20.dp),
+                tint = colors.ink,
+                modifier = Modifier.size(22.dp),
             )
         }
 
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(8.dp))
 
         Text(
             text = title,
-            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.5).sp,
+            style = TextStyle(
+                fontFamily = FontFamily.Serif,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.ink,
+            ),
         )
     }
 }

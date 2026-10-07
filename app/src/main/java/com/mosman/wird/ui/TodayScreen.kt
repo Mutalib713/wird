@@ -303,6 +303,7 @@ fun TodayScreen(
         val p = openPage ?: return@LaunchedEffect
         jumpCount++
         jump = PageJump(p, jumpCount)
+        chromeShown = true
         onOpenPageHandled()
     }
 
@@ -1112,10 +1113,24 @@ private fun ChromeBar(
             .fillMaxWidth()
             .background(colors.surfaceRaised)
             .safeDrawingPadding()
-            .padding(horizontal = Scale.space4, vertical = Scale.space2),
+            .padding(horizontal = Scale.space3, vertical = Scale.space2),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Back button to return to Sūrahs or previous screen
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(
+                imageVector = WirdIcons.Back,
+                contentDescription = "Back",
+                tint = colors.onSurfaceRaised,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(Modifier.width(4.dp))
+
         // Center: Surah title, page & juz, progress streak
         Column(modifier = Modifier.weight(1f)) {
             Text(

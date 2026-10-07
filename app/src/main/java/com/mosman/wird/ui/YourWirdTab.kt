@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -105,15 +106,16 @@ fun YourWirdTab(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .height(50.dp)
+                .clip(RoundedCornerShape(25.dp))
                 .background(colors.chip)
                 .padding(4.dp),
         ) {
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(20.dp))
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(21.dp))
                     .background(if (segment == WirdSegment.TRACKS) colors.action else Color.Transparent)
                     .clickable { segment = WirdSegment.TRACKS },
                 contentAlignment = Alignment.Center,
@@ -121,14 +123,15 @@ fun YourWirdTab(
                 Text(
                     text = "Tracks",
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = if (segment == WirdSegment.TRACKS) colors.onAction else colors.ink2,
                 )
             }
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(20.dp))
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(21.dp))
                     .background(if (segment == WirdSegment.PROGRESS) colors.action else Color.Transparent)
                     .clickable { segment = WirdSegment.PROGRESS },
                 contentAlignment = Alignment.Center,
@@ -136,7 +139,7 @@ fun YourWirdTab(
                 Text(
                     text = "Progress",
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     color = if (segment == WirdSegment.PROGRESS) colors.onAction else colors.ink2,
                 )
             }

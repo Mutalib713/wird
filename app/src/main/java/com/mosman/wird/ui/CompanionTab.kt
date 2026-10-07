@@ -60,31 +60,10 @@ fun CompanionTab(
     doneMethod: Method? = null,
     streak: Int = 0,
     onOpenPortion: (() -> Unit)? = null,
+    onOpenChat: () -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
-    var inChat by remember { mutableStateOf(false) }
     var inputText by remember { mutableStateOf("") }
-
-    if (inChat) {
-        ChatScreen(
-            turns = turns,
-            commitment = commitment,
-            checkingBackAt = checkingBackAt,
-            shortcuts = listOf(
-                "Explain today's verses",
-                "What does Ayat al-Kursi mean?",
-                "Remind me after Isha",
-                "Half a page on Fridays",
-            ),
-            surahName = surahName,
-            pageNumber = pageNumber,
-            doneMethod = doneMethod,
-            streak = streak,
-            onSend = onSend,
-            onBack = { inChat = false },
-            onOpenPortion = onOpenPortion,
-        )
-    } else {
         Column(
             modifier = modifier
                 .fillMaxSize()
@@ -147,7 +126,7 @@ fun CompanionTab(
                             if (msg.isNotEmpty()) {
                                 onSend(msg)
                                 inputText = ""
-                                inChat = true
+                                onOpenChat()
                             }
                         },
                     contentAlignment = Alignment.Center,
@@ -192,7 +171,7 @@ fun CompanionTab(
                             .fillMaxWidth()
                             .clickable {
                                 onSend(sugg)
-                                inChat = true
+                                onOpenChat()
                             },
                     ) {
                         Text(
@@ -248,7 +227,7 @@ fun CompanionTab(
                 colors = CardDefaults.cardColors(containerColor = colors.card),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { inChat = true },
+                    .clickable { onOpenChat() },
             ) {
                 Row(
                     modifier = Modifier
@@ -294,5 +273,4 @@ fun CompanionTab(
 
             Spacer(Modifier.height(80.dp))
         }
-    }
 }

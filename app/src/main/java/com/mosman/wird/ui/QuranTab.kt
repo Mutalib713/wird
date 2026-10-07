@@ -45,6 +45,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.SurahIndex
@@ -54,7 +57,7 @@ import com.mosman.wird.domain.arabicName
 import com.mosman.wird.domain.surahs
 import com.mosman.wird.ui.theme.LocalWirdColors
 
-enum class QuranSubView { MAIN, SURAHS, JUZ }
+enum class QuranSubView { MAIN, SURAHS, JUZ, SEARCH }
 private enum class SurahFilter { ALL, MAKKI, MADANI }
 
 /**
@@ -71,10 +74,17 @@ fun QuranTab(
     onOpenSearch: () -> Unit,
     modifier: Modifier = Modifier,
     initialSubView: QuranSubView = QuranSubView.MAIN,
+    onSubViewChange: (QuranSubView) -> Unit = {},
 ) {
     val colors = LocalWirdColors.current
     var subView by remember(initialSubView) { mutableStateOf(initialSubView) }
+    var previousSubView by remember { mutableStateOf(QuranSubView.MAIN) }
     var showPageDialog by remember { mutableStateOf(false) }
+
+    fun updateSubView(target: QuranSubView) {
+        subView = target
+        onSubViewChange(target)
+    }
 
     when (subView) {
         QuranSubView.MAIN -> {
@@ -106,7 +116,10 @@ fun QuranTab(
                         .height(52.dp)
                         .clip(RoundedCornerShape(26.dp))
                         .background(colors.card)
-                        .clickable { onOpenSearch() }
+                        .clickable {
+                            previousSubView = QuranSubView.MAIN
+                            updateSubView(QuranSubView.SEARCH)
+                        }
                         .padding(horizontal = 18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -248,14 +261,14 @@ fun QuranTab(
                             icon = WirdIcons.List,
                             title = "Sūrahs",
                             subtitle = "114 chapters",
-                            onClick = { subView = QuranSubView.SURAHS },
+                            onClick = { updateSubView(QuranSubView.SURAHS) },
                         )
                         Box(Modifier.fillMaxWidth().height(1.dp).background(colors.rule))
                         BrowseRow(
                             icon = WirdIcons.Layers,
                             title = "Juz'",
                             subtitle = "30 parts",
-                            onClick = { subView = QuranSubView.JUZ },
+                            onClick = { updateSubView(QuranSubView.JUZ) },
                         )
                         Box(Modifier.fillMaxWidth().height(1.dp).background(colors.rule))
                         BrowseRow(
@@ -271,19 +284,34 @@ fun QuranTab(
 
         QuranSubView.SURAHS -> {
             SurahsBrowserScreen(
-                onBack = { subView = QuranSubView.MAIN },
+                onBack = { updateSubView(QuranSubView.MAIN) },
                 onSelectSurah = { surah ->
                     onOpenPage(surah.firstPage)
+                },
+                onOpenSearch = {
+                    previousSubView = QuranSubView.SURAHS
+                    updateSubView(QuranSubView.SEARCH)
                 },
             )
         }
 
         QuranSubView.JUZ -> {
             JuzBrowserScreen(
-                onBack = { subView = QuranSubView.MAIN },
+                onBack = { updateSubView(QuranSubView.MAIN) },
                 onSelectJuzPage = { page ->
                     onOpenPage(page)
                 },
+                onOpenSearch = {
+                    previousSubView = QuranSubView.JUZ
+                    updateSubView(QuranSubView.SEARCH)
+                },
+            )
+        }
+
+        QuranSubView.SEARCH -> {
+            QuranSearchScreen(
+                onBack = { updateSubView(previousSubView) },
+                onOpenPage = onOpenPage,
             )
         }
     }
@@ -398,6 +426,7 @@ private fun BrowseRow(
 private fun SurahsBrowserScreen(
     onBack: () -> Unit,
     onSelectSurah: (Surah) -> Unit,
+    onOpenSearch: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     var filter by remember { mutableStateOf(SurahFilter.ALL) }
@@ -440,7 +469,15 @@ private fun SurahsBrowserScreen(
                     fontWeight = FontWeight.SemiBold,
                     color = colors.ink,
                 ),
+                modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onOpenSearch) {
+                Icon(
+                    imageVector = WirdIcons.Search,
+                    contentDescription = "Search",
+                    tint = colors.ink,
+                )
+            }
         }
 
         // Filters: All, Makki, Madani
@@ -559,6 +596,7 @@ private fun FilterChip(
 private fun JuzBrowserScreen(
     onBack: () -> Unit,
     onSelectJuzPage: (Int) -> Unit,
+    onOpenSearch: () -> Unit,
 ) {
     val colors = LocalWirdColors.current
     // 30 Juz definitions: Juz index to first page
@@ -602,7 +640,15 @@ private fun JuzBrowserScreen(
                     fontWeight = FontWeight.SemiBold,
                     color = colors.ink,
                 ),
+                modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onOpenSearch) {
+                Icon(
+                    imageVector = WirdIcons.Search,
+                    contentDescription = "Search",
+                    tint = colors.ink,
+                )
+            }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -720,4 +766,145 @@ private fun PagePickerDialog(
         },
         containerColor = colors.card,
     )
+}
+
+@Composable
+private fun QuranSearchScreen(
+    onBack: () -> Unit,
+    onOpenPage: (Int) -> Unit,
+) {
+    val colors = LocalWirdColors.current
+    var query by remember { mutableStateOf("") }
+
+    BackHandler(onBack = onBack)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.field)
+            .statusBarsPadding(),
+    ) {
+        // Top Bar with Back + Search Field + Clear Button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = WirdIcons.Back,
+                    contentDescription = "Back",
+                    tint = colors.ink,
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(46.dp)
+                    .clip(RoundedCornerShape(23.dp))
+                    .background(colors.card)
+                    .padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = WirdIcons.Search,
+                    contentDescription = null,
+                    tint = colors.ink2,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontSize = 15.sp,
+                        color = colors.ink,
+                    ),
+                    cursorBrush = SolidColor(colors.action),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { innerTextField ->
+                        if (query.isEmpty()) {
+                            Text(
+                                text = "Search Sūrahs or words…",
+                                fontSize = 15.sp,
+                                color = colors.ink2,
+                            )
+                        }
+                        innerTextField()
+                    },
+                )
+                if (query.isNotEmpty()) {
+                    IconButton(
+                        onClick = { query = "" },
+                        modifier = Modifier.size(28.dp),
+                    ) {
+                        Icon(
+                            imageVector = WirdIcons.Close,
+                            contentDescription = "Clear",
+                            tint = colors.ink2,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+        }
+
+        if (query.isBlank()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                Text(
+                    text = "Suggestions",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.ink2,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                listOf("Al-Baqarah", "Yasin", "Al-Kahf", "Ayat al-Kursi", "Patience", "Mercy").forEach { suggestion ->
+                    Card(
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = colors.card),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .clickable { query = suggestion },
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = WirdIcons.Search,
+                                contentDescription = null,
+                                tint = colors.ink2,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                text = suggestion,
+                                fontSize = 14.5.sp,
+                                color = colors.ink,
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            SearchResults(
+                query = query,
+                onPick = { surah -> onOpenPage(surah.firstPage) },
+                onOpenPage = onOpenPage,
+                showTranslatedName = true,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            )
+        }
+    }
 }

@@ -1114,11 +1114,12 @@ class MainActivity : ComponentActivity() {
                             WirdTab.QURAN -> QuranTab(
                                 lastReadPage = store.recentPages.firstOrNull() ?: assignment.startPage,
                                 initialSubView = quranSubView,
+                                onSubViewChange = { quranSubView = it },
                                 onOpenPage = { p ->
                                     openPage = p
                                     onPage = true
                                     isWirdSession = false
-                                    pageSource = PageSource.HOME
+                                    pageSource = PageSource.SURAHS
                                 },
                                 onOpenBookmarks = { screen = Screen.BOOKMARKS },
                                 onOpenDownloads = {
@@ -1146,6 +1147,7 @@ class MainActivity : ComponentActivity() {
                                     isWirdSession = true
                                     pageSource = PageSource.HOME
                                 },
+                                onOpenChat = { onChat = true },
                             )
 
                             WirdTab.WIRD -> {
