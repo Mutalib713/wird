@@ -287,6 +287,14 @@ class MushafDownloadService : Service() {
         val modelProgress: StateFlow<ModelProgress?> = _modelProgress.asStateFlow()
 
         fun isDownloading(): Boolean = _mushafProgress.value != null || _modelProgress.value != null
+        val isDownloadingPages: Boolean get() = _mushafProgress.value != null
+        val isDownloadingModel: Boolean get() = _modelProgress.value != null
+
+        fun busyReason(): String? = when {
+            _mushafProgress.value != null -> "Mushaf pages are currently downloading"
+            _modelProgress.value != null -> "Recitation checker is currently downloading"
+            else -> null
+        }
 
         fun stop(context: Context) {
             context.startService(Intent(context, MushafDownloadService::class.java).setAction(ACTION_STOP))

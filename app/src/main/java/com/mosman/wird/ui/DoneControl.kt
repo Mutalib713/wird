@@ -118,7 +118,11 @@ fun DoneControl(
             selected = RecitationModel.TINY,
             onSelect = { chosen ->
                 showModelDialog = false
-                onDownloadModel?.invoke(chosen)
+                if (com.mosman.wird.mushaf.MushafDownloadService.isDownloadingPages) {
+                    android.widget.Toast.makeText(context, "Mushaf pages are currently downloading. Please wait for them to finish.", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    onDownloadModel?.invoke(chosen)
+                }
             },
             onDismiss = { showModelDialog = false },
         )

@@ -208,6 +208,7 @@ fun SettingsScreen(
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
     val liveMushafProgress by com.mosman.wird.mushaf.MushafDownloadService.mushafProgress.collectAsState()
+    val liveModelProgress by com.mosman.wird.mushaf.MushafDownloadService.modelProgress.collectAsState()
 
     // Current sub-screen
     var subScreen by remember(initialSubScreen) { mutableStateOf(initialSubScreen) }
@@ -760,12 +761,15 @@ fun SettingsScreen(
                             val (pages, bytes) = cachedPages
                             val whole = Mushaf.PAGES
                             val live = liveMushafProgress
+                            val liveModel = liveModelProgress
                             val pagesSubtitle = if (downloading != null || live != null) {
                                 val done = live?.done ?: downloading?.first ?: 0
                                 val total = live?.total ?: downloading?.second ?: whole
                                 val mbDone = String.format(java.util.Locale.US, "%.1f", (live?.bytesDownloaded ?: 0L).toFloat() / (1024 * 1024))
                                 val mbTotal = String.format(java.util.Locale.US, "%.1f", (live?.totalBytes ?: com.mosman.wird.mushaf.MushafDownloadService.ESTIMATED_TOTAL_BYTES).toFloat() / (1024 * 1024))
                                 "Downloading $done of $total pages · $mbDone / $mbTotal MB"
+                            } else if (liveModel != null) {
+                                "Recitation checker is downloading · wait for it to finish"
                             } else if (pages >= whole) {
                                 "All 604 pages saved · they open without data (${megabytes(bytes)})"
                             } else {
@@ -777,6 +781,8 @@ fun SettingsScreen(
                                 onClick = {
                                     if (downloading != null || live != null) {
                                         com.mosman.wird.mushaf.MushafDownloadService.stop(context)
+                                    } else if (liveModel != null) {
+                                        android.widget.Toast.makeText(context, "Recitation checker is currently downloading. Please wait for it to finish.", android.widget.Toast.LENGTH_SHORT).show()
                                     } else if (pages < whole) {
                                         onDownloadAll()
                                     }
@@ -1623,6 +1629,8 @@ fun SettingsScreen(
                     onSelect = { chosen ->
                         if (chosen in downloadedModels) {
                             onUseModel(chosen)
+                        } else if (liveMushafProgress != null) {
+                            android.widget.Toast.makeText(context, "Mushaf pages are currently downloading. Please wait for them to finish.", android.widget.Toast.LENGTH_SHORT).show()
                         } else if (onGetModel != null) {
                             onGetModel(chosen)
                         }
