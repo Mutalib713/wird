@@ -1203,7 +1203,7 @@ private fun Step4Gateway(
                     contentColor = colors.textPrimary,
                 ),
             ) {
-                Text("⚡ Quick Start with Defaults", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
+                Text("Quick Start with Defaults", fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp)
             }
         }
     }
