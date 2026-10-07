@@ -223,7 +223,7 @@ private fun JuzBand(juz: Juz) {
  * Right: Bare start page number - "1", "2", "50"
  */
 @Composable
-private fun SurahRow(
+internal fun SurahRow(
     surah: Surah,
     onPick: (Surah) -> Unit,
     showTranslatedName: Boolean = true,

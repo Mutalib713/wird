@@ -38,10 +38,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mosman.wird.data.SearchTexts
 import com.mosman.wird.domain.Bookmark
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.ui.theme.LocalWirdColors
@@ -73,6 +75,7 @@ fun SurahsTab(
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
     val groundColor = if (isDark) Color(0xFF08100D) else Color(0xFFF7F4EB)
 
+    val context = LocalContext.current
     var searchActive by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
@@ -80,6 +83,8 @@ fun SurahsTab(
     LaunchedEffect(searchActive) {
         if (searchActive) {
             focusRequester.requestFocus()
+            // Reading the verses for word search takes a moment; it happens while the reader types.
+            SearchTexts.prepare(context)
         }
     }
 
@@ -224,7 +229,7 @@ fun SurahsTab(
                         Box(modifier = Modifier.weight(1f)) {
                             if (query.isEmpty()) {
                                 Text(
-                                    text = "Search by name or number...",
+                                    text = "A sūrah, or any word in a verse",
                                     color = if (isDark) Color(0xFF6E8276) else Color(0xFF8C7D6B),
                                     fontSize = 13.5.sp,
                                 )
@@ -286,26 +291,26 @@ fun SurahsTab(
                 }
             }
 
-            if (query.isNotBlank()) {
-                val matchCount = remember(query) { searchSurahs(query).size }
-                Text(
-                    text = if (matchCount == 1) "1 MATCH FOUND" else "$matchCount MATCHES FOUND",
-                    color = if (isDark) Color(0xFF8FA597) else Color(0xFF6A7C73),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                )
-            }
         }
 
         Spacer(Modifier.height(4.dp))
 
-        SurahList(
-            onPick = onPick,
-            onOpenPage = onOpenPage,
-            searchQuery = if (searchActive) query else "",
-            contentPadding = PaddingValues(bottom = 110.dp),
-        )
+        if (searchActive && query.isNotBlank()) {
+            // Sūrahs by name, then every verse holding the words (PLAN task 26).
+            SearchResults(
+                query = query,
+                onPick = onPick,
+                onOpenPage = onOpenPage,
+                showTranslatedName = remember(context) { com.mosman.wird.data.WirdStore(context).surahTranslatedName },
+                contentPadding = PaddingValues(bottom = 110.dp),
+            )
+        } else {
+            SurahList(
+                onPick = onPick,
+                onOpenPage = onOpenPage,
+                searchQuery = "",
+                contentPadding = PaddingValues(bottom = 110.dp),
+            )
+        }
     }
 }
