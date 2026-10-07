@@ -509,13 +509,9 @@ fun TodayScreen(
                 return@launch
             }
 
-            // If startAt was not specified, start at the first verse on the currently viewed page
-            val effectiveStartAt = startAt ?: run {
-                val layout = repo.layoutOnly(current)
-                layout?.glyphs?.firstOrNull { !it.isEndMarker }?.verseKey
-            }
-            val list = if (customVerses != null) customVerses else if (effectiveStartAt != null && effectiveStartAt !in verses) listOf(effectiveStartAt) else verses
-            val begin = if (effectiveStartAt != null) list.indexOf(effectiveStartAt).coerceAtLeast(0) else 0
+            // If startAt was not specified, start at the first verse of today's portion (B13)
+            val (list, begin) = com.mosman.wird.domain.buildListenQueue(verses, startAt, customVerses)
+            val effectiveStartAt = list.getOrNull(begin)
             loaded = list
             rangeRepeat = rangeRepeatCount
 

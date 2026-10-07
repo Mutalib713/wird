@@ -101,3 +101,30 @@ fun assignPortion(
         wrapsPastEnd = lastUnitRaw >= Mushaf.TOTAL_UNITS,
     )
 }
+
+/**
+ * Resolves the list of ayahs to play and the starting index (B13).
+ *
+ * When [startAt] is null, play [todayVerses] from the start.
+ * When [startAt] is explicitly provided:
+ *   - If it's in [todayVerses], play [todayVerses] starting at that ayah.
+ *   - If it's not in [todayVerses], play only that single tapped ayah.
+ */
+fun buildListenQueue(
+    todayVerses: List<String>,
+    startAt: String?,
+    customVerses: List<String>? = null,
+): Pair<List<String>, Int> {
+    if (customVerses != null) {
+        val begin = if (startAt != null) customVerses.indexOf(startAt).coerceAtLeast(0) else 0
+        return customVerses to begin
+    }
+    if (startAt == null) {
+        return todayVerses to 0
+    }
+    return if (startAt in todayVerses) {
+        todayVerses to todayVerses.indexOf(startAt).coerceAtLeast(0)
+    } else {
+        listOf(startAt) to 0
+    }
+}
