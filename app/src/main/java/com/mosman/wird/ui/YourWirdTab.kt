@@ -47,6 +47,7 @@ import com.mosman.wird.domain.Progress
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.unitsLabel
 import com.mosman.wird.ui.theme.LocalWirdColors
+import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -71,6 +72,7 @@ fun YourWirdTab(
     modifier: Modifier = Modifier,
     initialSegment: WirdSegment = WirdSegment.TRACKS,
     today: LocalDate = LocalDate.now(),
+    audioFor: (LocalDate, String?) -> File? = { _, _ -> null },
 ) {
     val colors = LocalWirdColors.current
     var segment by remember(initialSegment) { mutableStateOf(initialSegment) }
@@ -468,7 +470,10 @@ fun YourWirdTab(
                             color = colors.ink,
                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
                         )
-                        val recitedCount = activeTrackLogs.count { it.method == Method.RECITED }
+                        val savedRecordingsCount = activeTrackLogs.count { log ->
+                            val file = audioFor(log.date, log.trackId)
+                            file != null && file.exists() && file.length() > 0
+                        }
                         Card(
                             shape = RoundedCornerShape(18.dp),
                             colors = CardDefaults.cardColors(containerColor = colors.card),
@@ -498,13 +503,21 @@ fun YourWirdTab(
                                 Spacer(Modifier.width(14.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "$recitedCount recording${if (recitedCount == 1) "" else "s"}",
+                                        text = if (savedRecordingsCount > 0) {
+                                            "$savedRecordingsCount recording${if (savedRecordingsCount == 1) "" else "s"}"
+                                        } else {
+                                            "No recordings yet"
+                                        },
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = colors.ink,
                                     )
                                     Text(
-                                        text = "Saved and checked on this phone",
+                                        text = if (savedRecordingsCount > 0) {
+                                            "Saved and checked on this phone"
+                                        } else {
+                                            "Recite with Recite & Verify to save on this phone"
+                                        },
                                         fontSize = 13.sp,
                                         color = colors.ink2,
                                     )

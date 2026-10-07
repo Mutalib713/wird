@@ -86,9 +86,27 @@ fun RecitationsScreen(
     var expandedKeys by remember { mutableStateOf(setOf<String>()) }
     var playingFile by remember { mutableStateOf<File?>(null) }
 
-    // Prioritize logs that have audio or were recited aloud
-    val ordered = remember(logs, selectedTrackIdFilter) {
-        val base = if (selectedTrackIdFilter == null) logs else logs.filter { it.trackId == selectedTrackIdFilter }
+    // Only logs with an actual audio recording saved on this phone belong in Recordings.
+    // Days that were simply read/tapped are not recordings and belong in the reading log.
+    val recordedLogs = remember(logs) {
+        logs.filter { log ->
+            val file = audioFor(log.date, log.trackId)
+            file != null && file.exists() && file.length() > 0
+        }
+    }
+
+    // Only filter among active tracks that actually have recordings
+    val trackMap = remember(allTracks) { allTracks.associateBy { it.id } }
+    val validTrackIds = remember(recordedLogs, trackMap) {
+        recordedLogs.mapNotNull { it.trackId }.filter { it in trackMap }.distinct()
+    }
+
+    val ordered = remember(recordedLogs, selectedTrackIdFilter, validTrackIds) {
+        val base = if (selectedTrackIdFilter == null || selectedTrackIdFilter !in validTrackIds) {
+            recordedLogs
+        } else {
+            recordedLogs.filter { it.trackId == selectedTrackIdFilter }
+        }
         base.sortedByDescending { it.date }
     }
 
@@ -134,7 +152,7 @@ fun RecitationsScreen(
                     ),
                 )
                 Spacer(Modifier.height(2.dp))
-                val count = ordered.count { audioFor(it.date, it.trackId)?.exists() == true || it.method == Method.RECITED }
+                val count = ordered.size
                 Text(
                     text = if (count > 0) "$count saved recitation${if (count == 1) "" else "s"}" else "What you recited & recorded",
                     fontSize = 13.sp,
@@ -161,23 +179,21 @@ fun RecitationsScreen(
             }
         }
 
-        // Horizontal Track Filter Chips (if more than 1 track exists)
-        val filterOptions = remember(logs, allTracks) {
+        // Horizontal Track Filter Chips (only if multiple active tracks have recordings)
+        val filterOptions = remember(recordedLogs, validTrackIds, trackMap) {
             val list = mutableListOf<Pair<String?, String>>()
-            list.add(null to "All (${logs.size})")
-            val trackMap = allTracks.associateBy { it.id }
-            val presentTrackIds = (logs.mapNotNull { it.trackId } + allTracks.map { it.id }).distinct()
-            for (tid in presentTrackIds) {
-                val name = trackMap[tid]?.name
-                    ?: logs.firstOrNull { it.trackId == tid }?.trackName
-                    ?: "Track"
-                val c = logs.count { it.trackId == tid }
-                list.add(tid to "$name ($c)")
+            if (validTrackIds.size > 1) {
+                list.add(null to "All (${recordedLogs.size})")
+                for (tid in validTrackIds) {
+                    val name = trackMap[tid]?.name ?: "Track"
+                    val c = recordedLogs.count { it.trackId == tid }
+                    list.add(tid to "$name ($c)")
+                }
             }
             list
         }
 
-        if (filterOptions.size > 2) {
+        if (filterOptions.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -265,7 +281,6 @@ fun RecitationsScreen(
                 val audio = audioFor(log.date, log.trackId)
                 val coverage = coverageLabel(coveredFor(log.date, log.trackId))
                 val isPlaying = playingFile == audio
-                val isRecited = log.method == Method.RECITED
                 val hasAudio = audio != null && audio.exists() && audio.length() > 0
                 val transcription = transcriptionFor(log.date, log.trackId)
 
@@ -336,7 +351,7 @@ fun RecitationsScreen(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isRecited) colors.tile else colors.field)
+                                    .background(colors.tile)
                                     .padding(horizontal = 10.dp, vertical = 5.dp),
                             ) {
                                 Row(
@@ -344,14 +359,14 @@ fun RecitationsScreen(
                                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                                 ) {
                                     Icon(
-                                        imageVector = if (isRecited) WirdIcons.Mic else WirdIcons.Check,
+                                        imageVector = WirdIcons.Mic,
                                         contentDescription = null,
-                                        tint = if (isRecited) colors.goldText else colors.action,
+                                        tint = colors.goldText,
                                         modifier = Modifier.size(13.dp),
                                     )
                                     Text(
-                                        text = if (isRecited) "Recited aloud" else "Read",
-                                        color = if (isRecited) colors.goldText else colors.ink,
+                                        text = "Recited aloud",
+                                        color = colors.goldText,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold,
                                     )

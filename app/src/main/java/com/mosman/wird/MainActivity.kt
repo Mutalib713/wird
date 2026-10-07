@@ -1205,6 +1205,7 @@ class MainActivity : ComponentActivity() {
                                         },
                                         onOpenRecordings = { showRecordings = true },
                                         today = today,
+                                        audioFor = { d, tid -> tid?.let { days.audioFor(d, it) } },
                                     )
                                 }
                             }
