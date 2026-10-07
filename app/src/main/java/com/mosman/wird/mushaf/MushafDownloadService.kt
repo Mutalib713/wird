@@ -84,7 +84,11 @@ class MushafDownloadService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
+        if (intent == null) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        if (intent.action == ACTION_STOP) {
             job?.cancel()
             _mushafProgress.value = null
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -97,14 +101,14 @@ class MushafDownloadService : Service() {
         // so walking away from Settings cancelled 78 MB mid-flight. Mutalib hit exactly this
         // on 2026-08-20 - the download survived only because he happened to stay on the screen
         // for four minutes watching a row that told him nothing.
-        val wanted = intent?.getStringExtra(EXTRA_MODEL)
+        val wanted = intent.getStringExtra(EXTRA_MODEL)
         if (wanted != null) {
             startModel(RecitationModel.valueOf(wanted))
-            return START_STICKY
+            return START_NOT_STICKY
         }
 
         // Already running: a second tap must not start a second sweep over 604 pages.
-        if (job?.isActive == true) return START_STICKY
+        if (job?.isActive == true) return START_NOT_STICKY
 
         createChannel()
         val repo = MushafRepository(applicationContext)
@@ -133,7 +137,7 @@ class MushafDownloadService : Service() {
             stopForeground(STOP_FOREGROUND_DETACH)
             stopSelf()
         }
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onDestroy() {
