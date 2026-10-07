@@ -27,7 +27,10 @@ class DayLogStore(filesDir: File) {
     private val audioDir = File(filesDir, "recitations").apply { mkdirs() }
 
     /** One entry per day session, newest last. */
-    fun all(): List<DayLog> = read().map { it.log }
+    fun all(): List<DayLog> {
+        read()
+        return cachedDayLogs ?: emptyList()
+    }
 
     // **Every lookup below is per track, and strict.** Until 2026-10-03 each one fell back to
     // "any row for that date" when the track had none, so a track you had not read showed
@@ -175,11 +178,30 @@ class DayLogStore(filesDir: File) {
         val transcription: String? = null,
     )
 
+    private var cachedRows: List<Row>? = null
+    private var cachedDayLogs: List<DayLog>? = null
+    private var cachedLastModified: Long = -1L
+    private var cachedLength: Long = -1L
+
+    @Synchronized
     private fun read(): List<Row> {
-        if (!file.exists()) return emptyList()
+        if (!file.exists()) {
+            cachedRows = emptyList()
+            cachedDayLogs = emptyList()
+            cachedLastModified = -1L
+            cachedLength = -1L
+            return emptyList()
+        }
+        val lastMod = file.lastModified()
+        val len = file.length()
+        val current = cachedRows
+        if (current != null && lastMod == cachedLastModified && len == cachedLength) {
+            return current
+        }
+
         return runCatching {
             val arr = JSONArray(file.readText())
-            buildList {
+            val rows = buildList {
                 for (i in 0 until arr.length()) {
                     val o = arr.getJSONObject(i)
                     add(
@@ -200,11 +222,20 @@ class DayLogStore(filesDir: File) {
                     )
                 }
             }
+            cachedRows = rows
+            cachedDayLogs = rows.map { it.log }
+            cachedLastModified = file.lastModified()
+            cachedLength = file.length()
+            rows
         }.getOrElse {
             // A corrupt log must not take the app down, and must not silently look like
             // "you have never read". Keep the file under a timestamped name so nothing is overwritten.
             runCatching { Log.w(TAG, "days.json unreadable, keeping it aside", it) }
             SafeFile.quarantineCorrupt(file, "days")
+            cachedRows = emptyList()
+            cachedDayLogs = emptyList()
+            cachedLastModified = -1L
+            cachedLength = -1L
             emptyList()
         }
     }
@@ -215,9 +246,11 @@ class DayLogStore(filesDir: File) {
 
     fun hasCorruptFiles(): Boolean = corruptFiles().isNotEmpty()
 
+    @Synchronized
     private fun write(rows: List<Row>) {
+        val sorted = rows.sortedBy { it.log.date }
         val arr = JSONArray()
-        rows.sortedBy { it.log.date }.forEach { r ->
+        sorted.forEach { r ->
             arr.put(
                 JSONObject()
                     .put("date", r.log.date.toString())
@@ -235,6 +268,10 @@ class DayLogStore(filesDir: File) {
             )
         }
         SafeFile.writeText(file, arr.toString(2))
+        cachedRows = sorted
+        cachedDayLogs = sorted.map { it.log }
+        cachedLastModified = file.lastModified()
+        cachedLength = file.length()
     }
 
     private companion object { const val TAG = "WirdDays" }

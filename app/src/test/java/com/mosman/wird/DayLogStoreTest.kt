@@ -107,4 +107,42 @@ class DayLogStoreTest {
         val partFile = File(dir, "layout.json.part")
         assertFalse(partFile.exists())
     }
+
+    @Test
+    fun inMemoryCacheReusesParsedRowsAndInvalidatesOnDiskChange() {
+        val dir = tempFolder.newFolder()
+        val store = DayLogStore(dir)
+
+        store.markDone(
+            date = LocalDate.of(2026, 10, 1),
+            method = Method.TAPPED,
+            trackId = "track-1",
+            trackName = "Main",
+        )
+
+        val firstRead = store.all()
+        val secondRead = store.all()
+        // Must return the exact same cached instance in memory
+        org.junit.Assert.assertSame(firstRead, secondRead)
+
+        // Mutating through store updates cache
+        store.markDone(
+            date = LocalDate.of(2026, 10, 2),
+            method = Method.RECITED,
+            trackId = "track-1",
+            trackName = "Main",
+        )
+        val thirdRead = store.all()
+        assertEquals(2, thirdRead.size)
+
+        // Mutating the file on disk externally invalidates cache
+        val daysFile = File(dir, "days.json")
+        daysFile.writeText("[]")
+        // Update last modified to ensure it differs
+        daysFile.setLastModified(System.currentTimeMillis() + 2000L)
+
+        val afterExternalChange = store.all()
+        assertEquals(0, afterExternalChange.size)
+    }
 }
+
