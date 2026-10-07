@@ -668,18 +668,20 @@ class MainActivity : ComponentActivity() {
                         // ⚠ Both went to a global plan until 2026-10-03, which the portion never
                         // read: the companion said yes and nothing changed. They go to the track.
                         is CompanionAction.ChangePlan -> {
-                            store.updateTrack(activeTrack.copy(dailyUnits = action.units))
+                            store.editTrack(activeTrack.id) { it.copy(dailyUnits = action.units) }
                             refresh()
                             nudgeWidget()
                         }
                         is CompanionAction.ChangeDayPlan -> {
-                            val byDay = activeTrack.weekdayUnits.toMutableMap()
-                            if (action.units == null) {
-                                byDay.remove(action.day)
-                            } else {
-                                byDay[action.day] = action.units
+                            store.editTrack(activeTrack.id) { current ->
+                                val byDay = current.weekdayUnits.toMutableMap()
+                                if (action.units == null) {
+                                    byDay.remove(action.day)
+                                } else {
+                                    byDay[action.day] = action.units
+                                }
+                                current.copy(weekdayUnits = byDay)
                             }
-                            store.updateTrack(activeTrack.copy(weekdayUnits = byDay))
                             refresh()
                             nudgeWidget()
                         }
@@ -692,9 +694,9 @@ class MainActivity : ComponentActivity() {
                             // A track with its own reminder changes that one; otherwise the
                             // default, which every track without its own follows.
                             if (activeTrack.reminderScheduleRaw != null) {
-                                store.updateTrack(
-                                    activeTrack.copy(reminderScheduleRaw = encodeSchedule(action.schedule))
-                                )
+                                store.editTrack(activeTrack.id) {
+                                    it.copy(reminderScheduleRaw = encodeSchedule(action.schedule))
+                                }
                                 refresh()
                             } else {
                                 store.nudgeSchedule = action.schedule
@@ -788,17 +790,19 @@ class MainActivity : ComponentActivity() {
                         onDone = { page, unitsPerDay, verse, name, mode, way, trackType, intention, customVerses ->
                             // Everything setup asked goes onto the track, in one write.
                             val currentTrack = store.activeTrack()
-                            store.updateTrack(currentTrack.copy(
-                                positionUnit = (page.coerceIn(1, Mushaf.PAGES) - 1) * Mushaf.UNITS_PER_PAGE,
-                                direction = way,
-                                dailyUnits = unitsPerDay,
-                                weekdayUnits = emptyMap(),
-                                startVerseSurah = verse?.first,
-                                startVerseAyah = verse?.second,
-                                type = trackType,
-                                intention = intention,
-                                customTargetVerses = customVerses,
-                            ))
+                            store.editTrack(currentTrack.id) { current ->
+                                current.copy(
+                                    positionUnit = (page.coerceIn(1, Mushaf.PAGES) - 1) * Mushaf.UNITS_PER_PAGE,
+                                    direction = way,
+                                    dailyUnits = unitsPerDay,
+                                    weekdayUnits = emptyMap(),
+                                    startVerseSurah = verse?.first,
+                                    startVerseAyah = verse?.second,
+                                    type = trackType,
+                                    intention = intention,
+                                    customTargetVerses = customVerses,
+                                )
+                            }
                             store.readerName = name
                             readerName = store.readerName
                             store.readingMode = mode
@@ -1165,8 +1169,8 @@ class MainActivity : ComponentActivity() {
                         audioQuality = audioQuality,
                         readingMode = readingMode,
                         direction = direction,
-                        onDirection = {
-                            store.updateTrack(activeTrack.copy(direction = it))
+                        onDirection = { newDirection ->
+                            store.editTrack(activeTrack.id) { it.copy(direction = newDirection) }
                             refresh()
                         },
                         onDevice = onDevice,
@@ -1218,14 +1222,14 @@ class MainActivity : ComponentActivity() {
                                 activeTrack.type == TrackType.REVISION -> TrackType.REVISION
                                 else -> TrackType.HIFZ
                             }
-                            store.updateTrack(activeTrack.copy(type = type))
+                            store.editTrack(activeTrack.id) { it.copy(type = type) }
                             refresh()
                         },
-                        onPlan = {
+                        onPlan = { newPlan ->
                             // Settings' daily target. It used to save to the global plan too.
-                            store.updateTrack(
-                                activeTrack.copy(dailyUnits = it.defaultUnits, weekdayUnits = it.weekdayUnits)
-                            )
+                            store.editTrack(activeTrack.id) {
+                                it.copy(dailyUnits = newPlan.defaultUnits, weekdayUnits = newPlan.weekdayUnits)
+                            }
                             refresh()
                         },
                         onSchedule = {
@@ -1238,13 +1242,13 @@ class MainActivity : ComponentActivity() {
                         onAudioQuality = { store.audioQuality = it; audioQuality = it },
                         onUseLocation = { askLocation.launch(Where.PERMISSION) },
                         onPositionChanged = { newVerse, newPage ->
-                            store.updateTrack(
-                                activeTrack.copy(
+                            store.editTrack(activeTrack.id) {
+                                it.copy(
                                     positionUnit = (newPage.coerceIn(1, Mushaf.PAGES) - 1) * Mushaf.UNITS_PER_PAGE,
                                     startVerseSurah = newVerse?.first,
                                     startVerseAyah = newVerse?.second,
                                 )
-                            )
+                            }
                             refresh()
                         },
                         onLifeSpacesChanged = { refresh() },

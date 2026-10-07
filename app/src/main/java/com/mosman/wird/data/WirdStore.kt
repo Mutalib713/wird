@@ -51,12 +51,14 @@ enum class ReadingMode { READING, MEMORISING }
  * manifest's three backup exclusions make sure Android does not quietly copy it to Drive
  * either.
  */
-class WirdStore(context: Context) {
-
-    private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-
-    /** The record of finished days. Each track's streak and total are worked out from it. */
-    private val days = DayLogStore(context)
+class WirdStore(
+    private val prefs: android.content.SharedPreferences,
+    private val days: DayLogStore,
+) {
+    constructor(context: Context) : this(
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE),
+        DayLogStore(context),
+    )
 
     init {
         migrateRecordsOnce()
@@ -701,7 +703,18 @@ class WirdStore(context: Context) {
         saveReadingTracks(current + track.copy(name = uniqueName))
     }
 
-    fun updateTrack(updated: ReadingTrack) {
+    /**
+     * R2: Safely update a track by reading its latest persisted state and applying changes.
+     */
+    fun editTrack(id: String, change: (ReadingTrack) -> ReadingTrack) {
+        val tracks = readTracks()
+        val target = tracks.firstOrNull { it.id == id } ?: return
+        val updated = change(target)
+        val newTracks = tracks.map { if (it.id == id) updated else it }
+        saveReadingTracks(deduplicateTrackNames(newTracks))
+    }
+
+    private fun updateTrack(updated: ReadingTrack) {
         val tracks = readTracks().map { if (it.id == updated.id) updated else it }
         saveReadingTracks(deduplicateTrackNames(tracks))
     }
@@ -714,7 +727,7 @@ class WirdStore(context: Context) {
             // Only reachable with no tracks at all: save one rather than lose the change.
             saveReadingTracks(listOf(change(active)))
         } else {
-            updateTrack(change(saved))
+            editTrack(active.id, change)
         }
     }
 
@@ -729,10 +742,7 @@ class WirdStore(context: Context) {
     }
 
     fun setTrackFrozen(trackId: String, frozen: Boolean) {
-        val tracks = readTracks().map {
-            if (it.id == trackId) it.copy(isFrozen = frozen) else it
-        }
-        saveReadingTracks(tracks)
+        editTrack(trackId) { it.copy(isFrozen = frozen) }
     }
 
     /**
@@ -744,34 +754,29 @@ class WirdStore(context: Context) {
      * only ever applied to the first page — and on *this* track, not whichever is active now.
      */
     fun advanceTrack(trackId: String, nextStartUnit: Int, nextVerse: Pair<Int, Int>? = null) {
-        val track = readTracks().firstOrNull { it.id == trackId } ?: return
-        // A verse portion knows exactly which verse is next, so it keeps it; a page portion
-        // starts tomorrow at the top of its half-page.
-        updateTrack(
-            track.copy(
+        editTrack(trackId) {
+            it.copy(
                 positionUnit = nextStartUnit,
                 startVerseSurah = nextVerse?.first,
                 startVerseAyah = nextVerse?.second,
             )
-        )
+        }
     }
 
     /** Put a verse track back to [verse] after its day was undone. */
     fun rewindTrackToVerse(trackId: String, verse: Pair<Int, Int>) {
-        val track = readTracks().firstOrNull { it.id == trackId } ?: return
-        updateTrack(
-            track.copy(
+        editTrack(trackId) {
+            it.copy(
                 positionUnit = com.mosman.wird.domain.VerseIndex.unitOf(verse),
                 startVerseSurah = verse.first,
                 startVerseAyah = verse.second,
             )
-        )
+        }
     }
 
     /** Put [trackId] back to [startUnit] after its day was undone. The log row is removed separately. */
     fun rewindTrack(trackId: String, startUnit: Int) {
-        val track = readTracks().firstOrNull { it.id == trackId } ?: return
-        updateTrack(track.copy(positionUnit = startUnit))
+        editTrack(trackId) { it.copy(positionUnit = startUnit) }
     }
 
     /**

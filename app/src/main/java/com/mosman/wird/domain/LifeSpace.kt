@@ -205,3 +205,51 @@ data class LifeSpace(
         }
     }
 }
+
+/**
+ * Position chosen by the reader in the position picker dialog.
+ * If null, the existing position and start verse are preserved.
+ */
+data class PickedPosition(
+    val unit: Int,
+    val verse: Pair<Int, Int>? = null,
+)
+
+/**
+ * Changes configured in the track edit dialog.
+ */
+data class TrackEditChanges(
+    val name: String,
+    val type: TrackType,
+    val intention: String?,
+    val isCustomTarget: Boolean,
+    val customTargetVerses: Int?,
+    val dailyUnits: Int,
+    val activeDays: Set<DayOfWeek>,
+    val direction: ReadingDirection,
+    val pickedStart: PickedPosition? = null,
+)
+
+/**
+ * Pure function computing the new track state after saving dialog edits.
+ * If [changes.pickedStart] is null, positionUnit, startVerseSurah and startVerseAyah are preserved untouched.
+ */
+fun applyTrackEdit(current: ReadingTrack, changes: TrackEditChanges): ReadingTrack {
+    val finalCustomVerses = if (changes.isCustomTarget) changes.customTargetVerses else null
+    val newPosition = changes.pickedStart?.unit ?: current.positionUnit
+    val newStartSurah = if (changes.pickedStart != null) changes.pickedStart.verse?.first else current.startVerseSurah
+    val newStartAyah = if (changes.pickedStart != null) changes.pickedStart.verse?.second else current.startVerseAyah
+    return current.copy(
+        name = changes.name,
+        type = changes.type,
+        intention = changes.intention,
+        customTargetVerses = finalCustomVerses,
+        dailyUnits = changes.dailyUnits,
+        activeDays = changes.activeDays,
+        direction = changes.direction,
+        positionUnit = newPosition,
+        startVerseSurah = newStartSurah,
+        startVerseAyah = newStartAyah,
+    )
+}
+

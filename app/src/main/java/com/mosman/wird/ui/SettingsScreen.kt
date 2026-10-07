@@ -1463,9 +1463,11 @@ fun SettingsScreen(
                     onSelect = { units, verses ->
                         // A verse target is saved as verses on the track. It used to be rounded
                         // to pages here ("15 verses" became 2 pages) and the number was lost.
-                        val updated = activeTrack.copy(dailyUnits = units, customTargetVerses = verses)
-                        store.updateTrack(updated)
-                        activeTrack = updated
+                        store.editTrack(activeTrack.id) {
+                            it.copy(dailyUnits = units, customTargetVerses = verses)
+                        }
+                        activeTrack = store.activeTrack()
+                        readingTracks = store.getReadingTracks()
                         onLifeSpacesChanged()
                     },
                     onDismiss = { activeDialog = null },
@@ -1571,10 +1573,11 @@ fun SettingsScreen(
                         // onSchedule(), which overwrote the DEFAULT reminder every other track
                         // follows: saving 2 pm for a new track moved Daily Reading to 2 pm too.
                         // Found on the emulator, 2026-10-03.
-                        val updated = track.copy(reminderScheduleRaw = encodeSchedule(newSchedule))
-                        store.updateTrack(updated)
+                        store.editTrack(track.id) {
+                            it.copy(reminderScheduleRaw = encodeSchedule(newSchedule))
+                        }
                         readingTracks = store.getReadingTracks()
-                        if (activeTrack.id == updated.id) activeTrack = updated
+                        activeTrack = store.activeTrack()
                         onLifeSpacesChanged()
                         com.mosman.wird.nudge.NudgeScheduler.arm(context)
                         activeDialog = null
@@ -2205,7 +2208,21 @@ fun SettingsScreen(
                     existingTrackNames = otherTrackNames,
                     onSaveTrack = { updated ->
                         if (isExisting) {
-                            store.updateTrack(updated)
+                            store.editTrack(updated.id) { current ->
+                                current.copy(
+                                    name = updated.name,
+                                    type = updated.type,
+                                    intention = updated.intention,
+                                    customTargetVerses = updated.customTargetVerses,
+                                    activeDays = updated.activeDays,
+                                    positionUnit = updated.positionUnit,
+                                    dailyUnits = updated.dailyUnits,
+                                    direction = updated.direction,
+                                    startVerseSurah = updated.startVerseSurah,
+                                    startVerseAyah = updated.startVerseAyah,
+                                    reminderScheduleRaw = updated.reminderScheduleRaw,
+                                )
+                            }
                             activeDialog = null
                         } else {
                             store.addTrack(updated)

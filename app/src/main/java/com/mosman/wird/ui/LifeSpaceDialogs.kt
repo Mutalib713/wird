@@ -56,7 +56,11 @@ import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.Surah
 import com.mosman.wird.domain.SurahIndex
+import com.mosman.wird.domain.PickedPosition
+import com.mosman.wird.domain.TrackEditChanges
 import com.mosman.wird.domain.TrackType
+import com.mosman.wird.domain.applyTrackEdit
+import com.mosman.wird.domain.unitsLabel
 import com.mosman.wird.mushaf.MushafRepository
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.clayCard
@@ -484,10 +488,11 @@ fun EditTrackDialog(
     }
     var startAyahNumber by remember { mutableIntStateOf(track.startVerseAyah ?: 1) }
     var dailyUnits by remember { mutableIntStateOf(track.dailyUnits) }
-    var isCustomTarget by remember { mutableStateOf(track.customTargetVerses != null || track.dailyUnits !in listOf(1, 2, 4)) }
+    var isCustomTarget by remember { mutableStateOf(track.customTargetVerses != null) }
     var customVersesText by remember {
-        mutableStateOf("${track.customTargetVerses ?: if (isCustomTarget) ((track.dailyUnits / 2) * 10).coerceAtLeast(5) else 10}")
+        mutableStateOf("${track.customTargetVerses ?: 10}")
     }
+    var pickedStart by remember { mutableStateOf<PickedPosition?>(null) }
     var direction by remember { mutableStateOf(track.direction) }
 
     var showPositionPicker by remember { mutableStateOf(false) }
@@ -968,6 +973,10 @@ fun EditTrackDialog(
                                             startSurahNumber = s.number
                                             startAyahNumber = 1
                                         }
+                                        pickedStart = PickedPosition(
+                                            unit = (startPage - 1) * Mushaf.UNITS_PER_PAGE,
+                                            verse = startSurahNumber to startAyahNumber,
+                                        )
                                     },
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -1004,6 +1013,10 @@ fun EditTrackDialog(
                                             startSurahNumber = s.number
                                             startAyahNumber = 1
                                         }
+                                        pickedStart = PickedPosition(
+                                            unit = (startPage - 1) * Mushaf.UNITS_PER_PAGE,
+                                            verse = startSurahNumber to startAyahNumber,
+                                        )
                                     },
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -1031,11 +1044,17 @@ fun EditTrackDialog(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            listOf(
-                                "½ page" to 1,
-                                "1 page" to 2,
-                                "2 pages" to 4,
-                            ).forEach { (label, units) ->
+                            val targetOptions = remember(dailyUnits) {
+                                buildList {
+                                    add("½ page" to 1)
+                                    add("1 page" to 2)
+                                    add("2 pages" to 4)
+                                    if (dailyUnits !in listOf(1, 2, 4)) {
+                                        add(unitsLabel(dailyUnits) to dailyUnits)
+                                    }
+                                }
+                            }
+                            targetOptions.forEach { (label, units) ->
                                 val isSelected = !isCustomTarget && dailyUnits == units
                                 Box(
                                     modifier = Modifier
@@ -1447,19 +1466,18 @@ fun EditTrackDialog(
                                 .clickable(enabled = isNameValid) {
                                     if (isNameValid) {
                                         val finalIntention = intention.trim().ifEmpty { "Build a daily Qur'an habit" }
-                                        val customVerses = if (isCustomTarget) customVersesText.toIntOrNull() ?: 10 else null
-                                        val updated = track.copy(
+                                        val changes = TrackEditChanges(
                                             name = trimmedName,
                                             type = type,
                                             intention = finalIntention,
-                                            customTargetVerses = customVerses,
-                                            activeDays = activeDays,
-                                            positionUnit = (startPage - 1) * Mushaf.UNITS_PER_PAGE,
+                                            isCustomTarget = isCustomTarget,
+                                            customTargetVerses = if (isCustomTarget) customVersesText.toIntOrNull() ?: 10 else null,
                                             dailyUnits = dailyUnits,
+                                            activeDays = activeDays,
                                             direction = direction,
-                                            startVerseSurah = startSurahNumber,
-                                            startVerseAyah = startAyahNumber,
+                                            pickedStart = pickedStart,
                                         )
+                                        val updated = applyTrackEdit(track, changes)
                                         onSaveTrack(updated)
                                     }
                                 }
@@ -1492,6 +1510,10 @@ fun EditTrackDialog(
                 startSurahNumber = surah.number
                 startAyahNumber = ayah
                 startPage = page
+                pickedStart = PickedPosition(
+                    unit = (page - 1) * Mushaf.UNITS_PER_PAGE,
+                    verse = surah.number to ayah,
+                )
                 showPositionPicker = false
             },
             onDismiss = { showPositionPicker = false },
