@@ -140,7 +140,7 @@ class Recitation(private val context: Context) {
     }
 
     fun release() {
-        cancel()
+        stop()
         stopPlaying()
     }
 

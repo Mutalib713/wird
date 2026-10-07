@@ -241,8 +241,24 @@ fun TodayScreen(
     var heard by remember { mutableStateOf<HeardResult?>(null) }
     var level by remember { mutableFloatStateOf(0f) }
     var problem by remember { mutableStateOf<String?>(null) }
+    var showRecordingExitDialog by remember { mutableStateOf(false) }
 
-    DisposableEffect(Unit) { onDispose { recitation.release() } }
+    BackHandler(enabled = recording) {
+        showRecordingExitDialog = true
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (recording) {
+                val file = recitation.stop()
+                if (file != null) {
+                    onDone(com.mosman.wird.domain.Method.RECITED, file)
+                }
+            } else {
+                recitation.release()
+            }
+        }
+    }
 
     LaunchedEffect(recording) {
         seconds = 0
@@ -837,7 +853,13 @@ fun TodayScreen(
                 onChangeReciter = { showReciterPicker = true },
                 dark = dark,
                 onNightMode = onNightMode,
-                onBack = onBack,
+                onBack = {
+                    if (recording) {
+                        showRecordingExitDialog = true
+                    } else {
+                        onBack()
+                    }
+                },
                 translation = translationMode,
                 onToggleTranslation = { translationMode = !translationMode },
                 onOpenTranslationDialog = {
@@ -991,6 +1013,30 @@ fun TodayScreen(
                 showMobileAudioPrompt = false
                 pendingListenAyahs = null
                 pendingListenStartAt = null
+            },
+        )
+    }
+
+    if (showRecordingExitDialog) {
+        RecordingExitDialog(
+            onKeepReciting = {
+                showRecordingExitDialog = false
+            },
+            onStopAndKeep = {
+                showRecordingExitDialog = false
+                recording = false
+                val file = recitation.stop()
+                if (file != null) {
+                    heard = judgeRecitation(levels)
+                    onDone(com.mosman.wird.domain.Method.RECITED, file)
+                }
+                onBack()
+            },
+            onDiscard = {
+                showRecordingExitDialog = false
+                recording = false
+                recitation.cancel()
+                onBack()
             },
         )
     }
@@ -1751,6 +1797,120 @@ private fun ClayConfirmDialog(
                                 text = confirmLabel,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecordingExitDialog(
+    onKeepReciting: () -> Unit,
+    onStopAndKeep: () -> Unit,
+    onDiscard: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = LocalWirdColors.current
+    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
+
+    Dialog(
+        onDismissRequest = onKeepReciting,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(onClick = onKeepReciting)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clayCard(
+                        shape = RoundedCornerShape(26.dp),
+                        backgroundColor = if (isDark) Color(0xFF14221B) else Color.White,
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.95f),
+                        shadowColor = Color.Black.copy(alpha = 0.35f),
+                        elevation = 16.dp,
+                    )
+                    .clickable(enabled = false) {}
+                    .padding(22.dp),
+            ) {
+                Column {
+                    Text(
+                        text = "Recitation in progress",
+                        color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.3).sp,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+
+                    Text(
+                        text = "You are currently recording your recitation. What would you like to do before leaving?",
+                        color = if (isDark) Color(0xFF8FA597) else Color(0xFF556C60),
+                        fontSize = 13.5.sp,
+                        lineHeight = 19.sp,
+                        modifier = Modifier.padding(bottom = 20.dp),
+                    )
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Button(
+                            onClick = onKeepReciting,
+                            modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 44.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) Color(0xFF245847) else Color(0xFF2D6B52),
+                                contentColor = Color.White,
+                            ),
+                            shape = RoundedCornerShape(14.dp),
+                        ) {
+                            Text(
+                                text = "Keep reciting",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clayPill(
+                                    shape = RoundedCornerShape(14.dp),
+                                    backgroundColor = if (isDark) Color(0xFF1A2A20) else Color(0xFFEDE8DD),
+                                    elevation = 2.dp,
+                                )
+                                .clickable(onClick = onStopAndKeep)
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Stop and keep",
+                                color = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(onClick = onDiscard)
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "Discard",
+                                color = if (isDark) Color(0xFFE57373) else Color(0xFFC62828),
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
                             )
                         }
                     }
