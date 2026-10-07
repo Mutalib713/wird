@@ -59,6 +59,13 @@ class DayLogStore(filesDir: File) {
             if (first != null && first.size == 2 && count != null && count > 0) (first[0] to first[1]) to count else null
         }
 
+    /** The first verse of the finished portion, if recorded in the log row. */
+    fun firstVerseFor(date: LocalDate, trackId: String): Pair<Int, Int>? =
+        rowFor(read(), date, trackId)?.firstVerse?.let { raw ->
+            val parts = raw.split(':').mapNotNull { it.toIntOrNull() }
+            if (parts.size == 2) parts[0] to parts[1] else null
+        }
+
     /** What a finished day actually covered, as (start unit, units). */
     fun coveredOn(date: LocalDate, trackId: String): Pair<Int, Int>? =
         rowFor(read(), date, trackId)?.let { r -> r.startUnit?.let { s -> r.units?.let { u -> s to u } } }

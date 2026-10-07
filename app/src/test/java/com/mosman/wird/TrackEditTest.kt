@@ -117,6 +117,58 @@ class TrackEditTest {
         assertEquals(4, afterEdit.dailyUnits)
     }
 
+    @Test
+    fun advanceAndRewindTrackPortionRestoresStartVerse() {
+        // B5: a page portion track that advances and then is undone must restore its start verse
+        val fakePrefs = FakeSharedPreferences()
+        val dir = tempFolder.newFolder()
+        val days = DayLogStore(dir)
+        val store = WirdStore(fakePrefs, days)
+        val today = java.time.LocalDate.of(2026, 10, 7)
+
+        val track = ReadingTrack(
+            id = "portion-track",
+            name = "Portion Track",
+            dailyUnits = 1,
+            positionUnit = 10,
+            startVerseSurah = 2,
+            startVerseAyah = 142,
+        )
+        store.addTrack(track)
+
+        // Advance track
+        store.advanceTrack("portion-track", nextStartUnit = 11, nextVerse = 2 to 148)
+        val advanced = store.getReadingTracks().first { it.id == "portion-track" }
+        assertEquals(11, advanced.positionUnit)
+        assertEquals(2, advanced.startVerseSurah)
+        assertEquals(148, advanced.startVerseAyah)
+
+        // Log done row with starting verse of the portion
+        days.markDone(
+            date = today,
+            method = com.mosman.wird.domain.Method.TAPPED,
+            audio = null,
+            startUnit = 10,
+            units = 1,
+            trackId = "portion-track",
+            trackName = "Portion Track",
+            firstVerse = 2 to 142,
+            verseCount = 6,
+        )
+
+        // Undo: read first verse from log, clear log, rewind track
+        val savedFirstVerse = days.firstVerseFor(today, "portion-track")
+        assertEquals(2 to 142, savedFirstVerse)
+        days.clear(today, "portion-track")
+        store.rewindTrack("portion-track", startUnit = 10, startVerse = savedFirstVerse)
+
+        // Verify start verse is properly restored
+        val rewound = store.getReadingTracks().first { it.id == "portion-track" }
+        assertEquals(10, rewound.positionUnit)
+        assertEquals(2, rewound.startVerseSurah)
+        assertEquals(142, rewound.startVerseAyah)
+    }
+
     private class FakeSharedPreferences : SharedPreferences {
         private val values = mutableMapOf<String, Any?>()
 

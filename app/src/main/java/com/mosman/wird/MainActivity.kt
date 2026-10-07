@@ -881,6 +881,7 @@ class MainActivity : ComponentActivity() {
                                 // Pinned now: finishing may make another track the active one.
                                 val doneTrack = activeTrack
                                 val doneAssignment = assignment
+                                val firstVerseToSave = doneAssignment.verses?.first() ?: startVerse
                                 days.markDone(
                                     date = today,
                                     method = method,
@@ -889,7 +890,7 @@ class MainActivity : ComponentActivity() {
                                     units = doneAssignment.units,
                                     trackId = doneTrack.id,
                                     trackName = doneTrack.name,
-                                    firstVerse = doneAssignment.verses?.first(),
+                                    firstVerse = firstVerseToSave,
                                     verseCount = doneAssignment.verses?.size,
                                 )
                                 nudgeWidget()
@@ -928,16 +929,15 @@ class MainActivity : ComponentActivity() {
                                 refresh()
                             },
                             onUndo = {
-                                // **Only this track's day.** This used to clear every track's row
-                                // for today, then wind this track's streak back by hand and leave
-                                // its total one too high. Now: remove the row, put the position
-                                // back, and the streak and total follow from the log.
+                                // **Only this track's day.** Read the start verse from the day row
+                                // before clearing it so an undone page portion does not forget its start ayah (B5).
+                                val savedFirstVerse = days.firstVerseFor(today, activeTrack.id)
                                 days.clear(today, activeTrack.id)
-                                val firstVerse = assignment.verses?.first()
-                                if (firstVerse != null) {
-                                    store.rewindTrackToVerse(activeTrack.id, firstVerse)
+                                val restoreVerse = assignment.verses?.first() ?: savedFirstVerse
+                                if (assignment.verses != null && restoreVerse != null) {
+                                    store.rewindTrackToVerse(activeTrack.id, restoreVerse)
                                 } else {
-                                    store.rewindTrack(activeTrack.id, assignment.startUnit)
+                                    store.rewindTrack(activeTrack.id, assignment.startUnit, restoreVerse)
                                 }
                                 refresh()
                                 nudgeWidget()
@@ -1003,6 +1003,7 @@ class MainActivity : ComponentActivity() {
                                 onMarkRead = {
                                     val doneTrack = activeTrack
                                     val doneAssignment = assignment
+                                    val firstVerseToSave = doneAssignment.verses?.first() ?: startVerse
                                     days.markDone(
                                         date = today,
                                         method = Method.TAPPED,
@@ -1011,7 +1012,7 @@ class MainActivity : ComponentActivity() {
                                         units = doneAssignment.units,
                                         trackId = doneTrack.id,
                                         trackName = doneTrack.name,
-                                        firstVerse = doneAssignment.verses?.first(),
+                                        firstVerse = firstVerseToSave,
                                         verseCount = doneAssignment.verses?.size,
                                     )
                                     store.advanceTrack(doneTrack.id, doneAssignment.nextStartUnit, doneAssignment.nextVerse)

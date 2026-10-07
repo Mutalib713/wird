@@ -774,9 +774,15 @@ class WirdStore(
         }
     }
 
-    /** Put [trackId] back to [startUnit] after its day was undone. The log row is removed separately. */
-    fun rewindTrack(trackId: String, startUnit: Int) {
-        editTrack(trackId) { it.copy(positionUnit = startUnit) }
+    /** Put [trackId] back to [startUnit] and optional [startVerse] after its day was undone. The log row is removed separately. */
+    fun rewindTrack(trackId: String, startUnit: Int, startVerse: Pair<Int, Int>? = null) {
+        editTrack(trackId) {
+            it.copy(
+                positionUnit = startUnit,
+                startVerseSurah = startVerse?.first,
+                startVerseAyah = startVerse?.second,
+            )
+        }
     }
 
     /**
