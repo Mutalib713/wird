@@ -56,7 +56,7 @@ class Translations(private val context: Context) {
                     buildList {
                         for (i in 0 until arr.length()) {
                             val o = arr.getJSONObject(i)
-                            add(TranslatedVerse(o.getString("v"), o.getString("t")))
+                            add(TranslatedVerse(o.getString("v"), decodeEntities(o.getString("t"))))
                         }
                     }
                 }
@@ -123,3 +123,14 @@ class Translations(private val context: Context) {
 
     private companion object { const val TAG = "WirdTranslations" }
 }
+
+/**
+ * The Hausa file keeps its quotation marks as HTML codes: 1,925 verses carry `&quot;`, and the
+ * reading page showed them as typed (`Ka ce: &quot;Shi ne Allah…`). Decoded where the text is
+ * read, so every screen and the word search get the real marks. Counted 2026-10-04; the English
+ * and transliteration files have none.
+ */
+internal fun decodeEntities(text: String): String =
+    if ('&' !in text) text
+    else text.replace("&quot;", "\"").replace("&#39;", "'").replace("&lt;", "<")
+        .replace("&gt;", ">").replace("&amp;", "&")

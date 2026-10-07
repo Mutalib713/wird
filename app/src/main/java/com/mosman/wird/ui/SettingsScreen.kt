@@ -197,6 +197,12 @@ fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    // The installed version, read from the app itself. About used to say "v1.0" while the app
+    // was 0.1, and a typed number goes stale on every release.
+    val versionName = remember(context) {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
+            .getOrNull() ?: "?"
+    }
     val store = remember(context) { WirdStore(context) }
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -879,7 +885,7 @@ fun SettingsScreen(
 
                             ClaySettingRow(
                                 title = "About Wird",
-                                subtitle = "v1.0 · Private, no account · No guilt",
+                                subtitle = "v$versionName · Private, no account · No guilt",
                                 onClick = { activeDialog = SettingsDialog.ABOUT_WIRD },
                                 showDivider = false,
                             )

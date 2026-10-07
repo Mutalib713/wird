@@ -65,7 +65,13 @@ object Export {
                     z.write(readme(today).toByteArray())
                     z.closeEntry()
 
-                    listOf("days.json", "chat.json", "bookmarks.json").forEach { name ->
+                    // Every chat, not only chat.json: since each track got its own conversation
+                    // they are saved as chat_<track>.json, and the export used to leave them out.
+                    val chats = context.filesDir.listFiles().orEmpty()
+                        .filter { it.name.startsWith("chat") && it.name.endsWith(".json") }
+                        .map { it.name }
+                        .sorted()
+                    (listOf("days.json", "bookmarks.json") + chats).forEach { name ->
                         val f = File(context.filesDir, name)
                         if (f.exists()) {
                             z.putNextEntry(ZipEntry(name))
@@ -115,7 +121,8 @@ object Export {
         days.json        One row per day you marked done. `method` is RECITED if you recorded
                          yourself reciting, or TAPPED if you marked it read. Days you missed
                          are simply absent - there is no row saying you failed.
-        chat.json        What you and the check-in said to each other.
+        chat_*.json      What you and the Companion said to each other, one file per
+                         reading track.
         bookmarks.json   Ayahs you saved, by verse key. "18:10" is Al-Kahf, ayah 10.
         recitations/     Your recordings, one per day, named by date. Plain MP4 audio - any
                          player opens them.
