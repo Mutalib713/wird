@@ -826,7 +826,6 @@ class MainActivity : ComponentActivity() {
                             }
                             store.readerName = name
                             readerName = store.readerName
-                            store.readingMode = mode
                             store.markSetUp()
                             refresh()
                             store.hasSeenToolkitTour = false

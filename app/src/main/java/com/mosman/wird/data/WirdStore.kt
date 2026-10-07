@@ -161,19 +161,6 @@ class WirdStore(
         }
 
     /**
-     * Reading from the mushaf, or reciting from memory.
-     *
-     * Defaults to [ReadingMode.READING] because it is the larger group and because it is
-     * what every screen already assumes — a default that changes nothing is the safe one for
-     * anybody who skipped the question or upgraded into it.
-     */
-    var readingMode: ReadingMode
-        get() = runCatching {
-            ReadingMode.valueOf(prefs.getString(KEY_MODE, ReadingMode.READING.name)!!)
-        }.getOrDefault(ReadingMode.READING)
-        set(value) = prefs.edit { putString(KEY_MODE, value.name) }
-
-    /**
      * The promise currently being held, if any.
      *
      * **Stored, because a promise that evaporates when you close the app is not a promise.**
@@ -852,7 +839,6 @@ class WirdStore(
         const val KEY_NAME = "reader_name"
         const val KEY_COMMITMENT = "commitment"
         fun commitmentKey(trackId: String): String = "commitment_$trackId"
-        const val KEY_MODE = "reading_mode"
         const val KEY_FIRED = "nudge_fired_at"
         const val KEY_ARMED_FOR = "nudge_armed_for"
         const val KEY_NUDGE = "nudge_schedule"
