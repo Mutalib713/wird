@@ -1164,6 +1164,10 @@ class MainActivity : ComponentActivity() {
                                     }
                                     onChat = true
                                 },
+                                onClearChat = {
+                                    chat.clear()
+                                    turns = emptyList()
+                                },
                             )
 
                             WirdTab.WIRD -> {

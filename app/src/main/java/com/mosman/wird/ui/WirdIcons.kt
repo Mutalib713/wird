@@ -278,10 +278,61 @@ object WirdIcons {
         }.build()
     }
 
-    /** Flame icon for streaks. */
+    /** Flame icon for streaks (solid filled fire silhouette). */
     val Flame: ImageVector by lazy {
         ImageVector.Builder(
             name = "Flame",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = SolidColor(Color.White),
+                stroke = null,
+            ) {
+                moveTo(8.5f, 14.5f)
+                curveTo(8.5f, 13.12f, 9.62f, 12f, 11f, 12f)
+                curveTo(11f, 10.62f, 10.5f, 10f, 10f, 9f)
+                curveTo(8.93f, 6.86f, 9.78f, 4.95f, 12f, 3f)
+                curveTo(12.5f, 5.5f, 14f, 7.9f, 16f, 9.5f)
+                curveTo(18f, 11.1f, 19.5f, 13f, 19.5f, 15f)
+                curveTo(19.5f, 19.14f, 16.14f, 22.5f, 12f, 22.5f)
+                curveTo(7.86f, 22.5f, 4.5f, 19.14f, 4.5f, 15f)
+                curveTo(4.5f, 13.85f, 4.93f, 12.71f, 5.5f, 12f)
+                curveTo(6.6f, 13.5f, 8.5f, 14.5f, 8.5f, 14.5f)
+                close()
+            }
+        }.build()
+    }
+
+    /** Crescent arc icon. */
+    val Crescent: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Crescent",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = SolidColor(Color.White),
+                stroke = null,
+            ) {
+                moveTo(14f, 3f)
+                curveTo(8f, 3.8f, 4.5f, 8f, 4.5f, 13.5f)
+                curveTo(4.5f, 18.5f, 8f, 22.5f, 13.5f, 22.5f)
+                curveTo(10f, 19.5f, 8.5f, 16f, 8.5f, 13f)
+                curveTo(8.5f, 9.5f, 10.5f, 6f, 14f, 3f)
+                close()
+            }
+        }.build()
+    }
+
+    /** Clock icon. */
+    val Clock: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Clock",
             defaultWidth = 24.dp,
             defaultHeight = 24.dp,
             viewportWidth = 24f,
@@ -294,17 +345,97 @@ object WirdIcons {
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             ) {
-                moveTo(8.5f, 14.5f)
-                curveTo(8.5f, 13.12f, 9.62f, 12f, 11f, 12f)
-                curveTo(11f, 10.62f, 10.5f, 10f, 10f, 9f)
-                curveTo(8.93f, 6.86f, 9.78f, 4.95f, 12f, 3f)
-                curveTo(12.5f, 5.5f, 14f, 7.9f, 16f, 9.5f)
-                curveTo(18f, 11.1f, 19f, 13f, 19f, 15f)
-                curveTo(19f, 18.87f, 15.87f, 22f, 12f, 22f)
-                curveTo(8.13f, 22f, 5f, 18.87f, 5f, 15f)
-                curveTo(5f, 13.85f, 5.43f, 12.71f, 6f, 12f)
-                curveTo(7.1f, 13.5f, 8.5f, 14.5f, 8.5f, 14.5f)
+                moveTo(12f, 22f)
+                curveTo(17.52f, 22f, 22f, 17.52f, 22f, 12f)
+                curveTo(22f, 6.48f, 17.52f, 2f, 12f, 2f)
+                curveTo(6.48f, 2f, 2f, 6.48f, 2f, 12f)
+                curveTo(2f, 17.52f, 6.48f, 22f, 12f, 22f)
                 close()
+                moveTo(12f, 6f)
+                verticalLineTo(12f)
+                lineTo(15.5f, 14f)
+            }
+        }.build()
+    }
+
+    /** Play icon. */
+    val Play: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Play",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = SolidColor(Color.White),
+                stroke = null,
+            ) {
+                moveTo(6.5f, 4f)
+                lineTo(19f, 12f)
+                lineTo(6.5f, 20f)
+                close()
+            }
+        }.build()
+    }
+
+    /** Pause icon. */
+    val Pause: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Pause",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = SolidColor(Color.White),
+                stroke = null,
+            ) {
+                moveTo(6f, 4.5f)
+                horizontalLineTo(9.5f)
+                verticalLineTo(19.5f)
+                horizontalLineTo(6f)
+                close()
+                moveTo(14.5f, 4.5f)
+                horizontalLineTo(18f)
+                verticalLineTo(19.5f)
+                horizontalLineTo(14.5f)
+                close()
+            }
+        }.build()
+    }
+
+    /** Trash / Delete icon. */
+    val Trash: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Trash",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = null,
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(3f, 6f)
+                horizontalLineTo(21f)
+                moveTo(19f, 6f)
+                verticalLineTo(20f)
+                curveTo(19f, 21.1f, 18.1f, 22f, 17f, 22f)
+                horizontalLineTo(7f)
+                curveTo(5.9f, 22f, 5f, 21.1f, 5f, 20f)
+                verticalLineTo(6f)
+                moveTo(8f, 6f)
+                verticalLineTo(4f)
+                curveTo(8f, 2.9f, 8.9f, 2f, 10f, 2f)
+                horizontalLineTo(14f)
+                curveTo(15.1f, 2f, 16f, 2.9f, 16f, 4f)
+                verticalLineTo(6f)
             }
         }.build()
     }

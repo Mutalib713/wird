@@ -271,7 +271,7 @@ fun YourWirdTab(
                     val rate = if (totalDays > 0) ((recitedDays.toFloat() / totalDays.toFloat()) * 100).toInt() else 0
 
                     Text(
-                        text = "Where you are",
+                        text = "Track overview",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
                         color = colors.ink,
@@ -281,6 +281,7 @@ fun YourWirdTab(
                     Card(
                         shape = RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = colors.card),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {

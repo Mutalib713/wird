@@ -240,7 +240,7 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(256.dp),
+                    .height(280.dp),
             ) {
                 Image(
                     painter = painterResource(id = photoRes),
@@ -287,11 +287,11 @@ fun HomeScreen(
                         ),
                 )
 
-                // Greeting content
+                // Greeting content — lowered with generous top padding
                 Column(
                     modifier = Modifier
                         .statusBarsPadding()
-                        .padding(start = 20.dp, top = 16.dp, end = 68.dp),
+                        .padding(start = 20.dp, top = 36.dp, end = 68.dp),
                 ) {
                     Text(
                         text = "Assalamu Alaikum,",
@@ -334,7 +334,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .statusBarsPadding()
-                        .padding(top = 12.dp, end = 16.dp)
+                        .padding(top = 32.dp, end = 16.dp)
                         .size(46.dp)
                         .clip(CircleShape)
                         .background(colors.card.copy(alpha = 0.85f))
@@ -412,45 +412,65 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        // Top row: Title + streak/days pill
+                        // Top row: Crescent + Title + streak pill
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = "Today's Wird",
-                                style = TextStyle(
-                                    fontFamily = FontFamily.Serif,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = colors.ink,
-                                ),
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Icon(
+                                    imageVector = WirdIcons.Crescent,
+                                    contentDescription = null,
+                                    tint = colors.action,
+                                    modifier = Modifier.size(17.dp),
+                                )
+                                Text(
+                                    text = "Today's Wird",
+                                    style = TextStyle(
+                                        fontFamily = FontFamily.Serif,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.ink,
+                                    ),
+                                )
+                            }
                             val streak = progress?.currentStreak ?: 0
-                            val daysCount = progress?.totalDaysRead ?: 0
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
-                                    .background(colors.tile)
+                                    .background(if (isDark) Color(0xFF261D14) else Color(0xFFFBF4EA))
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
                                     Icon(
-                                        imageVector = if (streak > 0) WirdIcons.Flame else WirdIcons.Sheet,
-                                        contentDescription = null,
-                                        tint = colors.goldText,
-                                        modifier = Modifier.size(14.dp),
+                                        imageVector = WirdIcons.Flame,
+                                        contentDescription = "Streak",
+                                        tint = Color(0xFFEA580C),
+                                        modifier = Modifier.size(18.dp),
                                     )
-                                    Text(
-                                        text = if (streak > 0) "$streak day streak" else "$daysCount days read",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.goldText,
-                                    )
+                                    Column {
+                                        Text(
+                                            text = streak.toString(),
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.ink,
+                                            lineHeight = 16.sp,
+                                        )
+                                        Text(
+                                            text = "day streak",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.ink2,
+                                            lineHeight = 11.sp,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -492,23 +512,26 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            val pCount = (pEnd - pStart + 1).coerceAtLeast(1)
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(colors.field)
                                     .padding(horizontal = 10.dp, vertical = 5.dp),
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                ) {
                                     Icon(
-                                        imageVector = WirdIcons.Sheet,
+                                        imageVector = WirdIcons.Quran,
                                         contentDescription = null,
                                         tint = colors.ink2,
                                         modifier = Modifier.size(14.dp),
                                     )
-                                    Spacer(Modifier.width(5.dp))
                                     Text(
-                                        text = unitsLabel(activeTrack?.dailyUnits ?: 2),
-                                        fontSize = 13.sp,
+                                        text = "$pCount page${if (pCount == 1) "" else "s"}",
+                                        fontSize = 12.sp,
                                         color = colors.ink,
                                     )
                                 }
@@ -520,11 +543,23 @@ fun HomeScreen(
                                     .background(colors.field)
                                     .padding(horizontal = 10.dp, vertical = 5.dp),
                             ) {
-                                Text(
-                                    text = "Read · Every day",
-                                    fontSize = 13.sp,
-                                    color = colors.ink,
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = WirdIcons.Clock,
+                                        contentDescription = null,
+                                        tint = colors.ink2,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    val estMin = (pCount * 4).coerceAtLeast(3)
+                                    Text(
+                                        text = "~ $estMin min",
+                                        fontSize = 12.sp,
+                                        color = colors.ink,
+                                    )
+                                }
                             }
                         }
 
@@ -618,7 +653,7 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            // Primary: Recite & Review
+                            // Primary: Recite & Verify
                             Box(
                                 modifier = Modifier
                                     .weight(1.3f)
@@ -640,7 +675,7 @@ fun HomeScreen(
                                     )
                                     Spacer(Modifier.width(8.dp))
                                     Text(
-                                        text = "Recite & Review",
+                                        text = "Recite & Verify",
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = colors.onAction,
@@ -756,7 +791,7 @@ fun HomeScreen(
                                         Icon(
                                             imageVector = WirdIcons.Flame,
                                             contentDescription = null,
-                                            tint = colors.goldText,
+                                            tint = Color(0xFFEA580C),
                                             modifier = Modifier.size(15.dp),
                                         )
                                     }
