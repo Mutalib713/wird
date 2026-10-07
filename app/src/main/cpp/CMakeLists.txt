@@ -103,6 +103,13 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_link_options(whisper PRIVATE -flto)
 endif ()
 
+# ⚠ **No ccache.** ggml turns it on for the whole build, ours included, whenever one is on PATH.
+# The one on this laptop came with a WinLibs MinGW install and Windows refuses to run it (exit
+# code 0xC0E90002), so every C file failed with no compiler message at all. Found 2026-10-04,
+# when the release build broke while the debug build kept going on objects compiled before
+# ccache arrived. A cache saves seconds on a rebuild; a build that depends on one isn't worth it.
+set(GGML_CCACHE OFF CACHE BOOL "ggml: use ccache if available" FORCE)
+
 FetchContent_Declare(ggml SOURCE_DIR ${WHISPER_LIB_DIR}/ggml)
 FetchContent_MakeAvailable(ggml)
 target_compile_options(ggml PRIVATE ${GGML_COMPILE_OPTIONS})
