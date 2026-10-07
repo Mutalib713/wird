@@ -1,7 +1,11 @@
 # Wird onboarding and setup: the build brief
 
+> **Superseded on 2026-10-07. Do not build this.** Mutalib chose a new first-time experience
+> (seven intro screens, the track setup steps and an app tour) as part of the new look of the
+> whole app. See PROFILE.md § 5bj and PLAN task 28. This folder stays for the record.
+
 **For:** whoever builds this (Antigravity first). **Designed:** 2026-10-03.
-**Status:** the design is done; the app has not changed yet.
+**Status:** superseded; never built.
 
 ## In plain words
 

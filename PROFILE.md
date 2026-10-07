@@ -2962,3 +2962,28 @@ fingerprints together, in `audio/Recogniser.kt`.
   project he already deploys, so one account and a deploy on every push. Not Cloudflare.
 - Sacred Rule 2 holds: the model points to verses and hadith; the app shows the verse from its own
   bundled text and drops references that don't exist.
+
+## 5bj. The new look of the whole app — his decisions, 2026-10-07 (PLAN task 28)
+
+He sent six reference images. The second is the main app: Home, a Switch Track sheet, a Qur'an
+tab, the sūrah list, a Companion tab, a Companion answer, a Wird tab, and Settings, each in light
+and dark. The others show the first-time experience: seven intro screens, the track setup steps,
+the microphone permission, and a six-step app tour. His answers:
+
+- **Four tabs: Home · Qur'an · Companion · Wird.** Settings opens from the gear on Home. Today's
+  Home · Sūrahs · History dock goes; the sūrah list moves into Qur'an, history into Wird.
+- **The new first-time experience replaces the onboarding designed on 2026-10-03**
+  (`design-source/onboarding/`, now marked superseded). Intro screens, then the track setup steps
+  (name, goal, days, starting point, order, daily amount, intention, reminder, review), then the
+  tour.
+- **The Companion tab ships with the new look, before Gemini.** Until task 27 lands, it answers
+  what already works offline (a verse's translation and tafsir, plan and reminder changes) and
+  says plainly that open questions are coming. It never pretends to answer them.
+- **Deliverable from Claude: a build spec with real screens** (real content, the pinned palette,
+  measured from his image) and an IMPLEMENT file, for Antigravity to build.
+- The pinned green palette (§ 6f) stays. Sacred Rule 6 still limits emojis to streak and stats
+  figures, so the leaf after the name in the greeting is drawn as a vector, not an emoji.
+- Still to define before the build: what "~5 min" is based on, what "Total progress" counts,
+  and "Recite rate" as recited days out of days read. The intro screen's sample question "Why
+  did Jesus die?" is replaced: the Qur'an says he was not killed (4:157), so the app must not
+  show that premise.

@@ -784,6 +784,20 @@ question is not *which engine* but *whether the companion earns one at all* — 
   needs internet; the 21st question of the day gets "that's today's limit"; the Privacy Pledge
   says what is sent and to whom.
 
+## Milestone 4d — The new look
+
+- [ ] **28. The new look of the whole app** — decided 2026-10-07 (PROFILE § 5bj)
+  Four tabs (Home · Qur'an · Companion · Wird), a new first-time experience (intro, track setup,
+  tour), and every main screen redrawn from his reference images in the pinned palette.
+  *Who:* Claude writes the build spec and draws the real screens; Antigravity builds them.
+  *Order:* the spec first, then the main tabs, then the first-time experience. Fixes from the
+  7 October review (docs/CODE-REVIEW-2026-10-07.md) that touch a redrawn screen are done as part
+  of that screen.
+  *Done when:* every screen in his second image exists in the app in light and dark, matching the
+  spec's measurements; a new install goes intro → setup → tour → Home; the Companion tab answers
+  the offline requests and says plainly what it can't do yet; `check.ps1` passes; and he has
+  approved it on his Pixel.
+
 ## Milestone 5 — The verdict
 
 - [ ] **20. Thirty-day measurement**
