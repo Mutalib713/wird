@@ -169,6 +169,30 @@ class TrackEditTest {
         assertEquals(142, rewound.startVerseAyah)
     }
 
+    @Test
+    fun b20_commitment_containing_pipe_character_is_parsed_without_being_cut_short() {
+        val fakePrefs = FakeSharedPreferences()
+        val dir = tempFolder.newFolder()
+        val days = DayLogStore(dir)
+        val store = WirdStore(fakePrefs, days)
+
+        val track = ReadingTrack(id = "track-1", name = "Main")
+        store.addTrack(track)
+
+        val spokenText = "after isha | inshallah"
+        val commitment = com.mosman.wird.domain.Commitment(
+            spoken = spokenText,
+            madeAt = java.time.LocalDateTime.of(2026, 10, 7, 20, 0),
+            schedule = com.mosman.wird.domain.NudgeSchedule.AtClockTime(java.time.LocalTime.of(21, 0)),
+        )
+
+        store.setCommitmentFor("track-1", commitment)
+
+        val parsed = store.commitmentFor("track-1")
+        org.junit.Assert.assertNotNull(parsed)
+        assertEquals(spokenText, parsed?.spoken)
+    }
+
     private class FakeSharedPreferences : SharedPreferences {
         private val values = mutableMapOf<String, Any?>()
 
