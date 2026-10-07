@@ -56,6 +56,8 @@ import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Mushaf
 import com.mosman.wird.domain.SurahIndex
 import com.mosman.wird.domain.progressOf
+import com.mosman.wird.domain.trackProgress
+import com.mosman.wird.domain.Progress
 import com.mosman.wird.ui.theme.LocalWirdColors
 import com.mosman.wird.ui.theme.SetStatusBarAppearance
 import com.mosman.wird.ui.theme.clayCard
@@ -77,6 +79,8 @@ import java.time.format.DateTimeFormatter
 fun RecitationsScreen(
     logs: List<DayLog>,
     allTracks: List<ReadingTrack> = emptyList(),
+    activeTrack: ReadingTrack? = null,
+    today: LocalDate = LocalDate.now(),
     audioFor: (LocalDate, String?) -> File? = { d, _ -> null },
     coveredFor: (LocalDate, String?) -> Pair<Int, Int>? = { _, _ -> null },
     transcriptionFor: (LocalDate, String?) -> String? = { _, _ -> null },
@@ -94,15 +98,31 @@ fun RecitationsScreen(
     // Handle system back gesture to return to Home
     BackHandler(onBack = onBack)
 
-    var selectedTrackIdFilter by remember { mutableStateOf<String?>(null) }
+    var selectedTrackIdFilter by remember(activeTrack) { mutableStateOf(activeTrack?.id) }
     var expandedKeys by remember { mutableStateOf(setOf<String>()) }
+
+    val selectedTrack = allTracks.firstOrNull { it.id == selectedTrackIdFilter }
 
     // Newest first: the thing you did most recently is the thing you want to hear back.
     val ordered = remember(logs, selectedTrackIdFilter) {
         val base = if (selectedTrackIdFilter == null) logs else logs.filter { it.trackId == selectedTrackIdFilter }
         base.sortedByDescending { it.date }
     }
-    val progress = remember(logs) { progressOf(logs, LocalDate.now()) }
+    val displayProgress = remember(logs, selectedTrack, allTracks, today) {
+        if (selectedTrack != null) {
+            trackProgress(logs, selectedTrack, today)
+        } else if (allTracks.size == 1) {
+            trackProgress(logs, allTracks.first(), today)
+        } else {
+            val distinctDates = logs.map { it.date }.distinct()
+            val distinctRecited = logs.filter { it.method == Method.RECITED }.map { it.date }.distinct()
+            Progress(
+                currentStreak = -1,
+                totalDaysRead = distinctDates.size,
+                recitedDays = distinctRecited.size,
+            )
+        }
+    }
     var playingFile by remember { mutableStateOf<File?>(null) }
 
     Column(
@@ -196,15 +216,17 @@ fun RecitationsScreen(
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    val streakText = if (displayProgress.currentStreak >= 0) "🔥 ${displayProgress.currentStreak}" else "—"
+                    val streakLabel = if (displayProgress.currentStreak >= 0) "Day Streak" else "Select track"
                     Text(
-                        text = "🔥 ${progress.currentStreak}",
+                        text = streakText,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = streakColor,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "Day Streak",
+                        text = streakLabel,
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium,
                         color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
@@ -226,7 +248,7 @@ fun RecitationsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        text = "📖 ${progress.totalDaysRead}",
+                        text = "📖 ${displayProgress.totalDaysRead}",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = daysColor,
@@ -248,7 +270,7 @@ fun RecitationsScreen(
                         .background(if (isDark) Color.White.copy(alpha = 0.12f) else Color(0xFF8C7D6B).copy(alpha = 0.2f)),
                 )
 
-                val aloudRatio = if (progress.totalDaysRead > 0) (progress.recitedDays * 100) / progress.totalDaysRead else 0
+                val aloudRatio = if (displayProgress.totalDaysRead > 0) (displayProgress.recitedDays * 100) / displayProgress.totalDaysRead else 0
                 // Aloud Ratio
                 val aloudColor = if (isDark) Color(0xFF50A773) else Color(0xFF245847)
                 Column(

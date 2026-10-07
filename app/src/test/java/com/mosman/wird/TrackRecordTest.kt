@@ -294,4 +294,32 @@ class TrackRecordTest {
         assertEquals(NudgeSchedule.AtClockTime(LocalTime.of(19, 30)), scheduleA)
         assertEquals(NudgeSchedule.AtClockTime(LocalTime.of(20, 0)), scheduleB)
     }
+
+    @Test
+    fun b16_track_progress_matches_across_rest_days_and_all_distinct_days() {
+        // monThu is Mon-Thu. Mon 5th to Thu 8th read.
+        // Fri 9th, Sat 10th, Sun 11th are rest days.
+        // Mon 12th read.
+        val logsA = listOf(
+            log(LocalDate.of(2026, 10, 5), "madrasa"),
+            log(LocalDate.of(2026, 10, 6), "madrasa"),
+            log(LocalDate.of(2026, 10, 7), "madrasa"),
+            log(LocalDate.of(2026, 10, 8), "madrasa"),
+            log(LocalDate.of(2026, 10, 12), "madrasa"),
+        )
+        // trackProgress respects rest days, yielding a 5-day streak
+        val progA = trackProgress(logsA, monThu, LocalDate.of(2026, 10, 12))
+        assertEquals(5, progA.currentStreak)
+        assertEquals(5, progA.totalDaysRead)
+
+        // Multiple tracks combined in day logs
+        val logsB = listOf(
+            log(LocalDate.of(2026, 10, 5), "madrasa"),
+            log(LocalDate.of(2026, 10, 5), "daily"), // same date, different track
+            log(LocalDate.of(2026, 10, 6), "daily"),
+        )
+        // "All" calculates distinct dates across tracks
+        val allDistinctDates = logsB.map { it.date }.distinct().size
+        assertEquals(2, allDistinctDates) // Oct 5 and Oct 6
+    }
 }

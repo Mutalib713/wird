@@ -1111,6 +1111,8 @@ class MainActivity : ComponentActivity() {
                             WirdTab.HISTORY -> RecitationsScreen(
                                 logs = logs,
                                 allTracks = allTracks,
+                                activeTrack = activeTrack,
+                                today = today,
                                 audioFor = { d, tid -> tid?.let { days.audioFor(d, it) } },
                                 coveredFor = { d, tid -> tid?.let { days.coveredOn(d, it) } },
                                 transcriptionFor = { d, tid -> tid?.let { days.transcriptionFor(d, it) } },
