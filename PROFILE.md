@@ -2901,3 +2901,50 @@ starts again. His worked example still holds: at Yā-Sīn, going up you reach F�
 
 Forwards (towards An-Nās) is unchanged: page portions, as before. A madrasa track saved before this
 change with no start verse resumes from the first verse of its stored half-page.
+
+## 5bg. Word search — his decisions, 2026-10-04
+
+- **One search box, on the Sūrahs tab.** It finds sūrahs by name or number first, then every verse
+  that holds the words. Tapping a verse opens its page.
+- **All four languages from the start:** Arabic, English (Saheeh International), Hausa (Gumi) and
+  transliteration. They are all bundled, so search works offline and adds no download.
+- **How it matches** (`domain/QuranSearch.kt`, PLAN task 26): Arabic with its vowel marks and
+  Qur'anic signs folded away, one alif for أ إ آ ٱ, ة as ه, ى and ئ as ي, ؤ as و; matched inside
+  words, with a leading article (ال, وال, بال, …) taken off the query, so "قمر", "القمر" and
+  "والقمر" find the same verses. Exact form first, then with an attached letter, then inside a word.
+  Transliteration by sound (doubled letters once, e as i, o as u).
+- **The folded text ships ready-made** in `assets/search/`: four files, one per language, a verse
+  per line. QuranSearchTest writes them from the bundled texts and fails when they fall behind
+  (set `WIRD_WRITE_SEARCH_INDEX=1` and run it to rewrite them). The words under each result are
+  read from the reading page's own files, only for the results on screen.
+- **Why ready-made, measured on the emulator.** Folding the Qur'an on the phone at the first search
+  took 51 s (2026-10-04), then 9.6 s with tighter code: a sideloaded APK runs its code slowly until
+  Android compiles it, and testers install the APK straight from the site. Ready-made, a release
+  build (2026-10-06) loads the index in 66 ms, finds "mercy" in 9 ms and reads the first 50
+  results' words in 88 ms; "allah" finds 2,270 verses in 34 ms. A debug build is about ten times
+  slower (812, 510 and 801 ms), because debug builds run Android's own text code uncompiled.
+- **The cost: 911 KB more APK** (the four files as stored in the release APK, which is 10.8 MB).
+  ⚠ **Open, his call:** keep it, or fold on the phone instead and accept a slow first search.
+- **Not in this version:** a word's whole family from its root (needs morphology data; the Quranic
+  Arabic Corpus is GPL with its own conditions, so a licence check comes first), tafsir search,
+  forgiving bad misspellings.
+
+## 5bh. The recitation model is pinned and fingerprinted — 2026-10-04
+
+The two model files used to come from the Hugging Face repository's "main", whatever it held that
+day, and any file over 10 MB was trusted. Now the address names one commit
+(`4a96d8bb5535a4b6e6f6abd5655b8711a95ae538`, last changed 2026-05-06, Apache-2.0), and a download
+is installed only if its exact size and SHA-256 match what Hugging Face published for that commit.
+Otherwise it is deleted. Changing the model means changing the commit, both sizes and both
+fingerprints together, in `audio/Recogniser.kt`.
+
+## 5bi. The Gemini assistant — his decisions, 2026-10-04 (PLAN task 27)
+
+- **The key lives on a small server of ours**, which caps questions per phone per day and stops at
+  a daily ceiling. Never in the app, never in the repo (public), never typed by a session.
+- **Gemini's free tier, opt-in, with a plain notice first:** the question goes to Google, Google may
+  use it and its reviewers may read it (Gemini API terms, read 2026-10-04), so no personal details.
+  The Privacy Pledge changes when this ships.
+- **Built after word search.** Where the server runs (Vercel or Cloudflare) is still his call.
+- Sacred Rule 2 holds: the model points to verses and hadith; the app shows the verse from its own
+  bundled text and drops references that don't exist.

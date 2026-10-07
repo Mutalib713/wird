@@ -1,185 +1,179 @@
 # Wird
 
-A *wird* (ورد) is the daily portion of the Qur'an a person commits to reciting.
+A *wird* (وِرْد) is the portion of the Qur'an you commit to reading each day. It can be two pages,
+one page or a few verses. Small and steady is the point.
 
-Wird is an Android companion app designed to build and maintain a consistent recitation habit. It tracks which page and verse you are on, renders that page exactly as it is printed in the Madani mushaf, nudges you after prayers or at custom times, audits your recitation out loud using on-device artificial intelligence, and manages parallel reading tracks for daily reading, memorization, and revision.
+Wird is an Android app that helps you keep that portion. It shows today's verses on the real
+mushaf page, reminds you at a time that fits your day, lets you recite out loud and marks any verse
+that may need another look, and remembers every day you read. There is no account and no Wird
+server. Your reading history and your recordings stay on your phone.
 
-There are no accounts, no cloud servers, no ads, and no tracking. All recitation recordings, transcriptions, reading history, and schedules remain exclusively on your phone.
+## Why it exists
 
-## Why Wird exists
+Most people who drop a daily Qur'an habit don't forget. They put it off, and nobody is waiting for
+them. In a madrasa, a teacher expected you to sit down and recite. Wird is a quiet stand-in for that:
 
-Most people who struggle to maintain a daily Qur'an habit do not fail simply because they forget. Forgetting is the smaller half of the problem. The larger half is procrastination and the absence of accountability.
+1. **Saying it counts.** You can recite your portion out loud and the app listens on your phone.
+2. **It records honestly.** A recited day and a tapped day are both kept, and kept apart. Listening
+   to a recording never counts as reading.
+3. **It doesn't shame you.** Miss a day and your streak starts again, but your total days read never
+   goes down. The app never scolds.
 
-In a madrasa (school) or with a Qur'an teacher, you had someone who expected you. You had to sit down, open your mouth, and recite out loud. Leaving school often breaks that habit because willpower alone is fragile against a busy schedule.
+## What it does
 
-Wird is an honest digital stand-in for that discipline:
+### Today's portion, on the real page
 
-1. **Done means saying it out loud:** Anyone can tap a checkmark. Wird gives you a built-in voice auditor that listens as you recite and checks your words against the mushaf.
-2. **Honest tracking:** The app logs recited days and tapped days separately. It never pretends listening to an audio file or tapping a button is the same as opening your mouth and reciting.
-3. **Gentle accountability without guilt:** If you miss a day, your streak resets, but your total days read never decreases. The app never lectures you, sends passive-aggressive notifications, or says you failed.
+Wird draws each of the 604 pages of the Madani mushaf with the King Fahd Complex page fonts (QCF),
+so every line ends where the printed page ends it. Today's verses are in full ink and the rest of the
+page is dimmed. If a page's font can't load, the app says so instead of drawing the words in a
+different font.
 
-## Everything the app has now
+A page's layout and font download the first time you open it and are kept after that. To read with
+no data at all, download all 604 pages once in Settings.
 
-### 1. Parallel reading tracks
-Real life has different routines. A student may have one reading goal during weekdays and a different target on weekends, or may balance daily reading (*tilāwah*) with memorization (*ḥifẓ*) and revision (*murāja'ah*).
+### Reading tracks
 
-Wird supports multiple parallel reading tracks:
-* **Track disciplines:** Set each track as Tilāwah (reading from the page), Ḥifẓ (memorization), or Murāja'ah (revision from memory).
-* **Independent schedules:** Assign specific days of the week to each track (for example, Mon–Thu for madrasa revision, Sat–Sun for personal reading, or Daily).
-* **Independent targets and positions:** Each track keeps its own place in the Qur'an, its own daily target (half-page, 1 page, 2 pages, or custom verse counts), and its own reading direction (towards An-Nas from front to back, or towards Al-Fatihah from back to front).
-* **Automatic or manual scheduling:**
-  * In **Automatic mode**, the app automatically activates the track due today based on the day of the week.
-  * In **Manual mode**, you tap the track badge at any time to switch active tracks.
-* **Sequential continuation banner:** If your active track is completed today and another track is also due today, a clean home-screen banner invites you to continue directly into the next track.
-* **Track name uniqueness:** Track names are validated in real time. If a name is already in use, the editor alerts you and prevents accidental duplicate tracks. Existing saved tracks are automatically deduplicated on load.
+A track is one goal with its own days, starting point, daily amount and reminder. Keep as many as
+you like (for example *Daily Reading* every day, *Juz' ʿAmma* Monday to Thursday, *Weekend Review*
+on Saturday and Sunday). Each keeps its own place and its own streak.
 
-### 2. On-device voice recitation auditor (Whisper AI)
-Instead of merely checking off a reading, tap **Recite** to recite aloud.
+- **Goal:** read (*tilāwah*), memorize (*ḥifẓ*) or review (*murāja'ah*).
+- **Amount:** half a page, one page, two pages, or a number of verses, with exceptions for single
+  weekdays ("half a page on Fridays").
+- **Order:** forwards from Al-Fātiḥah, or madrasa order, from An-Nās back towards Al-Fātiḥah.
+  In madrasa order each sūrah is still read from its first ayah. At half a page a day, Juz' ʿAmma
+  comes one short sūrah a day (An-Nās, then Al-Falaq, then Al-Ikhlāṣ); at a page a day it is
+  page 604, then 603, then 602.
+- **Switching:** in automatic mode Home opens the track that is due today; in manual mode you pick.
 
-* **100% on-device speech recognition:** Powered by a customized Whisper speech model (`tarteel-ai/whisper-base-ar-quran`), running locally via on-device machine learning inference. No audio recordings or transcripts are ever uploaded to any server.
-* **Two model sizes, downloaded once:** **More accurate** (78 MB) or **Smaller** (42 MB, faster on older phones). Both are ggml conversions of Tarteel's model.
-* **Real-time audio level meter:** Visual feedback shows your microphone input while reciting.
-* **Verse-level review marks:** After you finish reciting, what Whisper heard is lined up against the bundled Arabic text of the portion (Quran.com's imlaei script) with a longest-common-subsequence comparison. Verses where words seem to be missing are tinted amber on the mushaf page. If too little of the portion was heard (under 70% coverage), it marks nothing and says so instead of guessing.
-* **Not yet measured:** the checker has been run on short clips and on unit tests, never on a full page recited in a real room. Treat its marks as a hint, not a verdict, until that test is done (PLAN task 14).
-* **Clean history storage:** Recitation audio and transcripts are stored locally. In your Wird history, recordings are neatly tucked behind an expandable "See recitation" toggle so your daily review stays clean.
+### Recite & Review
 
-### 3. The authentic Madani mushaf page
-Wird does not render generic Arabic computer text. A printed Madani mushaf is typeset so that every line ends flush at the margin and every page ends on an ayah completion. Standard computer fonts cannot reproduce this typesetting.
+Tap **Recite & Review** and read your portion aloud, from the page or from memory. Wird records it,
+and a speech model running on your phone writes down what it heard. That is lined up against the
+portion's text, and any verse where words seem to be missing is marked in amber on the page. If too
+little of the portion was heard, it marks nothing and tells you why.
 
-* **King Fahd Complex QCF v1 glyph fonts:** Every one of the 604 pages in the mushaf uses its own dedicated font file containing the exact hand-drawn glyphs for that specific page.
-* **Line-by-line justification:** The app measures each line individually and adjusts spacing so words fit edge-to-edge without wrapping or breaking verses.
-* **Portion dimming:** Today's assigned lines appear in full ink contrast. The remaining verses on the page are softly dimmed to a muted blue-grey. There are no defacing yellow highlight bands over the sacred text.
-* **Zero false text guarantee:** If a font file cannot load, the app refuses to display the page and explains why, rather than allowing Android to substitute a generic system font that would draw incorrect Qur'anic words.
-* **Distraction-free reading:** The mushaf page contains no permanent buttons. Tap once to bring up the navigation and audio bar; tap again and the interface hides completely.
-* **Full Qur'an browsing:** Access all 114 sūrahs grouped into 30 juz' sections, complete with English meanings, revelation place, verse counts, and starting pages.
-* **Adjustable ayah text size:** Toggle custom text size and adjust the slider to comfortably fit your vision, paired with an interactive live page preview dialog.
+- The model is a one-time download: 42 MB, or 78 MB for the more accurate one. After that it works
+  offline, and Wird never uploads your recording.
+- It is a hint, not a verdict. It has been tested on short clips and in unit tests, not yet on a
+  full page recited in a real room (PLAN task 14).
+- Already read it another way? Tap **Mark Done**. Both count, and your history shows which was which.
 
-### 4. Solar-aligned and custom recurring reminders
-A fixed clock alarm like 7:00 PM is wrong for half the year because sunset shifts by hours across seasons.
+### Reminders
 
-* **Solar prayer calculation:** The app computes local prayer times (Fajr, Dhuhr, Asr, Maghrib, Isha) completely on the phone using astronomical solar formulas (solar declination and the equation of time). It requires no internet access, no external API keys, and no monthly service fees.
-* **After Prayers reminders:** Schedule your reminder relative to the prayers you select (such as Fajr, Asr, or Maghrib), with delays of 10 minutes, 15 minutes, 30 minutes, or a custom delay from 1 to 180 minutes.
-* **Set Your Own Time with smart repeat intervals:** Pick a specific clock time with repeat intervals: Once, Every 1 hour, Every 2 hours, Every 3 hours, or a custom interval from 1 to 12 hours until you complete your recitation.
-* **Detailed notification copy:** Notifications announce the specific track and portion:
-  > *Daily Reading · Time to recite Al-Kahf (Ayahs 1–20) · Page 293*
-* **Nudge Diagnostics:** A built-in troubleshooting panel tests Android exact alarm permissions (`SCHEDULE_EXACT_ALARM`), notification channel status, and power-saving settings.
-* **OEM battery survival guide:** Transsion phones (Tecno, Infinix, itel), Xiaomi devices, and Samsung handsets aggressively kill background processes. The app detects your phone manufacturer and provides step-by-step instructions to prevent reminders from being blocked.
+- **After a prayer:** prayer times are worked out on the phone from your rough location. Without
+  location, the reminder comes at 8:00 pm and Settings says so.
+- **At a time you choose,** repeating every so many minutes (5 to 720) until the day is read.
+- Each track has its own notification, naming its portion: *Daily Reading · Time to recite Al-Kahf
+  (Ayahs 1–20) · Page 293*. You can reply from the notification itself.
+- Some phones (Tecno, Infinix, itel, Xiaomi, Samsung) stop apps working in the background. Settings
+  shows the steps for your phone, and *Did my reminder ring?* checks what happened.
 
-### 5. Offline audio recitations
-Listen to today's assigned verses when you need to hear proper pronunciation or review while commuting:
+### Listening
 
-* **Available reciters:**
-  * Abu Bakr al-Shatri (Murattal, Hafs an Asim)
-  * Mishary Rashid Alafasy (Murattal, melodic and clear)
-  * Mahmoud Khalil Al-Husary (Classical master of tajweed)
-  * Abdul Basit Abdul Samad (Celebrated Egyptian reciter)
-* **Audio quality options:** Choose between **Standard (64 kbps)** (optimized for low mobile data usage, about 1.1 MB per page) and **High (128 kbps)** (2.3 MB per page).
-* **Offline forever:** Audio files are downloaded once per page and cached locally. Playback works smoothly in airplane mode.
-* **Honest boundaries:** Listening to an audio recitation never marks your portion as done. Listening is helpful study, but it is not reciting.
+Hear today's verses from Abu Bakr al-Shatri, Mishary Rashid Alafasy, Mahmoud Khalil al-Husary or
+Abdul Basit Abdul Samad, at 64 kbps (about 1.1 MB a page) or 128 kbps (about 2.3 MB a page). Audio
+is downloaded once per page and plays offline after that. Listening never marks a day as done.
 
-### 6. Wird AI companion and reflection cards
-The companion is an interactive guide designed to help you maintain your habit:
+### Translations
 
-* **Per-track conversation context:** When you switch reading tracks, the companion starts a fresh conversation specific to that track's history, schedule, and goals.
-* **Conversational schedule adjustments:** Change your plan naturally without digging through settings menus. Tell the companion:
-  * *"Make it half a page on Fridays"*
-  * *"I am travelling until Sunday"* (pauses reminders until you return without breaking your total days read)
-  * *"Move my reminder to 9:00 PM from now on"*
-* **Quick reply chips:** Quick-response buttons let you report status in one tap: *"Already recited today"*, *"Remind in 1 hour"*, or *"Not today"*.
-* **Tafsir cards:** Tafsir Ibn Kathir (abridged, Dar-us-Salam) for an ayah in your portion, fetched from the Quran.com API and shown as expandable sections. It needs internet the first time, is cached after that, and is shortened to the first few sections, with the source named on the card.
-* **Sacred Rule 3:** The companion never expresses frustration, guilt, or judgment when you miss a day. A missed day is acknowledged calmly, and tomorrow remains a clean start.
+English (Saheeh International), Hausa (Abubakar Mahmud Gumi) and a transliteration are in the app,
+so they work offline. Settings picks which ones the reading page opens with.
 
-### 7. Tactile claymorphism interface
-The interface uses tactile claymorphism with physical depth, soft debossed surfaces, and clean elevation:
+### Word search
 
-* **Sanctuary light and dark palettes:**
-  * **Warm Cream:** A calm daytime palette with natural forest green accents.
-  * **Night Dark:** A deep green nocturnal palette with high-contrast text.
-* **Night mode brightness sliders:** Tailor your reading comfort with an ayah text contrast slider and a deep black OLED background toggle.
-* **Icons and emojis:** Buttons, dialogs and indicators use vector icons from Google Material Icons and Font Awesome. Streak and stats figures use a small emoji marker (🔥 📖 🎙️), by Mutalib's choice on 2026-10-03.
-* **Adaptive layout:** Built with responsive spacing that scales properly from 320px compact screens to high-density modern displays.
+The search box on the Sūrahs tab finds sūrahs by name or number, then every verse that holds your
+words, in Arabic, English, Hausa or transliteration. Arabic can be typed with or without vowel
+marks, and a word is found with letters attached to it too: "قمر" finds القمر and والقمر. The
+transliteration matches by sound, so "rahim" finds *arraheemi*. Tap a verse to open its page. It
+works offline. It can't yet find a word's whole family from its root (كتب, كاتب, مكتوب).
 
-### 8. Complete privacy and data sovereignty
-Your spiritual habits belong to you alone:
+### The Companion
 
-* **Zero account creation:** No email addresses, phone numbers, passwords, or logins.
-* **No cloud database:** Your reading progress, streak logs, voice audio files, and companion notes are stored solely in local app storage on your phone.
-* **No automatic cloud backups:** Android cloud backup is explicitly disabled (`android:allowBackup="false"` and `data_extraction_rules.xml`) to prevent private recordings or journals from silently syncing to Google Drive.
-* **Data export and import:** You can export your full reading history and track configurations to a JSON file at any time, or import it onto a new phone.
+A chat that understands short, plain requests. It runs on the phone, with no internet and no AI
+model.
 
-## Technical architecture
+- "half a page on Fridays": changes your plan for that day of the week.
+- "I'm travelling until Sunday": pauses reminders without touching your total.
+- "move my reminder to 9 pm": moves the reminder.
+- "what does Al-Ikhlas verse 1 mean?": shows the translation, plus Tafsir Ibn Kathir (abridged,
+  Dar-us-Salam) when you are online.
+- "how am I doing?", "where am I?", "open Al-Kahf".
 
-Wird is built entirely in **Kotlin** using **Jetpack Compose** for modern, declarative user interfaces.
+### Also
+
+A home-screen widget with today's portion, bookmarks and recently read pages, a history of every
+day read, and **Export everything**: your days, recordings, chats and bookmarks in one ZIP file you
+can open on a computer.
+
+## Privacy
+
+- No account, no email, no Wird server, and no analytics or advertising code.
+- Android backup is switched off for the app (`allowBackup="false"`), so recordings and notes don't
+  copy themselves to Google Drive.
+- Your reading history, recordings, notes and settings are stored only on the phone, until you
+  export them.
+- The app uses the internet only to download: page layouts and tafsir (Quran.com API), page fonts
+  (nuqayah/qpc-fonts on GitHub), audio (everyayah.com and the Quran.com audio CDN) and the
+  recitation model (Hugging Face). Those requests ask for pages, verses and files; none of them
+  carries your history or your voice.
+
+## How it's built
+
+Kotlin and Jetpack Compose. Speech recognition is whisper.cpp built with the Android NDK, running
+ggml conversions of Tarteel AI's Qur'an model. Reminders use AlarmManager. Data is kept in
+SharedPreferences and JSON files.
 
 ```
-External Sources (Download Only):
-   quran.com API   ──► Mushaf line layouts and surah metadata
-   qpc-fonts repo  ──► QCF v1 glyph font files (cached permanently)
-   qurancdn audio  ──► Reciter verse MP3s (cached on demand)
-   whisper models  ──► On-device speech recognition models
-                             │
-                             ▼
-                    Saved to local app storage
-                             │
-                             ▼
-     Completely functional offline with zero internet access
+Downloaded once, then kept on the phone:
+   Quran.com API    ──► page layouts, sūrah details, tafsir
+   qpc-fonts        ──► one QCF font per mushaf page
+   audio CDNs       ──► reciters' verse files
+   Hugging Face     ──► the recitation model
+Bundled in the app:
+   Arabic text and three translations
+   the same four texts folded for word search (assets/search/)
 ```
 
-### Key libraries and tools
+The word search files are generated, not written by hand. After changing a bundled text or the
+way search folds letters, rewrite them: set `WIRD_WRITE_SEARCH_INDEX=1` and run `QuranSearchTest`.
+Without that, `check.ps1` fails and names the stale file.
 
-| Component | Technology | Purpose |
-|---|---|---|
-| **Language** | Kotlin 2.x | Safe, concise application logic |
-| **UI Framework** | Jetpack Compose | Declarative UI with tactile claymorphism styling |
-| **Speech AI** | whisper.cpp (ggml, built with the NDK) | On-device Arabic speech-to-text inference |
-| **Audio** | Android MediaPlayer & MediaRecorder | Offline recitations and local voice capture |
-| **Background Alarms** | AlarmManager & BroadcastReceiver | Battery-efficient solar and clock reminders |
-| **Data Storage** | Android SharedPreferences & JSON | Fast, zero-overhead local data persistence |
-| **Mushaf Engine** | Custom Canvas & Per-Page Typography | Exact 15-line Madani mushaf justification |
+### Building
 
-## Building and verification
+You need Android Studio (its bundled JDK 21), Android SDK 36 (compileSdk and targetSdk 36,
+minSdk 26) and the Android NDK for whisper.cpp.
 
-### Prerequisites
-* Android Studio Ladybug or newer
-* Android SDK 36 (compileSdk 36, targetSdk 36, minSdk 26)
-* JDK 21 (Android Studio's bundled JBR; `check.ps1` sets `JAVA_HOME` to it)
-* Android NDK (for the whisper.cpp native library)
-* Gradle 8.x+ (bundled via `gradlew`)
+```powershell
+./check.ps1                 # lint (warnings as errors) and unit tests; must pass before a commit
+./gradlew assembleDebug     # app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
 
-### Quick commands
+## Documents
 
-1. **Run full lint and unit tests:**
-   ```powershell
-   ./check.ps1
-   ```
-   Ensures all code passes lint inspections (`warningsAsErrors`) and unit tests before committing.
-
-2. **Assemble debug APK:**
-   ```powershell
-   ./gradlew assembleDebug
-   ```
-   Generates the installable package at `app/build/outputs/apk/debug/app-debug.apk`.
-
-3. **Install to connected device via ADB:**
-   ```powershell
-   adb install -r app/build/outputs/apk/debug/app-debug.apk
-   ```
-
-## Documentation index
-
-| Topic | File Reference |
+| Topic | File |
 |---|---|
-| Product rules, sacred constraints, and scope | [PROFILE.md](file:///c:/Users/USER/MyClaudeProjects/wird/PROFILE.md) |
-| Development roadmap and implementation plan | [PLAN.md](file:///c:/Users/USER/MyClaudeProjects/wird/PLAN.md) |
-| Developer workflow, commands, and device setup | [CLAUDE.md](file:///c:/Users/USER/MyClaudeProjects/wird/CLAUDE.md) |
-| User interface specifications and tokens | [docs/ui-guidelines.md](file:///c:/Users/USER/MyClaudeProjects/wird/docs/ui-guidelines.md) |
-| End-to-end screen navigation and interactions | [docs/app-flow.md](file:///c:/Users/USER/MyClaudeProjects/wird/docs/app-flow.md) |
-| Privacy and security verification checklist | [docs/security-checklist.md](file:///c:/Users/USER/MyClaudeProjects/wird/docs/security-checklist.md) |
+| What the app is for, its rules and scope | [PROFILE.md](PROFILE.md) |
+| The task plan | [PLAN.md](PLAN.md) |
+| How to work on this repo | [CLAUDE.md](CLAUDE.md) |
+| Every screen, as images | [docs/screens/README.md](docs/screens/README.md) |
+| Screen flow | [docs/app-flow.md](docs/app-flow.md) |
+| UI rules and tokens | [docs/ui-guidelines.md](docs/ui-guidelines.md) |
+| Privacy checklist | [docs/security-checklist.md](docs/security-checklist.md) |
+| The new onboarding, ready to build | [design-source/onboarding/IMPLEMENT.md](design-source/onboarding/IMPLEMENT.md) |
 
-## Credits and licensing
+## Credits and licences
 
-* **Qur'an text and line layout:** [Quran.com API v4](https://api-docs.quran.foundation/)
-* **Mushaf typography:** QCF glyph fonts from the King Fahd Glorious Qur'an Printing Complex, via [nuqayah/qpc-fonts](https://github.com/nuqayah/qpc-fonts). Used for personal worship and educational purposes. Not for commercial distribution.
-* **On-device speech recognition:** [`tarteel-ai/whisper-base-ar-quran`](https://huggingface.co/tarteel-ai/whisper-base-ar-quran) (Apache-2.0 license, published by Tarteel AI).
-* **Audio recitations:** Abu Bakr al-Shatri, Mishary Rashid Alafasy, Mahmoud Khalil Al-Husary, and Abdul Basit Abdul Samad, sourced via Qur'an Foundation CDNs.
-* **Vector iconography:** Google Material Icons (Apache-2.0) and Font Awesome Free vectors (CC BY 4.0).
+- **Qur'an text, translations and page layouts:** [Quran.com API v4](https://api-docs.quran.foundation/).
+- **Mushaf fonts:** the King Fahd Glorious Qur'an Printing Complex's QCF fonts, via
+  [nuqayah/qpc-fonts](https://github.com/nuqayah/qpc-fonts). For personal worship and study, not
+  for commercial use.
+- **Speech recognition:** [`tarteel-ai/whisper-base-ar-quran`](https://huggingface.co/tarteel-ai/whisper-base-ar-quran)
+  (Apache-2.0, Tarteel AI), in ggml form from
+  [ram-a-dhan/tarteel-whisper-quran-ggml](https://huggingface.co/ram-a-dhan/tarteel-whisper-quran-ggml),
+  run with [whisper.cpp](https://github.com/ggerganov/whisper.cpp).
+- **Recitations:** Abu Bakr al-Shatri, Mishary Rashid Alafasy, Mahmoud Khalil al-Husary and Abdul
+  Basit Abdul Samad, from [everyayah.com](https://everyayah.com) and the Quran.com audio CDN.
+- **Icons:** Google Material Icons (Apache-2.0) and Font Awesome Free (CC BY 4.0): the Qur'an
+  book, flame, sun and repeat icons.

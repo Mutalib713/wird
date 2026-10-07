@@ -704,7 +704,8 @@ question is not *which engine* but *whether the companion earns one at all* — 
 
 ## Milestone 4c — Finding a verse
 
-- [ ] **26. Word search across the Qur'an** — planned 2026-10-04, **waiting on two decisions**
+- [ ] **26. Word search across the Qur'an** — planned 2026-10-04, **built 2026-10-04 to 07; one
+  device check and one decision of his left** (status under *Done when*)
   Type a word in Arabic (with or without vowel marks), English, Hausa or transliteration and get
   every verse that holds it, the match highlighted; tap one to open its page. All four texts are
   already in the app, so it needs no download and works offline.
@@ -729,14 +730,56 @@ question is not *which engine* but *whether the companion earns one at all* — 
   words, rank whole word, then word start, then inside a word. The bundled Arabic is the modern
   spelling with vowel marks (الصَّلَاةَ, not the Uthmani الصلوٰة), so phone typing matches it once
   folded. Build the index in memory on first use and measure the time on a low-end phone.
+  (Changed in the build: folding on the phone was far too slow, so the folded text ships ready-made.)
   *Not in this task:* whole word families from one root (كتب, كاتب, مكتوب). That needs
   morphology data; the Quranic Arabic Corpus has it under the GNU GPL with its own conditions
   (credit and a link, no changes to the file), so it needs a licence check first. Also not:
   searching tafsir, fixing badly misspelled words.
   *Decisions:* where it lives (one search box on the Sūrahs tab for names and words, or its own
-  screen); which languages go in first.
+  screen); which languages go in first. **Answered 2026-10-04: the Sūrahs tab, all four.**
   *Done when:* "قمر", "والقمر" and "القمر" all find the same verses, "mercy" finds the English
   matches, results open the right ayah, and the first search takes under a second on the emulator.
+  *Status 2026-10-07:*
+  - ✅ The three Arabic spellings find the same verses (QuranSearchTest; adb can't type Arabic).
+  - ✅ "mercy": 144 verses on the emulator, English first, the word highlighted.
+  - ✅ Under a second: on a release build the first search took about 160 ms all told (index 66 ms,
+    search 9 ms, the first 50 results' words 88 ms). On a debug build, about 1.3 s after the last
+    key, because debug builds run Android's own text code uncompiled. How it got there is in
+    PROFILE § 5bg: folding on the phone took 51 s, so the folded text now ships with the app.
+  - ⏳ Opening a result: it opens the page that holds the ayah (QuranSearchTest checks the page for
+    all 6,236), but nobody has tapped one on a device since the rewrite.
+  - ⏳ **His call:** the ready-made search files add 911 KB to the APK (PROFILE § 5bg).
+
+- [ ] **27. The Gemini research assistant** — planned 2026-10-04, **next after task 26**
+  The Companion answers questions about the Qur'an with the verses, hadith and links behind the
+  answer, so the reader can check it (PROFILE § 5be). Plan changes stay on the rules: they work
+  offline and instantly.
+  *His decisions, 2026-10-04:*
+  - **The key lives on a small server of ours**, never in the app or the repo. The server caps
+    questions per phone per day and stops at a daily ceiling we set.
+  - **Gemini's free tier, with a clear notice.** Before the first question the app says the
+    question goes to Google, that Google may use it and people there may read it, and not to put
+    personal details in it. Opt-in; off until the reader turns it on.
+  - **Plan now, build next.**
+  *Why the server:* Google Cloud has no hard spending cap, and leaked Gemini keys ran up
+  €54,000 in 13 hours (HN, April 2026), $82,000 in 48 hours and $128,000 (March 2026). Thousands
+  of public GitHub repos hold Gemini keys; Wird's repo is public and its APK is a download. On the
+  free tier with no billing account, abuse can exhaust the quota but cannot cost money; the server's
+  ceiling keeps one person from using everyone's share.
+  *Why the notice:* Google's Gemini API terms, read 2026-10-04: on unpaid quota, Google uses
+  prompts and answers to improve its products, and human reviewers may read them.
+  *Sacred Rule 2 binds:* the model names verses by key (2:255) and hadith by collection and
+  number; the app shows the verse from its own bundled text and translation, never the model's
+  wording of it, and drops any key that doesn't exist. Hadith come with a sunnah.com link.
+  *Open, his call:* where the server runs. Either a Vercel function in the showcase project he
+  already deploys (one account, deploys on every push), or a Cloudflare Worker (larger free tier,
+  a new account). Either needs somewhere to count each phone's questions.
+  *He creates the key himself* in Google AI Studio and pastes it into the host's secret settings;
+  no session types a key anywhere.
+  *Done when:* asking about Ayat al-Kursi returns an answer citing 2:255, shown from the app's own
+  text; a made-up verse key from the model is dropped; with the radio off the Companion says it
+  needs internet; the 21st question of the day gets "that's today's limit"; the Privacy Pledge
+  says what is sent and to whom.
 
 ## Milestone 5 — The verdict
 

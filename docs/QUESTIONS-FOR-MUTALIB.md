@@ -9,8 +9,17 @@ August list was mostly settled (task 11 deleted, the companion's engine decided,
   and "where to start" on one screen; the splash button "See how Wird works"; the phone's own
   fonts instead of Literata and Amiri. Details at the end of
   [design-source/onboarding/IMPLEMENT.md](../design-source/onboarding/IMPLEMENT.md).
-- **Word search across the Qur'an.** Wanted (PROFILE § 5be). Where it lives and which languages
-  it covers come first; the plan is in the 2026-10-04 session.
+- **Word search: keep the 911 KB?** Built (PLAN task 26). The search text ships ready-made, which
+  makes the first search take about 160 ms on a release build instead of many seconds, and adds
+  911 KB to a 10.8 MB APK. The other way costs no space and makes the first search slow on a
+  freshly installed phone (51 s on the emulator before any speed work). PROFILE § 5bg.
+- **Broken letters in Gumi's Hausa.** Three characters stand in for Hausa letters throughout: `¡`
+  for Ƙ (91 times, "Rãnar ¡iyãma" for Rãnar Ƙiyãma), `¦` for Ɗ (43, "¦an Maryama"), `¥` for Ɓ
+  (2, "¥arnã" in 30:41 and 41:42), plus one Tamil letter inside a word in 59:23 ("Mai t஛astãwa").
+  Readers see them on the reading page, and a search for "kiyama" misses those 91 verses. Quran.com
+  and the fawazahmed0 copy carry the same characters, so the fault is upstream, and fixing it means
+  correcting the translation's text ourselves. The first three mappings are clear from context;
+  59:23 isn't. Fix them, ideally with a Hausa reader checking a few, or leave the text as published?
 - **Dark mode for the new onboarding.** Not designed. The brief says to build the light version
   only for now.
 - **Release signing.** The app is still signed with the debug key, and the showcase site offers a

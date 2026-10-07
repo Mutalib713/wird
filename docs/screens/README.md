@@ -6,14 +6,15 @@ Android emulator (Pixel 6 Pro image) running the current `main` build, in light 
 The streaks, days and the name "Amina" are demo data on the emulator, not anyone's real
 record. Each section has one overview sheet and a folder with the full-size screens.
 
-Known issues these screenshots show, still open as of 2026-10-03:
+These pictures are from 2026-10-03. Since then the app has changed in ways they don't show:
 
-- **Settings → Translations** offers "The Clear Quran" and "Yusuf Ali". Neither is in the
-  app, and the choice is saved but nothing reads it. The working translation picker is on
-  the reading page.
-- The tour, onboarding step 3 and step 4, and About still say the recitation check works
-  "word-for-word" and "100% offline". It marks verses, and it needs a one-time model
-  download.
+- **"Recite & Verify" is now "Recite & Review"**, and History's "Aloud ratio" is "Recited aloud".
+- **Settings → Translations** no longer offers "The Clear Quran" and "Yusuf Ali", which were never
+  in the app; it lists the three bundled translations and sets what the reading page opens with.
+- **The tour and About** no longer say the recitation check works "word-for-word" and "100%
+  offline". Onboarding steps 3 and 4 still do; the new onboarding replaces them
+  (design-source/onboarding/).
+- **Word search** was added to the Sūrahs tab on 2026-10-04.
 
 ## Onboarding
 
