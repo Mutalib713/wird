@@ -187,7 +187,10 @@ class MainActivity : ComponentActivity() {
 
             val widgetScope = rememberCoroutineScope()
             fun nudgeWidget() {
-                widgetScope.launch { refreshWidget(this@MainActivity) }
+                widgetScope.launch {
+                    refreshWidget(this@MainActivity)
+                    com.mosman.wird.widget.MidnightWidgetReceiver.schedule(this@MainActivity)
+                }
             }
 
             // ---- one copy of everything, on the active track (2026-10-03) ----------------

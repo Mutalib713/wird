@@ -218,6 +218,16 @@ private fun openWird() = actionStartActivity<MainActivity>()
  */
 class WirdWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = WirdWidget()
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        MidnightWidgetReceiver.schedule(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        MidnightWidgetReceiver.cancel(context)
+    }
 }
 
 /**

@@ -18,5 +18,6 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         Log.i(NudgeReceiver.TAG, "boot completed, re-arming nudge")
         NudgeScheduler.arm(context)
+        com.mosman.wird.widget.MidnightWidgetReceiver.schedule(context)
     }
 }

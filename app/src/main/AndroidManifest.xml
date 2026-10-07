@@ -131,6 +131,11 @@
                 android:resource="@xml/wird_widget_info" />
         </receiver>
 
+        <!-- B33: Midnight alarm to refresh widget even if the device was dozing overnight -->
+        <receiver
+            android:name=".widget.MidnightWidgetReceiver"
+            android:exported="false" />
+
 
         <!--
             Hands the export zip to whatever app the reader picks from the share sheet.
