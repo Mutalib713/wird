@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 import java.time.LocalDate
 import java.util.zip.ZipEntry
@@ -84,6 +86,20 @@ object Export {
                         }
                     }
 
+                    // settings.json: tracks, reminder schedule, and reader preferences
+                    val store = WirdStore(context)
+                    val settingsContent = buildSettingsJson(
+                        readerName = store.readerName,
+                        themeMode = store.themeMode.name,
+                        trackScheduleMode = store.trackScheduleMode.name,
+                        manualActiveTrackId = store.manualActiveTrackId,
+                        nudgeScheduleRaw = encodeSchedule(store.nudgeSchedule),
+                        tracks = store.getReadingTracks().map { it.toJson() },
+                    )
+                    z.putNextEntry(ZipEntry("settings.json"))
+                    z.write(settingsContent.toByteArray(Charsets.UTF_8))
+                    z.closeEntry()
+
                     File(context.filesDir, "recitations").listFiles().orEmpty()
                         .sortedBy { it.name }
                         .forEach { f ->
@@ -117,6 +133,25 @@ object Export {
         files.count { it.delete() }
     }
 
+    fun buildSettingsJson(
+        readerName: String?,
+        themeMode: String,
+        trackScheduleMode: String,
+        manualActiveTrackId: String?,
+        nudgeScheduleRaw: String,
+        tracks: List<JSONObject>,
+    ): String {
+        val root = JSONObject().apply {
+            if (readerName != null) put("name", readerName)
+            put("theme", themeMode)
+            put("trackScheduleMode", trackScheduleMode)
+            if (manualActiveTrackId != null) put("manualActiveTrackId", manualActiveTrackId)
+            put("reminderSchedule", nudgeScheduleRaw)
+            put("tracks", JSONArray(tracks))
+        }
+        return root.toString(2)
+    }
+
     private fun readme(today: LocalDate) = """
         Wird export, $today
 
@@ -125,6 +160,7 @@ object Export {
         days.json        One row per day you marked done. `method` is RECITED if you recorded
                          yourself reciting, or TAPPED if you marked it read. Days you missed
                          are simply absent - there is no row saying you failed.
+        settings.json    Your reading tracks, schedules, reminder times, and name.
         *.corrupt*.json  Preserved backups of files that could not be read.
         chat_*.json      What you and the Companion said to each other, one file per
                          reading track.
