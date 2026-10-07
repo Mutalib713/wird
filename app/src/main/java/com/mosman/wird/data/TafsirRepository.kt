@@ -40,7 +40,7 @@ class TafsirRepository(private val context: Context) {
         val fetched = fetchRemoteTafsir(surah, ayah)
         if (!fetched.isNullOrBlank()) {
             memCache[key] = fetched
-            runCatching { diskFile.writeText(fetched, Charsets.UTF_8) }
+            SafeFile.writePart(diskFile, fetched)
             return@withContext fetched
         }
 

@@ -27,6 +27,40 @@ object SafeFile {
     }
 
     /**
+     * Atomically writes bytes to [file] using a `.part` temporary file and rename.
+     * Prevents partial or half-written files from appearing in cache if interrupted.
+     */
+    fun writePart(file: File, bytes: ByteArray): Boolean {
+        val part = File(file.parentFile, "${file.name}.part")
+        return try {
+            if (part.exists()) part.delete()
+            part.writeBytes(bytes)
+            if (file.exists()) file.delete()
+            val renamed = part.renameTo(file)
+            if (!renamed) {
+                runCatching {
+                    java.nio.file.Files.move(
+                        part.toPath(),
+                        file.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                    )
+                }.isSuccess
+            } else {
+                true
+            }
+        } catch (e: Exception) {
+            runCatching { part.delete() }
+            false
+        }
+    }
+
+    /**
+     * Atomically writes text to [file] using a `.part` temporary file and rename.
+     */
+    fun writePart(file: File, text: String): Boolean =
+        writePart(file, text.toByteArray(Charsets.UTF_8))
+
+    /**
      * Renames an unreadable or corrupt file to a timestamped backup name
      * so that corrupted data is never overwritten and can be exported.
      */

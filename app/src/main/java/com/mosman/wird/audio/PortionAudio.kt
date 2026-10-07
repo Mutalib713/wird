@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import com.mosman.wird.data.SafeFile
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -247,7 +248,7 @@ class PortionAudio(private val context: Context) {
                     Log.w(TAG, "$key was only ${bytes.size} bytes — not audio")
                     return@withContext null
                 }
-                f.writeBytes(bytes)
+                SafeFile.writePart(f, bytes)
             }
             files += f
             onProgress(i + 1, verses.size, bytesDownloaded, totalBytesEstimate)

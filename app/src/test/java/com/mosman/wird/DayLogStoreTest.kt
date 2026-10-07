@@ -78,4 +78,33 @@ class DayLogStoreTest {
         // The original file content must still be intact
         assertEquals(originalContent, daysFile.readText())
     }
+
+    @Test
+    fun writePartWritesBytesAtomicallyAndLeavesNoPartFile() {
+        val dir = tempFolder.newFolder()
+        val target = File(dir, "font-123.ttf")
+        val data = "sample font binary data".toByteArray(Charsets.UTF_8)
+
+        val success = SafeFile.writePart(target, data)
+        assertTrue(success)
+        assertTrue(target.exists())
+        assertEquals("sample font binary data", target.readText())
+
+        val partFile = File(dir, "font-123.ttf.part")
+        assertFalse(partFile.exists())
+    }
+
+    @Test
+    fun writePartOverwritesExistingFileSafely() {
+        val dir = tempFolder.newFolder()
+        val target = File(dir, "layout.json")
+        target.writeText("old content")
+
+        val success = SafeFile.writePart(target, "new content")
+        assertTrue(success)
+        assertEquals("new content", target.readText())
+
+        val partFile = File(dir, "layout.json.part")
+        assertFalse(partFile.exists())
+    }
 }

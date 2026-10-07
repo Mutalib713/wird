@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import com.mosman.wird.data.SafeFile
 import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
@@ -95,7 +96,7 @@ class MushafRepository(private val context: Context) {
                 "?words=true&per_page=50&fields=juz_number" +
                 "&word_fields=$field,line_number,char_type_name"
             val text = get(url) ?: return null
-            cache.writeText(text)
+            SafeFile.writePart(cache, text)
             text
         }
         return runCatching { parse(page, body) }.getOrElse {
@@ -162,7 +163,7 @@ class MushafRepository(private val context: Context) {
         val cache = File(pageDir, "chapter-$id.json")
         val body = if (cache.exists()) cache.readText() else {
             val t = get("https://api.quran.com/api/v4/chapters/$id") ?: return "" to false
-            cache.writeText(t); t
+            SafeFile.writePart(cache, t); t
         }
         return runCatching {
             val c = JSONObject(body).getJSONObject("chapter")
@@ -186,7 +187,7 @@ class MushafRepository(private val context: Context) {
             val t = get(
                 "https://api.quran.com/api/v4/verses/by_key/$surah:$ayah?fields=page_number",
             ) ?: return@withContext null
-            cache.writeText(t); t
+            SafeFile.writePart(cache, t); t
         }
         runCatching {
             JSONObject(body).getJSONObject("verse").getInt("page_number")
@@ -291,7 +292,7 @@ class MushafRepository(private val context: Context) {
         val cache = File(pageDir, "chapter-$surah.json")
         val body = if (cache.exists()) cache.readText() else {
             val t = get("https://api.quran.com/api/v4/chapters/$surah") ?: return@withContext null
-            cache.writeText(t); t
+            SafeFile.writePart(cache, t); t
         }
         runCatching {
             JSONObject(body).getJSONObject("chapter").getInt("verses_count")
@@ -303,7 +304,7 @@ class MushafRepository(private val context: Context) {
         if (!f.exists() || f.length() < Mushaf.MIN_PLAUSIBLE_FONT_BYTES) {
             val bytes = getBytes(Mushaf.BISMILLAH_FONT_URL) ?: return null
             if (bytes.size < Mushaf.MIN_PLAUSIBLE_FONT_BYTES) return null
-            f.writeBytes(bytes)
+            SafeFile.writePart(f, bytes)
             Log.i(TAG, "cached bismillah font: ${bytes.size} bytes")
         }
         return runCatching { Typeface.createFromFile(f) }.getOrNull()
@@ -323,7 +324,7 @@ class MushafRepository(private val context: Context) {
             Log.w(TAG, "font for page $page was only ${bytes.size} bytes — not a font")
             return null
         }
-        f.writeBytes(bytes)
+        SafeFile.writePart(f, bytes)
         Log.i(TAG, "cached font page $page: ${bytes.size} bytes")
         return f
     }
