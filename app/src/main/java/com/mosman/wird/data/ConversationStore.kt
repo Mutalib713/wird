@@ -66,8 +66,8 @@ class ConversationStore(private val filesDir: File, val trackId: String? = null)
         }.getOrElse {
             // Same rule the day log follows: a corrupt file must not take the app down, and
             // must not silently look like "you never spoke to it". Keep it aside and say so.
-            Log.w(TAG, "chat.json unreadable, keeping it aside", it)
-            file.renameTo(File(filesDir, "chat.corrupt.json"))
+            runCatching { Log.w(TAG, "chat.json unreadable, keeping it aside", it) }
+            SafeFile.quarantineCorrupt(file, file.nameWithoutExtension)
             emptyList()
         }
     }
@@ -82,7 +82,7 @@ class ConversationStore(private val filesDir: File, val trackId: String? = null)
                     .put("at", t.at.toString())
             )
         }
-        runCatching { file.writeText(arr.toString(2)) }
+        runCatching { SafeFile.writeText(file, arr.toString(2)) }
             .onFailure { Log.w(TAG, "couldn't write chat.json", it) }
     }
 

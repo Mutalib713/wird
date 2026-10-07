@@ -1083,6 +1083,7 @@ class MainActivity : ComponentActivity() {
                                 audioFor = { d, tid -> tid?.let { days.audioFor(d, it) } },
                                 coveredFor = { d, tid -> tid?.let { days.coveredOn(d, it) } },
                                 transcriptionFor = { d, tid -> tid?.let { days.transcriptionFor(d, it) } },
+                                hasCorruptLogs = remember(logVersion) { days.hasCorruptFiles() },
                                 onPlay = { f -> playback.play(f) },
                                 onStop = { playback.stopPlaying() },
                                 onBack = { tab = WirdTab.HOME },

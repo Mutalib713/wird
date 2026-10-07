@@ -195,12 +195,18 @@ class DayLogStore(filesDir: File) {
             }
         }.getOrElse {
             // A corrupt log must not take the app down, and must not silently look like
-            // "you have never read". Keep the file for task 19 to export and say so.
-            Log.w(TAG, "days.json unreadable, keeping it aside", it)
-            file.renameTo(File(file.parentFile, "days.corrupt.json"))
+            // "you have never read". Keep the file under a timestamped name so nothing is overwritten.
+            runCatching { Log.w(TAG, "days.json unreadable, keeping it aside", it) }
+            SafeFile.quarantineCorrupt(file, "days")
             emptyList()
         }
     }
+
+    fun corruptFiles(): List<File> =
+        (file.parentFile?.listFiles { _, name -> name.startsWith("days.corrupt") && name.endsWith(".json") }?.toList() ?: emptyList())
+            .sortedByDescending { it.name }
+
+    fun hasCorruptFiles(): Boolean = corruptFiles().isNotEmpty()
 
     private fun write(rows: List<Row>) {
         val arr = JSONArray()
@@ -221,7 +227,7 @@ class DayLogStore(filesDir: File) {
                     }
             )
         }
-        file.writeText(arr.toString(2))
+        SafeFile.writeText(file, arr.toString(2))
     }
 
     private companion object { const val TAG = "WirdDays" }

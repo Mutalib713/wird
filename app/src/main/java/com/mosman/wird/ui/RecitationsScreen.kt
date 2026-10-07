@@ -80,6 +80,7 @@ fun RecitationsScreen(
     audioFor: (LocalDate, String?) -> File? = { d, _ -> null },
     coveredFor: (LocalDate, String?) -> Pair<Int, Int>? = { _, _ -> null },
     transcriptionFor: (LocalDate, String?) -> String? = { _, _ -> null },
+    hasCorruptLogs: Boolean = false,
     onPlay: (File) -> Unit,
     onStop: () -> Unit = {},
     onBack: () -> Unit = {},
@@ -268,6 +269,29 @@ fun RecitationsScreen(
                         color = if (isDark) Color(0xFF8FA597) else Color(0xFF4B5551),
                     )
                 }
+            }
+        }
+
+        if (hasCorruptLogs) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clayCard(
+                        shape = RoundedCornerShape(14.dp),
+                        backgroundColor = if (isDark) Color(0xFF1F1A14) else Color(0xFFFFF9E6),
+                        highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                        elevation = 3.dp,
+                    )
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = "A previous reading log could not be read and was preserved as a backup.",
+                    color = if (isDark) Color(0xFFE5C07B) else Color(0xFF8C5A28),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                )
             }
         }
 

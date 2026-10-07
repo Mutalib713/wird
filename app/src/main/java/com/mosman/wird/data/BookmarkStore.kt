@@ -69,8 +69,8 @@ class BookmarkStore(private val filesDir: File) {
         }.getOrElse {
             // Same rule the other two stores follow: a corrupt file must not take the app
             // down, and must not silently look like "you never saved anything".
-            Log.w(TAG, "bookmarks.json unreadable, keeping it aside", it)
-            file.renameTo(File(filesDir, "bookmarks.corrupt.json"))
+            runCatching { Log.w(TAG, "bookmarks.json unreadable, keeping it aside", it) }
+            SafeFile.quarantineCorrupt(file, "bookmarks")
             emptyList()
         }
     }
@@ -80,7 +80,7 @@ class BookmarkStore(private val filesDir: File) {
         marks.forEach { b ->
             arr.put(JSONObject().put("verse", b.verseKey).put("at", b.savedAt.toString()))
         }
-        runCatching { file.writeText(arr.toString(2)) }
+        runCatching { SafeFile.writeText(file, arr.toString(2)) }
             .onFailure { Log.w(TAG, "couldn't write bookmarks.json", it) }
     }
 

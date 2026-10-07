@@ -71,7 +71,11 @@ object Export {
                         .filter { it.name.startsWith("chat") && it.name.endsWith(".json") }
                         .map { it.name }
                         .sorted()
-                    (listOf("days.json", "bookmarks.json") + chats).forEach { name ->
+                    val corrupts = context.filesDir.listFiles().orEmpty()
+                        .filter { it.name.contains(".corrupt") && it.name.endsWith(".json") }
+                        .map { it.name }
+                        .sorted()
+                    (listOf("days.json", "bookmarks.json") + chats + corrupts).forEach { name ->
                         val f = File(context.filesDir, name)
                         if (f.exists()) {
                             z.putNextEntry(ZipEntry(name))
@@ -121,6 +125,7 @@ object Export {
         days.json        One row per day you marked done. `method` is RECITED if you recorded
                          yourself reciting, or TAPPED if you marked it read. Days you missed
                          are simply absent - there is no row saying you failed.
+        *.corrupt*.json  Preserved backups of files that could not be read.
         chat_*.json      What you and the Companion said to each other, one file per
                          reading track.
         bookmarks.json   Ayahs you saved, by verse key. "18:10" is Al-Kahf, ayah 10.
