@@ -33,6 +33,7 @@ import com.mosman.wird.domain.assignPortion
 import com.mosman.wird.domain.surahs
 import com.mosman.wird.domain.assignmentOn
 import com.mosman.wird.domain.verseAssignment
+import com.mosman.wird.domain.unitsLabel
 import com.mosman.wird.ui.theme.Q
 import java.time.LocalDate
 
@@ -198,11 +199,7 @@ private fun WidgetBody(state: WidgetState, dark: Boolean) {
 
 /** "One page · page 293". Same words the app uses, so the two never describe a day differently. */
 private fun detailOf(units: Int, startPage: Int): String {
-    val amount = when (units) {
-        1 -> "Half a page"
-        2 -> "One page"
-        else -> "${units / 2} pages"
-    }
+    val amount = unitsLabel(units).replaceFirstChar { it.uppercase() }
     return "$amount · page $startPage"
 }
 

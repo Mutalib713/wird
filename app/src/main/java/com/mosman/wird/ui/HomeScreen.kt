@@ -66,6 +66,8 @@ import com.mosman.wird.domain.ReadingDirection
 import com.mosman.wird.domain.ReadingTrack
 import com.mosman.wird.domain.TrackScheduleMode
 import com.mosman.wird.domain.TrackType
+import com.mosman.wird.domain.plan
+import com.mosman.wird.domain.unitsLabel
 import com.mosman.wird.domain.Progress
 import com.mosman.wird.domain.Turn
 import com.mosman.wird.domain.surahs
@@ -140,6 +142,7 @@ fun HomeScreen(
     showToolkitTour: Boolean = false,
     onDismissToolkitTour: () -> Unit = {},
     scrollState: androidx.compose.foundation.ScrollState = androidx.compose.foundation.rememberScrollState(),
+    today: LocalDate = LocalDate.now(),
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -227,6 +230,7 @@ fun HomeScreen(
                             onOpenInQuran = onOpenInQuran,
                             activeTrack = activeTrack,
                             onOpenTrackPicker = { showTrackDialog = true },
+                            today = today,
                         )
                     }
 
@@ -379,6 +383,7 @@ private fun PortionCard(
     onOpenInQuran: (() -> Unit)?,
     activeTrack: ReadingTrack? = null,
     onOpenTrackPicker: (() -> Unit)? = null,
+    today: LocalDate = LocalDate.now(),
 ) {
     val colors = LocalWirdColors.current
     val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
@@ -515,14 +520,11 @@ private fun PortionCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            val plannedUnits = activeTrack?.plan()?.unitsOn(today.dayOfWeek) ?: assignment.units
             val targetLabel = if (activeTrack?.customTargetVerses != null) {
                 "${activeTrack.customTargetVerses} verses"
-            } else if (assignment.units <= 1) {
-                "½ page"
-            } else if (assignment.units <= 2) {
-                "1 page"
             } else {
-                "${assignment.units / 2} pages"
+                unitsLabel(plannedUnits).replaceFirstChar { it.uppercase() }
             }
             ClayStatPill(
                 value = targetLabel,
@@ -548,11 +550,7 @@ private fun PortionCard(
 
         // Sūrah completion progress loader (measures progress through this sūrah rather than the whole mushaf)
         val surahSpan = surah?.let { (it.lastPage - it.firstPage + 1).coerceAtLeast(1) } ?: 1
-        val direction = activeTrack?.direction ?: ReadingDirection.TOWARDS_NAS
-        val baseInto = when (direction) {
-            ReadingDirection.TOWARDS_FATIHAH -> surah?.let { (it.lastPage - assignment.startPage).coerceAtLeast(0) } ?: 0
-            ReadingDirection.TOWARDS_NAS -> surah?.let { (assignment.startPage - it.firstPage).coerceAtLeast(0) } ?: 0
-        }
+        val baseInto = surah?.let { (assignment.startPage - it.firstPage).coerceAtLeast(0) } ?: 0
         val pagesDoneToday = if (done) (assignment.units / 2).coerceAtLeast(1) else 0
         val pagesCompleted = (baseInto + pagesDoneToday).coerceIn(0, surahSpan)
         val isSurahComplete = done && pagesCompleted >= surahSpan
@@ -1371,11 +1369,7 @@ private val HIJRI_MONTHS = listOf(
  * here, because the figure can only show where it starts.
  */
 private fun portionDetail(a: Assignment, doneMethod: Method?): String {
-    val amount = when (a.units) {
-        1 -> "Half a page"
-        2 -> "One page"
-        else -> "${a.units / 2} pages"
-    }
+    val amount = unitsLabel(a.units).replaceFirstChar { it.uppercase() }
     val span = if (a.startPage == a.endPage) null else "to ${a.endPage}"
     val state = when (doneMethod) {
         Method.RECITED -> "recited aloud"

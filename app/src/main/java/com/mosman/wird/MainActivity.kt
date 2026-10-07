@@ -1080,6 +1080,7 @@ class MainActivity : ComponentActivity() {
                                     showToolkitTour = false
                                 },
                                 scrollState = homeScrollState,
+                                today = today,
                             )
 
                             WirdTab.SURAHS -> SurahsTab(
