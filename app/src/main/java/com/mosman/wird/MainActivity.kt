@@ -160,12 +160,17 @@ class MainActivity : ComponentActivity() {
             var schedule by remember { mutableStateOf(store.nudgeSchedule) }
             var audioQuality by remember { mutableStateOf(store.audioQuality) }
             var readerName by remember { mutableStateOf(store.readerName) }
-            val today = LocalDate.now()
-            var allTracks by remember { mutableStateOf(store.getReadingTracks()) }
+            var today by remember { mutableStateOf(LocalDate.now()) }
+            var allTracks by remember { mutableStateOf(store.getReadingTracks(today)) }
             var lifeSpaces by remember { mutableStateOf(store.getLifeSpaces()) }
             var activeSpace by remember { mutableStateOf(store.activeSpace()) }
             var activeTrack by remember { mutableStateOf(store.activeTrack(today)) }
             var trackScheduleMode by remember { mutableStateOf(store.trackScheduleMode) }
+
+            val widgetScope = rememberCoroutineScope()
+            fun nudgeWidget() {
+                widgetScope.launch { refreshWidget(this@MainActivity) }
+            }
 
             // ---- one copy of everything, on the active track (2026-10-03) ----------------
             //
@@ -198,6 +203,43 @@ class MainActivity : ComponentActivity() {
                 activeTrack = store.activeTrack(today)
                 trackScheduleMode = store.trackScheduleMode
                 logVersion++
+            }
+
+            // B1: Update today on resume so overnight backgrounding never writes on yesterday's date
+            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+            androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                    if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                        val now = LocalDate.now()
+                        if (now != today) {
+                            today = now
+                        }
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+
+            // B1: Sleep until the next midnight, then advance today
+            LaunchedEffect(Unit) {
+                while (true) {
+                    val now = java.time.LocalDateTime.now()
+                    val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay()
+                    val delayMillis = java.time.Duration.between(now, nextMidnight).toMillis() + 50L
+                    kotlinx.coroutines.delay(delayMillis.coerceAtLeast(1000L))
+                    val newToday = LocalDate.now()
+                    if (newToday != today) {
+                        today = newToday
+                    }
+                }
+            }
+
+            // B1: When today changes, refresh tracks and nudge widget
+            LaunchedEffect(today) {
+                refresh()
+                nudgeWidget()
             }
             var settingsInitialDialog by remember { mutableStateOf<SettingsDialog?>(null) }
             var settingsInitialSubScreen by remember { mutableStateOf(SettingsSubScreen.MAIN) }
@@ -378,14 +420,6 @@ class MainActivity : ComponentActivity() {
             // setting now, defaulting to light, so a dark phone gives dark chrome around a
             // light mushaf. See WirdStore.pageNight.
             val pageDark = pageNight
-
-            // The widget shows today's portion and whether it is done, so it has to be told
-            // whenever either moves. Fire-and-forget: nothing in the app waits on it, and it
-            // is a no-op when no widget is on a home screen.
-            val widgetScope = rememberCoroutineScope()
-            fun nudgeWidget() {
-                widgetScope.launch { refreshWidget(this@MainActivity) }
-            }
 
             // **The app had no back handling at all until 2026-08-18.** Pressing back on the
             // page, in the chat or in Settings quit Wird outright. That was survivable while
