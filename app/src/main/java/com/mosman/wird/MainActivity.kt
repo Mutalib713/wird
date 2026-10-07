@@ -45,6 +45,7 @@ import com.mosman.wird.domain.verseAssignment
 import com.mosman.wird.data.encodeSchedule
 import com.mosman.wird.domain.LifeSpace
 import com.mosman.wird.domain.ReadingTrack
+import com.mosman.wird.domain.VerseIndex
 import com.mosman.wird.domain.TrackType
 import com.mosman.wird.domain.TrackScheduleMode
 import com.mosman.wird.nudge.Armed
@@ -672,6 +673,7 @@ class MainActivity : ComponentActivity() {
                         is CompanionAction.OpenSurah -> {
                             openPage = action.surah.firstPage
                             onPage = true
+                            isWirdSession = false
                             pageSource = PageSource.HOME
                             onChat = false
                         }
@@ -1090,9 +1092,8 @@ class MainActivity : ComponentActivity() {
                                     pageSource = PageSource.SURAHS
                                 },
                                 onOpenBookmark = { b ->
-                                    openPage = com.mosman.wird.domain.SurahIndex
-                                        .byNumber(b.verseKey.substringBefore(':').toIntOrNull() ?: 0)
-                                        ?.firstPage
+                                    val parts = b.verseKey.split(':').mapNotNull { it.toIntOrNull() }
+                                    openPage = if (parts.size == 2) VerseIndex.pageOf(parts[0] to parts[1]) else 1
                                     onPage = true
                                     isWirdSession = false
                                     pageSource = PageSource.SURAHS
@@ -1304,15 +1305,17 @@ class MainActivity : ComponentActivity() {
                             store.recordRecentPage(p)
                             openPage = p
                             onPage = true
+                            isWirdSession = false
                             pageSource = PageSource.BOOKMARKS
                             screen = Screen.TODAY
                         },
                         onOpenBookmark = { b ->
-                            val surahNum = b.verseKey.substringBefore(':').toIntOrNull() ?: 1
-                            val targetPage = SurahIndex.byNumber(surahNum)?.firstPage ?: 1
+                            val parts = b.verseKey.split(':').mapNotNull { it.toIntOrNull() }
+                            val targetPage = if (parts.size == 2) VerseIndex.pageOf(parts[0] to parts[1]) else 1
                             store.recordRecentPage(targetPage)
                             openPage = targetPage
                             onPage = true
+                            isWirdSession = false
                             pageSource = PageSource.BOOKMARKS
                             screen = Screen.TODAY
                         },
