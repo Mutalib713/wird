@@ -108,6 +108,10 @@ import com.mosman.wird.data.encodeSchedule
 /** Sub-screens within the Settings flow. */
 enum class SettingsSubScreen {
     MAIN,
+    READING,
+    NOTIFICATIONS,
+    AUDIO_DOWNLOADS,
+    DATA_PRIVACY,
     POSITION_PICKER,
     AUDIO_MANAGER,
 }
@@ -284,47 +288,25 @@ fun SettingsScreen(
             // 1. MAIN SETTINGS SCREEN
             // ================================================================
             SettingsSubScreen.MAIN -> {
+                NewLookSettingsMain(
+                    onBack = onBack,
+                    onOpenReading = { subScreen = SettingsSubScreen.READING },
+                    onOpenNotifications = { subScreen = SettingsSubScreen.NOTIFICATIONS },
+                    onOpenAudio = { subScreen = SettingsSubScreen.AUDIO_DOWNLOADS },
+                    onOpenPrivacy = { subScreen = SettingsSubScreen.DATA_PRIVACY },
+                    onOpenAbout = { activeDialog = SettingsDialog.ABOUT_WIRD },
+                    versionName = "Version $versionName",
+                )
+            }
+
+            SettingsSubScreen.READING -> {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // Top Bar with tactile clay back button
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clayCard(
-                                    shape = CircleShape,
-                                    backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
-                                    highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
-                                    shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
-                                    elevation = 3.dp,
-                                )
-                                .clickable(onClick = onBack),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
+                    SettingsSubTopBar(
+                        title = "Reading Preferences",
+                        onBack = { subScreen = SettingsSubScreen.MAIN },
+                        isDark = isDark,
+                    )
 
-                        Spacer(Modifier.width(16.dp))
-
-                        Text(
-                            text = "Settings",
-                            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.5).sp,
-                        )
-                    }
-
-                    // Scrollable Settings Sections
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -332,7 +314,6 @@ fun SettingsScreen(
                             .padding(horizontal = 16.dp, vertical = 4.dp),
                         verticalArrangement = Arrangement.spacedBy(18.dp),
                     ) {
-
                         // 1. Display Settings
                         ClaySection(title = "Display Settings") {
                             ClaySettingRow(
@@ -706,7 +687,26 @@ fun SettingsScreen(
                             )
                         }
 
-                        // 4. Download Options
+                        Spacer(Modifier.height(32.dp))
+                    }
+                }
+            }
+
+            SettingsSubScreen.AUDIO_DOWNLOADS -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    SettingsSubTopBar(
+                        title = "Audio & Downloads",
+                        onBack = { subScreen = SettingsSubScreen.MAIN },
+                        isDark = isDark,
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
                         ClaySection(title = "Download Options") {
                             ClaySettingRow(
                                 title = "Streaming",
@@ -791,7 +791,26 @@ fun SettingsScreen(
                             )
                         }
 
-                        // 5. Reminders
+                        Spacer(Modifier.height(32.dp))
+                    }
+                }
+            }
+
+            SettingsSubScreen.NOTIFICATIONS -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    SettingsSubTopBar(
+                        title = "Notifications",
+                        onBack = { subScreen = SettingsSubScreen.MAIN },
+                        isDark = isDark,
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
                         ClaySection(title = "Reminders") {
                             val activeTrackSchedule = activeTrack.reminderScheduleRaw?.let(::decodeSchedule) ?: schedule
                             ClaySettingRow(
@@ -858,7 +877,26 @@ fun SettingsScreen(
                             )
                         }
 
-                        // 6. Advanced & Data
+                        Spacer(Modifier.height(32.dp))
+                    }
+                }
+            }
+
+            SettingsSubScreen.DATA_PRIVACY -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    SettingsSubTopBar(
+                        title = "Data & Privacy",
+                        onBack = { subScreen = SettingsSubScreen.MAIN },
+                        isDark = isDark,
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
                         ClaySection(title = "Advanced & Data") {
                             ClaySettingRow(
                                 title = "Export everything",
@@ -2124,9 +2162,8 @@ fun SettingsScreen(
             }
 
             SettingsDialog.ABOUT_WIRD -> {
-                AboutWirdDialog(
-                    onOpenPrivacyPledge = { activeDialog = SettingsDialog.PRIVACY_PLEDGE },
-                    onDismiss = { activeDialog = null },
+                AboutScreen(
+                    onBack = { activeDialog = null },
                 )
             }
 
@@ -3699,3 +3736,48 @@ fun positionLabelFor(startVerse: Pair<Int, Int>?, page: Int): String {
 }
 
 fun clampPage(page: Int): Int = page.coerceIn(1, Mushaf.PAGES)
+
+@Composable
+private fun SettingsSubTopBar(
+    title: String,
+    onBack: () -> Unit,
+    isDark: Boolean,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(42.dp)
+                .clayCard(
+                    shape = CircleShape,
+                    backgroundColor = if (isDark) Color(0xFF16251E) else Color.White,
+                    highlightColor = Color.White.copy(alpha = if (isDark) 0.15f else 0.95f),
+                    shadowColor = if (isDark) Color.Black.copy(alpha = 0.5f) else Color(0xFF8C7D6B).copy(alpha = 0.22f),
+                    elevation = 3.dp,
+                )
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = if (isDark) Color(0xFF93DB7A) else Color(0xFF1E3F32),
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
+        Spacer(Modifier.width(16.dp))
+
+        Text(
+            text = title,
+            color = if (isDark) Color(0xFFF7F5ED) else Color(0xFF17382D),
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = (-0.5).sp,
+        )
+    }
+}

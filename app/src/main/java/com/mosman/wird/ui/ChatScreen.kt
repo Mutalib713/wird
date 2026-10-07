@@ -1,28 +1,22 @@
 package com.mosman.wird.ui
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -30,10 +24,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,14 +36,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mosman.wird.domain.Commitment
@@ -59,31 +49,17 @@ import com.mosman.wird.domain.Method
 import com.mosman.wird.domain.Speaker
 import com.mosman.wird.domain.Turn
 import com.mosman.wird.ui.theme.LocalWirdColors
-import com.mosman.wird.ui.theme.Scale
-import com.mosman.wird.ui.theme.SetStatusBarAppearance
-import com.mosman.wird.ui.theme.clayCard
-import com.mosman.wird.ui.theme.clayPill
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Part 2: Full Conversational AI Chat Box Architecture.
- *
- * Dedicated screen for deep reflection on today's portion, habit coaching,
- * and offline verse inquiries. Features:
- * - Clean top bar with avatar, online badge, and "+ New Chat" action
- * - Session context divider showing today's portion (e.g. Surah Ya-Sin, Page 444)
- * - Persisted turns in rounded clay message bubbles with timestamps
- * - Horizontally scrollable suggested reflection topic chips with vector icons
- * - Clay capsule composer with mic icon and vector send arrow
+ * Companion Chat screen for the new look (PROFILE § 5bj, PLAN task 28).
+ * Matches screen 10 ("Companion - Chat") in the design brief and prototype/index.html.
  */
 @Composable
 fun ChatScreen(
     turns: List<Turn>,
-    /** The live promise, if one was made and the day is not done. */
     commitment: Commitment?,
-    /** When it will check back — the real armed time, not a guess. */
     checkingBackAt: String?,
     shortcuts: List<String>,
     surahName: String? = null,
@@ -97,10 +73,10 @@ fun ChatScreen(
     onOpenPortion: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
-    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
-    val gold = Color(0xFFC9A24B)
     var typed by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+
+    BackHandler(onBack = onBack)
 
     fun send(text: String) {
         val t = text.trim()
@@ -109,191 +85,113 @@ fun ChatScreen(
         onSend(t)
     }
 
-    // Auto-scroll to the bottom when new messages arrive
     LaunchedEffect(turns.size) {
-        if (turns.isNotEmpty()) listState.animateScrollToItem(turns.size)
+        if (turns.isNotEmpty()) {
+            listState.animateScrollToItem(turns.size)
+        }
     }
-
-    SetStatusBarAppearance(isLightBackground = !isDark)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDark) Color(0xFF08120D) else Color(0xFFF7F4EC))
-            .safeDrawingPadding(),
+            .background(colors.field)
+            .statusBarsPadding(),
     ) {
-        // ---- Top Bar: Avatar, Online Dot, Title, + New Chat Button ----
+        // ---- Top Header: Back + Leaf avatar + Title & Subtitle ----
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(if (isDark) Color(0xFF11231B) else Color(0xFFFFFFFF))
-                .padding(horizontal = Scale.space4, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Back button circle
-                Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(if (isDark) Color(0xFF182C22) else Color(0xFFF1EDE1))
-                        .clickable(onClick = onBack),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = colors.textPrimary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                Spacer(Modifier.width(10.dp))
-
-                // Avatar with green online dot
-                Box {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(if (isDark) Color(0xFF1A382A) else Color(0xFFDEE9E1))
-                            .border(
-                                width = 1.dp,
-                                color = if (isDark) Color(0xFF7EBB6A).copy(alpha = 0.3f) else Color(0xFF245847).copy(alpha = 0.2f),
-                                shape = CircleShape,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CompanionChatVectorIcon(
-                            tint = if (isDark) Color(0xFF8ED676) else Color(0xFF245847),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                    // Green online indicator dot
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF7EBB6A))
-                            .border(1.5.dp, if (isDark) Color(0xFF11231B) else Color.White, CircleShape)
-                            .align(Alignment.BottomEnd),
-                    )
-                }
-
-                Spacer(Modifier.width(10.dp))
-
-                Column {
-                    Text(
-                        text = "Wird Companion",
-                        color = colors.textPrimary,
-                        style = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Bold),
-                    )
-                    Text(
-                        text = "Qur'an Reflection · Always Private",
-                        color = colors.textSecondary,
-                        style = TextStyle(fontSize = 11.sp),
-                    )
-                }
-            }
-
-            // Right: "+ New Chat" Action Pill
-            Row(
+            Box(
                 modifier = Modifier
+                    .size(40.dp)
                     .clip(CircleShape)
-                    .background(gold.copy(alpha = 0.15f))
-                    .border(0.8.dp, gold.copy(alpha = 0.35f), CircleShape)
-                    .clickable(onClick = onNewChat)
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    .clickable { onBack() },
+                contentAlignment = Alignment.Center,
             ) {
-                PlusVectorIcon(tint = gold, modifier = Modifier.size(12.dp))
+                Icon(
+                    imageVector = WirdIcons.Back,
+                    contentDescription = "Back",
+                    tint = colors.ink,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(colors.disc),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = WirdIcons.Leaf,
+                    contentDescription = null,
+                    tint = colors.action,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "New Chat",
-                    color = if (isDark) Color(0xFFF0D590) else Color(0xFF8A6418),
-                    style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold),
+                    text = "Wird Companion",
+                    style = TextStyle(
+                        fontFamily = FontFamily.Serif,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.ink,
+                    ),
+                )
+                Text(
+                    text = "Verses and your plan work offline",
+                    fontSize = 12.sp,
+                    color = colors.ink2,
                 )
             }
         }
-        Hairline()
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(colors.rule),
+        )
 
         // ---- Conversation Stream ----
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(Scale.space4),
-            verticalArrangement = Arrangement.spacedBy(Scale.space3),
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // 1. Session Context Divider
-            item {
-                val portionLabel = if (surahName != null && pageNumber != null) {
-                    "$surahName (Page $pageNumber)"
-                } else surahName ?: pageNumber?.let { "Page $it" } ?: "Daily Portion"
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(colors.ornament.copy(alpha = 0.25f)),
-                    )
-                    Text(
-                        text = "TODAY'S REFLECTION · $portionLabel",
-                        color = colors.textSecondary,
-                        style = TextStyle(
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp,
-                        ),
-                        modifier = Modifier
-                            .background(if (isDark) Color(0xFF08120D) else Color(0xFFF7F4EC))
-                            .padding(horizontal = 12.dp),
-                    )
-                }
-            }
-
-            // 2. Active Commitment Card
-            commitment?.let { c ->
-                item {
-                    CommitmentCard(c, checkingBackAt)
-                    Spacer(Modifier.height(Scale.space2))
-                }
-            }
-
-            // 3. Conversation Turns
+            // Initial welcoming turn if turns are empty
             if (turns.isEmpty()) {
                 item {
-                    val initialGreeting = "Assalamu Alaikum! Today's portion is Page ${pageNumber ?: 1}${surahName?.let { " from $it" } ?: ""}. How did your recitation go today, and what would you like to reflect on?"
-                    BotBubble(
-                        text = initialGreeting,
-                        time = LocalTime.now().format(DateTimeFormatter.ofPattern("h:mm a")),
-                        isDark = isDark,
+                    val portionDesc = if (surahName != null && pageNumber != null) {
+                        "Page $pageNumber ($surahName)"
+                    } else if (pageNumber != null) {
+                        "Page $pageNumber"
+                    } else {
+                        "your portion"
+                    }
+                    val welcomeText = "Assalamu Alaikum! Today's portion is $portionDesc. Ask about any verse, or adjust your daily plan and reminder times."
+                    NewLookBotMessage(
+                        text = welcomeText,
                         onOpenPortion = onOpenPortion,
                     )
                 }
             } else {
                 items(turns) { turn ->
                     if (turn.who == Speaker.YOU) {
-                        UserBubble(
-                            text = turn.text,
-                            time = whenSaid(turn.at),
-                            isDark = isDark,
-                        )
+                        NewLookUserMessage(text = turn.text)
                     } else {
-                        BotBubble(
+                        NewLookBotMessage(
                             text = turn.text,
-                            time = whenSaid(turn.at),
-                            isDark = isDark,
                             onOpenPortion = onOpenPortion,
                         )
                     }
@@ -301,291 +199,198 @@ fun ChatScreen(
             }
         }
 
-        // ---- Suggested Topics / Quick Chips Row ----
-        val chips = remember(shortcuts) {
-            if (shortcuts.isNotEmpty()) shortcuts else listOf(
-                "Tafsir & Translation",
-                "How am I doing?",
-                "Where am I?",
-                "Already recited today",
-                "Remind in 1 hour",
-                "Not today",
-            )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = Scale.space4, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            chips.forEach { chipText ->
-                ChatTopicChip(label = chipText, onClick = { send(chipText) })
-            }
-        }
-
-        Hairline()
-
-        // ---- Bottom Clay Composer ----
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(if (isDark) Color(0xFF102119) else Color(0xFFFFFFFF))
-                .padding(horizontal = Scale.space4, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            // Rounded input capsule
-            Box(
+        // ---- Suggestions row ----
+        if (shortcuts.isNotEmpty()) {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .clayPill(
-                        shape = RoundedCornerShape(999.dp),
-                        backgroundColor = if (isDark) Color(0xFF09130E) else Color(0xFFF1EDE3),
-                        highlightColor = Color.White.copy(alpha = if (isDark) 0.08f else 0.85f),
-                        shadowColor = if (isDark) Color.Black.copy(alpha = 0.45f) else Color(0xFF8C7D6B).copy(alpha = 0.16f),
-                        elevation = 2.dp,
-                    )
-                    .defaultMinSize(minHeight = 44.dp)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                contentAlignment = Alignment.CenterStart,
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                    if (typed.isEmpty()) {
+                shortcuts.forEach { chipText ->
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(colors.card)
+                            .clickable { send(chipText) }
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                    ) {
                         Text(
-                            text = "Type your reflection or ask a question...",
-                            color = if (isDark) Color(0xFF8FA597) else Color(0xFF8B9E93),
-                            style = TextStyle(fontSize = 13.sp),
+                            text = chipText,
+                            fontSize = 13.sp,
+                            color = colors.ink,
                         )
                     }
-                    BasicTextField(
-                        value = typed,
-                        onValueChange = { typed = it },
-                        textStyle = TextStyle(
-                            fontSize = 13.5.sp,
-                            color = if (isDark) Color(0xFFE4E9E5) else Color(0xFF17382D),
-                        ),
-                        cursorBrush = SolidColor(if (isDark) Color(0xFF8ED676) else Color(0xFF245847)),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
                 }
             }
+        }
 
-            // Circular emerald send button
-            val canSend = typed.isNotBlank()
-            val sendBg = if (canSend) {
-                if (isDark) Color(0xFF2A6350) else Color(0xFF245847)
-            } else {
-                if (isDark) Color(0xFF13251D) else Color(0xFFE2E7DE)
+        // ---- Bottom Input Bar ----
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp)
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(colors.card)
+                    .padding(horizontal = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BasicTextField(
+                    value = typed,
+                    onValueChange = { typed = it },
+                    textStyle = TextStyle(
+                        fontSize = 15.sp,
+                        color = colors.ink,
+                    ),
+                    cursorBrush = SolidColor(colors.action),
+                    modifier = Modifier.weight(1f),
+                    decorationBox = { innerTextField ->
+                        if (typed.isEmpty()) {
+                            Text(
+                                text = "Ask, or tell me something",
+                                fontSize = 15.sp,
+                                color = colors.ink2,
+                            )
+                        }
+                        innerTextField()
+                    },
+                )
             }
-            val sendBorder = if (canSend) {
-                if (isDark) Color(0xFF3E836A) else Color(0xFF1C4336)
-            } else {
-                if (isDark) Color(0xFF1D352A) else Color(0xFFCAD4CD)
-            }
-            val sendIconTint = if (canSend) {
-                Color.White
-            } else {
-                if (isDark) Color(0xFF486B5A) else Color(0xFF8A9D93)
-            }
+
+            Spacer(Modifier.width(10.dp))
 
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
-                    .background(sendBg)
-                    .border(1.dp, sendBorder, CircleShape)
-                    .clickable(
-                        enabled = canSend,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ) { send(typed) }
-                    .semantics { contentDescription = "Send" },
+                    .background(if (typed.isNotBlank()) colors.action else colors.chip)
+                    .clickable(enabled = typed.isNotBlank()) { send(typed) },
                 contentAlignment = Alignment.Center,
             ) {
-                SendVectorIcon(
-                    tint = sendIconTint,
-                    modifier = Modifier.size(18.dp),
+                Icon(
+                    imageVector = WirdIcons.Send,
+                    contentDescription = "Send",
+                    tint = if (typed.isNotBlank()) colors.onAction else colors.ink2,
+                    modifier = Modifier.size(20.dp),
                 )
             }
         }
     }
 }
 
-/**
- * Suggested Topic Chip with vector iconography conforming to Sacred Rule 6.
- */
 @Composable
-private fun ChatTopicChip(label: String, onClick: () -> Unit) {
+private fun NewLookUserMessage(text: String) {
     val colors = LocalWirdColors.current
-    val isDark = colors.surface == Color(0xFF212121) || colors.surface == Color(0xFF191A1E)
-    val l = label.lowercase()
-
     Row(
-        modifier = Modifier
-            .clayPill(
-                shape = CircleShape,
-                backgroundColor = if (isDark) Color(0xFF16251E) else Color(0xFFF1ECE1),
-                highlightColor = Color.White.copy(alpha = if (isDark) 0.1f else 0.85f),
-                shadowColor = if (isDark) Color.Black.copy(alpha = 0.4f) else Color(0xFF8C7D6B).copy(alpha = 0.15f),
-                elevation = 2.dp,
-            )
-            .clickable(onClick = onClick)
-            .defaultMinSize(minHeight = 36.dp)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.End,
     ) {
-        val glyphTint = if (isDark) Color(0xFFBAD3C5) else Color(0xFF204C3D)
-        when {
-            l.contains("tafsir") || l.contains("explain") || l.contains("verse") -> {
-                CompanionBookVectorIcon(tint = glyphTint, modifier = Modifier.size(13.dp))
-            }
-            l.contains("how") || l.contains("doing") || l.contains("streak") -> {
-                FlameVectorIcon(tint = glyphTint, modifier = Modifier.size(13.dp))
-            }
-            l.contains("where") || l.contains("position") || l.contains("page") -> {
-                CompanionBookVectorIcon(tint = glyphTint, modifier = Modifier.size(13.dp))
-            }
-            l.contains("recited") || l.contains("already") || l.contains("done") -> {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = glyphTint,
-                    modifier = Modifier.size(13.dp),
+        Box(
+            modifier = Modifier
+                .widthIn(max = 290.dp)
+                .clip(
+                    RoundedCornerShape(
+                        topStart = 20.dp,
+                        topEnd = 20.dp,
+                        bottomStart = 20.dp,
+                        bottomEnd = 6.dp,
+                    ),
                 )
-            }
-            l.contains("hour") || l.contains("remind") || l.contains("time") -> {
-                ClockVectorIcon(tint = glyphTint, modifier = Modifier.size(13.dp))
-            }
-            l.contains("not") || l.contains("skip") || l.contains("no") -> {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = null,
-                    tint = glyphTint,
-                    modifier = Modifier.size(13.dp),
-                )
-            }
-            else -> {
-                Box(
-                    modifier = Modifier
-                        .size(5.dp)
-                        .clip(CircleShape)
-                        .background(glyphTint),
-                )
-            }
+                .background(colors.action)
+                .padding(horizontal = 16.dp, vertical = 11.dp),
+        ) {
+            Text(
+                text = text,
+                fontSize = 15.sp,
+                lineHeight = 21.sp,
+                color = colors.onAction,
+            )
         }
-        Text(
-            text = label,
-            color = glyphTint,
-            style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold),
-        )
     }
 }
 
-/**
- * The promise, held in view.
- */
 @Composable
-private fun CommitmentCard(commitment: Commitment, checkingBackAt: String?) {
+private fun NewLookBotMessage(
+    text: String,
+    onOpenPortion: (() -> Unit)? = null,
+) {
     val colors = LocalWirdColors.current
+    val isVerseResponse = text.contains("━━━━━━━━━━━━━━━") || (text.contains(":") && text.contains("— Translation:"))
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(Scale.radius))
-            .border(1.5.dp, colors.accent, RoundedCornerShape(Scale.radius))
-            .padding(18.dp),
+            .padding(end = 24.dp),
     ) {
-        Text(
-            text = "YOU SAID",
-            color = colors.textSecondary,
-            style = TextStyle(fontSize = 11.sp, letterSpacing = 1.1.sp, fontWeight = FontWeight.Bold),
-        )
-        Spacer(Modifier.height(Scale.space2))
-        Text(
-            text = "“${commitment.spoken}”",
-            color = colors.textPrimary,
-            style = TextStyle(fontSize = 28.sp),
-        )
+        if (isVerseResponse) {
+            val parts = text.split("━━━━━━━━━━━━━━━")
+            val mainPart = parts.firstOrNull()?.trim() ?: text
+            val tafsirPart = if (parts.size > 1) parts[1].trim() else null
 
-        checkingBackAt?.let { at ->
-            Spacer(Modifier.height(Scale.space4))
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(colors.ornament.copy(alpha = 0.3f)),
-            )
-            Spacer(Modifier.height(Scale.space4))
-            Row(
+            Card(
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = colors.card),
+                border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom,
             ) {
-                Text(
-                    text = "Checking back at",
-                    color = colors.textSecondary,
-                    style = TextStyle(fontSize = Scale.caption),
-                )
-                Text(
-                    text = at,
-                    color = colors.textPrimary,
-                    style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
-                )
-            }
-        }
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = mainPart,
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp,
+                        color = colors.ink,
+                    )
 
-        Spacer(Modifier.height(Scale.space3))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            BreathingDot()
-            Spacer(Modifier.width(Scale.space2))
+                    if (!tafsirPart.isNullOrBlank()) {
+                        Spacer(Modifier.height(12.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(colors.rule),
+                        )
+                        Spacer(Modifier.height(10.dp))
+                        Text(
+                            text = tafsirPart,
+                            fontSize = 13.5.sp,
+                            lineHeight = 20.sp,
+                            color = colors.ink2,
+                        )
+                    }
+
+                    if (onOpenPortion != null) {
+                        Spacer(Modifier.height(14.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(colors.action)
+                                .clickable { onOpenPortion() }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                text = "Open in Qur'an",
+                                fontSize = 13.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.onAction,
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
             Text(
-                text = "Holding since ${clockOf(commitment.madeAt)} · reminder moved to match",
-                color = colors.textSecondary,
-                style = TextStyle(fontSize = Scale.caption),
+                text = text,
+                fontSize = 15.sp,
+                lineHeight = 22.sp,
+                color = colors.ink,
             )
         }
     }
 }
-
-/**
- * A slow breathing pulse for the commitment state.
- */
-@Composable
-private fun BreathingDot() {
-    val colors = LocalWirdColors.current
-    val transition = rememberInfiniteTransition(label = "holding")
-    val pulse by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2400),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "pulse",
-    )
-    Box(
-        Modifier
-            .size(6.dp)
-            .clip(CircleShape)
-            .background(colors.accent)
-            .alpha(pulse),
-    )
-}
-
-@Composable
-private fun Hairline() {
-    val colors = LocalWirdColors.current
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(1.dp)
-            .background(colors.ornament.copy(alpha = 0.2f)),
-    )
-}
-
-/** "6:12 pm". Lower case, because "6:12 PM" shouts in the middle of a sentence. */
-internal fun clockOf(at: LocalDateTime): String =
-    at.format(DateTimeFormatter.ofPattern("h:mm a")).lowercase()
-

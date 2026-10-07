@@ -1,8 +1,11 @@
 package com.mosman.wird.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,7 +54,7 @@ import com.mosman.wird.domain.arabicName
 import com.mosman.wird.domain.surahs
 import com.mosman.wird.ui.theme.LocalWirdColors
 
-private enum class QuranSubView { MAIN, SURAHS, JUZ }
+enum class QuranSubView { MAIN, SURAHS, JUZ }
 private enum class SurahFilter { ALL, MAKKI, MADANI }
 
 /**
@@ -67,9 +70,10 @@ fun QuranTab(
     onOpenDownloads: () -> Unit,
     onOpenSearch: () -> Unit,
     modifier: Modifier = Modifier,
+    initialSubView: QuranSubView = QuranSubView.MAIN,
 ) {
     val colors = LocalWirdColors.current
-    var subView by remember { mutableStateOf(QuranSubView.MAIN) }
+    var subView by remember(initialSubView) { mutableStateOf(initialSubView) }
     var showPageDialog by remember { mutableStateOf(false) }
 
     when (subView) {
@@ -79,7 +83,8 @@ fun QuranTab(
                     .fillMaxSize()
                     .background(colors.field)
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
             ) {
                 Spacer(Modifier.height(18.dp))
                 Text(
@@ -406,6 +411,8 @@ private fun SurahsBrowserScreen(
         }
     }
 
+    BackHandler(onBack = onBack)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -565,6 +572,8 @@ private fun JuzBrowserScreen(
             26 to 502, 27 to 522, 28 to 542, 29 to 562, 30 to 582,
         )
     }
+
+    BackHandler(onBack = onBack)
 
     Column(
         modifier = Modifier

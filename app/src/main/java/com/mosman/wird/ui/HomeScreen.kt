@@ -137,6 +137,7 @@ fun HomeScreen(
     onUndoMarkRead: (() -> Unit)? = null,
     onNavigateTab: (WirdTab) -> Unit = {},
     onOpenSurahs: () -> Unit = {},
+    onOpenProgress: () -> Unit = { onNavigateTab(WirdTab.WIRD) },
     mode: ReadingMode = ReadingMode.READING,
     onOpenInQuran: (() -> Unit)? = null,
     onOpenBookmarks: () -> Unit = {},
@@ -165,7 +166,7 @@ fun HomeScreen(
         R.drawable.header_day
     }
 
-    SetStatusBarAppearance(isLightBackground = false)
+    SetStatusBarAppearance(isLightBackground = !isDark)
 
     var showSwitchTrackSheet by remember { mutableStateOf(false) }
 
@@ -248,18 +249,28 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize(),
                 )
 
-                // Veil gradient
+                // Veil gradient: warm cream in light mode, deep slate green in dark mode
+                val veilBrush = remember(isDark) {
+                    if (isDark) {
+                        Brush.horizontalGradient(
+                            0.0f to Color(0xDC182724),
+                            0.50f to Color(0x80182724),
+                            0.82f to Color(0x14182724),
+                            1.0f to Color.Transparent,
+                        )
+                    } else {
+                        Brush.horizontalGradient(
+                            0.0f to Color(0xF2F7F0DC),
+                            0.45f to Color(0xA6F7F0DC),
+                            0.78f to Color(0x10F7F0DC),
+                            1.0f to Color.Transparent,
+                        )
+                    }
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.horizontalGradient(
-                                0.0f to Color(0xDD182724),
-                                0.55f to Color(0x8A182724),
-                                0.85f to Color(0x18182724),
-                                1.0f to Color.Transparent,
-                            )
-                        ),
+                        .background(veilBrush),
                 )
 
                 // Fade to bottom field ground
@@ -667,7 +678,7 @@ fun HomeScreen(
                 val reciteRate = if (totalDaysRead > 0) ((recitedDays.toFloat() / totalDaysRead) * 100).toInt().coerceIn(0, 100) else 0
 
                 Card(
-                    onClick = { onNavigateTab(WirdTab.WIRD) },
+                    onClick = onOpenProgress,
                     shape = RoundedCornerShape(18.dp),
                     colors = CardDefaults.cardColors(containerColor = colors.card),
                     border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
@@ -881,7 +892,7 @@ fun HomeScreen(
 
                     // History
                     Card(
-                        onClick = { onNavigateTab(WirdTab.WIRD) },
+                        onClick = onOpenProgress,
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = colors.card),
                         border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),

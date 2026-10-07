@@ -50,7 +50,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private enum class WirdSegment { TRACKS, PROGRESS }
+enum class WirdSegment { TRACKS, PROGRESS }
 
 /**
  * Your Wird tab in the new look (PROFILE § 5bj, PLAN task 28).
@@ -68,10 +68,11 @@ fun YourWirdTab(
     onCreateTrack: () -> Unit,
     onOpenRecordings: () -> Unit,
     modifier: Modifier = Modifier,
+    initialSegment: WirdSegment = WirdSegment.TRACKS,
     today: LocalDate = LocalDate.now(),
 ) {
     val colors = LocalWirdColors.current
-    var segment by remember { mutableStateOf(WirdSegment.TRACKS) }
+    var segment by remember(initialSegment) { mutableStateOf(initialSegment) }
 
     Column(
         modifier = modifier

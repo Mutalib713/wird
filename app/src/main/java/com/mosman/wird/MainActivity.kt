@@ -97,8 +97,10 @@ import com.mosman.wird.ui.SurahsTab
 import com.mosman.wird.ui.WirdTab
 import com.mosman.wird.ui.WirdBottomBar
 import com.mosman.wird.ui.QuranTab
+import com.mosman.wird.ui.QuranSubView
 import com.mosman.wird.ui.CompanionTab
 import com.mosman.wird.ui.YourWirdTab
+import com.mosman.wird.ui.WirdSegment
 import com.mosman.wird.ui.ToolkitSpotlightOverlay
 import com.mosman.wird.ui.SetupScreen
 import com.mosman.wird.ui.TodayScreen
@@ -363,6 +365,8 @@ class MainActivity : ComponentActivity() {
             var menuOpen by remember { mutableStateOf(false) }
             var armed by remember { mutableStateOf<Armed?>(null) }
             var tab by remember { mutableStateOf(WirdTab.HOME) }
+            var quranSubView by remember { mutableStateOf(QuranSubView.MAIN) }
+            var wirdSegment by remember { mutableStateOf(WirdSegment.TRACKS) }
             /** Set when a surah is picked from the Sūrahs tab; consumed by TodayScreen. */
             var openPage by remember { mutableStateOf<Int?>(null) }
             /** Home is a dashboard (PROFILE 5g); the page is one tap behind it. */
@@ -1057,7 +1061,14 @@ class MainActivity : ComponentActivity() {
                                     nudgeWidget()
                                 },
                                 onNavigateTab = { t -> tab = t },
-                                onOpenSurahs = { tab = WirdTab.QURAN },
+                                onOpenSurahs = {
+                                    quranSubView = QuranSubView.SURAHS
+                                    tab = WirdTab.QURAN
+                                },
+                                onOpenProgress = {
+                                    wirdSegment = WirdSegment.PROGRESS
+                                    tab = WirdTab.WIRD
+                                },
                                 turns = turns,
                                 onSaid = { said(it) },
                                 onOpenChat = { onChat = true },
@@ -1102,6 +1113,7 @@ class MainActivity : ComponentActivity() {
 
                             WirdTab.QURAN -> QuranTab(
                                 lastReadPage = store.recentPages.firstOrNull() ?: assignment.startPage,
+                                initialSubView = quranSubView,
                                 onOpenPage = { p ->
                                     openPage = p
                                     onPage = true
@@ -1110,7 +1122,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onOpenBookmarks = { screen = Screen.BOOKMARKS },
                                 onOpenDownloads = {
-                                    settingsInitialSubScreen = SettingsSubScreen.MAIN
+                                    settingsInitialSubScreen = SettingsSubScreen.AUDIO_DOWNLOADS
                                     settingsInitialDialog = SettingsDialog.DOWNLOAD_AMOUNT
                                     screen = Screen.SETTINGS
                                 },
@@ -1158,6 +1170,7 @@ class MainActivity : ComponentActivity() {
                                         allTracks = allTracks,
                                         progress = progress,
                                         logs = logs,
+                                        initialSegment = wirdSegment,
                                         onSelectTrack = { track ->
                                             overrideActiveTrackId = null
                                             overrideTrackId = null
@@ -1178,7 +1191,15 @@ class MainActivity : ComponentActivity() {
                         // New Look bottom navigation bar
                         WirdBottomBar(
                             current = tab,
-                            onPick = { tab = it },
+                            onPick = { picked ->
+                                if (picked == WirdTab.QURAN && tab != WirdTab.QURAN) {
+                                    quranSubView = QuranSubView.MAIN
+                                }
+                                if (picked == WirdTab.WIRD && tab != WirdTab.WIRD) {
+                                    wirdSegment = WirdSegment.TRACKS
+                                }
+                                tab = picked
+                            },
                             modifier = Modifier.align(Alignment.BottomCenter),
                         )
 
