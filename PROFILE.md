@@ -1496,6 +1496,16 @@ not know the convention. **It ships unaltered.** He was offered a cleaned-up ver
 not take it, which is the right call: rewriting a published source's text is Sacred Rule 2
 territory even when the text is transliteration rather than Qur'an.
 
+**⚠ One narrow exception, his explicit decision of 2026-10-07: Gumi's broken letters.** Quran.com's
+Hausa has three capital letters replaced by other characters from an old font encoding: `¡` for
+Ƙ (91 times, "Rãnar ¡iyãma"), `¦` for Ɗ (43), `¥` for Ɓ (2). The fawazahmed0 copy has the same, so
+it is upstream. Asked whether to fix them, he said fix. This restores letters lost in encoding
+and changes no word; it is not the clean-up he declined above. The bundled files stay exactly as
+Quran.com serves them, and `hausaLetters()` in `data/Translations.kt` swaps the three characters
+where the text is read, for every screen and word search. A Tamil letter inside a word in 59:23
+("Mai t஛astãwa") stays as published, because what it stood for is not clear. No other wording is
+to be changed without asking him again.
+
 **Placement: a second reading mode.** A toggle in the page's overflow — Mushaf or Translation.
 **Not interleaved into the mushaf page, and that is a hard constraint rather than a preference:**
 the page is drawn as fixed glyph lines from a per-page QCF font, and inserting English between
@@ -2924,7 +2934,10 @@ change with no start verse resumes from the first verse of its stored half-page.
   results' words in 88 ms; "allah" finds 2,270 verses in 34 ms. A debug build is about ten times
   slower (812, 510 and 801 ms), because debug builds run Android's own text code uncompiled.
 - **The cost: 911 KB more APK** (the four files as stored in the release APK, which is 10.8 MB).
-  ⚠ **Open, his call:** keep it, or fold on the phone instead and accept a slow first search.
+  **His decision, 2026-10-07: keep it.** Folding on the phone instead is not to be reintroduced to
+  save the space.
+- **Hausa search finds the repaired letters** (2026-10-07): "kiyama" finds the verses of Rãnar
+  Ƙiyãma, which the broken `¡` used to hide. See the Gumi note under § 5z.
 - **Not in this version:** a word's whole family from its root (needs morphology data; the Quranic
   Arabic Corpus is GPL with its own conditions, so a licence check comes first), tafsir search,
   forgiving bad misspellings.
@@ -2945,6 +2958,7 @@ fingerprints together, in `audio/Recogniser.kt`.
 - **Gemini's free tier, opt-in, with a plain notice first:** the question goes to Google, Google may
   use it and its reviewers may read it (Gemini API terms, read 2026-10-04), so no personal details.
   The Privacy Pledge changes when this ships.
-- **Built after word search.** Where the server runs (Vercel or Cloudflare) is still his call.
+- **Built after word search, on Vercel** (his decision, 2026-10-07): a function in the showcase
+  project he already deploys, so one account and a deploy on every push. Not Cloudflare.
 - Sacred Rule 2 holds: the model points to verses and hadith; the app shows the verse from its own
   bundled text and drops references that don't exist.

@@ -68,7 +68,7 @@ object SearchTexts {
         val pages = paths.distinct().map { path -> async(Dispatchers.IO) { path to pageVerses(app, path) } }.awaitAll().toMap()
         val hits = matches.mapIndexed { i, m ->
             val text = pages.getValue(paths[i])["${m.key.first}:${m.key.second}"].orEmpty()
-            QuranSearch.hit(m, if (m.field == Field.HAUSA) decodeEntities(text) else text)
+            QuranSearch.hit(m, sourceOf(m.field)?.let { shown(it, text) } ?: text)
         }
         Log.i(TAG, "words for ${hits.size} results from ${pages.size} pages in ${(System.nanoTime() - started) / 1_000_000} ms")
         hits
@@ -97,15 +97,18 @@ object SearchTexts {
 
     private const val TAG = "WirdSearch"
 
+    /** The translation behind [field]; the Arabic is not one. */
+    private fun sourceOf(field: Field): TranslationSource? = when (field) {
+        Field.ARABIC -> null
+        Field.ENGLISH -> TranslationSource.SAHEEH
+        Field.HAUSA -> TranslationSource.HAUSA
+        Field.TRANSLITERATION -> TranslationSource.TRANSLITERATION
+    }
+
     /** The page file holding [key]'s text in [field], the one the reading page shows. */
     private fun pathOf(field: Field, key: Pair<Int, Int>): String {
         val page = VerseIndex.pageOf(key)
-        return when (field) {
-            Field.ARABIC -> "arabic/$page.json"
-            Field.ENGLISH -> "translations/${TranslationSource.SAHEEH.id}/$page.json"
-            Field.HAUSA -> "translations/${TranslationSource.HAUSA.id}/$page.json"
-            Field.TRANSLITERATION -> "translations/${TranslationSource.TRANSLITERATION.id}/$page.json"
-        }
+        return sourceOf(field)?.let { "translations/${it.id}/$page.json" } ?: "arabic/$page.json"
     }
 
     /** Page files read for results lately, each as verse key to text; "Show more" reuses them. */

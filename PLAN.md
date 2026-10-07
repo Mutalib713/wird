@@ -705,7 +705,7 @@ question is not *which engine* but *whether the companion earns one at all* — 
 ## Milestone 4c — Finding a verse
 
 - [ ] **26. Word search across the Qur'an** — planned 2026-10-04, **built 2026-10-04 to 07; one
-  device check and one decision of his left** (status under *Done when*)
+  device check left** (status under *Done when*)
   Type a word in Arabic (with or without vowel marks), English, Hausa or transliteration and get
   every verse that holds it, the match highlighted; tap one to open its page. All four texts are
   already in the app, so it needs no download and works offline.
@@ -748,7 +748,10 @@ question is not *which engine* but *whether the companion earns one at all* — 
     PROFILE § 5bg: folding on the phone took 51 s, so the folded text now ships with the app.
   - ⏳ Opening a result: it opens the page that holds the ayah (QuranSearchTest checks the page for
     all 6,236), but nobody has tapped one on a device since the rewrite.
-  - ⏳ **His call:** the ready-made search files add 911 KB to the APK (PROFILE § 5bg).
+  - ✅ The ready-made search files add 911 KB to the APK. **He chose to keep them, 2026-10-07**
+    (PROFILE § 5bg).
+  - Also 2026-10-07, his decision: Gumi's Hausa shows Ƙ, Ɗ and Ɓ where Quran.com's file has `¡`,
+    `¦` and `¥` (PROFILE § 5z), so "kiyama" now finds Rãnar Ƙiyãma.
 
 - [ ] **27. The Gemini research assistant** — planned 2026-10-04, **next after task 26**
   The Companion answers questions about the Qur'an with the verses, hadith and links behind the
@@ -771,9 +774,9 @@ question is not *which engine* but *whether the companion earns one at all* — 
   *Sacred Rule 2 binds:* the model names verses by key (2:255) and hadith by collection and
   number; the app shows the verse from its own bundled text and translation, never the model's
   wording of it, and drops any key that doesn't exist. Hadith come with a sunnah.com link.
-  *Open, his call:* where the server runs. Either a Vercel function in the showcase project he
-  already deploys (one account, deploys on every push), or a Cloudflare Worker (larger free tier,
-  a new account). Either needs somewhere to count each phone's questions.
+  *Where the server runs, his decision 2026-10-07:* **Vercel**, a function in the showcase
+  project he already deploys (one account, deploys on every push). It still needs somewhere to
+  count each phone's questions; that choice comes with the build.
   *He creates the key himself* in Google AI Studio and pastes it into the host's secret settings;
   no session types a key anywhere.
   *Done when:* asking about Ayat al-Kursi returns an answer citing 2:255, shown from the app's own

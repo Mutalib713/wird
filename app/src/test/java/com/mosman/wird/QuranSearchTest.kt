@@ -1,6 +1,7 @@
 package com.mosman.wird
 
-import com.mosman.wird.data.decodeEntities
+import com.mosman.wird.data.TranslationSource
+import com.mosman.wird.data.shown
 import com.mosman.wird.data.versesIn
 import com.mosman.wird.domain.QuranSearch
 import com.mosman.wird.domain.QuranSearch.Field
@@ -36,7 +37,7 @@ class QuranSearchTest {
             return List(arr.length()) { i -> arr.getJSONObject(i).let { it.getString("v") to it.getString("t") } }
         }
 
-        /** Every verse's four texts, exactly as the app shows them (Hausa decoded). */
+        /** Every verse's four texts, exactly as the app shows them (through [shown]). */
         val verses: List<QuranSearch.VerseText> by lazy {
             val out = ArrayList<QuranSearch.VerseText>(6236)
             for (page in 1..604) {
@@ -45,7 +46,13 @@ class QuranSearchTest {
                 val tr = pageFile(Field.TRANSLITERATION, page).toMap()
                 for ((key, arabic) in pageFile(Field.ARABIC, page)) {
                     val (s, a) = key.split(':').map(String::toInt)
-                    out += QuranSearch.VerseText(s to a, arabic, en[key].orEmpty(), decodeEntities(ha[key].orEmpty()), tr[key].orEmpty())
+                    out += QuranSearch.VerseText(
+                        key = s to a,
+                        arabic = arabic,
+                        english = shown(TranslationSource.SAHEEH, en[key].orEmpty()),
+                        hausa = shown(TranslationSource.HAUSA, ha[key].orEmpty()),
+                        transliteration = shown(TranslationSource.TRANSLITERATION, tr[key].orEmpty()),
+                    )
                 }
             }
             out
@@ -175,6 +182,17 @@ class QuranSearchTest {
             assertTrue("${each.key} has a highlight", each.highlight.isNotEmpty())
         }
         assertTrue(found.first { it.key == 12 to 39 }.text.startsWith("\"Yã abõkaina"))
+    }
+
+    @Test
+    fun hausa_letters_that_arrived_broken_read_as_hausa() {
+        // Quran.com's Gumi writes Ƙ, Ɗ and Ɓ as ¡, ¦ and ¥; repaired where read (2026-10-07).
+        assertTrue(verses.none { v -> v.hausa.any { it == '¡' || it == '¦' || it == '¥' } })
+        assertTrue(byKey.getValue(2 to 85).hausa.contains("Rãnar Ƙiyãma"))
+        assertTrue(byKey.getValue(30 to 41).hausa.startsWith("Ɓarnã"))
+        // The Day of Resurrection is found by its Hausa name now; before, those verses were missed.
+        assertTrue("2:85 by Ƙiyãma", (2 to 85) in keys("kiyama"))
+        assertTrue("43:57, Ɗan Maryama", (43 to 57) in keys("dan maryama"))
     }
 
     @Test

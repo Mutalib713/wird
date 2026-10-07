@@ -56,7 +56,7 @@ class Translations(private val context: Context) {
                     buildList {
                         for (i in 0 until arr.length()) {
                             val o = arr.getJSONObject(i)
-                            add(TranslatedVerse(o.getString("v"), decodeEntities(o.getString("t"))))
+                            add(TranslatedVerse(o.getString("v"), shown(source, o.getString("t"))))
                         }
                     }
                 }
@@ -134,3 +134,20 @@ internal fun decodeEntities(text: String): String =
     if ('&' !in text) text
     else text.replace("&quot;", "\"").replace("&#39;", "'").replace("&lt;", "<")
         .replace("&gt;", ">").replace("&amp;", "&")
+
+/**
+ * Gumi's Hausa, as Quran.com serves it, has three capital letters replaced by other characters,
+ * left over from an old font encoding: `¡` for Ƙ (91 times, "Rãnar ¡iyãma"), `¦` for Ɗ (43, "¦an
+ * Maryama"), `¥` for Ɓ (2, "¥arnã" in 30:41 and 41:42). The fawazahmed0 copy has the same
+ * characters, so the fault is upstream. His decision, 2026-10-07: show the real letters. They are
+ * replaced here, where the text is read, so the bundled files stay identical to Quran.com's and
+ * can still be checked against it. One more stray character, a Tamil letter inside a word in
+ * 59:23, is left as published: what it stood for isn't clear.
+ */
+internal fun hausaLetters(text: String): String =
+    if ('¡' !in text && '¦' !in text && '¥' !in text) text
+    else text.replace('¡', 'Ƙ').replace('¦', 'Ɗ').replace('¥', 'Ɓ')
+
+/** A bundled translation's text as every screen shows it, word search included. */
+internal fun shown(source: TranslationSource, raw: String): String =
+    decodeEntities(raw).let { if (source == TranslationSource.HAUSA) hausaLetters(it) else it }
