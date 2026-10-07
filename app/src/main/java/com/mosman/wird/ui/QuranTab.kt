@@ -97,16 +97,36 @@ fun QuranTab(
                     .verticalScroll(rememberScrollState()),
             ) {
                 Spacer(Modifier.height(18.dp))
-                Text(
-                    text = "Qur'an",
-                    style = TextStyle(
-                        fontFamily = FontFamily.Serif,
-                        fontSize = 30.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = colors.ink,
-                    ),
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Qur'an",
+                        style = TextStyle(
+                            fontFamily = FontFamily.Serif,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.ink,
+                        ),
+                    )
+                    IconButton(
+                        onClick = {
+                            previousSubView = QuranSubView.MAIN
+                            updateSubView(QuranSubView.SEARCH)
+                        },
+                    ) {
+                        Icon(
+                            imageVector = WirdIcons.Search,
+                            contentDescription = "Search",
+                            tint = colors.ink,
+                            modifier = Modifier.size(24.dp),
+                        )
+                    }
+                }
                 Spacer(Modifier.height(14.dp))
 
                 // Search Bar
@@ -258,7 +278,7 @@ fun QuranTab(
                 ) {
                     Column {
                         BrowseRow(
-                            icon = WirdIcons.List,
+                            icon = WirdIcons.Sheet,
                             title = "Sūrahs",
                             subtitle = "114 chapters",
                             onClick = { updateSubView(QuranSubView.SURAHS) },

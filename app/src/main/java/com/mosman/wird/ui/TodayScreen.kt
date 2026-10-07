@@ -174,6 +174,7 @@ fun TodayScreen(
     onDownloadModel: ((RecitationModel) -> Unit)? = null,
     isModelReady: Boolean = false,
     onOpenSettings: ((SettingsSubScreen, SettingsDialog?) -> Unit)? = null,
+    onSearch: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     val todaysPages = remember(assignment) { assignment.pages }
@@ -845,6 +846,7 @@ fun TodayScreen(
                 isWirdSession = isWirdSession,
                 onBrowseSurahs = onBrowseSurahs,
                 onSettings = { chromeShown = false; onSettings() },
+                onSearch = onSearch?.let { action -> { chromeShown = false; action() } },
                 audio = audio,
                 // The bar stays up while it plays. It is the only stop control, and a
                 // stop button that vanishes the moment you use it is how you end up
@@ -1104,6 +1106,7 @@ private fun ChromeBar(
     selectedSources: List<com.mosman.wird.data.TranslationSource> = com.mosman.wird.data.TranslationSource.entries,
     onSelectSources: (List<com.mosman.wird.data.TranslationSource>) -> Unit = {},
     onOpenTranslationDialog: () -> Unit = {},
+    onSearch: (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
     var menuOpen by remember { mutableStateOf(false) }
@@ -1167,11 +1170,25 @@ private fun ChromeBar(
             }
         }
 
-        // Right side: 1) Bookmark glyph, 2) Translation globe (1 tap), 3) 3-lines menu
+        // Right side: 1) Search icon, 2) Bookmark glyph, 3) Translation globe, 4) 3-lines menu
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            if (onSearch != null) {
+                IconButton(
+                    onClick = onSearch,
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        imageVector = WirdIcons.Search,
+                        contentDescription = "Search",
+                        tint = colors.onSurfaceRaised,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+
             // Bookmark Glyph (matches squircle vector style on home screen)
             IconButton(
                 onClick = onToggleBookmark,

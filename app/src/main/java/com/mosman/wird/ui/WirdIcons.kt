@@ -29,7 +29,33 @@ object WirdIcons {
     val ChevronDown = Icons.Default.KeyboardArrowDown
     val Check = Icons.Default.Check
     val Close = Icons.Default.Close
-    val Search = Icons.Default.Search
+    /** Search icon (authentic Lucide search vector). */
+    val Search: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Search",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = null,
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(19f, 11f)
+                curveTo(19f, 15.42f, 15.42f, 19f, 11f, 19f)
+                curveTo(6.58f, 19f, 3f, 15.42f, 3f, 11f)
+                curveTo(3f, 6.58f, 6.58f, 3f, 11f, 3f)
+                curveTo(15.42f, 3f, 19f, 6.58f, 19f, 11f)
+                close()
+                moveTo(21f, 21f)
+                lineTo(16.65f, 16.65f)
+            }
+        }.build()
+    }
 
     /** Leaf icon for the Wird brand mark and greeting. */
     val Leaf: ImageVector by lazy {
@@ -174,7 +200,7 @@ object WirdIcons {
         }.build()
     }
 
-    /** Settings gear icon. */
+    /** Settings gear icon (authentic Lucide settings cog). */
     val Gear: ImageVector by lazy {
         ImageVector.Builder(
             name = "Gear",
@@ -190,41 +216,193 @@ object WirdIcons {
                 strokeLineCap = StrokeCap.Round,
                 strokeLineJoin = StrokeJoin.Round,
             ) {
-                moveTo(12f, 15f)
-                curveTo(13.66f, 15f, 15f, 13.66f, 15f, 12f)
-                curveTo(15f, 10.34f, 13.66f, 9f, 12f, 9f)
-                curveTo(10.34f, 9f, 9f, 10.34f, 9f, 12f)
-                curveTo(9f, 13.66f, 10.34f, 15f, 12f, 15f)
+                moveTo(12.22f, 2f)
+                lineTo(11.78f, 2f)
+                curveTo(10.68f, 2f, 9.78f, 2.9f, 9.78f, 4f)
+                verticalLineTo(4.18f)
+                curveTo(9.78f, 4.88f, 9.38f, 5.52f, 8.78f, 5.91f)
+                lineTo(8.35f, 6.16f)
+                curveTo(7.75f, 6.55f, 6.95f, 6.55f, 6.35f, 6.16f)
+                lineTo(6.2f, 6.08f)
+                curveTo(5.24f, 5.53f, 4.02f, 5.86f, 3.47f, 6.81f)
+                lineTo(3.25f, 7.19f)
+                curveTo(2.7f, 8.15f, 3.03f, 9.37f, 3.98f, 9.92f)
+                lineTo(4.13f, 10.02f)
+                curveTo(4.73f, 10.41f, 5.13f, 11.05f, 5.13f, 11.75f)
+                verticalLineTo(12.26f)
+                curveTo(5.13f, 12.96f, 4.73f, 13.6f, 4.13f, 13.99f)
+                lineTo(3.98f, 14.08f)
+                curveTo(3.03f, 14.63f, 2.7f, 15.85f, 3.25f, 16.81f)
+                lineTo(3.47f, 17.19f)
+                curveTo(4.02f, 18.14f, 5.24f, 18.47f, 6.2f, 17.92f)
+                lineTo(6.35f, 17.84f)
+                curveTo(6.95f, 17.45f, 7.75f, 17.45f, 8.35f, 17.84f)
+                lineTo(8.78f, 18.09f)
+                curveTo(9.38f, 18.48f, 9.78f, 19.12f, 9.78f, 19.82f)
+                verticalLineTo(20f)
+                curveTo(9.78f, 21.1f, 10.68f, 22f, 11.78f, 22f)
+                lineTo(12.22f, 22f)
+                curveTo(13.32f, 22f, 14.22f, 21.1f, 14.22f, 20f)
+                verticalLineTo(19.82f)
+                curveTo(14.22f, 19.12f, 14.62f, 18.48f, 15.22f, 18.09f)
+                lineTo(15.65f, 17.84f)
+                curveTo(16.25f, 17.45f, 17.05f, 17.45f, 17.65f, 17.84f)
+                lineTo(17.8f, 17.92f)
+                curveTo(18.76f, 18.47f, 19.98f, 18.14f, 20.53f, 17.19f)
+                lineTo(20.75f, 16.8f)
+                curveTo(21.3f, 15.85f, 20.97f, 14.63f, 20.02f, 14.08f)
+                lineTo(19.87f, 14f)
+                curveTo(19.27f, 13.61f, 18.87f, 12.97f, 18.87f, 12.27f)
+                verticalLineTo(11.77f)
+                curveTo(18.87f, 11.07f, 19.27f, 10.43f, 19.87f, 10.04f)
+                lineTo(20.02f, 9.95f)
+                curveTo(20.97f, 9.4f, 21.3f, 8.18f, 20.75f, 7.22f)
+                lineTo(20.53f, 6.84f)
+                curveTo(19.98f, 5.89f, 18.76f, 5.56f, 17.8f, 6.11f)
+                lineTo(17.65f, 6.19f)
+                curveTo(17.05f, 6.58f, 16.25f, 6.58f, 15.65f, 6.19f)
+                lineTo(15.22f, 5.94f)
+                curveTo(14.62f, 5.55f, 14.22f, 4.91f, 14.22f, 4.21f)
+                verticalLineTo(4f)
+                curveTo(14.22f, 2.9f, 13.32f, 2f, 12.22f, 2f)
                 close()
-                moveTo(19.4f, 15f)
-                lineTo(20.4f, 13.3f)
-                lineTo(19.1f, 11f)
-                lineTo(17.3f, 11.5f)
-                lineTo(15.8f, 10.2f)
-                lineTo(15.5f, 8.4f)
-                lineTo(13.5f, 8f)
-                lineTo(12.5f, 9.6f)
-                lineTo(11.5f, 8f)
-                lineTo(9.5f, 8.4f)
-                lineTo(9.2f, 10.2f)
-                lineTo(7.7f, 11.5f)
-                lineTo(5.9f, 11f)
-                lineTo(4.6f, 13.3f)
-                lineTo(5.6f, 15f)
-                lineTo(4.6f, 16.7f)
-                lineTo(5.9f, 19f)
-                lineTo(7.7f, 18.5f)
-                lineTo(9.2f, 19.8f)
-                lineTo(9.5f, 21.6f)
-                lineTo(11.5f, 22f)
-                lineTo(12.5f, 20.4f)
-                lineTo(13.5f, 22f)
-                lineTo(15.5f, 21.6f)
-                lineTo(15.8f, 19.8f)
-                lineTo(17.3f, 18.5f)
-                lineTo(19.1f, 19f)
-                lineTo(20.4f, 16.7f)
+
+                // Center circle
+                moveTo(15f, 12f)
+                curveTo(15f, 13.66f, 13.66f, 15f, 12f, 15f)
+                curveTo(10.34f, 15f, 9f, 13.66f, 9f, 12f)
+                curveTo(9f, 10.34f, 10.34f, 9f, 12f, 9f)
+                curveTo(13.66f, 9f, 15f, 10.34f, 15f, 12f)
                 close()
+            }
+        }.build()
+    }
+
+    /** Flame icon for streaks. */
+    val Flame: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Flame",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = null,
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(8.5f, 14.5f)
+                curveTo(8.5f, 13.12f, 9.62f, 12f, 11f, 12f)
+                curveTo(11f, 10.62f, 10.5f, 10f, 10f, 9f)
+                curveTo(8.93f, 6.86f, 9.78f, 4.95f, 12f, 3f)
+                curveTo(12.5f, 5.5f, 14f, 7.9f, 16f, 9.5f)
+                curveTo(18f, 11.1f, 19f, 13f, 19f, 15f)
+                curveTo(19f, 18.87f, 15.87f, 22f, 12f, 22f)
+                curveTo(8.13f, 22f, 5f, 18.87f, 5f, 15f)
+                curveTo(5f, 13.85f, 5.43f, 12.71f, 6f, 12f)
+                curveTo(7.1f, 13.5f, 8.5f, 14.5f, 8.5f, 14.5f)
+                close()
+            }
+        }.build()
+    }
+
+    /** Compass icon for Your Journey. */
+    val Compass: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Compass",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = null,
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(22f, 12f)
+                curveTo(22f, 17.52f, 17.52f, 22f, 12f, 22f)
+                curveTo(6.48f, 22f, 2f, 17.52f, 2f, 12f)
+                curveTo(2f, 6.48f, 6.48f, 2f, 12f, 2f)
+                curveTo(17.52f, 2f, 22f, 6.48f, 22f, 12f)
+                close()
+                moveTo(16.24f, 7.76f)
+                lineTo(14.12f, 14.12f)
+                lineTo(7.76f, 16.24f)
+                lineTo(9.88f, 9.88f)
+                close()
+            }
+        }.build()
+    }
+
+    /** Calendar icon for total days. */
+    val Calendar: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Calendar",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = null,
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(5f, 4f)
+                horizontalLineTo(19f)
+                curveTo(20.1f, 4f, 21f, 4.9f, 21f, 6f)
+                verticalLineTo(20f)
+                curveTo(21f, 21.1f, 20.1f, 22f, 19f, 22f)
+                horizontalLineTo(5f)
+                curveTo(3.9f, 22f, 3f, 21.1f, 3f, 20f)
+                verticalLineTo(6f)
+                curveTo(3f, 4.9f, 3.9f, 4f, 5f, 4f)
+                close()
+                moveTo(16f, 2f)
+                verticalLineTo(6f)
+                moveTo(8f, 2f)
+                verticalLineTo(6f)
+                moveTo(3f, 10f)
+                horizontalLineTo(21f)
+            }
+        }.build()
+    }
+
+    /** Award / badge icon for recite rate. */
+    val Award: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Award",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).apply {
+            path(
+                fill = null,
+                stroke = SolidColor(Color.White),
+                strokeLineWidth = 1.8f,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            ) {
+                moveTo(18f, 8f)
+                curveTo(18f, 11.31f, 15.31f, 14f, 12f, 14f)
+                curveTo(8.69f, 14f, 6f, 11.31f, 6f, 8f)
+                curveTo(6f, 4.69f, 8.69f, 2f, 12f, 2f)
+                curveTo(15.31f, 2f, 18f, 4.69f, 18f, 8f)
+                close()
+                moveTo(15.4f, 13.5f)
+                lineTo(18f, 21f)
+                lineTo(12f, 18.5f)
+                lineTo(6f, 21f)
+                lineTo(8.6f, 13.5f)
             }
         }.build()
     }

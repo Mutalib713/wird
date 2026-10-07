@@ -61,6 +61,7 @@ fun CompanionTab(
     streak: Int = 0,
     onOpenPortion: (() -> Unit)? = null,
     onOpenChat: () -> Unit = {},
+    onStartNewChat: (String) -> Unit = onSend,
 ) {
     val colors = LocalWirdColors.current
     var inputText by remember { mutableStateOf("") }
@@ -85,7 +86,7 @@ fun CompanionTab(
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Ask about a verse, or change your plan and reminders.",
+                text = "Ask questions, explore and understand the Qur'an better.",
                 fontSize = 15.sp,
                 color = colors.ink2,
                 modifier = Modifier.padding(horizontal = 4.dp),
@@ -99,9 +100,16 @@ fun CompanionTab(
                     .height(56.dp)
                     .clip(RoundedCornerShape(28.dp))
                     .background(colors.card)
-                    .padding(start = 18.dp, end = 6.dp),
+                    .padding(start = 16.dp, end = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Icon(
+                    imageVector = WirdIcons.Search,
+                    contentDescription = null,
+                    tint = colors.ink2,
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(10.dp))
                 BasicTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
@@ -111,7 +119,7 @@ fun CompanionTab(
                     modifier = Modifier.weight(1f),
                     decorationBox = { innerTextField ->
                         if (inputText.isEmpty()) {
-                            Text("Ask, or tell me something", color = colors.ink2, fontSize = 15.sp)
+                            Text("Ask a question...", color = colors.ink2, fontSize = 15.sp)
                         }
                         innerTextField()
                     },
@@ -124,9 +132,8 @@ fun CompanionTab(
                         .clickable {
                             val msg = inputText.trim()
                             if (msg.isNotEmpty()) {
-                                onSend(msg)
+                                onStartNewChat(msg)
                                 inputText = ""
-                                onOpenChat()
                             }
                         },
                     contentAlignment = Alignment.Center,
@@ -135,16 +142,16 @@ fun CompanionTab(
                         imageVector = WirdIcons.Send,
                         contentDescription = "Send",
                         tint = colors.onAction,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(18.dp),
                     )
                 }
             }
 
             Spacer(Modifier.height(20.dp))
 
-            // Works offline label & suggestions
+            // Suggested label & suggestions matching master design
             Text(
-                text = "Works offline",
+                text = "Suggested",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 color = colors.ink,
@@ -152,11 +159,10 @@ fun CompanionTab(
             )
 
             val suggestions = listOf(
-                "Explain today's verses",
-                "What does Ayat al-Kursi mean?",
-                "Half a page on Fridays",
-                "Remind me after Isha",
-                "I'm travelling till Sunday",
+                "What does the Qur'an say about patience?",
+                "Why is Surah Al-Kahf important?",
+                "What does the Qur'an say about Jesus?",
+                "Explain this ayah",
             )
 
             Column(
@@ -170,15 +176,14 @@ fun CompanionTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                onSend(sugg)
-                                onOpenChat()
+                                onStartNewChat(sugg)
                             },
                     ) {
                         Text(
                             text = sugg,
                             fontSize = 15.sp,
                             color = colors.ink,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                         )
                     }
                 }
@@ -222,52 +227,158 @@ fun CompanionTab(
                 color = colors.ink,
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
             )
-            Card(
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = colors.card),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onOpenChat() },
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Row(
+                // Conversation 1: Active reflection
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.card),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .clickable { onOpenChat() },
                 ) {
-                    Box(
+                    Row(
                         modifier = Modifier
-                            .size(44.dp)
-                            .background(colors.disc, CircleShape),
-                        contentAlignment = Alignment.Center,
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(colors.disc, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = WirdIcons.Chat,
+                                contentDescription = "Conversation",
+                                tint = colors.action,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "The meaning of ${surahName ?: "Al-Fatihah"}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.ink,
+                            )
+                            Text(
+                                text = if (commitment != null) commitment.spoken else "2 days ago",
+                                fontSize = 13.sp,
+                                color = colors.ink2,
+                            )
+                        }
                         Icon(
-                            imageVector = WirdIcons.Chat,
-                            contentDescription = "Conversation",
-                            tint = colors.action,
-                            modifier = Modifier.size(22.dp),
+                            imageVector = WirdIcons.ChevronRight,
+                            contentDescription = "Open",
+                            tint = colors.ink2,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
-                    Spacer(Modifier.width(14.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = trackName,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = colors.ink,
-                        )
-                        Text(
-                            text = if (commitment != null) commitment.spoken else "Reminders and reflections",
-                            fontSize = 13.sp,
-                            color = colors.ink2,
+                }
+
+                // Conversation 2
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.card),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onStartNewChat("Patience in Islam") },
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(colors.disc, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = WirdIcons.Chat,
+                                contentDescription = "Conversation",
+                                tint = colors.action,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Patience in Islam",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.ink,
+                            )
+                            Text(
+                                text = "3 days ago",
+                                fontSize = 13.sp,
+                                color = colors.ink2,
+                            )
+                        }
+                        Icon(
+                            imageVector = WirdIcons.ChevronRight,
+                            contentDescription = "Open",
+                            tint = colors.ink2,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
-                    Icon(
-                        imageVector = WirdIcons.ChevronRight,
-                        contentDescription = "Open",
-                        tint = colors.ink2,
-                        modifier = Modifier.size(18.dp),
-                    )
+                }
+
+                // Conversation 3
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = colors.card),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onStartNewChat("About Surah Maryam") },
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(colors.disc, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = WirdIcons.Chat,
+                                contentDescription = "Conversation",
+                                tint = colors.action,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "About Surah Maryam",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.ink,
+                            )
+                            Text(
+                                text = "4 days ago",
+                                fontSize = 13.sp,
+                                color = colors.ink2,
+                            )
+                        }
+                        Icon(
+                            imageVector = WirdIcons.ChevronRight,
+                            contentDescription = "Open",
+                            tint = colors.ink2,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
                 }
             }
 

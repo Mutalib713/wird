@@ -428,19 +428,30 @@ fun HomeScreen(
                                 ),
                             )
                             val streak = progress?.currentStreak ?: 0
-                            val pillText = if (streak > 0) "🔥 $streak day streak" else "📖 ${progress?.totalDaysRead ?: 0} days read"
+                            val daysCount = progress?.totalDaysRead ?: 0
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(colors.tile)
                                     .padding(horizontal = 10.dp, vertical = 4.dp),
                             ) {
-                                Text(
-                                    text = pillText,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.goldText,
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = if (streak > 0) WirdIcons.Flame else WirdIcons.Sheet,
+                                        contentDescription = null,
+                                        tint = colors.goldText,
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                    Text(
+                                        text = if (streak > 0) "$streak day streak" else "$daysCount days read",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.goldText,
+                                    )
+                                }
                             }
                         }
 
@@ -690,12 +701,30 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = "Your Journey",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colors.ink,
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .background(colors.disc, CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = WirdIcons.Compass,
+                                        contentDescription = null,
+                                        tint = colors.action,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                                Text(
+                                    text = "Your Journey",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.ink,
+                                )
+                            }
                             Icon(
                                 imageVector = WirdIcons.ChevronRight,
                                 contentDescription = null,
@@ -706,20 +735,41 @@ fun HomeScreen(
 
                         Spacer(Modifier.height(14.dp))
 
+                        val streak = progress?.currentStreak ?: 0
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            // 1. Day streak
                             Column(modifier = Modifier.weight(1f)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(26.dp)
+                                            .background(colors.disc, CircleShape),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = WirdIcons.Flame,
+                                            contentDescription = null,
+                                            tint = colors.goldText,
+                                            modifier = Modifier.size(15.dp),
+                                        )
+                                    }
+                                    Text(
+                                        text = "$streak",
+                                        fontSize = 19.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.ink,
+                                    )
+                                }
+                                Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = "$totalDaysRead",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.ink,
-                                )
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    text = "Days read",
+                                    text = "Day streak",
                                     fontSize = 12.sp,
                                     color = colors.ink2,
                                 )
@@ -732,16 +782,35 @@ fun HomeScreen(
                                     .background(colors.rule),
                             )
 
-                            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                            // 2. Total days
+                            Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(26.dp)
+                                            .background(colors.disc, CircleShape),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = WirdIcons.Calendar,
+                                            contentDescription = null,
+                                            tint = colors.action,
+                                            modifier = Modifier.size(14.dp),
+                                        )
+                                    }
+                                    Text(
+                                        text = "$totalDaysRead",
+                                        fontSize = 19.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.ink,
+                                    )
+                                }
+                                Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = "$recitedDays",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.ink,
-                                )
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    text = "Recited aloud",
+                                    text = "Total days",
                                     fontSize = 12.sp,
                                     color = colors.ink2,
                                 )
@@ -754,14 +823,33 @@ fun HomeScreen(
                                     .background(colors.rule),
                             )
 
-                            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                                Text(
-                                    text = "$reciteRate%",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.ink,
-                                )
-                                Spacer(Modifier.height(2.dp))
+                            // 3. Recite rate
+                            Column(modifier = Modifier.weight(1f).padding(start = 10.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(26.dp)
+                                            .background(colors.disc, CircleShape),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = WirdIcons.Award,
+                                            contentDescription = null,
+                                            tint = colors.action,
+                                            modifier = Modifier.size(14.dp),
+                                        )
+                                    }
+                                    Text(
+                                        text = "$reciteRate%",
+                                        fontSize = 19.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.ink,
+                                    )
+                                }
+                                Spacer(Modifier.height(4.dp))
                                 Text(
                                     text = "Recite rate",
                                     fontSize = 12.sp,
@@ -840,7 +928,7 @@ fun HomeScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
-                                    imageVector = WirdIcons.List,
+                                    imageVector = WirdIcons.Sheet,
                                     contentDescription = null,
                                     tint = colors.action,
                                     modifier = Modifier.size(20.dp),

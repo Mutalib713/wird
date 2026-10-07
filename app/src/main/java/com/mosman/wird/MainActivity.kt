@@ -880,6 +880,11 @@ class MainActivity : ComponentActivity() {
                                 settingsInitialDialog = dialog
                                 screen = Screen.SETTINGS
                             },
+                            onSearch = {
+                                onPage = false
+                                tab = WirdTab.QURAN
+                                quranSubView = QuranSubView.SEARCH
+                            },
                             // One file per day and track: two tracks recited on one day used to
                             // share a file, and the second overwrote the first.
                             audioFile = { days.audioFileFor(today, activeTrack.id) },
@@ -1148,6 +1153,17 @@ class MainActivity : ComponentActivity() {
                                     pageSource = PageSource.HOME
                                 },
                                 onOpenChat = { onChat = true },
+                                onStartNewChat = { prompt ->
+                                    chat.clear()
+                                    val surah = assignment.surahs.firstOrNull()?.name ?: "your daily portion"
+                                    val page = assignment.pages.firstOrNull() ?: Mushaf.pageOf(position)
+                                    val greeting = "Assalamu Alaikum! Fresh reflection started for '${activeTrack.name}' (Page $page, $surah). How did your recitation go today, and what would you like to reflect on?"
+                                    turns = chat.say(Speaker.WIRD, greeting)
+                                    if (prompt.isNotBlank()) {
+                                        said(prompt)
+                                    }
+                                    onChat = true
+                                },
                             )
 
                             WirdTab.WIRD -> {

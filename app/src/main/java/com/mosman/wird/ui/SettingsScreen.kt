@@ -264,8 +264,8 @@ fun SettingsScreen(
         }
     }
 
-    // Intercept back button when inside a modal dialog, sub-screen, or page picker
-    BackHandler(enabled = activeDialog != null || subScreen != SettingsSubScreen.MAIN || pickingPageForSurah != null) {
+    // Intercept back button when inside a modal dialog, sub-screen, page picker, or on main settings
+    BackHandler(enabled = true) {
         if (activeDialog != null) {
             activeDialog = null
         } else if (pickingPageForSurah != null) {
@@ -273,8 +273,10 @@ fun SettingsScreen(
         } else if (subScreen == SettingsSubScreen.POSITION_PICKER && positionSearchActive) {
             positionSearchActive = false
             positionQuery = ""
-        } else {
+        } else if (subScreen != SettingsSubScreen.MAIN) {
             subScreen = SettingsSubScreen.MAIN
+        } else {
+            onBack()
         }
     }
 
