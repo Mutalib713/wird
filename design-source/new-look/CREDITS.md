@@ -4,12 +4,14 @@
 
 Both photos show the Ghana National Mosque in Kawukudi, Accra. Both are under
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0). For the app they were cropped
-to 1080 × 673 and saved as WebP. Those edited copies are under the same licence.
+(1080 × 673 for the Home header, 780 × 1040 for the first-time screens) and saved as WebP. Those edited copies are under the same licence.
 
 | File | Photographer | Source |
 |---|---|---|
 | `prototype/img/header_day.webp` | Amuzujoe | [National Mosque of Ghana1.jpg](https://commons.wikimedia.org/wiki/File:National_Mosque_of_Ghana1.jpg) |
 | `prototype/img/header_sunset.webp` | Warmglow | [Ghana National Mosque front view after sunset.jpg](https://commons.wikimedia.org/wiki/File:Ghana_National_Mosque_front_view_after_sunset.jpg) |
+| `prototype/img/welcome_sunset.webp` (portrait crop, first-time welcome) | Warmglow | same file as above |
+| `prototype/img/ready_day.webp` (portrait crop, first-time ready screen) | Amuzujoe | [National Mosque of Ghana1.jpg](https://commons.wikimedia.org/wiki/File:National_Mosque_of_Ghana1.jpg) |
 
 The app has to show this credit too, on the About screen.
 

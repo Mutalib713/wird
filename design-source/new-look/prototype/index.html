@@ -146,6 +146,7 @@ svg { display: block; flex: none; }
 .greet .salam { font-size: 15px; color: var(--ink2); }
 .greet .name { font: 600 31px/1.15 var(--serif); margin-top: 2px; display: flex; align-items: center; gap: 8px; }
 .greet .name svg { color: var(--icon); }
+.greet .name.solo { font-size: 26px; }
 .greet .date { font-size: 13px; color: var(--ink2); margin-top: 6px; }
 .gear { position: absolute; right: 16px; top: 44px; width: 48px; height: 48px; border-radius: 24px; background: color-mix(in srgb, var(--card) 86%, transparent); display: grid; place-items: center; color: var(--ink); }
 .track-chip { position: absolute; left: 16px; bottom: 12px; height: 46px; padding: 0 12px 0 8px; border-radius: 23px; background: var(--card); display: flex; align-items: center; gap: 8px; font: 500 15px var(--sans); box-shadow: 0 2px 10px rgba(23,56,45,.14); max-width: calc(100% - 32px); }
@@ -303,6 +304,159 @@ svg { display: block; flex: none; }
 .toast { position: absolute; z-index: 50; left: 16px; right: 16px; bottom: 92px; background: var(--toast-bg); color: var(--toast-ink); border-radius: 14px; padding: 13px 16px; font-size: 15px; line-height: 1.4; opacity: 0; transform: translateY(8px); transition: all .2s; pointer-events: none; }
 .toast.on { opacity: 1; transform: none; }
 
+/* ---------- first-time experience ---------- */
+.phone { --tour-scrim: rgba(23, 56, 45, .62); --night: #17382D; --dawn: #F7F5ED; }
+.phone.dark { --tour-scrim: rgba(0, 0, 0, .66); }
+.status { z-index: 70; }
+.toast { z-index: 75; }
+.phone.fr-photo .status { background: none; }
+.phone.fr-night .status { background: none; color: var(--dawn); }
+.fr { position: absolute; z-index: 60; inset: 0; background: var(--field); display: none; }
+.fr.on { display: block; }
+.fr-screen { position: absolute; inset: 0; display: flex; flex-direction: column; padding-top: 28px; animation: in .2s ease-out; }
+.fr-scroll { flex: 1; overflow-y: auto; padding: 4px 24px 16px; scrollbar-width: none; }
+.fr-scroll::-webkit-scrollbar { display: none; }
+.fr-foot { padding: 8px 24px 24px; display: flex; flex-direction: column; gap: 4px; }
+.fr-top { display: flex; justify-content: flex-end; align-items: center; min-height: 52px; padding: 0 12px; }
+.fr-h1 { font: 600 30px/1.2 var(--serif); letter-spacing: -.2px; }
+.fr-p { font-size: 16px; line-height: 1.55; color: var(--ink2); margin-top: 12px; }
+.fr-link { min-height: 44px; color: var(--ink2); font: 500 15px var(--sans); text-align: center; width: 100%; }
+.fr-link:hover { color: var(--ink); }
+.dots { display: flex; gap: 6px; justify-content: center; padding: 8px 0 12px; }
+.dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--ink2); opacity: .35; }
+.dots i.on { width: 20px; background: var(--accent); opacity: 1; }
+.over { font: 700 12px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink2); margin: 24px 0 10px; }
+.btn[disabled] { opacity: .45; pointer-events: none; }
+
+/* welcome: the mosque at sunset, full height */
+.fr-welcome { background: var(--night); color: var(--dawn); }
+.fr-welcome .shot { position: absolute; left: 0; right: 0; top: 0; height: 600px; background: url(img/welcome_sunset.webp) 50% 100% / cover no-repeat; }
+.fr-welcome .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(23,56,45,.3) 0%, rgba(23,56,45,0) 22%, rgba(23,56,45,0) 50%, rgba(23,56,45,.88) 62%, var(--night) 66%); }
+.fr-brand { position: relative; display: flex; align-items: center; gap: 8px; padding: 18px 24px 0; font: 600 22px var(--serif); }
+.fr-welcome .body { position: relative; margin-top: auto; padding: 0 24px 24px; }
+.fr-welcome .fr-h1 { font-size: 34px; color: var(--dawn); }
+.fr-welcome .fr-p { color: var(--dawn); opacity: .86; }
+.btn.dawn { background: var(--dawn); color: var(--night); }
+.fr-welcome .fr-link { color: var(--dawn); opacity: .86; }
+.fr-welcome .dots i { background: var(--dawn); }
+.fr-welcome .dots i.on { background: var(--dawn); }
+
+/* ready: the mosque by day across the top */
+.fr-hero { position: relative; height: 290px; flex: none; margin-top: -28px; }
+.fr-hero .shot { position: absolute; inset: 0; background: url(img/ready_day.webp) 50% 0 / cover no-repeat; filter: var(--photo-filter); }
+.fr-hero .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 120px; background: linear-gradient(180deg, transparent, var(--field)); }
+.fr-hero .fr-brand { padding-top: 46px; color: var(--ink); }
+.fr-hero .fr-brand svg, .fr-welcome .fr-brand svg { color: currentColor; }
+
+/* the illustrations inside intro screens, built from real app parts */
+.ex { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 16px; background: var(--card); box-shadow: var(--shadow); }
+.ex + .ex { margin-top: 10px; }
+.ex .t { font: 600 16px/1.3 var(--sans); }
+.ex .s { font-size: 13px; color: var(--ink2); margin-top: 2px; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.week div { display: flex; flex-direction: column; align-items: center; gap: 8px; font: 500 13px var(--sans); color: var(--ink2); }
+.week span { writing-mode: vertical-rl; transform: rotate(180deg); width: 100%; min-height: 104px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font: 500 13px var(--sans); }
+.wk-a { background: var(--action); color: var(--on-action); }
+.wk-b { background: var(--tile); color: var(--goldtext); box-shadow: inset 0 0 0 1px var(--rule); }
+.wk-c { background: var(--chip); color: var(--ink); }
+.legend { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; font-size: 14px; color: var(--ink2); }
+.legend b { color: var(--ink); font-weight: 500; }
+.page-mini { border-radius: 18px; background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
+.page-mini .ph { display: flex; justify-content: space-between; padding: 12px 16px; font: 500 14px var(--sans); border-bottom: 1px solid var(--rule); }
+.page-mini .ph small { color: var(--ink2); font-weight: 400; }
+.page-mini .ar { font-size: 20px; line-height: 2.05; text-align: justify; text-align-last: right; padding: 10px 18px 0; max-height: 178px; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent); mask-image: linear-gradient(180deg, #000 70%, transparent); }
+.page-mini .tools { display: flex; gap: 6px; padding: 6px 10px 10px; color: var(--ink); }
+.page-mini .tools span { width: 40px; height: 40px; border-radius: 20px; background: var(--field); display: grid; place-items: center; }
+.note-row { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; font-size: 14px; line-height: 1.45; color: var(--ink2); }
+.note-row svg { color: var(--icon); margin-top: 1px; }
+.mini-chat { display: flex; flex-direction: column; gap: 10px; }
+.mini-chat .me { font-size: 14px; padding: 9px 14px; }
+.mini-chat .bot { font-size: 14px; background: var(--card); border-radius: 6px 18px 18px 18px; padding: 10px 14px; box-shadow: var(--shadow); align-self: flex-start; max-width: 88%; }
+.mini-chat .bot small { display: block; color: var(--ink2); font-size: 13px; margin-top: 4px; }
+.soon { display: flex; gap: 12px; align-items: flex-start; margin-top: 16px; padding: 14px; border-radius: 16px; background: var(--tile); font-size: 14px; line-height: 1.45; }
+.soon svg { color: var(--goldtext); flex: none; }
+.soon b { display: inline-block; font: 700 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--goldtext); margin-bottom: 2px; }
+
+/* setup steps */
+.su-head { display: flex; align-items: center; padding: 6px 8px 0; min-height: 52px; }
+.su-head h2 { flex: 1; text-align: center; font: 500 15px var(--sans); margin-right: 44px; }
+.su-prog { display: flex; gap: 4px; padding: 6px 24px 0; }
+.su-prog i { flex: 1; height: 4px; border-radius: 2px; background: var(--chip); }
+.su-prog i.done { background: var(--accent); }
+.su-sum { padding: 10px 24px 0; font-size: 13px; line-height: 1.4; color: var(--ink2); min-height: 32px; }
+.su-sum b { color: var(--ink); font-weight: 500; }
+.su-q { font: 600 25px/1.25 var(--serif); margin-top: 14px; }
+.su-hint { font-size: 15px; color: var(--ink2); margin: 8px 0 18px; line-height: 1.45; }
+.opts { display: flex; flex-direction: column; gap: 10px; }
+.opt { display: flex; gap: 14px; align-items: center; width: 100%; padding: 14px; border-radius: 16px; background: var(--card); box-shadow: 0 0 0 1px var(--rule); text-align: left; min-height: 64px; }
+.opt[aria-checked="true"] { box-shadow: 0 0 0 2px var(--accent); }
+.opt .txt { flex: 1; min-width: 0; }
+.opt .t { font: 600 16px/1.3 var(--sans); }
+.opt .t small { font: 400 13px var(--sans); color: var(--ink2); margin-left: 6px; }
+.opt .s { font-size: 14px; color: var(--ink2); margin-top: 3px; line-height: 1.4; }
+.radio { width: 22px; height: 22px; border-radius: 11px; box-shadow: inset 0 0 0 2px var(--ink2); flex: none; display: grid; place-items: center; }
+.opt[aria-checked="true"] .radio { box-shadow: inset 0 0 0 2px var(--accent); }
+.opt[aria-checked="true"] .radio::after { content: ""; width: 12px; height: 12px; border-radius: 6px; background: var(--accent); }
+.opt .tag { font: 500 12px var(--sans); color: var(--goldtext); background: var(--tile); border-radius: 8px; padding: 2px 8px; margin-left: 6px; vertical-align: 2px; }
+.sub-panel { padding: 4px 4px 4px 50px; margin-top: -2px; }
+.field { width: 100%; height: 56px; border-radius: 14px; border: 0; box-shadow: inset 0 0 0 1.5px var(--ink2); background: var(--card); padding: 0 16px; font: 16px var(--sans); color: var(--ink); }
+.field:focus { outline: none; box-shadow: inset 0 0 0 2px var(--accent); }
+.field.small { height: 48px; width: 96px; text-align: center; }
+select.field { appearance: none; -webkit-appearance: none; padding-right: 40px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 22px) 50%, calc(100% - 16px) 50%; background-size: 6px 6px; background-repeat: no-repeat; }
+.count { text-align: right; font-size: 13px; color: var(--ink2); margin-top: 6px; }
+.err { font-size: 14px; color: var(--ink); margin-top: 8px; display: flex; gap: 8px; align-items: center; }
+.err svg { color: var(--goldtext); }
+.days { display: flex; justify-content: space-between; margin-top: 4px; }
+.days button { width: 44px; height: 44px; border-radius: 22px; background: var(--chip); font: 500 14px var(--sans); color: var(--ink); }
+.days button[aria-pressed="true"] { background: var(--action); color: var(--on-action); }
+.chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips-row button { min-height: 40px; padding: 0 14px; border-radius: 20px; background: var(--chip); font: 500 14px var(--sans); color: var(--ink); }
+.chips-row button[aria-pressed="true"] { background: var(--action); color: var(--on-action); }
+.segs { display: flex; background: var(--chip); border-radius: 24px; padding: 4px; margin-bottom: 14px; }
+.segs button { flex: 1; height: 40px; border-radius: 20px; text-align: center; font: 500 15px var(--sans); color: var(--ink2); }
+.segs button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(23,56,45,.12); }
+.result { margin-top: 16px; padding: 14px 16px; border-radius: 16px; background: var(--card); box-shadow: 0 0 0 1px var(--rule); font-size: 15px; line-height: 1.45; }
+.result small { display: block; color: var(--ink2); font-size: 13px; margin-bottom: 2px; }
+.inline { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 15px; color: var(--ink2); }
+.foot-note { font-size: 14px; color: var(--ink2); line-height: 1.45; margin-top: 16px; display: flex; gap: 10px; }
+.foot-note svg { color: var(--icon); flex: none; margin-top: 1px; }
+.review-row { display: flex; align-items: center; gap: 14px; padding: 12px 14px; }
+.review-row + .review-row { border-top: 1px solid var(--rule); }
+.review-row .txt { flex: 1; min-width: 0; }
+.review-row .s { font-size: 13px; color: var(--ink2); }
+.review-row .t { font: 500 16px/1.35 var(--sans); overflow-wrap: anywhere; }
+.review-row button { color: var(--icon); font: 500 14px var(--sans); min-height: 44px; padding: 0 6px; }
+
+/* permission + ready */
+.big-disc { width: 96px; height: 96px; border-radius: 48px; background: var(--disc); color: var(--icon); display: grid; place-items: center; margin: 32px auto 0; }
+.big-disc.done { background: var(--accent); color: var(--card); }
+.center { text-align: center; }
+.perm-points { margin-top: 24px; display: flex; flex-direction: column; gap: 14px; }
+.perm-points div { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.45; }
+.perm-points svg { color: var(--icon); flex: none; margin-top: 1px; }
+.sys { position: absolute; inset: 0; z-index: 3; background: rgba(0,0,0,.38); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.sys .box { width: 100%; background: var(--card); border-radius: 28px; padding: 24px 20px 12px; text-align: center; }
+.sys .box svg { margin: 0 auto 14px; color: var(--ink); }
+.sys .box p { font: 400 20px/1.35 var(--sans); color: var(--ink); margin-bottom: 18px; }
+.sys .box b { font-weight: 500; }
+.sys .box button { display: block; width: 100%; min-height: 48px; border-radius: 24px; font: 500 15px var(--sans); color: var(--ink); background: var(--chip); margin-top: 6px; }
+.sys .box .sys-note { font-size: 12px; color: var(--ink2); margin-top: 10px; }
+.summary { margin-top: 20px; border-radius: 18px; background: var(--card); box-shadow: var(--shadow); padding: 4px 0; text-align: left; }
+.summary .review-row .t { font-size: 15px; }
+.why { font: italic 400 16px/1.45 var(--serif); color: var(--ink); text-align: center; margin-top: 14px; }
+
+/* the tour: a spotlight on one part of Home */
+.tour { position: absolute; z-index: 72; inset: 0; }
+.tour[hidden] { display: none; }
+.tour-ring { position: absolute; border-radius: 20px; box-shadow: 0 0 0 2000px var(--tour-scrim); transition: all .28s cubic-bezier(.2,.8,.2,1); pointer-events: none; outline: 2px solid var(--dawn); outline-offset: 2px; }
+.tour-tip { position: absolute; left: 16px; right: 16px; background: var(--card); border-radius: 20px; padding: 16px; box-shadow: 0 12px 30px rgba(0,0,0,.25); transition: top .28s cubic-bezier(.2,.8,.2,1); }
+.tour-tip .row1 { display: flex; justify-content: space-between; align-items: center; font: 500 13px var(--sans); color: var(--ink2); }
+.tour-tip .row1 button { min-height: 40px; padding: 0 4px; color: var(--ink2); font: 500 14px var(--sans); }
+.tour-tip h3 { font: 600 20px/1.25 var(--serif); margin-top: 2px; }
+.tour-tip p { font-size: 15px; line-height: 1.5; color: var(--ink2); margin-top: 6px; }
+.tour-tip .tb { display: flex; gap: 10px; margin-top: 14px; }
+.tour-tip .tb .btn { flex: 1; height: 44px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
@@ -321,7 +475,7 @@ svg { display: block; flex: none; }
           <div class="head">
             <div class="photo" id="photo"></div><div class="veil"></div><div class="fade"></div>
             <div class="greet">
-              <div class="salam">Assalamu Alaikum,</div>
+              <div class="salam" id="salam">Assalamu Alaikum,</div>
               <div class="name"><span id="reader">Mutalib</span> <svg data-i="leaf" width="22" height="22"></svg></div>
               <div class="date">Wednesday · 26 Rabīʿ al-Thānī 1448</div>
             </div>
@@ -363,11 +517,11 @@ svg { display: block; flex: none; }
           <h1 class="title">Qur'an</h1>
           <div class="stack" style="margin-top:14px">
             <button class="search" data-toast="Word search opens here. Same as today, and it works offline."><svg data-i="search" width="20" height="20"></svg>Search the Qur'an</button>
-            <div class="label" style="margin:10px 4px 0">Continue reading</div>
+            <div class="label" style="margin:10px 4px 0" id="contLbl">Continue reading</div>
             <div class="card continue">
               <span class="mark"></span>
-              <div class="txt"><div class="t">Al-Baqarah</div><div class="s">Page 3 · Juz' 1</div></div>
-              <button class="btn primary" data-toast="Opens page 3, where you stopped.">Continue</button>
+              <div class="txt"><div class="t" id="contT">Al-Baqarah</div><div class="s" id="contS">Page 3 · Juz' 1</div></div>
+              <button class="btn primary" id="contBtn" data-toast="Opens page 3, where you stopped.">Continue</button>
             </div>
             <div class="label" style="margin:10px 4px 0">Quick access</div>
             <div class="qa">
@@ -407,8 +561,8 @@ svg { display: block; flex: none; }
           <div class="label">Works offline</div>
           <div class="sugg" id="sugg"></div>
           <div class="honest"><svg data-i="cloud" width="20" height="20"></svg><span>Open questions, like "What does the Qur'an say about patience?", come next. They will need the internet.</span></div>
-          <div class="label">Recent conversations</div>
-          <div class="rows">
+          <div class="label" id="recentLbl">Recent conversations</div>
+          <div class="rows" id="recentRows">
             <button class="row" id="openRecent"><span class="disc"><svg data-i="chat" width="22" height="22"></svg></span><span class="txt"><div class="t">School Quran</div><div class="s" id="recentWhen">Fridays, reminders · 2 days ago</div></span><svg data-i="chev" width="18" height="18" class="chev"></svg></button>
           </div>
         </section>
@@ -433,16 +587,16 @@ svg { display: block; flex: none; }
             <button class="btn quiet wide" style="margin-top:12px" data-toast="Opens track setup. Same steps as today."><svg data-i="plus" width="18" height="18"></svg> Create new track</button>
             <div class="label">Where you are</div>
             <div class="card">
-              <div class="trow"><div class="txt"><div class="t">School Quran</div><div class="s">Page 3 of 604</div></div><div class="n" style="font-size:15px">0.5%</div></div>
-              <div class="track-bar" style="margin-top:12px"><i class="fixed" style="width:.5%;min-width:6px"></i></div>
+              <div class="trow"><div class="txt"><div class="t" id="whereName">School Quran</div><div class="s" id="wherePage">Page 3 of 604</div></div><div class="n" style="font-size:15px" id="wherePct">0.5%</div></div>
+              <div class="track-bar" style="margin-top:12px"><i class="fixed" id="whereBar" style="width:.5%;min-width:6px"></i></div>
               <div class="stats" style="margin-top:16px"><div><b id="wDays">5</b><small>Days read</small></div><div><b id="wRec">1</b><small>Recited aloud</small></div><div><b id="wRate">20%</b><small>Recite rate</small></div></div>
             </div>
           </div>
           <div id="segProgress" hidden>
-            <div class="label">Days read · School Quran</div>
+            <div class="label" id="daysLabel">Days read · School Quran</div>
             <div class="rows" id="dayRows"></div>
             <div class="label">Recordings</div>
-            <div class="rows"><button class="row" data-toast="Your recordings and their checks. Same screen as today."><span class="disc"><svg data-i="mic" width="22" height="22"></svg></span><span class="txt"><div class="t">1 recording</div><div class="s">Mon 28 Sep · checked on this phone</div></span><svg data-i="chev" width="18" height="18" class="chev"></svg></button></div>
+            <div class="rows"><button class="row" data-toast="Your recordings and their checks. Same screen as today."><span class="disc"><svg data-i="mic" width="22" height="22"></svg></span><span class="txt"><div class="t" id="recT">1 recording</div><div class="s" id="recS">Mon 28 Sep · checked on this phone</div></span><svg data-i="chev" width="18" height="18" class="chev"></svg></button></div>
           </div>
         </section>
 
@@ -454,6 +608,7 @@ svg { display: block; flex: none; }
             <button class="row" data-toast="Reminder times and the after-prayer nudge. Same options as today."><span class="disc"><svg data-i="bell" width="22" height="22"></svg></span><span class="txt"><div class="t">Reminders</div><div class="s">When and how Wird reminds you</div></span><svg data-i="chev" width="18" height="18" class="chev"></svg></button>
             <button class="row" data-toast="Reciter, downloaded pages and storage used."><span class="disc"><svg data-i="download" width="22" height="22"></svg></span><span class="txt"><div class="t">Audio &amp; downloads</div><div class="s">Reciter, pages on this phone, storage</div></span><svg data-i="chev" width="18" height="18" class="chev"></svg></button>
             <button class="row" data-toast="Export and backup. Shows what stays on this phone."><span class="disc"><svg data-i="shield" width="22" height="22"></svg></span><span class="txt"><div class="t">Your data &amp; privacy</div><div class="s">Export, backup, what stays on this phone</div></span><svg data-i="chev" width="18" height="18" class="chev"></svg></button>
+            <button class="row" id="replayTour"><span class="disc"><svg data-i="compass" width="22" height="22"></svg></span><span class="txt"><div class="t">Show the tour again</div><div class="s">Six short steps around Home</div></span><svg data-i="chev" width="18" height="18" class="chev"></svg></button>
             <button class="row" data-go="about"><span class="disc"><svg data-i="info" width="22" height="22"></svg></span><span class="txt"><div class="t">About Wird</div><div class="s">Version, sources, photo credits</div></span><svg data-i="chev" width="18" height="18" class="chev"></svg></button>
           </div>
           <div class="brand"><svg data-i="leaf" width="40" height="40"></svg><b>Wird</b><small>Version 0.1</small></div>
@@ -491,6 +646,8 @@ svg { display: block; flex: none; }
         <input id="pageInput" type="number" inputmode="numeric" min="1" max="604" value="3" aria-label="Page number">
         <div class="dbtns"><button class="btn" id="pdCancel">Cancel</button><button class="btn primary" id="pdOpen">Open</button></div>
       </div>
+      <div class="fr" id="fr" aria-live="polite"></div>
+      <div class="tour" id="tour" hidden><div class="tour-ring" id="tourRing"></div><div class="tour-tip" id="tourTip" role="dialog" aria-modal="true" aria-labelledby="tourTitle"></div></div>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
     </div>
   </div>
@@ -506,6 +663,9 @@ svg { display: block; flex: none; }
     <h2>Tracks</h2>
     <div class="seg" data-ctl="examples"><button data-v="mine">Only mine</button><button data-v="examples">Add two examples</button></div>
     <p class="note">Your phone has one track, School Quran. Hifz and Weekend Review are examples so you can see a longer list.</p>
+    <h2>First-time experience</h2>
+    <div class="seg" id="frCtl"><button data-fr-start="welcome">Start as a new user</button><button data-fr-start="name">Jump to setup</button><button data-fr-start="tour">Run the tour</button></div>
+    <p class="note">Your answers build the track that Home shows afterwards. Start over brings your real data back.</p>
     <h2>Jump to</h2>
     <div class="seg" id="jump">
       <button data-j="sheet">Switch track</button><button data-j="surahs">Sūrahs</button><button data-j="chat">Chat</button><button data-j="settings">Settings</button><button data-j="about">About</button>
@@ -553,6 +713,8 @@ const P = {
   repeat: '<path d="M17 3.5l3 3-3 3"/><path d="M4 11.5v-1a4 4 0 0 1 4-4h12M7 20.5l-3-3 3-3"/><path d="M20 12.5v1a4 4 0 0 1-4 4H4"/>',
   memorise: '<path d="M12 4a7 7 0 0 1 7 7c0 2.6-1.4 4.3-3 5.5V20H8v-3.5C6.4 15.3 5 13.6 5 11a7 7 0 0 1 7-7z"/><path d="M9.5 11.5h5M12 9v5"/>',
   external: '<path d="M14 4h6v6M20 4l-9 9M18 14v5H5V6h5"/>',
+  play: '<path d="M8 5.5v13l10.5-6.5z"/>',
+  compass: '<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
 };
 function paint(root = document) {
   root.querySelectorAll('svg[data-i]').forEach(s => {
@@ -581,6 +743,8 @@ const S = {
   stack: ['home'],
   filter: 'all',
   seg: 'tracks',
+  fresh: false,          // true after the first-time setup: a new user's empty record
+  reader: 'Mutalib',
 };
 // His real record (phone, 7 Oct 2026): five days read, one of them recited.
 const BASE = { days: 5, recited: 1 };
@@ -590,12 +754,12 @@ const HISTORY = [
 const TRACKS = {
   school: { name: 'School Quran', kind: 'Read', days: 'Every day', amount: 'Half a page', perDay: 'Half a page a day', icon: 'book',
             portion: 'Al-Baqarah 6–11', page: 'Page 3', due: true, real: true },
-  hifz:   { name: 'Hifz', kind: 'Memorise', days: 'Mon–Thu', amount: '10 verses', perDay: '10 verses a day', icon: 'memorise',
+  hifz:   { name: 'Hifz', kind: 'Memorize', days: 'Mon–Thu', amount: '10 verses', perDay: '10 verses a day', icon: 'memorise',
             portion: 'An-Naba 1–10', page: 'Page 582', due: true },
   weekend:{ name: 'Weekend Review', kind: 'Review', days: 'Sat–Sun', amount: '1 page', perDay: '1 page a day', icon: 'repeat',
             portion: '', page: '', due: false, next: 'Saturday' },
 };
-const visibleTracks = () => S.examples === 'examples' ? ['school', 'hifz', 'weekend'] : ['school'];
+const visibleTracks = () => S.fresh ? ['mine'] : S.examples === 'examples' ? ['school', 'hifz', 'weekend'] : ['school'];
 
 /* ---------- theme and header photo ---------- */
 function applyTheme() {
@@ -639,7 +803,7 @@ document.addEventListener('click', e => {
   if (t.dataset.tab) return tab(t.dataset.tab);
   if (t.dataset.go) { if (t.dataset.seg) setSeg(t.dataset.seg); return t.dataset.go === 'wird' ? tab('wird') : go(t.dataset.go); }
 });
-addEventListener('keydown', e => { if (e.key === 'Escape') back(); });
+addEventListener('keydown', e => { if (e.key !== 'Escape') return; if ($('#fr').classList.contains('on')) return frBack(); back(); });
 
 let toastTimer;
 function toast(msg) {
@@ -649,17 +813,21 @@ function toast(msg) {
 
 /* ---------- Home: today's card ---------- */
 function record() {
-  const days = BASE.days + (S.done ? 1 : 0);
-  const rec = BASE.recited + (S.done === 'recited' ? 1 : 0);
-  return { days, rec, rate: Math.round(rec / days * 100) };
+  const base = S.fresh ? { days: 0, recited: 0 } : BASE;
+  const days = base.days + (S.done ? 1 : 0);
+  const rec = base.recited + (S.done === 'recited' ? 1 : 0);
+  return { days, rec, rate: days ? Math.round(rec / days * 100) + '%' : '–' };
 }
 function renderHome() {
   const t = TRACKS[S.track];
   $('#chipName').textContent = t.name;
   const card = $('#today');
-  const isSchool = S.track === 'school';
+  const isSchool = !!t.real;
   card.classList.toggle('rest', !t.due);
   card.classList.toggle('is-done', !!S.done && isSchool);
+  $('#salam').hidden = !S.reader;
+  $('#reader').textContent = S.reader || 'Assalamu Alaikum';
+  $('#reader').parentElement.classList.toggle('solo', !S.reader);
   $('#portion').textContent = t.due ? t.portion : 'Not due today';
   $('#pageLine').textContent = t.due ? t.page : `${t.name} is on ${t.days}. Next: ${t.next}.`;
   $('#chips').innerHTML = `<span>${icon('sheet', 14)} ${t.amount}</span><span>${t.kind} · ${t.days}</span>`;
@@ -669,15 +837,16 @@ function renderHome() {
   $('#donePct').textContent = done ? '100%' : '0%';
   $('#doneBar').style.transform = done ? 'scaleX(1)' : 'scaleX(0)';
   $('#doneWhat').textContent = S.done === 'recited' ? 'Recited today' : 'Marked as read';
-  $('#daysPill').textContent = isSchool ? `${r.days} days read` : 'No days yet';
+  $('#daysPill').textContent = !isSchool ? 'No days yet' : S.fresh && !r.days ? 'Your first day' : `${r.days} day${r.days === 1 ? '' : 's'} read`;
   $('#jDays').textContent = $('#wDays').textContent = r.days;
   $('#jRec').textContent = $('#wRec').textContent = r.rec;
-  $('#jRate').textContent = $('#wRate').textContent = r.rate + '%';
+  $('#jRate').textContent = $('#wRate').textContent = r.rate;
   paint(card);
+  renderFresh();
   renderTracks();
 }
 $('#markDone').onclick = () => {
-  if (S.track !== 'school') return toast('This example track has no days to mark. Switch back to School Quran.');
+  if (!TRACKS[S.track].real) return toast('This example track has no days to mark. Switch back to your own track.');
   S.done = 'read'; renderHome(); renderDays(); toast('Marked as read. Today counts toward your record.');
 };
 $('#undo').onclick = () => { S.done = null; renderHome(); renderDays(); toast('Undone. Today is open again.'); };
@@ -692,7 +861,7 @@ function trackRow(id, inSheet) {
     : `<span class="n">${t.real ? record().days : '0'}<small>days read</small></span><svg data-i="chev" width="18" height="18" class="chev" style="color:var(--ink2)"></svg>`;
   return `<button class="${inSheet ? '' : 'card '}trow${sel ? ' sel' : ''}" data-track="${id}">
     <span class="disc">${icon(t.icon)}</span>
-    <span class="txt"><div class="t">${t.name}${t.real ? '' : '<span class="example">example</span>'}</div><div class="s">${t.kind} · ${t.days}</div><div class="s">${t.perDay}</div></span>${right}</button>`;
+    <span class="txt"><div class="t">${t.name}${t.real ? '' : '<span class="example">example</span>'}</div><div class="s">${t.kind} · ${t.days}</div><div class="s">${t.perDay}</div>${!inSheet && t.intention ? `<div class="s" style="font-style:italic">"${esc(t.intention)}"</div>` : ''}</span>${right}</button>`;
 }
 function renderTracks() {
   $('#sheetTracks').innerHTML = visibleTracks().map(id => trackRow(id, true)).join('');
@@ -763,7 +932,9 @@ function verseCard(key, surah, { open = true, tafsir = true } = {}) {
   </div>`;
 }
 const REPLIES = [
-  { ask: 'Explain today\'s verses', match: /today|portion|explain/i, reply: () => `
+  { ask: 'Explain today\'s verses', match: /today|portion|explain/i, reply: () => S.fresh ? `
+      <p>Today's portion is ${TRACKS.mine.portion}, on page ${TRACKS.mine.pageNo}. Open the page to read it with Saheeh International's translation.</p>
+      <button class="btn primary" style="margin-top:10px" data-toast="Opens page ${TRACKS.mine.pageNo}.">Open page ${TRACKS.mine.pageNo}</button>` : `
       <p>Today's portion is Al-Baqarah 6 to 11, on page 3. Here is the first verse.</p>
       ${verseCard('2:6', 'Al-Baqarah', { tafsir: true })}
       <button class="btn quiet" style="margin-top:10px" data-more>Show verses 7 to 11</button>
@@ -799,6 +970,24 @@ $('#msgs').addEventListener('click', e => {
   b.nextElementSibling.hidden = false; b.remove();
 });
 
+/* ---------- a new user's screens ---------- */
+function renderFresh() {
+  const t = TRACKS[S.fresh ? 'mine' : 'school'];
+  const p = S.fresh ? t.pageNo : 3;
+  $('#contLbl').textContent = S.fresh ? 'Start reading' : 'Continue reading';
+  $('#contT').textContent = S.fresh ? t.portion.split(/ \d/)[0] : 'Al-Baqarah';
+  $('#contS').textContent = `Page ${p} · Juz' ${juzOf(p)}`;
+  $('#contBtn').textContent = S.fresh ? 'Open' : 'Continue';
+  $('#contBtn').dataset.toast = S.fresh ? `Opens page ${p}, today's portion.` : 'Opens page 3, where you stopped.';
+  $('#whereName').textContent = t.name;
+  $('#wherePage').textContent = `Page ${p} of 604`;
+  $('#wherePct').textContent = S.fresh ? '0%' : '0.5%';
+  $('#daysLabel').textContent = `Days read · ${t.name}`;
+  $('#recT').textContent = S.fresh ? 'No recordings yet' : '1 recording';
+  $('#recS').textContent = S.fresh ? 'Recite & Review keeps them here, on this phone' : 'Mon 28 Sep · checked on this phone';
+  $('#recentLbl').hidden = $('#recentRows').hidden = S.fresh;
+}
+
 /* ---------- Wird tab ---------- */
 function setSeg(seg) {
   S.seg = seg;
@@ -807,7 +996,11 @@ function setSeg(seg) {
 }
 $$('[data-seg-btn]').forEach(b => b.onclick = () => setSeg(b.dataset.segBtn));
 function renderDays() {
-  const rows = (S.done ? [['Today, Wed 7 Oct', S.done]] : []).concat(HISTORY);
+  const rows = (S.done ? [['Today, Wed 7 Oct', S.done]] : []).concat(S.fresh ? [] : HISTORY);
+  if (!rows.length) {
+    $('#dayRows').innerHTML = `<div class="row day-row"><span class="disc">${icon('history')}</span><span class="txt"><div class="t">No days yet</div><div class="s">Finish today's portion and it shows here.</div></span></div>`;
+    return paint($('#dayRows'));
+  }
   $('#dayRows').innerHTML = rows.map(([d, how]) => `<div class="row day-row"><span class="disc">${icon(how === 'recited' ? 'mic' : 'check')}</span><span class="txt"><div class="t">${d}</div></span><span class="badge${how === 'recited' ? ' rec' : ''}">${how === 'recited' ? 'Recited aloud' : 'Marked as read'}</span></div>`).join('');
   paint($('#dayRows'));
 }
@@ -829,16 +1022,535 @@ $('#jump').onclick = e => {
   else { tab('home'); go(j); }
 };
 $('#reset').onclick = () => {
-  Object.assign(S, { track: 'school', done: null, autoPick: false, filter: 'all' });
+  Object.assign(S, { track: 'school', done: null, autoPick: false, filter: 'all', fresh: false, reader: 'Mutalib' });
+  delete TRACKS.mine; frClose(); endTour(true);
   $('#msgs').innerHTML = ''; $('#autoPick').setAttribute('aria-checked', 'false');
   $$('.filters button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.f === 'all')));
   closeOverlays(); setSeg('tracks'); renderSurahs(); renderHome(); renderDays(); renderTracks(); tab('home');
+};
+
+/* ---------- first-time experience: intro, track setup, microphone, tour ---------- */
+const INTRO = ['welcome', 'tracks', 'multi', 'quran', 'consistent', 'companion', 'ready'];
+const SETUP = ['name', 'goal', 'days', 'order', 'start', 'amount', 'intention', 'reminder', 'review'];
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+// The app's own words: TrackType labels and descriptions, and the intention suggestions in SetupScreen.kt.
+const GOALS = {
+  read: { label: 'Read', ar: 'Tilāwah', s: 'For regularly reading the Qur\'an', icon: 'book' },
+  memorize: { label: 'Memorize', ar: 'Ḥifẓ', s: 'For learning new verses by heart', icon: 'memorise' },
+  review: { label: 'Review', ar: 'Murāja\'ah', s: 'For revising what you\'ve already memorized', icon: 'repeat' },
+};
+const INTENTIONS = ['Build a daily Qur\'an habit', 'Read consistently', 'Memorize new verses', 'Review what I\'ve memorized',
+  'Complete more Qur\'an', 'Stay connected to the Qur\'an', 'Personal Khatmah'];
+const AMOUNTS = { half: ['Half a page', 0.5], one: ['1 page', 1], two: ['2 pages', 2] };
+const PICKS = [114, 78, 1, 18, 36]; // An-Nas, An-Naba, Al-Fatihah, Al-Kahf, Ya-Sin: start pages read from SURAHS
+
+const FR = { step: 'welcome', fromReview: false, sys: false, name: '', mic: null, t: null };
+function freshTrack() {
+  return { name: '', goal: 'read', every: true, days: [], order: 'fatihah', startMode: 'surah', startTouched: false,
+    page: 604, surah: 114, ayah: 1, amount: 'one', verses: 10, intention: '', other: '',
+    remind: 'prayer', prayers: ['Maghrib'], offset: 30, time: '20:00', repeat: 0, repeatCustom: 45 };
+}
+FR.t = freshTrack();
+
+/* --- facts about pages, from the app's bundled page files (data.js) --- */
+const sName = n => SURAHS[n - 1][1];
+const before = ([s, a], [s2, a2]) => s < s2 || (s === s2 && a <= a2);
+function pageOfVerse(s, a) { let p = 1; for (let i = 0; i < 604; i++) { if (before(PAGE_FIRST[i], [s, a])) p = i + 1; else break; } return p; }
+function lastOnPage(p) {
+  if (p === 604) return [114, SURAHS[113][3]];
+  const [s, a] = PAGE_FIRST[p];
+  return a > 1 ? [s, a - 1] : [s - 1, SURAHS[s - 2][3]];
+}
+function pageLabel(p) {
+  const [s1, a1] = PAGE_FIRST[p - 1], [s2, a2] = lastOnPage(p);
+  return s1 === s2 ? `${sName(s1)} ${a1}–${a2}` : `${sName(s1)} ${a1} – ${sName(s2)} ${a2}`;
+}
+const juzOf = p => [...JUZ].reverse().find(j => j[1] <= p)[0];
+
+/* --- the answers, said back in words --- */
+const daysPerWeek = t => t.every ? 7 : t.days.length;
+function daysLabel(t) {
+  if (t.every || t.days.length === 7) return 'Every day';
+  const d = [...t.days].sort((a, b) => a - b), key = d.join('');
+  if (key === '0123') return 'Mon–Thu';
+  if (key === '56') return 'Sat–Sun';
+  if (key === '45') return 'Fri–Sat';
+  return d.map(i => DAYS[i]).join(', ');
+}
+const orderLabel = t => t.order === 'fatihah' ? 'An-Nās → Al-Fātiḥah' : 'Al-Fātiḥah → An-Nās';
+function amountLabel(t) { return t.amount === 'verses' ? `${t.verses} verses a day` : AMOUNTS[t.amount][0] + (t.amount === 'half' ? '' : ' a day'); }
+function amountShort(t) { return t.amount === 'verses' ? `${t.verses} verses` : AMOUNTS[t.amount][0]; }
+function remindLabel(t) {
+  if (t.remind === 'off') return 'No reminder';
+  if (t.remind === 'prayer') {
+    const ps = PRAYERS.filter(p => t.prayers.includes(p));
+    const list = ps.length > 1 ? ps.slice(0, -1).join(', ') + ' and ' + ps.at(-1) : ps[0];
+    return `${t.offset} minutes after ${list}`;
+  }
+  const rep = t.repeat === 0 ? '' : `, again every ${t.repeat === 'custom' ? t.repeatCustom : t.repeat} minutes until done`;
+  return `At ${t.time}${rep}`;
+}
+const intentionOf = t => t.intention === 'other' ? t.other.trim() : t.intention;
+function pace(t) {
+  const perWeek = daysPerWeek(t); if (!perWeek) return '';
+  const active = t.amount === 'verses' ? 6236 / Math.max(1, t.verses) : 604 / AMOUNTS[t.amount][1];
+  const months = active / perWeek * 7 / 30.44;
+  if (months < 1.5) return `about ${Math.round(active / perWeek * 7)} days`;
+  if (months < 24) return `about ${Math.round(months)} months`;
+  const y = Math.floor(months / 12), m = Math.round(months - y * 12);
+  return `about ${y} years` + (m ? ` and ${m} month${m > 1 ? 's' : ''}` : '');
+}
+
+/* --- checks on each step: the Next button stays off until the answer is usable --- */
+function problem(step) {
+  const t = FR.t;
+  if (step === 'days' && !t.every && !t.days.length) return 'Pick at least one day.';
+  if (step === 'start') {
+    if (t.startMode === 'page' && !(t.page >= 1 && t.page <= 604)) return 'Pick a page from 1 to 604.';
+    if (t.startMode === 'ayah') {
+      const max = SURAHS[t.surah - 1][3];
+      if (!(t.ayah >= 1 && t.ayah <= max)) return `${sName(t.surah)} has ${max} verses.`;
+    }
+  }
+  if (step === 'amount' && t.amount === 'verses' && !(t.verses >= 1 && t.verses <= 6236)) return 'Type how many verses, 1 or more.';
+  if (step === 'intention' && t.intention === 'other' && !t.other.trim()) return 'Write your own, or pick one above.';
+  if (step === 'reminder') {
+    if (t.remind === 'prayer' && !t.prayers.length) return 'Pick at least one prayer.';
+    if (t.remind === 'time' && t.repeat === 'custom' && !(t.repeatCustom >= 5 && t.repeatCustom <= 720)) return 'Repeat every 5 to 720 minutes.';
+  }
+  return '';
+}
+function startPage(t) {
+  if (t.startMode === 'page') return t.page;
+  if (t.startMode === 'surah') return SURAHS[t.surah - 1][5];
+  return pageOfVerse(t.surah, t.ayah);
+}
+
+/* --- small builders --- */
+const dots = (i, n = 7) => `<div class="dots" aria-hidden="true">${Array.from({ length: n }, (_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>`;
+const opt = (key, val, on, t, s = '', ic = '') => `<button class="opt" role="radio" aria-checked="${on}" data-set="${key}" data-val="${val}">${ic ? `<span class="disc">${icon(ic)}</span>` : '<span class="radio"></span>'}<span class="txt"><div class="t">${t}</div>${s ? `<div class="s">${s}</div>` : ''}</span>${ic ? '<span class="radio"></span>' : ''}</button>`;
+const errLine = msg => msg ? `<div class="err" role="alert">${icon('info', 18)}<span>${msg}</span></div>` : '';
+
+function introShell(i, body, button, opts = {}) {
+  return `<div class="fr-screen">
+    <div class="fr-top">${opts.noSkip ? '' : '<button class="fr-link" style="width:auto;padding:0 12px" data-act="go" data-to="ready">Skip</button>'}</div>
+    <div class="fr-scroll">${body}</div>
+    <div class="fr-foot">${dots(i)}<button class="btn primary wide" data-act="next">${button}</button></div>
+  </div>`;
+}
+function setupShell(step, body, secondary) {
+  const i = SETUP.indexOf(step), t = FR.t;
+  const said = [];
+  if (i > 0) said.push(`<b>${esc(t.name.trim() || 'Daily Qur\'an')}</b>`);
+  if (i > 1) said.push(GOALS[t.goal].label);
+  if (i > 2) said.push(daysLabel(t));
+  if (i > 3) said.push(orderLabel(t));
+  if (i > 4) said.push(`from page ${startPage(t)}`);
+  if (i > 5) said.push(amountShort(t));
+  const bad = problem(step);
+  return `<div class="fr-screen">
+    <div class="su-head"><button class="icon-btn" data-act="back" aria-label="Back">${icon('back')}</button><h2>${step === 'review' ? 'Your Wird' : 'Create reading track'}</h2></div>
+    <div class="su-prog" role="progressbar" aria-valuemin="1" aria-valuemax="${SETUP.length}" aria-valuenow="${i + 1}" aria-label="Step ${i + 1} of ${SETUP.length}">${SETUP.map((_, k) => `<i class="${k <= i ? 'done' : ''}"></i>`).join('')}</div>
+    <div class="su-sum">${said.length ? said.join(' · ') : `Step ${i + 1} of ${SETUP.length}`}</div>
+    <div class="fr-scroll">${body}${errLine(bad)}</div>
+    <div class="fr-foot">
+      <button class="btn primary wide" data-act="next" ${bad ? 'disabled' : ''}>${step === 'review' ? 'Start my Wird' : FR.fromReview ? 'Save and go back' : 'Next'}</button>
+      ${secondary || ''}
+    </div>
+  </div>`;
+}
+
+/* --- the screens --- */
+const VIEW = {
+  welcome() {
+    return `<div class="fr-screen fr-welcome">
+      <div class="shot"></div><div class="shade"></div>
+      <div class="fr-brand">${icon('leaf', 26)}Wird</div>
+      <div class="body">
+        <h1 class="fr-h1">Build a lasting connection with the Qur'an.</h1>
+        <p class="fr-p">A small portion each day, sized to your life. Wird keeps your place and keeps count.</p>
+        ${dots(0)}
+        <button class="btn dawn wide" data-act="next">See how it works</button>
+        <button class="fr-link" data-act="go" data-to="ready">Skip the introduction</button>
+      </div>
+    </div>`;
+  },
+  tracks() {
+    const ex = [['Hifz', 'memorise', 'Memorize · Mon–Thu', '10 verses a day'], ['Daily Qur\'an', 'book', 'Read · Every day', '1 page a day'], ['Weekend Review', 'repeat', 'Review · Sat–Sun', '1 page a day']];
+    return introShell(1, `
+      <h1 class="fr-h1">Create a routine that fits you.</h1>
+      <p class="fr-p">A reading track is one routine: what you read, on which days, where you start and how much each day.</p>
+      <div class="over">For example</div>
+      ${ex.map(([n, ic, a, b]) => `<div class="ex"><span class="disc">${icon(ic)}</span><div><div class="t">${n}</div><div class="s">${a}</div><div class="s">${b}</div></div></div>`).join('')}`, 'Continue');
+  },
+  multi() {
+    const plan = ['a', 'a', 'a', 'a', 'b', 'c', 'c'], label = { a: 'Hifz', b: 'Al-Kahf', c: 'Review' };
+    return introShell(2, `
+      <h1 class="fr-h1">One Qur'an. Different journeys.</h1>
+      <p class="fr-p">Keep more than one track. Each has its own place in the Qur'an, its own days and its own record.</p>
+      <div class="over">A week with three tracks</div>
+      <div class="week">${plan.map((k, i) => `<div><span class="wk-${k}">${label[k]}</span>${DAYS[i][0]}</div>`).join('')}</div>
+      <div class="legend"><div><b>Hifz</b>, ten new verses, Monday to Thursday</div><div><b>Al-Kahf</b> on Fridays</div><div><b>Review</b> of what you've learnt, at the weekend</div></div>
+      <div class="note-row">${icon('info', 18)}<span>Turn on "Pick the track by day" and Home opens on whichever track is due.</span></div>`, 'Continue');
+  },
+  quran() {
+    const ar = ['2:6', '2:7', '2:8'].map(k => VERSES[k].ar).join(' ۝ ');
+    return introShell(3, `
+      <h1 class="fr-h1">The whole Qur'an is always yours to explore.</h1>
+      <p class="fr-p">Your tracks set today's portion. You can still open any page, listen, search and bookmark.</p>
+      <div class="page-mini" style="margin-top:20px">
+        <div class="ph"><span>Al-Baqarah</span><small>Page 3 · Juz' 1</small></div>
+        <div class="ar" lang="ar">${ar}</div>
+        <div class="tools"><span>${icon('play', 18)}</span><span>${icon('bookmark', 18)}</span><span>${icon('search', 18)}</span></div>
+      </div>
+      <div class="note-row">${icon('info', 18)}<span>Reading here doesn't move your place in a track.</span></div>`, 'Continue');
+  },
+  consistent() {
+    return introShell(4, `
+      <h1 class="fr-h1">Stay consistent, your way.</h1>
+      <p class="fr-p">Finish today's portion by reciting it aloud, or by marking it done. Both count as a day read.</p>
+      <div style="margin-top:20px">
+        <div class="ex"><span class="disc">${icon('mic')}</span><div><div class="t">Recite &amp; Review</div><div class="s">Recite aloud. Wird listens on your phone and points to verses worth another look.</div></div></div>
+        <div class="ex"><span class="disc">${icon('check')}</span><div><div class="t">Mark Done</div><div class="s">Read it already? Mark it done.</div></div></div>
+      </div>
+      <div class="note-row">${icon('leaf', 18)}<span>Missed a day? Your place in the Qur'an waits for you.</span></div>`, 'Continue');
+  },
+  companion() {
+    return introShell(5, `
+      <h1 class="fr-h1">Ask. Explore. Understand.</h1>
+      <p class="fr-p">Ask the Companion what a verse means, or change your plan in plain words. This part works offline.</p>
+      <div class="mini-chat" style="margin-top:20px">
+        <div class="me">Half a page on Fridays</div>
+        <div class="bot">Fridays are half a page now.</div>
+        <div class="me">What does Ayat al-Kursi mean?</div>
+        <div class="bot">Ayat al-Kursi is verse 255 of Al-Baqarah.<small>Shown from the app's own text, with Saheeh International's translation</small></div>
+      </div>
+      <div class="soon">${icon('cloud', 20)}<div><b>Coming next</b><br>Open questions about the Qur'an, answered with the verses behind them. These will need the internet.</div></div>`, 'Continue');
+  },
+  ready() {
+    return `<div class="fr-screen">
+      <div class="fr-hero"><div class="shot"></div><div class="fade"></div><div class="fr-brand">${icon('leaf', 26)}Wird</div></div>
+      <div class="fr-scroll">
+        <h1 class="fr-h1">Let's create your first reading track.</h1>
+        <p class="fr-p">Eight short questions: what you'll read, when, where you start and how much each day. You can change any answer later.</p>
+        <label class="over" for="readerName" style="display:block">What should we call you?</label>
+        <input class="field" id="readerName" data-in="readerName" maxlength="30" placeholder="Your name (optional)" value="${esc(FR.name)}" autocomplete="given-name">
+        <div class="count" style="text-align:left">Only used to greet you. It stays on this phone.</div>
+      </div>
+      <div class="fr-foot">${dots(6)}<button class="btn primary wide" data-act="next">Create my reading track</button><button class="fr-link" data-act="defaults">Use the defaults instead</button></div>
+    </div>`;
+  },
+
+  name() {
+    const n = FR.t.name;
+    return setupShell('name', `
+      <h2 class="su-q">Give your track a name</h2>
+      <p class="su-hint">You'll see it on Home and in reminders. Leave it empty and it's called Daily Qur'an.</p>
+      <input class="field" data-in="name" maxlength="50" placeholder="Daily Qur'an" value="${esc(n)}" aria-label="Track name">
+      <div class="count" id="nameCount">${n.length}/50</div>`, '<button class="fr-link" data-act="back">Back</button>');
+  },
+  goal() {
+    return setupShell('goal', `
+      <h2 class="su-q">What are you hoping to do with this track?</h2>
+      <p class="su-hint">This decides how the track talks to you, not what you can open.</p>
+      <div class="opts" role="radiogroup">${Object.entries(GOALS).map(([k, g]) => opt('goal', k, FR.t.goal === k, `${g.label}<small>${g.ar}</small>`, g.s, g.icon)).join('')}</div>`, '<button class="fr-link" data-act="back">Back</button>');
+  },
+  days() {
+    const t = FR.t;
+    return setupShell('days', `
+      <h2 class="su-q">When do you want to work on this track?</h2>
+      <p class="su-hint">On other days it stays quiet: no portion and no reminder.</p>
+      <div class="opts" role="radiogroup">
+        ${opt('every', 'yes', t.every, 'Every day')}
+        ${opt('every', 'no', !t.every, 'Specific days', t.every ? '' : `${daysPerWeek(t)} day${daysPerWeek(t) === 1 ? '' : 's'} a week`)}
+      </div>
+      ${t.every ? '' : `<div class="sub-panel" style="padding-left:0"><div class="days" role="group" aria-label="Days">${DAYS.map((d, i) => `<button aria-pressed="${t.days.includes(i)}" data-day="${i}" aria-label="${d}">${d[0]}</button>`).join('')}</div></div>`}`, '<button class="fr-link" data-act="back">Back</button>');
+  },
+  order() {
+    const t = FR.t;
+    return setupShell('order', `
+      <h2 class="su-q">Which way will you read?</h2>
+      <p class="su-hint">You can switch direction later without losing your place.</p>
+      <div class="opts" role="radiogroup">
+        ${opt('order', 'fatihah', t.order === 'fatihah', 'An-Nās → Al-Fātiḥah<span class="tag">Default</span>', 'From the end toward the beginning. The usual madrasa order in Ghana and West Africa.')}
+        ${opt('order', 'nas', t.order === 'nas', 'Al-Fātiḥah → An-Nās', 'From the beginning toward the end, for a full khatmah.')}
+      </div>`, '<button class="fr-link" data-act="back">Back</button>');
+  },
+  start() {
+    const t = FR.t, p = startPage(t), ok = !problem('start');
+    const sel = (key, val) => `<select class="field" data-in="${key}" aria-label="Sūrah">${SURAHS.map(s => `<option value="${s[0]}" ${s[0] === val ? 'selected' : ''}>${s[0]}. ${s[1]}</option>`).join('')}</select>`;
+    let body = '';
+    if (t.startMode === 'surah') body = sel('surah', t.surah);
+    if (t.startMode === 'page') body = `<div class="inline"><input class="field small" type="number" inputmode="numeric" min="1" max="604" data-in="page" value="${t.page}" aria-label="Page"><span>of 604</span></div>`;
+    if (t.startMode === 'ayah') body = `${sel('surah', t.surah)}<div class="inline"><span>Verse</span><input class="field small" type="number" inputmode="numeric" min="1" data-in="ayah" value="${t.ayah}" aria-label="Verse"><span>of ${SURAHS[t.surah - 1][3]}</span></div>`;
+    return setupShell('start', `
+      <h2 class="su-q">Where would you like to begin?</h2>
+      <p class="su-hint">${t.order === 'fatihah' ? 'Reading toward Al-Fātiḥah, most people start at An-Nās.' : 'Reading toward An-Nās, most people start at Al-Fātiḥah.'}</p>
+      <div class="segs" role="group" aria-label="Choose by">${[['surah', 'Sūrah'], ['page', 'Page'], ['ayah', 'Verse']].map(([k, l]) => `<button aria-pressed="${t.startMode === k}" data-mode="${k}">${l}</button>`).join('')}</div>
+      ${body}
+      <div class="over" style="margin-top:20px">Quick picks</div>
+      <div class="chips-row">${PICKS.map(n => `<button data-pick="${n}" aria-pressed="${t.startMode === 'surah' && t.surah === n}">${sName(n)} · p. ${SURAHS[n - 1][5]}</button>`).join('')}</div>
+      ${ok ? `<div class="result"><small>You'll start on page ${p}</small>${pageLabel(p)}</div>` : ''}`, '<button class="fr-link" data-act="back">Back</button>');
+  },
+  amount() {
+    const t = FR.t, every = daysPerWeek(t) === 7;
+    const sub = k => { const c = { ...t, amount: k }; return `At this pace, the whole Qur'an in ${pace(c)}`; };
+    return setupShell('amount', `
+      <h2 class="su-q">How much would you like to do each day?</h2>
+      <p class="su-hint">Small and steady beats big and rare. You can change it any time${every ? '' : `. Paces count your ${daysPerWeek(t)} days a week`}.</p>
+      <div class="opts" role="radiogroup">
+        ${Object.entries(AMOUNTS).map(([k, [l]]) => opt('amount', k, t.amount === k, l, sub(k))).join('')}
+        ${opt('amount', 'verses', t.amount === 'verses', 'A number of verses', t.amount === 'verses' ? sub('verses') : 'Type how many')}
+      </div>
+      ${t.amount === 'verses' ? `<div class="sub-panel"><div class="inline"><input class="field small" type="number" inputmode="numeric" min="1" data-in="verses" value="${t.verses}" aria-label="Verses a day"><span>verses a day</span></div></div>` : ''}
+      <div class="foot-note">${icon('info', 18)}<span>Paces assume you finish on every day you picked.</span></div>`, '<button class="fr-link" data-act="back">Back</button>');
+  },
+  intention() {
+    const t = FR.t;
+    return setupShell('intention', `
+      <h2 class="su-q">What are you hoping to achieve with this track?</h2>
+      <p class="su-hint">Optional. It shows on your track, as a reminder of why you started.</p>
+      <div class="opts" role="radiogroup">
+        ${INTENTIONS.map(x => opt('intention', x, t.intention === x, x)).join('')}
+        ${opt('intention', 'other', t.intention === 'other', 'Something else')}
+      </div>
+      ${t.intention === 'other' ? `<div style="margin-top:10px"><input class="field" data-in="other" maxlength="80" placeholder="In your own words" value="${esc(t.other)}" aria-label="Your intention"></div>` : ''}`, `<button class="fr-link" data-act="skip-intention">Skip this one</button>`);
+  },
+  reminder() {
+    const t = FR.t;
+    const prayerPanel = `<div class="sub-panel">
+      <div class="chips-row" role="group" aria-label="Prayers">${PRAYERS.map(p => `<button aria-pressed="${t.prayers.includes(p)}" data-prayer="${p}">${p}</button>`).join('')}</div>
+      <div class="over" style="margin:14px 0 8px">How long after</div>
+      <div class="chips-row">${[10, 20, 30, 60].map(m => `<button aria-pressed="${t.offset === m}" data-offset="${m}">${m} min</button>`).join('')}</div></div>`;
+    const timePanel = `<div class="sub-panel">
+      <input class="field small" style="width:140px" type="time" data-in="time" value="${t.time}" aria-label="Reminder time">
+      <div class="over" style="margin:14px 0 8px">If you haven't read yet</div>
+      <div class="chips-row">${[[0, 'Remind once'], [30, 'Every 30 min'], [60, 'Every hour'], ['custom', 'Other']].map(([v, l]) => `<button aria-pressed="${t.repeat === v}" data-repeat="${v}">${l}</button>`).join('')}</div>
+      ${t.repeat === 'custom' ? `<div class="inline"><span>Every</span><input class="field small" type="number" min="5" max="720" data-in="repeatCustom" value="${t.repeatCustom}" aria-label="Minutes"><span>minutes</span></div>` : ''}</div>`;
+    return setupShell('reminder', `
+      <h2 class="su-q">When should Wird remind you?</h2>
+      <p class="su-hint">One gentle reminder on the days this track is due.</p>
+      <div class="opts" role="radiogroup">
+        ${opt('remind', 'prayer', t.remind === 'prayer', 'After a prayer', t.remind === 'prayer' ? remindLabel(t) : 'Moves with the prayer times each day')}
+        ${t.remind === 'prayer' ? prayerPanel : ''}
+        ${opt('remind', 'time', t.remind === 'time', 'At a set time', t.remind === 'time' ? remindLabel(t) : 'The same time every day')}
+        ${t.remind === 'time' ? timePanel : ''}
+        ${opt('remind', 'off', t.remind === 'off', 'No reminder', 'You can turn one on later in Settings')}
+      </div>
+      <div class="foot-note">${icon('bell', 18)}<span>Android asks permission to show notifications after your first finished day, not now.</span></div>`, '<button class="fr-link" data-act="back">Back</button>');
+  },
+  review() {
+    const t = FR.t, p = startPage(t), why = intentionOf(t);
+    const rows = [
+      ['name', 'book', 'Name', esc(t.name.trim() || 'Daily Qur\'an')],
+      ['goal', GOALS[t.goal].icon, 'Reading goal', `${GOALS[t.goal].label} · ${GOALS[t.goal].ar}`],
+      ['days', 'history', 'Active days', daysLabel(t)],
+      ['order', 'repeat', 'Reading order', orderLabel(t)],
+      ['start', 'bookmark', 'Starting point', `Page ${p}: ${pageLabel(p)}`],
+      ['amount', 'sheet', 'Each day', amountLabel(t)],
+      ['intention', 'leaf', 'Intention', why ? esc(why) : 'None'],
+      ['reminder', 'bell', 'Reminder', remindLabel(t)],
+    ];
+    return setupShell('review', `
+      <h2 class="su-q">Here's your Wird</h2>
+      <p class="su-hint">Check it over. Tap Edit to change anything.</p>
+      <div class="rows">${rows.map(([step, ic, l, v]) => `<div class="review-row"><span class="disc">${icon(ic)}</span><span class="txt"><div class="s">${l}</div><div class="t">${v}</div></span><button data-act="edit" data-to="${step}" aria-label="Edit ${l}">Edit</button></div>`).join('')}</div>`, '<button class="fr-link" data-act="back">Back</button>');
+  },
+
+  mic() {
+    return `<div class="fr-screen">
+      <div class="fr-scroll center">
+        <div class="big-disc">${icon('mic', 44)}</div>
+        <h1 class="fr-h1" style="margin-top:24px">Recite aloud, and Wird listens</h1>
+        <p class="fr-p">Recite &amp; Review records you reciting today's portion and checks it on this phone. To do that, it needs the microphone.</p>
+        <div class="perm-points" style="text-align:left">
+          <div>${icon('shield', 20)}<span>The recording never leaves your phone.</span></div>
+          <div>${icon('check', 20)}<span>Mark Done works without it. You can allow it later, the first time you tap Recite &amp; Review.</span></div>
+        </div>
+      </div>
+      <div class="fr-foot"><button class="btn primary wide" data-act="mic-ask">Allow the microphone</button><button class="fr-link" data-act="mic-later">Not now</button></div>
+      ${FR.sys ? `<div class="sys" role="dialog" aria-modal="true" aria-label="Android permission"><div class="box">${icon('mic', 28)}<p>Allow <b>Wird</b> to record audio?</p>
+        <button data-act="mic-yes">While using the app</button><button data-act="mic-once">Only this time</button><button data-act="mic-no">Don't allow</button>
+        <div class="sys-note">Android's own window. The app can't change its words.</div></div></div>` : ''}
+    </div>`;
+  },
+  created() {
+    const t = FR.t, p = startPage(t), why = intentionOf(t);
+    const micLine = { yes: 'Microphone allowed. Recite &amp; Review is ready.', once: 'Microphone allowed for now. Android will ask again next time.', no: 'Microphone not allowed. Mark Done still works, and you can allow it in Android\'s settings.', later: 'Microphone not asked yet. Wird asks the first time you tap Recite &amp; Review.' }[FR.mic || 'later'];
+    const rows = [
+      ['book', 'Track', `${esc(t.name.trim() || 'Daily Qur\'an')} · ${GOALS[t.goal].label}`],
+      ['history', 'Days', daysLabel(t)],
+      ['bookmark', 'First portion', `Page ${p}: ${pageLabel(p)}`],
+      ['sheet', 'Each day', amountLabel(t)],
+      ['bell', 'Reminder', remindLabel(t)],
+    ];
+    return `<div class="fr-screen">
+      <div class="fr-scroll center">
+        <div class="big-disc done">${icon('check', 48)}</div>
+        <h1 class="fr-h1" style="margin-top:24px">Your Wird is ready</h1>
+        <p class="fr-p">Today's portion is waiting on Home.</p>
+        ${why ? `<p class="why">"${esc(why)}"</p>` : ''}
+        <div class="summary">${rows.map(([ic, l, v]) => `<div class="review-row"><span class="disc">${icon(ic)}</span><span class="txt"><div class="s">${l}</div><div class="t">${v}</div></span></div>`).join('')}</div>
+        <div class="foot-note" style="text-align:left">${icon('mic', 18)}<span>${micLine}</span></div>
+      </div>
+      <div class="fr-foot"><button class="btn primary wide" data-act="finish">Go to Home</button><button class="fr-link" data-act="finish-wird">See it in the Wird tab</button></div>
+    </div>`;
+  },
+};
+
+function frShow(step) {
+  FR.step = step; FR.sys = false;
+  const el = $('#fr'); el.classList.add('on'); el.innerHTML = VIEW[step](); paint(el);
+  const ph = $('#phone');
+  ph.classList.toggle('fr-night', step === 'welcome');
+  ph.classList.toggle('fr-photo', step === 'ready');
+  const first = el.querySelector('input.field:not([type=number]):not([type=time])');
+  if (first && (step === 'name')) setTimeout(() => first.focus(), 60);
+}
+function frRefresh() {
+  // Re-render in place after an answer changes, keeping focus and the caret in a typed field.
+  const a = document.activeElement, key = a && a.dataset ? a.dataset.in : null, pos = key ? a.selectionStart : null;
+  const scroll = $('#fr .fr-scroll')?.scrollTop || 0;
+  $('#fr').innerHTML = VIEW[FR.step](); paint($('#fr'));
+  const sc = $('#fr .fr-scroll'); if (sc) sc.scrollTop = scroll;
+  if (key) { const b = $(`#fr [data-in="${key}"]`); if (b) { b.focus(); try { if (pos !== null) b.setSelectionRange(pos, pos); } catch {} } }
+}
+function frStart(step) {
+  closeOverlays(); endTour(true);
+  if (step === 'welcome' || step === 'name') { FR.t = freshTrack(); FR.name = ''; FR.mic = null; FR.fromReview = false; }
+  frShow(step);
+}
+function frClose() { $('#fr').classList.remove('on'); $('#fr').innerHTML = ''; $('#phone').classList.remove('fr-night', 'fr-photo'); }
+function frNext() {
+  const s = FR.step;
+  if (problem(s)) return;
+  if (FR.fromReview && SETUP.includes(s) && s !== 'review') { FR.fromReview = false; return frShow('review'); }
+  if (INTRO.includes(s)) return frShow(s === 'ready' ? 'name' : INTRO[INTRO.indexOf(s) + 1]);
+  if (s === 'review') return frShow('mic');
+  frShow(SETUP[SETUP.indexOf(s) + 1]);
+}
+function frBack() {
+  const s = FR.step;
+  if (FR.fromReview && s !== 'review') { FR.fromReview = false; return frShow('review'); }
+  if (INTRO.includes(s)) return INTRO.indexOf(s) > 0 ? frShow(INTRO[INTRO.indexOf(s) - 1]) : null;
+  if (s === 'name') return frShow('ready');
+  if (SETUP.includes(s)) return frShow(SETUP[SETUP.indexOf(s) - 1]);
+  if (s === 'mic') return frShow('review');
+  if (s === 'created') return frShow('mic');
+}
+
+/* Turn the answers into the track Home shows. */
+function frApply() {
+  const t = FR.t, p = startPage(t);
+  const wed = 2; // the prototype's Home is dated Wednesday
+  const due = t.every || t.days.includes(wed);
+  const next = due ? '' : DAYS[[...t.days].sort((a, b) => ((a - wed + 7) % 7) - ((b - wed + 7) % 7))[0]];
+  TRACKS.mine = {
+    name: t.name.trim() || 'Daily Qur\'an', kind: GOALS[t.goal].label, days: daysLabel(t), amount: amountShort(t),
+    perDay: amountLabel(t), icon: GOALS[t.goal].icon, portion: pageLabel(p), page: `Page ${p}`, pageNo: p,
+    due, next: next === 'Mon' ? 'Monday' : next === 'Tue' ? 'Tuesday' : next === 'Thu' ? 'Thursday' : next === 'Fri' ? 'Friday' : next === 'Sat' ? 'Saturday' : next === 'Sun' ? 'Sunday' : next,
+    real: true, intention: intentionOf(t),
+  };
+  Object.assign(S, { fresh: true, track: 'mine', done: null, reader: FR.name.trim() });
+  $('#msgs').innerHTML = '';
+  renderHome(); renderDays(); renderTracks(); setSeg('tracks');
+}
+
+$('#fr').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  const t = FR.t, d = b.dataset;
+  if (d.act === 'next') return frNext();
+  if (d.act === 'back') return frBack();
+  if (d.act === 'go') return frShow(d.to);
+  if (d.act === 'edit') { FR.fromReview = true; return frShow(d.to); }
+  if (d.act === 'defaults') { FR.t = freshTrack(); return frShow('mic'); }
+  if (d.act === 'skip-intention') { t.intention = ''; return frNext(); }
+  if (d.act === 'mic-ask') { FR.sys = true; $('#fr').innerHTML = VIEW.mic(); paint($('#fr')); return; }
+  if (['mic-yes', 'mic-once', 'mic-no', 'mic-later'].includes(d.act)) { FR.mic = d.act.slice(4); return frShow('created'); }
+  if (d.act === 'finish' || d.act === 'finish-wird') {
+    frApply(); frClose();
+    if (d.act === 'finish') { tab('home'); setTimeout(() => startTour(), 250); }
+    else { tab('wird'); toast('The tour is in Settings whenever you want it.'); }
+    return;
+  }
+  if (d.set) {
+    const v = d.val;
+    if (d.set === 'every') t.every = v === 'yes';
+    else if (d.set === 'order') { t.order = v; if (!t.startTouched) { t.startMode = 'surah'; t.surah = v === 'fatihah' ? 114 : 1; t.ayah = 1; } }
+    else t[d.set] = v;
+    return frRefresh();
+  }
+  if (d.day !== undefined) { const i = +d.day; t.days = t.days.includes(i) ? t.days.filter(x => x !== i) : [...t.days, i]; return frRefresh(); }
+  if (d.mode) { t.startMode = d.mode; t.startTouched = true; if (d.mode === 'page') t.page = startPage({ ...t, startMode: 'surah' }); return frRefresh(); }
+  if (d.pick) { t.startMode = 'surah'; t.surah = +d.pick; t.ayah = 1; t.startTouched = true; return frRefresh(); }
+  if (d.prayer) { t.prayers = t.prayers.includes(d.prayer) ? t.prayers.filter(x => x !== d.prayer) : [...t.prayers, d.prayer]; return frRefresh(); }
+  if (d.offset) { t.offset = +d.offset; return frRefresh(); }
+  if (d.repeat !== undefined) { t.repeat = d.repeat === 'custom' ? 'custom' : +d.repeat; return frRefresh(); }
+});
+$('#fr').addEventListener('input', e => {
+  const k = e.target.dataset.in; if (!k) return;
+  const t = FR.t, v = e.target.value;
+  if (k === 'readerName') { FR.name = v; return; }
+  if (k === 'name') { t.name = v; $('#nameCount').textContent = `${v.length}/50`; return; }
+  if (k === 'other') { t.other = v; return frRefresh(); }
+  if (k === 'time') { t.time = v; return; }
+  if (['page', 'ayah', 'verses', 'repeatCustom'].includes(k)) { t[k] = parseInt(v, 10); t.startTouched = t.startTouched || k === 'page' || k === 'ayah'; return frRefresh(); }
+});
+$('#fr').addEventListener('change', e => {
+  const k = e.target.dataset.in; if (!k) return;
+  if (k === 'surah') { FR.t.surah = +e.target.value; FR.t.ayah = 1; FR.t.startTouched = true; frRefresh(); }
+  if (k === 'time') frRefresh();
+});
+$('#fr').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('input')) { e.preventDefault(); frNext(); } });
+
+/* ---------- the tour: six steps around Home ---------- */
+const TOUR = [
+  ['#today', 'Today\'s Wird', 'This is today\'s portion. Finish it, and tomorrow\'s is ready in the morning.'],
+  ['#today .actions', 'Two ways to finish', 'Recite it aloud with Recite & Review, or tap Mark Done if you\'ve already read it.'],
+  ['#trackChip', 'Your tracks', 'Switch between tracks here, or make a new one.'],
+  ['.nav [data-tab="quran"]', 'The whole Qur\'an', 'Open any page, listen, search and bookmark. Reading here won\'t move your track.'],
+  ['#home .journey', 'Your record', 'Days you read and days you recited add up here. The Wird tab has the full list.'],
+  ['.nav [data-tab="companion"]', 'The Companion', 'Ask what a verse means, or change your plan in plain words.'],
+];
+let tourAt = -1;
+function startTour() { closeOverlays(); tab('home'); $('#home').scrollTop = 0; tourAt = 0; $('#tour').hidden = false; placeTour(); }
+function endTour(silent) { if (tourAt < 0) return; tourAt = -1; $('#tour').hidden = true; if (!silent) toast('You can see the tour again from Settings.'); }
+function placeTour() {
+  const [sel, title, text] = TOUR[tourAt], el = $(sel), ph = $('#phone');
+  if (!el) return endTour(true);
+  const pr = ph.getBoundingClientRect(), r = el.getBoundingClientRect(), k = pr.width / ph.offsetWidth;
+  const pad = 6, x = (r.left - pr.left) / k - pad, y = (r.top - pr.top) / k - pad, w = r.width / k + pad * 2, h = r.height / k + pad * 2;
+  Object.assign($('#tourRing').style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+  const tip = $('#tourTip');
+  tip.innerHTML = `<div class="row1"><span>${tourAt + 1} of ${TOUR.length}</span><button data-t="skip">Skip tour</button></div>
+    <h3 id="tourTitle">${title}</h3><p>${esc(text)}</p>
+    <div class="tb">${tourAt ? '<button class="btn quiet" data-t="back">Back</button>' : ''}<button class="btn primary" data-t="next">${tourAt === TOUR.length - 1 ? 'Done' : 'Next'}</button></div>`;
+  const th = tip.offsetHeight, below = y + h + 12, H = ph.offsetHeight;
+  tip.style.top = (below + th < H - 12 ? below : Math.max(36, y - th - 12)) + 'px';
+  tip.querySelector('[data-t="next"]').focus();
+}
+$('#tourTip').addEventListener('click', e => {
+  const t = e.target.closest('[data-t]')?.dataset.t; if (!t) return;
+  if (t === 'skip') return endTour();
+  if (t === 'back') { tourAt--; return placeTour(); }
+  if (tourAt === TOUR.length - 1) { endTour(true); return toast('That\'s the tour. Today\'s portion is ready.'); }
+  tourAt++; placeTour();
+});
+addEventListener('keydown', e => { if (e.key === 'Escape' && tourAt >= 0) endTour(); }, true);
+addEventListener('resize', () => { if (tourAt >= 0) placeTour(); });
+$('#replayTour').onclick = () => startTour();
+$('#frCtl').onclick = e => {
+  const s = e.target.closest('[data-fr-start]')?.dataset.frStart; if (!s) return;
+  if (s === 'tour') { frClose(); return startTour(); }
+  frStart(s);
 };
 
 /* ---------- clock, start ---------- */
 function tick() { const d = new Date(); $('#clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); }
 setInterval(tick, 20000); tick();
 paint(); fit(); applyTheme(); renderHome(); renderTracks(); renderSurahs(); renderJuz(); renderDays(); show('home');
+if (location.hash === '#new') frStart('welcome');
 </script>
 </body>
 </html>
