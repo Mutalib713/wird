@@ -557,7 +557,11 @@ fun TodayScreen(
     SetStatusBarAppearance(isLightBackground = !dark)
 
     WirdTheme(mode = if (dark) ThemeMode.DARK else ThemeMode.LIGHT) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(LocalWirdColors.current.page),
+    ) {
         // **The controls sit over the page while something is playing, and vanish when it
         // stops.** His ask, 2026-08-19. Drawn last so it lands above the mushaf, aligned to
         // the bottom because that is where a thumb already is and § 5e keeps the top of the
@@ -714,7 +718,7 @@ fun TodayScreen(
         if (translationMode) {
             TranslationScreen(
                 pageNumber = current,
-                modifier = Modifier.safeDrawingPadding(),
+                modifier = Modifier.safeDrawingPadding().padding(top = 58.dp),
                 showAyah = store.ayahBeforeTranslation,
                 sources = selectedTranslationSources,
                 onSelectSources = { selectedTranslationSources = it },
@@ -726,7 +730,7 @@ fun TodayScreen(
             jump = jump,
             highlightPortion = isWirdSession,
             allowedPageRange = allowedRange,
-            modifier = Modifier.safeDrawingPadding(),
+            modifier = Modifier.safeDrawingPadding().padding(top = 58.dp),
             onPageChanged = {
                 current = it
                 onPageVisited(it)

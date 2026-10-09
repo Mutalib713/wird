@@ -46,6 +46,7 @@ fun NewLookSettingsMain(
     onOpenAbout: () -> Unit,
     modifier: Modifier = Modifier,
     versionName: String = "Version 0.1",
+    displayContent: @Composable (() -> Unit)? = null,
 ) {
     val colors = LocalWirdColors.current
 
@@ -151,6 +152,11 @@ fun NewLookSettingsMain(
                     onClick = onOpenAbout,
                 )
             }
+        }
+
+        if (displayContent != null) {
+            Spacer(Modifier.height(20.dp))
+            displayContent()
         }
 
         Spacer(Modifier.height(36.dp))

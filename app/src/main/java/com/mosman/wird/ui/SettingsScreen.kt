@@ -301,26 +301,8 @@ fun SettingsScreen(
                     onOpenPrivacy = { subScreen = SettingsSubScreen.DATA_PRIVACY },
                     onOpenAbout = { activeDialog = SettingsDialog.ABOUT_WIRD },
                     versionName = "Version $versionName",
-                )
-            }
-
-            SettingsSubScreen.READING -> {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    SettingsSubTopBar(
-                        title = "Reading Preferences",
-                        onBack = { subScreen = SettingsSubScreen.MAIN },
-                        isDark = isDark,
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(18.dp),
-                    ) {
-                        // 1. Display Settings
-                        ClaySection(title = "Display Settings") {
+                    displayContent = {
+                        ClaySection(title = "Display") {
                             ClaySettingRow(
                                 title = "Lock screen orientation",
                                 subtitle = if (lockOrientation) "Screen orientation is locked" else "Screen rotates freely with device orientation",
@@ -481,8 +463,26 @@ fun SettingsScreen(
                                 }
                             }
                         }
+                    },
+                )
+            }
 
-                        // 2. Reading Tracks & Schedules
+            SettingsSubScreen.READING -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    SettingsSubTopBar(
+                        title = "Reading Preferences",
+                        onBack = { subScreen = SettingsSubScreen.MAIN },
+                        isDark = isDark,
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(18.dp),
+                    ) {
+                        // 1. Reading Tracks & Schedules
                         ClaySection(title = "Reading Tracks & Schedules") {
                             val tracksCount = readingTracks.size
                             val tracksSummary = if (tracksCount == 0) {
@@ -508,7 +508,7 @@ fun SettingsScreen(
                             )
                         }
 
-                        // 3. Reading Preferences
+                        // 2. Reading Preferences
                         ClaySection(title = "Reading Preferences") {
                             ClaySettingRow(
                                 title = "Starting point",

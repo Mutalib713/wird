@@ -18,8 +18,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import com.mosman.wird.R
 import androidx.compose.animation.animateContentSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -1233,19 +1235,11 @@ fun ClockVectorIcon(tint: Color, modifier: Modifier = Modifier) {
 /** Vector flame / streak icon matching Sacred Rule 6. */
 @Composable
 fun FlameVectorIcon(tint: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.size(16.dp)) {
-        val w = size.width
-        val h = size.height
-        val path = Path().apply {
-            moveTo(w * 0.5f, h * 0.05f)
-            cubicTo(w * 0.75f, h * 0.25f, w * 0.95f, h * 0.55f, w * 0.8f, h * 0.85f)
-            cubicTo(w * 0.65f, h * 1.0f, w * 0.35f, h * 1.0f, w * 0.2f, h * 0.85f)
-            cubicTo(w * 0.05f, h * 0.65f, w * 0.25f, h * 0.4f, w * 0.45f, h * 0.45f)
-            cubicTo(w * 0.4f, h * 0.3f, w * 0.45f, h * 0.15f, w * 0.5f, h * 0.05f)
-            close()
-        }
-        drawPath(path, color = tint)
-    }
+    Image(
+        painter = painterResource(R.drawable.ic_fire_emoji),
+        contentDescription = "Streak",
+        modifier = modifier.size(16.dp),
+    )
 }
 
 /** Vector book icon matching Sacred Rule 6. */

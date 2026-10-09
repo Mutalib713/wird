@@ -334,7 +334,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .statusBarsPadding()
-                        .padding(top = 32.dp, end = 16.dp)
+                        .padding(top = 8.dp, end = 16.dp)
                         .size(46.dp)
                         .clip(CircleShape)
                         .background(colors.card.copy(alpha = 0.85f))
@@ -449,10 +449,9 @@ fun HomeScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
-                                    Icon(
-                                        imageVector = WirdIcons.Flame,
+                                    Image(
+                                        painter = painterResource(R.drawable.ic_fire_emoji),
                                         contentDescription = "Streak",
-                                        tint = Color(0xFFEA580C),
                                         modifier = Modifier.size(18.dp),
                                     )
                                     Column {
@@ -788,11 +787,10 @@ fun HomeScreen(
                                             .background(colors.disc, CircleShape),
                                         contentAlignment = Alignment.Center,
                                     ) {
-                                        Icon(
-                                            imageVector = WirdIcons.Flame,
-                                            contentDescription = null,
-                                            tint = Color(0xFFEA580C),
-                                            modifier = Modifier.size(15.dp),
+                                        Image(
+                                            painter = painterResource(R.drawable.ic_fire_emoji),
+                                            contentDescription = "Streak",
+                                            modifier = Modifier.size(17.dp),
                                         )
                                     }
                                     Text(

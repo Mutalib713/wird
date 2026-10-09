@@ -53,9 +53,12 @@ fun WirdBottomBar(
 ) {
     val colors = LocalWirdColors.current
     androidx.compose.material3.Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
+            .fillMaxWidth(),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(32.dp),
         color = colors.card,
-        shadowElevation = 8.dp,
+        shadowElevation = 10.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, colors.rule),
     ) {
         Row(
